@@ -86,7 +86,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     file(STRINGS "${generated_dir}/Options.txt" _api_level_line REGEX "^hxcpp_api_level=")
     string(REPLACE "hxcpp_api_level=" "" _hxcpp_api_level "${_api_level_line}")
 
-    file(GLOB _generated_sources "${generated_dir}/src/*.cpp")
+    file(GLOB_RECURSE _generated_sources "${generated_dir}/src/*.cpp")
     list(FILTER _generated_sources EXCLUDE REGEX "__lib__\\.cpp$")
     list(FILTER _generated_sources EXCLUDE REGEX "__files__\\.cpp$")
 

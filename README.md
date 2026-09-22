@@ -41,7 +41,7 @@ The sandbox proves a small Haxe program that is compiled to C++ by hxcpp, and th
    cd ..
    ```
 
-   This runs `haxe -cp src -main Main -cpp build/cpp -D no-compilation`, which stops after generating `sandbox/build/cpp/` and does **not** invoke hxcpp's own compiler/linker.
+   This runs `build.hxml` (`-cp ../src -cp src -main Main -cpp build/cpp -D no-compilation`), pulling in the engine's own Haxe source from `../src` alongside the sandbox's own `src`, and stops after generating `sandbox/build/cpp/` without invoking hxcpp's own compiler/linker.
 
 2. Configure and build with CMake (from the repo root):
 
@@ -62,10 +62,13 @@ The sandbox proves a small Haxe program that is compiled to C++ by hxcpp, and th
 
    ```
    Fried Engine sandbox pipeline OK (1..10 sum = 55)
+   [INFO] tick 1: delta=0.0101...s elapsed=0.0101...s
+   [INFO] tick 2: delta=0.0102...s elapsed=0.0203...s
+   [INFO] tick 3: delta=0.0101...s elapsed=0.0304...s
    Fried Engine SDL2 proof OK (window opened, ran, closed)
    ```
 
-   A real SDL2 window briefly opens and closes on its own — that's the step 2 proof (`native/sdl_proof.cpp`, bound from Haxe via `sandbox/src/SdlProof.hx`). It's a minimal hand-written glue function, not the engine's real SDL2 abstraction, which comes in later steps.
+   The `[INFO] tick ...` lines come from `fried.Log`/`fried.Time` (`src/fried/`), the engine's own Haxe code. A real SDL2 window also briefly opens and closes on its own, via `native/sdl_proof.cpp` bound from Haxe through `sandbox/src/SdlProof.hx` — a minimal hand-written glue function, not the engine's real SDL2 abstraction, which comes in a later step.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime/std source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them for a different hxcpp version.
 

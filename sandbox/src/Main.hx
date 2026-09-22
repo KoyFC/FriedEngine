@@ -1,3 +1,6 @@
+import fried.Log;
+import fried.Time;
+
 class Main {
 	public static function main():Void {
 		var sum = 0;
@@ -5,6 +8,13 @@ class Main {
 			sum += i;
 		}
 		Sys.println("Fried Engine sandbox pipeline OK (1..10 sum = " + sum + ")");
+
+		Time.start();
+		for (i in 0...3) {
+			Sys.sleep(0.01);
+			Time.tick();
+			Log.info('tick ${Time.frameCount}: delta=${Time.deltaSeconds}s elapsed=${Time.elapsedSeconds}s');
+		}
 
 		var result = SdlProof.run(640, 480, 120);
 		if (result == 0) {
