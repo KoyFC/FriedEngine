@@ -13,7 +13,7 @@ Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ## Project status
 
 - [x] 1. Prove Haxe -> C++ -> CMake -> executable on PC (`sandbox/`)
-- [ ] 2. Integrate SDL2
+- [x] 2. Integrate SDL2 (`sandbox/` opens and closes a real window)
 - [ ] 3. Minimal runtime (Application, Game Loop, Time, Window, Input, Events, Logging, Filesystem, Assets)
 - [ ] 4. Hybrid Filesystem and Asset Pipeline
 - [ ] 5. Renderer and resources (Texture, Shader, Sound, Music, Font)
@@ -27,7 +27,7 @@ Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 - [hxcpp](https://lib.haxe.org/p/hxcpp/) (`haxelib install hxcpp`)
 - CMake 3.20+
 - A C++17 compiler: GCC, Clang or MSVC
-- SDL2 (starting at step 4)
+- SDL2 2.0+, with its CMake package config available to `find_package(SDL2 CONFIG)` (e.g. the distro's `SDL2-devel`/`libsdl2-dev` package)
 
 ## Building the sandbox
 
@@ -58,7 +58,14 @@ The sandbox proves a small Haxe program that is compiled to C++ by hxcpp, and th
    ./build/sandbox/fried_sandbox
    ```
 
-   Expected output: `Fried Engine sandbox pipeline OK (1..10 sum = 55)`.
+   Expected output:
+
+   ```
+   Fried Engine sandbox pipeline OK (1..10 sum = 55)
+   Fried Engine SDL2 proof OK (window opened, ran, closed)
+   ```
+
+   A real SDL2 window briefly opens and closes on its own — that's the step 2 proof (`native/sdl_proof.cpp`, bound from Haxe via `sandbox/src/SdlProof.hx`). It's a minimal hand-written glue function, not the engine's real SDL2 abstraction, which comes in later steps.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime/std source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them for a different hxcpp version.
 
@@ -71,4 +78,4 @@ Install the recommended extensions when prompted (C/C++, CMake Tools, Haxe & Nek
 
 CMake Tools auto-configure on opening the folder is disabled on purpose (`cmake.configureOnOpen: false` in `.vscode/settings.json`): the sandbox's `CMakeLists.txt` requires `sandbox/build/cpp/` to already exist, so configuring must happen after the Haxe generation step, not before it. Use the build task instead of the CMake Tools sidebar for a clean build.
 
-The debug launch config (`.vscode/launch.json`) uses `cppdbg`/`gdb`, which matches this repository's currently-verified Linux/GCC setup; it will need a `lldb`/`cppvsdbg` variant once Windows/macOS support is added (roadmap step 14).
+The debug launch config (`.vscode/launch.json`) uses `cppdbg`/`gdb`, which matches this repository's currently-verified Linux/GCC setup; it will need a `lldb`/`cppvsdbg` variant once Windows/macOS support is added.

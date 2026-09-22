@@ -16,6 +16,10 @@ A minimal sandbox Haxe program is compiled to C++ by hxcpp (`haxe build.hxml`, u
 
 CMake is meant to be the build system for every platform this engine will target, but only the PC/CMake path above is actually implemented and verified so far.
 
+## SDL2 (implemented, proof stage)
+
+SDL2 is linked via CMake's own package config (`find_package(SDL2 CONFIG)`, `SDL2::SDL2`). `native/sdl_proof.cpp` is a single hand-written function that opens a window, runs a short frame loop, and closes it again; it's called from Haxe through the minimal extern in `sandbox/src/SdlProof.hx`. This only proves SDL2 links and runs through the pipeline. It is **not** the engine's Window/Renderer abstraction, which will replace it once built.
+
 ## Repository layout
 
 ```
@@ -24,6 +28,7 @@ FriedEngine/
   README.md
   CMakeLists.txt      <- CMake entry point
   cmake/Hxcpp.cmake   <- locates hxcpp, compiles generated C++ & runtime
+  native/             <- hand-written C++ glue (currently: the SDL2 proof)
   sandbox/            <- app validating the pipeline
   .vscode/            <- build/debug tasks for the sandbox
 ```
