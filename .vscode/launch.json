@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug sandbox",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/sandbox/fried_sandbox",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "preLaunchTask": "Build sandbox",
+            "externalConsole": false
+        }
+    ]
+}

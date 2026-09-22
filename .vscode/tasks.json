@@ -1,0 +1,42 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Haxe: generate sandbox C++",
+            "detail": "haxe build.hxml (sandbox) -> sandbox/build/cpp",
+            "type": "shell",
+            "command": "haxe",
+            "args": ["build.hxml"],
+            "options": { "cwd": "${workspaceFolder}/sandbox" },
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["-S", ".", "-B", "build"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: build",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build sandbox",
+            "detail": "Full pipeline: Haxe -> hxcpp -> CMake configure -> CMake build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Haxe: generate sandbox C++",
+                "CMake: configure",
+                "CMake: build"
+            ],
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        }
+    ]
+}

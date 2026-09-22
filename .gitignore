@@ -382,6 +382,7 @@ FodyWeavers.xsd
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/c_cpp_properties.json
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -396,3 +397,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+## Fried Engine (Haxe / hxcpp / CMake)
+# CMake build trees and hxcpp -cpp output (e.g. sandbox/build/, sandbox/build/cpp/)
+build/
+*.ndll
+haxe_*.log
