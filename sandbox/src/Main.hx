@@ -1,27 +1,29 @@
+import fried.Application;
 import fried.Log;
 import fried.Time;
+import fried.Window;
 
 class Main {
 	public static function main():Void {
-		var sum = 0;
-		for (i in 1...11) {
-			sum += i;
-		}
-		Sys.println("Fried Engine sandbox pipeline OK (1..10 sum = " + sum + ")");
+		Application.init();
 
-		Time.start();
-		for (i in 0...3) {
-			Sys.sleep(0.01);
-			Time.tick();
-			Log.info('tick ${Time.frameCount}: delta=${Time.deltaSeconds}s elapsed=${Time.elapsedSeconds}s');
-		}
+		var window = new Window("Fried Engine sandbox", 640, 480);
+		Log.info('Window created: ${window.width}x${window.height}');
 
-		var result = SdlProof.run(640, 480, 120);
-		if (result == 0) {
-			Sys.println("Fried Engine SDL2 proof OK (window opened, ran, closed)");
-		} else {
-			Sys.println("Fried Engine SDL2 proof FAILED (code " + result + ")");
-			Sys.exit(result);
-		}
+		var frame = 0;
+		Application.run(function() {
+			frame++;
+			if (frame % 30 == 0) {
+				Log.info('frame $frame, elapsed=${Time.elapsedSeconds}s');
+			}
+			if (frame >= 120) {
+				Application.quit();
+			}
+		});
+
+		window.destroy();
+		Application.shutdown();
+
+		Log.info("Fried Engine sandbox run complete");
 	}
 }

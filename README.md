@@ -61,14 +61,15 @@ The sandbox proves a small Haxe program that is compiled to C++ by hxcpp, and th
    Expected output:
 
    ```
-   Fried Engine sandbox pipeline OK (1..10 sum = 55)
-   [INFO] tick 1: delta=0.0101...s elapsed=0.0101...s
-   [INFO] tick 2: delta=0.0102...s elapsed=0.0203...s
-   [INFO] tick 3: delta=0.0101...s elapsed=0.0304...s
-   Fried Engine SDL2 proof OK (window opened, ran, closed)
+   [INFO] Window created: 640x480
+   [INFO] frame 30, elapsed=0.004...s
+   [INFO] frame 60, elapsed=0.004...s
+   [INFO] frame 90, elapsed=0.004...s
+   [INFO] frame 120, elapsed=0.004...s
+   [INFO] Fried Engine sandbox run complete
    ```
 
-   The `[INFO] tick ...` lines come from `fried.Log`/`fried.Time` (`src/fried/`), the engine's own Haxe code. A real SDL2 window also briefly opens and closes on its own, via `native/sdl_proof.cpp` bound from Haxe through `sandbox/src/SdlProof.hx` — a minimal hand-written glue function, not the engine's real SDL2 abstraction, which comes in a later step.
+   A real SDL2 window opens, `fried.Application.run()` drives 120 iterations of the game loop (ticking `fried.Time`, pumping `fried.Events`), then the window closes and SDL shuts down — all through `fried.Application`/`fried.Window`/`fried.Events`/`fried.Time`/`fried.Log` (`src/fried/`), the engine's own Haxe code, not sandbox-only test code.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime/std source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them for a different hxcpp version.
 

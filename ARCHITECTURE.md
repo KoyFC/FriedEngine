@@ -16,18 +16,21 @@ A minimal sandbox Haxe program is compiled to C++ by hxcpp (`haxe build.hxml`, u
 
 CMake is meant to be the build system for every platform this engine will target, but only the PC/CMake path above is actually implemented and verified so far.
 
-## SDL2 (implemented, proof stage)
+## SDL2 (implemented)
 
-SDL2 is linked via CMake's own package config (`find_package(SDL2 CONFIG)`, `SDL2::SDL2`). `native/sdl_proof.cpp` is a single hand-written function that opens a window, runs a short frame loop, and closes it again; it's called from Haxe through the minimal extern in `sandbox/src/SdlProof.hx`. This only proves SDL2 links and runs through the pipeline. It is **not** the engine's Window/Renderer abstraction, which will replace it once built.
+SDL2 is linked via CMake's own package config (`find_package(SDL2 CONFIG)`, `SDL2::SDL2`). `native/` holds small, hand-written C glue files that wrap the specific SDL2 calls the engine needs (`application.cpp`: `SDL_Init`/`SDL_Quit`; `events.cpp`: polling for `SDL_QUIT`; `window.cpp`: creating/destroying an `SDL_Window`, tracked by integer handle so no SDL pointer types cross into Haxe). Each is bound to Haxe through a small `extern class` in the matching `fried.*` class. Game code never sees SDL2 directly, only `fried.Application`/`fried.Window`/`fried.Events`.
 
 ## Runtime (implemented so far)
 
-`src/fried/` holds the engine's own Haxe code, package `fried`. So far:
+`src/fried/` holds the engine's own Haxe code, package `fried`:
 
 - `fried.Log` — `info`/`warn`/`error`, printing to stdout/stderr.
 - `fried.Time` — `start()`/`tick()`, exposing `deltaSeconds`, `elapsedSeconds`, `frameCount`.
+- `fried.Window` — creates/destroys an SDL window, exposes `width`/`height`. A pure platform primitive: it does not own or know about a renderer (see the Window/Renderer decoupling this repo's design follows once a Renderer exists).
+- `fried.Application` — owns the SDL lifecycle (`init`/`shutdown`) and the game loop itself: `run(update)` loops while `running` is true, pumping events (via `fried.Events`) and ticking `fried.Time` each iteration; `quit()` stops it.
+- `fried.Events` — `pump():Bool`, true if the application should quit (currently: an `SDL_QUIT` event was seen).
 
-Both are exercised from `sandbox/src/Main.hx`, which adds `src/` to its Haxe classpath alongside its own `sandbox/src/`. Application, Game Loop, Window, Input, Events, Filesystem and Assets aren't built yet.
+All exercised together from `sandbox/src/Main.hx`, which adds `src/` to its Haxe classpath alongside its own `sandbox/src/`. Not built yet: Input, Filesystem, Assets, Renderer.
 
 ## Repository layout
 
@@ -37,8 +40,8 @@ FriedEngine/
   README.md
   CMakeLists.txt      <- CMake entry point
   cmake/Hxcpp.cmake   <- locates hxcpp, compiles generated C++ & runtime
-  native/             <- hand-written C++ glue (currently: the SDL2 proof)
-  src/fried/          <- engine Haxe source (Log, Time so far)
+  native/             <- hand-written C++ glue wrapping SDL2
+  src/fried/          <- engine Haxe source (Log, Time, Window, Application, Events)
   sandbox/            <- app validating the pipeline
   .vscode/            <- build/debug tasks for the sandbox
 ```
