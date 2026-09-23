@@ -4,26 +4,29 @@
         {
             "label": "Haxe: generate sandbox C++",
             "detail": "haxe build.hxml (sandbox) -> sandbox/build/cpp",
-            "type": "shell",
-            "command": "haxe",
-            "args": ["build.hxml"],
+            "type": "process",
+            "command": "${workspaceFolder}/.vscode/host-run.sh",
+            "args": ["haxe", "build.hxml"],
             "options": { "cwd": "${workspaceFolder}/sandbox" },
+            "windows": { "command": "haxe", "args": ["build.hxml"] },
             "problemMatcher": []
         },
         {
             "label": "CMake: configure",
-            "type": "shell",
-            "command": "cmake",
-            "args": ["-S", ".", "-B", "build"],
+            "type": "process",
+            "command": "${workspaceFolder}/.vscode/host-run.sh",
+            "args": ["cmake", "-S", ".", "-B", "build"],
             "options": { "cwd": "${workspaceFolder}" },
+            "windows": { "command": "cmake", "args": ["-S", ".", "-B", "build"] },
             "problemMatcher": []
         },
         {
             "label": "CMake: build",
-            "type": "shell",
-            "command": "cmake",
-            "args": ["--build", "build"],
+            "type": "process",
+            "command": "${workspaceFolder}/.vscode/host-run.sh",
+            "args": ["cmake", "--build", "build"],
             "options": { "cwd": "${workspaceFolder}" },
+            "windows": { "command": "cmake", "args": ["--build", "build"] },
             "problemMatcher": ["$gcc"]
         },
         {
@@ -36,6 +39,17 @@
                 "CMake: build"
             ],
             "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run sandbox",
+            "detail": "Build, then run build/sandbox/fried_sandbox",
+            "type": "process",
+            "command": "${workspaceFolder}/.vscode/host-run.sh",
+            "args": ["./build/sandbox/fried_sandbox"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "windows": { "command": "build\\sandbox\\fried_sandbox.exe", "args": [] },
+            "dependsOn": "Build sandbox",
             "problemMatcher": []
         }
     ]

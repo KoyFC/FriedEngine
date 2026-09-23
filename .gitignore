@@ -383,6 +383,9 @@ FodyWeavers.xsd
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/c_cpp_properties.json
+!.vscode/host-run.sh
+!.vscode/host-haxe.sh
+!.vscode/host-cmake.sh
 *.code-workspace
 
 # Local History for Visual Studio Code

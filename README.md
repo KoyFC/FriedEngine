@@ -33,6 +33,8 @@ Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 
 The sandbox proves a small Haxe program that is compiled to C++ by hxcpp, and that generated C++ is compiled and linked into an executable entirely by CMake, not by hxcpp's own build tool.
 
+The repository's `.vscode/` tasks run this same pipeline from the editor. If you use the Flatpak build of VS Code, see [`docs/flatpak.md`](docs/flatpak.md): the sandbox cannot reach the host toolchain, and the tasks forward the commands to the host for you.
+
 1. Generate the C++ from Haxe (from `sandbox/`):
 
    ```sh
