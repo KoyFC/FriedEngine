@@ -19,6 +19,14 @@ int fried_window_create(const char *title, int width, int height)
     {
         return -1;
     }
+
+    SDL_Surface *surface = SDL_GetWindowSurface(window);
+    if (surface)
+    {
+        SDL_FillRect(surface, nullptr, SDL_MapRGB(surface->format, 0, 0, 0));
+        SDL_UpdateWindowSurface(window);
+    }
+
     g_windows.push_back(window);
     return (int)(g_windows.size() - 1);
 }

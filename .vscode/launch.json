@@ -26,7 +26,8 @@
                 "pipeProgram": "/usr/bin/flatpak-spawn",
                 "pipeArgs": ["--host"],
                 "debuggerPath": "/usr/bin/gdb",
-                "pipeCwd": "${workspaceFolder}"
+                "pipeCwd": "${workspaceFolder}",
+                "quoteArgs": false
             }
         }
     ]

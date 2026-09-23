@@ -14,14 +14,15 @@ class Main {
 		Application.run(function() {
 			frame++;
 			if (frame % 30 == 0) {
-				Log.info('frame $frame, elapsed=${Time.elapsedSeconds}s');
+				Log.info('frame $frame, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
 			}
-			if (frame >= 120) {
+			if (Time.elapsedSeconds > 5.0) {
 				Application.quit();
 			}
 		});
 
 		window.destroy();
+
 		Application.shutdown();
 
 		Log.info("Fried Engine sandbox run complete");
