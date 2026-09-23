@@ -2,6 +2,7 @@ import fried.Application;
 import fried.Input;
 import fried.Key;
 import fried.Log;
+import fried.MouseButton;
 import fried.Time;
 import fried.Window;
 
@@ -16,9 +17,12 @@ class Main {
 			if (Time.frameCount % 30 == 0) {
 				Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
 			}
-			if (Input.isKeyPressed(Key.Escape)) {
+			if (Input.isKeyDown(Key.Escape)) {
 				Log.info("Escape pressed, quitting");
 				Application.quit();
+			}
+			if (Input.isButtonDown(MouseButton.Left)) {
+				Log.info('Left click at ${Input.mouseX}, ${Input.mouseY}');
 			}
 			if (Time.elapsedSeconds > 5.0) {
 				Application.quit();

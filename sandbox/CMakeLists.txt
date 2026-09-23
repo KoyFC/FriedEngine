@@ -10,6 +10,7 @@ target_sources(fried_sandbox PRIVATE
     ${CMAKE_SOURCE_DIR}/native/application.cpp
     ${CMAKE_SOURCE_DIR}/native/events.cpp
     ${CMAKE_SOURCE_DIR}/native/input.cpp
+    ${CMAKE_SOURCE_DIR}/native/mouse.cpp
     ${CMAKE_SOURCE_DIR}/native/window.cpp
 )
 target_include_directories(fried_sandbox PRIVATE ${CMAKE_SOURCE_DIR}/native)
