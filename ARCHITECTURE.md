@@ -18,7 +18,7 @@ CMake is meant to be the build system for every platform this engine will target
 
 ## SDL2 (implemented)
 
-SDL2 is linked via CMake's own package config (`find_package(SDL2 CONFIG)`, `SDL2::SDL2`). `native/` holds small, hand-written C glue files that wrap the specific SDL2 calls the engine needs (`application.cpp`: `SDL_Init`/`SDL_Quit`; `events.cpp`: polling for `SDL_QUIT`; `window.cpp`: creating/destroying an `SDL_Window`, tracked by integer handle so no SDL pointer types cross into Haxe). Each is bound to Haxe through a small `extern class` in the matching `fried.*` class. Game code never sees SDL2 directly, only `fried.Application`/`fried.Window`/`fried.Events`.
+SDL2 is linked via CMake's own package config (`find_package(SDL2 CONFIG)`, `SDL2::SDL2`). `native/` holds small, hand-written C glue files that wrap the specific SDL2 calls the engine needs (`application.cpp`: `SDL_Init`/`SDL_Quit`; `events.cpp`: polling for `SDL_QUIT`; `window.cpp`: creating/destroying an `SDL_Window`, tracked by integer handle so no SDL pointer types cross into Haxe; `input.cpp`: querying `SDL_GetKeyboardState`). Each is bound to Haxe through a small `extern class` in the matching `fried.*` class. Game code never sees SDL2 directly, only `fried.Application`/`fried.Window`/`fried.Events`/`fried.Input`.
 
 ## Runtime (implemented so far)
 
@@ -27,10 +27,11 @@ SDL2 is linked via CMake's own package config (`find_package(SDL2 CONFIG)`, `SDL
 - `fried.Log` — `info`/`warn`/`error`, printing to stdout/stderr.
 - `fried.Time` — `start()`/`tick()`, exposing `deltaSeconds`, `elapsedSeconds`, `frameCount`.
 - `fried.Window` — creates/destroys an SDL window, exposes `width`/`height`. A pure platform primitive: it does not own or know about a renderer (see the Window/Renderer decoupling this repo's design follows once a Renderer exists).
-- `fried.Application` — owns the SDL lifecycle (`init`/`shutdown`) and the game loop itself: `run(update)` loops while `running` is true, pumping events (via `fried.Events`) and ticking `fried.Time` each iteration; `quit()` stops it.
+- `fried.Application` — owns the SDL lifecycle (`init`/`shutdown`) and the game loop itself: `run(update)` loops while `running` is true, pumping events (via `fried.Events`), ticking `fried.Time`, and ending the frame for `fried.Input` (in that order) each iteration; `quit()` stops it.
 - `fried.Events` — `pump():Bool`, true if the application should quit (currently: an `SDL_QUIT` event was seen).
+- `fried.Input` — `isKeyDown`/`isKeyPressed`/`isKeyReleased(key:fried.Key)` (held / down-edge-this-frame / up-edge-this-frame, Unity-style), reading the keyboard state SDL keeps current as a side effect of `fried.Events.pump()`'s own `SDL_PollEvent` calls against a previous-frame snapshot `fried.Application.run()` refreshes once per frame. `fried.Key` is an enum abstract over SDL's stable `SDL_SCANCODE_*` values, keeping SDL2 scancodes out of game code; keyboard only so far, no mouse/gamepad.
 
-All exercised together from `sandbox/src/Main.hx`, which adds `src/` to its Haxe classpath alongside its own `sandbox/src/`. Not built yet: Input, Filesystem, Assets, Renderer.
+All exercised together from `sandbox/src/Main.hx`, which adds `src/` to its Haxe classpath alongside its own `sandbox/src/`. Not built yet: Filesystem, Assets, Renderer.
 
 ## Repository layout
 

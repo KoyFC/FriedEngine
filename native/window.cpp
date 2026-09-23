@@ -5,7 +5,7 @@
 
 namespace
 {
-    std::vector<SDL_Window *> g_windows;
+    std::vector<SDL_Window *> s_windows;
 }
 
 int fried_window_create(const char *title, int width, int height)
@@ -27,38 +27,38 @@ int fried_window_create(const char *title, int width, int height)
         SDL_UpdateWindowSurface(window);
     }
 
-    g_windows.push_back(window);
-    return (int)(g_windows.size() - 1);
+    s_windows.push_back(window);
+    return (int)(s_windows.size() - 1);
 }
 
 void fried_window_destroy(int windowId)
 {
-    if (windowId < 0 || windowId >= (int)g_windows.size() || !g_windows[windowId])
+    if (windowId < 0 || windowId >= (int)s_windows.size() || !s_windows[windowId])
     {
         return;
     }
-    SDL_DestroyWindow(g_windows[windowId]);
-    g_windows[windowId] = nullptr;
+    SDL_DestroyWindow(s_windows[windowId]);
+    s_windows[windowId] = nullptr;
 }
 
 int fried_window_get_width(int windowId)
 {
-    if (windowId < 0 || windowId >= (int)g_windows.size() || !g_windows[windowId])
+    if (windowId < 0 || windowId >= (int)s_windows.size() || !s_windows[windowId])
     {
         return 0;
     }
     int width, height;
-    SDL_GetWindowSize(g_windows[windowId], &width, &height);
+    SDL_GetWindowSize(s_windows[windowId], &width, &height);
     return width;
 }
 
 int fried_window_get_height(int windowId)
 {
-    if (windowId < 0 || windowId >= (int)g_windows.size() || !g_windows[windowId])
+    if (windowId < 0 || windowId >= (int)s_windows.size() || !s_windows[windowId])
     {
         return 0;
     }
     int width, height;
-    SDL_GetWindowSize(g_windows[windowId], &width, &height);
+    SDL_GetWindowSize(s_windows[windowId], &width, &height);
     return height;
 }

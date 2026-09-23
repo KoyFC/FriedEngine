@@ -1,4 +1,6 @@
 import fried.Application;
+import fried.Input;
+import fried.Key;
 import fried.Log;
 import fried.Time;
 import fried.Window;
@@ -10,11 +12,13 @@ class Main {
 		var window = new Window("Fried Engine sandbox", 640, 480);
 		Log.info('Window created: ${window.width}x${window.height}');
 
-		var frame = 0;
 		Application.run(function() {
-			frame++;
-			if (frame % 30 == 0) {
-				Log.info('frame $frame, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
+			if (Time.frameCount % 30 == 0) {
+				Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
+			}
+			if (Input.isKeyPressed(Key.Escape)) {
+				Log.info("Escape pressed, quitting");
+				Application.quit();
 			}
 			if (Time.elapsedSeconds > 5.0) {
 				Application.quit();

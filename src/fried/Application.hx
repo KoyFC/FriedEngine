@@ -28,6 +28,7 @@ class Application {
 			}
 			Time.tick();
 			update();
+			Input.endFrame();
 		}
 	}
 }
