@@ -3,7 +3,6 @@ import fried.Input;
 import fried.Key;
 import fried.Log;
 import fried.MouseButton;
-import fried.Time;
 import fried.Window;
 
 class Main {
@@ -14,18 +13,15 @@ class Main {
 		Log.info('Window created: ${window.width}x${window.height}');
 
 		Application.run(function() {
-			if (Time.frameCount % 30 == 0) {
-				Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
-			}
+			// if (Time.frameCount % 30 == 0) {
+			// 	Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
+			// }
 			if (Input.isKeyDown(Key.Escape)) {
 				Log.info("Escape pressed, quitting");
 				Application.quit();
 			}
 			if (Input.isButtonDown(MouseButton.Left)) {
 				Log.info('Left click at ${Input.mouseX}, ${Input.mouseY}');
-			}
-			if (Time.elapsedSeconds > 5.0) {
-				Application.quit();
 			}
 		});
 
