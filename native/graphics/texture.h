@@ -12,3 +12,4 @@ extern "C"
 }
 
 struct SDL_Texture *fried_texture_get_sdl(int textureId);
+int fried_texture_store_sdl(struct SDL_Texture *texture);

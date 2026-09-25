@@ -18,6 +18,9 @@ target_sources(fried_sandbox PRIVATE
     ${CMAKE_SOURCE_DIR}/native/platform/window.cpp
     ${CMAKE_SOURCE_DIR}/native/graphics/renderer.cpp
     ${CMAKE_SOURCE_DIR}/native/graphics/texture.cpp
+    ${CMAKE_SOURCE_DIR}/native/graphics/font.cpp
+    ${CMAKE_SOURCE_DIR}/native/audio/sound.cpp
+    ${CMAKE_SOURCE_DIR}/native/audio/music.cpp
 )
 target_include_directories(fried_sandbox PRIVATE ${CMAKE_SOURCE_DIR}/native)
 target_link_libraries(fried_sandbox PRIVATE

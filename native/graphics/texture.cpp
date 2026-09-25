@@ -10,20 +10,25 @@ namespace
 {
     std::vector<SDL_Texture *> s_textures;
     std::vector<int> s_freeTextureIds;
+}
 
-    int storeTexture(SDL_Texture *texture)
+int fried_texture_store_sdl(SDL_Texture *texture)
+{
+    if (!texture)
     {
-        if (!s_freeTextureIds.empty())
-        {
-            int textureId = s_freeTextureIds.back();
-            s_freeTextureIds.pop_back();
-            s_textures[textureId] = texture;
-            return textureId;
-        }
-
-        s_textures.push_back(texture);
-        return (int)(s_textures.size() - 1);
+        return -1;
     }
+
+    if (!s_freeTextureIds.empty())
+    {
+        int textureId = s_freeTextureIds.back();
+        s_freeTextureIds.pop_back();
+        s_textures[textureId] = texture;
+        return textureId;
+    }
+
+    s_textures.push_back(texture);
+    return (int)(s_textures.size() - 1);
 }
 
 SDL_Texture *fried_texture_get_sdl(int textureId)
@@ -49,7 +54,7 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    return storeTexture(texture);
+    return fried_texture_store_sdl(texture);
 }
 
 void fried_texture_destroy(int textureId)

@@ -7,11 +7,17 @@ class Texture {
 	public var width(default, null):Int;
 	public var height(default, null):Int;
 
-	public function new(renderer:Renderer, path:String) {
-		id = TextureNative.load(renderer.id, path);
+	public static function load(renderer:Renderer, path:String):Texture {
+		var id = TextureNative.load(renderer.id, path);
 		if (id < 0) {
 			throw 'Failed to load texture: $path';
 		}
+		return new Texture(id);
+	}
+
+	@:allow(fried.graphics.Font)
+	function new(id:Int) {
+		this.id = id;
 		width = TextureNative.getWidth(id);
 		height = TextureNative.getHeight(id);
 	}

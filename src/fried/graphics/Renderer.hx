@@ -4,6 +4,7 @@ import fried.Window;
 
 class Renderer {
 	@:allow(fried.graphics.Texture)
+	@:allow(fried.graphics.Font)
 	var id:Int;
 
 	public var vsync(default, null):Bool;

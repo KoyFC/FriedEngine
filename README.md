@@ -14,7 +14,7 @@ This repository contains **only the engine**. See [`ARCHITECTURE.md`](ARCHITECTU
 - [x] 2. Integrate SDL2 (`sandbox/` opens and closes a real window)
 - [x] 3. Minimal runtime (Application, Game Loop, Time, Window, Input, Events, Logging, Filesystem, Assets)
 - [x] 4. Engine and game asset roots, read-only, verified at compile time
-- [ ] 5. Renderer and resources: `Renderer` and `Texture` done, `Sound`, `Music` and `Font` pending
+- [x] 5. Renderer and resources (`Renderer`, `Texture`, `Font`, `Sound`, `Music`)
 - [ ] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
 - [ ] 7. Real test game
 - [ ] 8. Prove Fried Engine as a submodule in an external project
@@ -53,7 +53,7 @@ The sandbox is a small Haxe program that exercises the engine's runtime. It is c
    ./build/sandbox/fried_sandbox
    ```
 
-A real SDL2 window opens and `fried.Application.run()` drives the game loop until the window is closed, drawing the sandbox's sprite in the middle of the window. The sandbox logs its base path, the assets it resolved from each asset root, and the window events it receives.
+A real SDL2 window opens and `fried.Application.run()` drives the game loop until the window is closed, drawing the sandbox's sprite in the middle of the window and a line of text above it, with its music looping. Space plays a sound, M pauses and resumes the music. The sandbox logs its base path, the assets it resolved from each asset root, and the window events it receives.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them.
 
@@ -75,6 +75,7 @@ Both are macros: the path is checked at compile time, and `game()` is not availa
 ```haxe
 import fried.Application;
 import fried.Window;
+import fried.graphics.Font;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.io.Assets;
@@ -83,26 +84,53 @@ var window = new Window("Game", 640, 480);
 var renderer = Application.createRenderer(window);
 renderer.setDrawColor(24, 24, 32);
 
-var sprite = new Texture(renderer, Assets.game("sprite.png"));
+var sprite = Texture.load(renderer, Assets.game("sprite.png"));
+
+var font = new Font(Assets.engine("font.ttf"), 16);
+var label = font.renderText(renderer, "Score: 0", 220, 220, 230);
 
 Application.run(function() {
     renderer.drawTexture(sprite, 100, 100);
+    renderer.drawTexture(label, 16, 16);
 });
 ```
 
+A texture comes either from a file, through `Texture.load()`, or from a font, through `renderText()`, which is why neither is a constructor call: both produce the same drawable texture from a different source. Rendered text is a texture like any other, so build it when it changes rather than every frame, and `destroy()` it the same way.
+
 The loop clears before the update and presents after it, so the callback only draws. Vsync is on by default and paces the loop at the display's refresh rate; `Application.targetFps` applies only when there is no vsync renderer.
 
-The engine's types are split by domain (`fried`, `fried.input`, `fried.io`, `fried.graphics`), so a game that would rather not name them one by one can put an `import.hx` at the root of its own source directory and write no engine imports at all in the files below it:
+The engine's types are split by domain (`fried`, `fried.input`, `fried.io`, `fried.graphics`, `fried.audio`), so a game that would rather not name them one by one can put an `import.hx` at the root of its own source directory and write no engine imports at all in the files below it:
 
 ```haxe
 // src/import.hx
 import fried.*;
+import fried.audio.*;
 import fried.graphics.*;
 import fried.input.*;
 import fried.io.*;
 ```
 
 The file has to be the game's own: `import.hx` applies to the modules under the classpath it sits in, so the one the engine ships covers engine code only.
+
+## Audio
+
+Sounds and music are loaded the same way, through `fried.io.Assets`, and neither needs the renderer:
+
+```haxe
+import fried.audio.Music;
+import fried.audio.Sound;
+import fried.io.Assets;
+
+var beep = new Sound(Assets.game("beep.wav"));
+beep.volume = 0.6;
+beep.play();
+
+var theme = new Music(Assets.game("music.wav"));
+Music.volume = 0.4;
+theme.play();
+```
+
+`Sound` is for short effects, mixed on any free channel, so the same sound can overlap with itself. `Music` is the streamed one, and SDL_mixer streams one at a time: a second `play()` replaces the first, and `pause()`, `resume()` and `stop()` on a `Music` that is not the one playing do nothing. Volume is per sound but global for music, which is why `Music.volume` is static.
 
 ## VS Code
 
