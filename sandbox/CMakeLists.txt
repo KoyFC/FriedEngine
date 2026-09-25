@@ -25,9 +25,16 @@ target_link_libraries(fried_sandbox PRIVATE
     SDL2_ttf::SDL2_ttf
 )
 
-add_custom_command(TARGET fried_sandbox POST_BUILD
+# A separate always-run target rather than a POST_BUILD command on the
+# executable: POST_BUILD only fires when the target relinks, so an added or
+# edited asset would never reach the build tree on its own.
+add_custom_target(fried_sandbox_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:fried_sandbox>/assets/engine
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
-        $<TARGET_FILE_DIR:fried_sandbox>/assets
-    COMMENT "Copying sandbox assets next to the executable"
+        $<TARGET_FILE_DIR:fried_sandbox>/assets/game
+    COMMENT "Copying the engine and game asset roots next to the executable"
 )
+add_dependencies(fried_sandbox_assets fried_sandbox)

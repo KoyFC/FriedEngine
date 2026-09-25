@@ -1,4 +1,5 @@
 import fried.Application;
+import fried.Assets;
 import fried.Filesystem;
 import fried.Input;
 import fried.Key;
@@ -20,14 +21,9 @@ class Main {
 		}
 
 		Log.info("Asset path: " + Platform.assetPath);
-		for (asset in ["sprite.png", "beep.wav", "font.ttf"]) {
-			var path = Platform.getAssetPath(asset);
-			if (Filesystem.exists(path)) {
-				Log.success('Found asset: $asset');
-			} else {
-				Log.error('Missing asset: $path');
-			}
-		}
+		checkAsset(Assets.engine("font.ttf"));
+		checkAsset(Assets.game("sprite.png"));
+		checkAsset(Assets.game("beep.wav"));
 
 		var window = new Window("Fried Engine sandbox", 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
@@ -56,5 +52,13 @@ class Main {
 		Application.shutdown();
 
 		Log.success("Fried Engine sandbox run complete");
+	}
+
+	static function checkAsset(path:String):Void {
+		if (Filesystem.exists(path)) {
+			Log.success('Found asset: $path');
+		} else {
+			Log.error('Missing asset: $path');
+		}
 	}
 }
