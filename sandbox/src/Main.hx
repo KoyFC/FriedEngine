@@ -1,4 +1,5 @@
 import fried.Application;
+import fried.Filesystem;
 import fried.Input;
 import fried.Key;
 import fried.Log;
@@ -10,6 +11,13 @@ class Main {
 	public static function main():Void {
 		Application.init();
 		Log.success("Fried Engine sandbox initialized. Base path: " + Platform.basePath);
+
+		if (Filesystem.exists("README.md")) {
+			var bytes = Filesystem.readBytes("README.md");
+			Log.info('Read README.md: ${bytes.length} bytes');
+		} else {
+			Log.warn("README.md not found relative to the working directory");
+		}
 
 		var window = new Window("Fried Engine sandbox", 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
