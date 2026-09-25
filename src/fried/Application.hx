@@ -9,6 +9,7 @@ class Application {
 		if (ApplicationNative.init() != 0) {
 			throw "SDL_Init failed";
 		}
+		Platform.init();
 		Time.start();
 		running = true;
 	}

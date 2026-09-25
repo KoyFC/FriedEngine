@@ -4,10 +4,12 @@ import fried.Key;
 import fried.Log;
 import fried.MouseButton;
 import fried.Window;
+import fried.Platform;
 
 class Main {
 	public static function main():Void {
 		Application.init();
+		Log.success("Fried Engine sandbox initialized. Base path: " + Platform.basePath);
 
 		var window = new Window("Fried Engine sandbox", 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');

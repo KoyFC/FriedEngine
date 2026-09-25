@@ -12,6 +12,7 @@ target_sources(fried_sandbox PRIVATE
     ${CMAKE_SOURCE_DIR}/native/input.cpp
     ${CMAKE_SOURCE_DIR}/native/mouse.cpp
     ${CMAKE_SOURCE_DIR}/native/window.cpp
+    ${CMAKE_SOURCE_DIR}/native/platform.cpp
 )
 target_include_directories(fried_sandbox PRIVATE ${CMAKE_SOURCE_DIR}/native)
 target_link_libraries(fried_sandbox PRIVATE SDL2::SDL2)
