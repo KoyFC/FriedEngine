@@ -10,22 +10,11 @@
             "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
             "preLaunchTask": "Build sandbox",
-            "externalConsole": false
-        },
-        {
-            "name": "Debug sandbox (Flatpak VS Code)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/sandbox/fried_sandbox",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "MIMode": "gdb",
-            "preLaunchTask": "Build sandbox",
             "externalConsole": false,
             "pipeTransport": {
-                "pipeProgram": "/usr/bin/flatpak-spawn",
-                "pipeArgs": ["--host"],
-                "debuggerPath": "/usr/bin/gdb",
+                "pipeProgram": "${workspaceFolder}/.vscode/host-run.sh",
+                "pipeArgs": [],
+                "debuggerPath": "gdb",
                 "pipeCwd": "${workspaceFolder}",
                 "quoteArgs": false
             }
