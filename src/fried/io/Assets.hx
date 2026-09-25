@@ -1,4 +1,4 @@
-package fried;
+package fried.io;
 
 import haxe.macro.Expr;
 #if macro
@@ -35,14 +35,14 @@ class Assets {
 			Context.error('Asset not found: $sourcePath', Context.currentPos());
 		}
 
-		return macro fried.Filesystem.getAssetPath($v{Path.join([(root : String), relativePath])});
+		return macro fried.io.Filesystem.getAssetPath($v{Path.join([(root : String), relativePath])});
 	}
 
 	static function sourceDirectory(root:AssetRoot):String {
 		return switch (root) {
 			case Engine:
-				var ownSource = Context.resolvePath("fried/Assets.hx");
-				Path.join([Path.directory(Path.directory(Path.directory(ownSource))), "assets"]);
+				var ownSource = Context.resolvePath("fried/io/Assets.hx");
+				Path.join([Path.directory(Path.directory(Path.directory(Path.directory(ownSource)))), "assets"]);
 			case Game:
 				var overridden = Context.definedValue("fried-game-assets");
 				overridden != null ? overridden : "assets";

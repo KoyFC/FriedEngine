@@ -1,4 +1,4 @@
-#include "application.h"
+#include "platform/application.h"
 
 #include <SDL.h>
 #include <SDL_image.h>

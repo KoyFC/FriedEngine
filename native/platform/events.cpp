@@ -1,6 +1,6 @@
-#include "events.h"
-#include "mouse.h"
-#include "window.h"
+#include "platform/events.h"
+#include "platform/mouse.h"
+#include "platform/window.h"
 
 #include <SDL.h>
 #include <vector>

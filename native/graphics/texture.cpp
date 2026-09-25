@@ -1,6 +1,6 @@
-#include "texture.h"
+#include "graphics/texture.h"
 
-#include "renderer.h"
+#include "graphics/renderer.h"
 
 #include <SDL.h>
 #include <SDL_image.h>

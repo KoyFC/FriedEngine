@@ -1,4 +1,4 @@
-package fried;
+package fried.input;
 
 enum abstract MouseButton(Int) to Int {
 	var Left = 1;

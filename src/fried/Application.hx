@@ -1,5 +1,9 @@
 package fried;
 
+import fried.graphics.Renderer;
+import fried.input.Input;
+import fried.io.Filesystem;
+
 class Application {
 	public static var running(default, null):Bool = false;
 
@@ -78,7 +82,7 @@ class Application {
 	}
 }
 
-@:include("application.h")
+@:include("platform/application.h")
 private extern class ApplicationNative {
 	@:native("fried_application_init")
 	static function init():Int;

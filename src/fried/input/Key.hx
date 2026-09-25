@@ -1,4 +1,4 @@
-package fried;
+package fried.input;
 
 enum abstract Key(Int) to Int {
 	var A = 4;

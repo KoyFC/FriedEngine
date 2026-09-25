@@ -3,7 +3,7 @@ package fried;
 class Window {
 	static var instances:Map<Int, Window> = new Map();
 
-	@:allow(fried.Renderer)
+	@:allow(fried.graphics.Renderer)
 	var id:Int;
 
 	public var width(get, never):Int;
@@ -41,7 +41,7 @@ class Window {
 	}
 }
 
-@:include("window.h")
+@:include("platform/window.h")
 private extern class WindowNative {
 	@:native("fried_window_create")
 	static function create(title:cpp.ConstCharStar, width:Int, height:Int):Int;

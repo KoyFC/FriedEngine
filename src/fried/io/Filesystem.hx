@@ -1,4 +1,4 @@
-package fried;
+package fried.io;
 
 class Filesystem {
 	public static var basePath(default, null):String;
@@ -25,7 +25,7 @@ class Filesystem {
 	}
 }
 
-@:include("filesystem.h")
+@:include("platform/filesystem.h")
 private extern class FilesystemNative {
 	@:native("fried_filesystem_init")
 	static function init():Void;

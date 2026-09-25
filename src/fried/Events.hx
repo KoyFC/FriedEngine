@@ -46,7 +46,7 @@ private enum abstract WindowEventType(Int) {
 	var FocusLost = 4;
 }
 
-@:include("events.h")
+@:include("platform/events.h")
 private extern class EventsNative {
 	@:native("fried_events_pump")
 	static function pump():Int;

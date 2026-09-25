@@ -1,13 +1,12 @@
 import fried.Application;
-import fried.Assets;
-import fried.Filesystem;
-import fried.Input;
-import fried.Key;
 import fried.Log;
-import fried.MouseButton;
-import fried.Renderer;
-import fried.Texture;
 import fried.Window;
+import fried.graphics.Renderer;
+import fried.graphics.Texture;
+import fried.input.Input;
+import fried.input.MouseButton;
+import fried.io.Assets;
+import fried.io.Filesystem;
 
 class Main {
 	public static function main():Void {

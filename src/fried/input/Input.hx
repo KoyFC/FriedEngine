@@ -1,4 +1,4 @@
-package fried;
+package fried.input;
 
 class Input {
 	public static var mouseX(get, never):Int;
@@ -53,7 +53,7 @@ class Input {
 	}
 }
 
-@:include("input.h")
+@:include("platform/input.h")
 private extern class InputNative {
 	@:native("fried_input_is_key_pressed")
 	static function isKeyPressed(scancode:Int):Int;
@@ -68,7 +68,7 @@ private extern class InputNative {
 	static function endFrame():Void;
 }
 
-@:include("mouse.h")
+@:include("platform/mouse.h")
 private extern class MouseNative {
 	@:native("fried_mouse_get_x")
 	static function getX():Int;

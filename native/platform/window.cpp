@@ -1,4 +1,4 @@
-#include "window.h"
+#include "platform/window.h"
 
 #include <SDL.h>
 #include <vector>

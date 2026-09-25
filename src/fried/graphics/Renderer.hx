@@ -1,7 +1,9 @@
-package fried;
+package fried.graphics;
+
+import fried.Window;
 
 class Renderer {
-	@:allow(fried.Texture)
+	@:allow(fried.graphics.Texture)
 	var id:Int;
 
 	public var vsync(default, null):Bool;
@@ -48,7 +50,7 @@ class Renderer {
 	}
 }
 
-@:include("renderer.h")
+@:include("graphics/renderer.h")
 private extern class RendererNative {
 	@:native("fried_renderer_create")
 	static function create(windowId:Int, vsync:Bool):Int;

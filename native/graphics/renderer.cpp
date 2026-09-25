@@ -1,7 +1,7 @@
-#include "renderer.h"
+#include "graphics/renderer.h"
 
-#include "texture.h"
-#include "window.h"
+#include "graphics/texture.h"
+#include "platform/window.h"
 
 #include <SDL.h>
 #include <vector>

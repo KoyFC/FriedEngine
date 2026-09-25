@@ -1,4 +1,4 @@
-#include "input.h"
+#include "platform/input.h"
 
 #include <SDL.h>
 #include <cstring>

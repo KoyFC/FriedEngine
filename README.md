@@ -59,7 +59,7 @@ Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cm
 
 ## Assets
 
-Game code resolves assets through `fried.Assets`, which has one member per asset root:
+Game code resolves assets through `fried.io.Assets`, which has one member per asset root:
 
 ```haxe
 Assets.engine("font.ttf")    // an asset shipped by the engine
@@ -70,9 +70,15 @@ Both are macros: the path is checked at compile time, and `game()` is not availa
 
 ## Drawing
 
-`fried.Application` owns the renderer; a `fried.Window` is only a window. Create one from the window, load what you draw through `fried.Assets`, and draw in the update callback:
+`fried.Application` owns the renderer; a `fried.Window` is only a window. Create one from the window, load what you draw through `fried.io.Assets`, and draw in the update callback:
 
 ```haxe
+import fried.Application;
+import fried.Window;
+import fried.graphics.Renderer;
+import fried.graphics.Texture;
+import fried.io.Assets;
+
 var window = new Window("Game", 640, 480);
 var renderer = Application.createRenderer(window);
 renderer.setDrawColor(24, 24, 32);
@@ -85,6 +91,18 @@ Application.run(function() {
 ```
 
 The loop clears before the update and presents after it, so the callback only draws. Vsync is on by default and paces the loop at the display's refresh rate; `Application.targetFps` applies only when there is no vsync renderer.
+
+The engine's types are split by domain (`fried`, `fried.input`, `fried.io`, `fried.graphics`), so a game that would rather not name them one by one can put an `import.hx` at the root of its own source directory and write no engine imports at all in the files below it:
+
+```haxe
+// src/import.hx
+import fried.*;
+import fried.graphics.*;
+import fried.input.*;
+import fried.io.*;
+```
+
+The file has to be the game's own: `import.hx` applies to the modules under the classpath it sits in, so the one the engine ships covers engine code only.
 
 ## VS Code
 

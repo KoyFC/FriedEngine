@@ -1,7 +1,7 @@
-package fried;
+package fried.graphics;
 
 class Texture {
-	@:allow(fried.Renderer)
+	@:allow(fried.graphics.Renderer)
 	var id:Int;
 
 	public var width(default, null):Int;
@@ -24,7 +24,7 @@ class Texture {
 	}
 }
 
-@:include("texture.h")
+@:include("graphics/texture.h")
 private extern class TextureNative {
 	@:native("fried_texture_load")
 	static function load(rendererId:Int, path:cpp.ConstCharStar):Int;

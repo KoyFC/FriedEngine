@@ -1,4 +1,4 @@
-#include "mouse.h"
+#include "platform/mouse.h"
 
 #include <SDL.h>
 
