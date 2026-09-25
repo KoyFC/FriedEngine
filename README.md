@@ -13,11 +13,12 @@ This repository contains **only the engine**. See [`ARCHITECTURE.md`](ARCHITECTU
 - [x] 1. Prove Haxe -> C++ -> CMake -> executable on PC (`sandbox/`)
 - [x] 2. Integrate SDL2 (`sandbox/` opens and closes a real window)
 - [x] 3. Minimal runtime (Application, Game Loop, Time, Window, Input, Events, Logging, Filesystem, Assets)
-- [ ] 4. Hybrid Filesystem and Asset Pipeline
+- [x] 4. Engine and game asset roots, read-only, verified at compile time
 - [ ] 5. Renderer and resources (Texture, Shader, Sound, Music, Font)
-- [ ] 6. Real test game
-- [ ] 7. Prove Fried Engine as a submodule in an external project
-- [ ] 8. Define `project.fried`
+- [ ] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
+- [ ] 7. Real test game
+- [ ] 8. Prove Fried Engine as a submodule in an external project
+- [ ] 9. Define `project.fried`, and the writable user data path, which needs the game identity it declares
 
 ## Requirements (PC)
 
