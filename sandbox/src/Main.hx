@@ -28,7 +28,7 @@ class Main {
 		}
 
 		Log.info("Asset path: " + Filesystem.assetPath);
-		checkAsset(Assets.engine("font.ttf"));
+		checkAsset(Assets.engine("NunitoSans.ttf"));
 		checkAsset(Assets.game("sprite.png"));
 		checkAsset(Assets.game("beep.wav"));
 		checkAsset(Assets.game("music.wav"));
@@ -54,7 +54,7 @@ class Main {
 		var sprite = Texture.load(renderer, Assets.game("sprite.png"));
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
-		var font = new Font(Assets.engine("font.ttf"), 16);
+		var font = new Font(Assets.engine("NunitoSans.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hint = "Space/South: sound   M/East: music   WASD/stick: move";
