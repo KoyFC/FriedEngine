@@ -10,7 +10,7 @@ class Main {
 		Application.init();
 
 		var window = new Window("Fried Engine sandbox", 640, 480);
-		Log.info('Window created: ${window.width}x${window.height}');
+		Log.success('Window created: ${window.width}x${window.height}');
 
 		window.onResize = function(width, height) {
 			Log.info('Window resized: ${width}x${height}');
@@ -26,10 +26,6 @@ class Main {
 		Application.targetFps = 60;
 
 		Application.run(function() {
-			if (Input.isKeyDown(Key.Escape)) {
-				Log.info("Escape pressed, quitting");
-				Application.quit();
-			}
 			if (Input.isButtonDown(MouseButton.Left)) {
 				Log.info('Left click at ${Input.mouseX}, ${Input.mouseY}');
 			}
@@ -39,6 +35,6 @@ class Main {
 
 		Application.shutdown();
 
-		Log.info("Fried Engine sandbox run complete");
+		Log.success("Fried Engine sandbox run complete");
 	}
 }

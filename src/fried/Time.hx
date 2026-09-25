@@ -23,4 +23,15 @@ class Time {
 		lastTime = now;
 		frameCount++;
 	}
+
+	public static function formatDuration(seconds:Float):String {
+		var totalMs = Math.round(seconds * 1000);
+		var ms = totalMs % 1000;
+		var totalSec = Std.int(totalMs / 1000);
+		var s = totalSec % 60;
+		var m = Std.int(totalSec / 60) % 60;
+		var h = Std.int(totalSec / 3600);
+
+		return h > 0 ? '${h}h ${m}m ${s}s' : m > 0 ? '${m}m ${s}s ${ms}ms' : '${s}.${ms}s';
+	}
 }
