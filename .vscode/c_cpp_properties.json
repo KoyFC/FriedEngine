@@ -2,7 +2,23 @@
     "configurations": [
         {
             "name": "Fried Engine",
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "mergeConfigurations": true,
+            "compilerPath": "/usr/bin/g++",
+            "includePath": [
+                "/run/host/usr/include/SDL2",
+                "/usr/include/SDL2",
+                "${workspaceFolder}/native",
+                "${workspaceFolder}/sandbox/build/cpp/include",
+                "${env:HOME}/haxelib/hxcpp/**"
+            ],
+            "defines": [
+                "HXCPP_API_LEVEL=430",
+                "HXCPP_M64",
+                "HXCPP_VISIT_ALLOCS",
+                "HX_LINUX",
+                "HX_SMART_STRINGS"
+            ],
             "cStandard": "c17",
             "cppStandard": "c++17"
         }
