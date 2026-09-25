@@ -10,7 +10,6 @@ extern "C"
 
 int fried_window_find_by_sdl_id(unsigned int sdlWindowId);
 
-// Repaints and presents every live window's surface. Wayland resizes a window
-// only once the client commits a buffer at the new size, so a window that never
-// presents cannot be resized by the user at all.
+// Wayland resizes a window only once the client commits a buffer at the new
+// size, so a window that never presents cannot be resized by the user.
 extern "C" void fried_window_present_all();

@@ -26,9 +26,6 @@ class Main {
 		Application.targetFps = 60;
 
 		Application.run(function() {
-			// if (Time.frameCount % 30 == 0) {
-			// 	Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
-			// }
 			if (Input.isKeyDown(Key.Escape)) {
 				Log.info("Escape pressed, quitting");
 				Application.quit();

@@ -16,15 +16,15 @@ namespace
     };
 
     std::vector<WindowEvent> s_windowEvents;
-    size_t s_nextEvent = 0;
+    int s_currentEvent = -1;
 
     const WindowEvent *currentEvent()
     {
-        if (s_nextEvent == 0 || s_nextEvent > s_windowEvents.size())
+        if (s_currentEvent < 0 || s_currentEvent >= (int)s_windowEvents.size())
         {
             return nullptr;
         }
-        return &s_windowEvents[s_nextEvent - 1];
+        return &s_windowEvents[s_currentEvent];
     }
 
     void queueWindowEvent(const SDL_WindowEvent &event)
@@ -38,9 +38,8 @@ namespace
         case SDL_WINDOWEVENT_CLOSE:
             type = FRIED_WINDOW_EVENT_CLOSE;
             break;
-        // SIZE_CHANGED rather than RESIZED: SDL only sends RESIZED for size
-        // changes the user or window manager caused, while SIZE_CHANGED also
-        // covers the ones the engine itself causes.
+        // RESIZED only covers resizes the user or window manager caused,
+        // SIZE_CHANGED also the ones the engine itself causes.
         case SDL_WINDOWEVENT_SIZE_CHANGED:
             type = FRIED_WINDOW_EVENT_RESIZED;
             data1 = event.data1;
@@ -69,7 +68,7 @@ namespace
 int fried_events_pump()
 {
     s_windowEvents.clear();
-    s_nextEvent = 0;
+    s_currentEvent = -1;
 
     SDL_Event event;
     int quitRequested = 0;
@@ -100,12 +99,12 @@ int fried_events_pump()
 
 int fried_events_poll_window_event()
 {
-    if (s_nextEvent >= s_windowEvents.size())
+    if (s_currentEvent + 1 >= (int)s_windowEvents.size())
     {
         return FRIED_WINDOW_EVENT_NONE;
     }
-    s_nextEvent++;
-    return s_windowEvents[s_nextEvent - 1].m_type;
+    s_currentEvent++;
+    return s_windowEvents[s_currentEvent].m_type;
 }
 
 int fried_events_get_window_id()

@@ -11,12 +11,11 @@ enum FriedWindowEventType
 
 extern "C"
 {
-    // Pumps the SDL event queue. Returns non-zero if an SDL_QUIT event was seen.
+    // Returns non-zero if an SDL_QUIT event was seen.
     int fried_events_pump();
 
-    // Pops the next window event pumped this frame, returning its
-    // FriedWindowEventType, or FRIED_WINDOW_EVENT_NONE once drained. Its fields
-    // are then read through the getters below.
+    // Advances to the next window event of this frame, described by the
+    // getters below, and returns FRIED_WINDOW_EVENT_NONE once drained.
     int fried_events_poll_window_event();
     int fried_events_get_window_id();
     int fried_events_get_data1();
