@@ -15,7 +15,7 @@ This repository contains **only the engine**. See [`ARCHITECTURE.md`](ARCHITECTU
 - [x] 3. Minimal runtime (Application, Game Loop, Time, Window, Input, Events, Logging, Filesystem, Assets)
 - [x] 4. Engine and game asset roots, read-only, verified at compile time
 - [x] 5. Renderer and resources (`Renderer`, `Texture`, `Font`, `Sound`, `Music`)
-- [ ] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
+- [x] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
 - [ ] 7. Real test game
 - [ ] 8. Prove Fried Engine as a submodule in an external project
 - [ ] 9. Define `project.fried`, and the writable user data path, which needs the game identity it declares
@@ -74,7 +74,7 @@ cmake --build build/vita
 
 That produces `build/vita/sandbox/fried_sandbox.vpk`, with both asset roots under `app0:/assets/` and the LiveArea files from `sandbox/sce_sys/`. Copy it to the console and install it with VitaShell.
 
-Builds and packages; not yet run on real hardware. hxcpp has no Vita target of its own, so `cmake/Hxcpp.cmake` compiles its runtime against newlib with the gaps filled by `cmake/vita/newlib/`, and `sys.io.Process` and `sys.net.Socket` are left out of the build entirely.
+Runs on real hardware. hxcpp has no Vita target of its own, so `cmake/Hxcpp.cmake` compiles its runtime against newlib with the gaps filled by `cmake/vita/newlib/`, and `sys.io.Process` and `sys.net.Socket` are left out of the build entirely.
 
 ## Assets
 

@@ -63,7 +63,7 @@ class Main {
 		Log.success('Sound loaded at volume ${beep.volume}');
 
 		var music = new Music(Assets.game("music.wav"));
-		Music.volume = 0.4;
+		Music.volume = 0.2;
 		music.play();
 		Log.success('Music playing at volume ${Music.volume}');
 

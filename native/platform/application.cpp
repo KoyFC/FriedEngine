@@ -7,9 +7,14 @@
 
 namespace
 {
+#ifdef __vita__
+    constexpr int s_audioFrequency = 48000;
+    constexpr int s_audioChunkSize = 1024;
+#else
     constexpr int s_audioFrequency = 44100;
-    constexpr int s_audioChannels = 2;
     constexpr int s_audioChunkSize = 2048;
+#endif
+    constexpr int s_audioChannels = 2;
 }
 
 int fried_application_init()
