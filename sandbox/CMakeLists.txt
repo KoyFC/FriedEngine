@@ -13,6 +13,7 @@ target_sources(fried_sandbox PRIVATE
     ${CMAKE_SOURCE_DIR}/native/platform/application.cpp
     ${CMAKE_SOURCE_DIR}/native/platform/events.cpp
     ${CMAKE_SOURCE_DIR}/native/platform/filesystem.cpp
+    ${CMAKE_SOURCE_DIR}/native/platform/gamepad.cpp
     ${CMAKE_SOURCE_DIR}/native/platform/input.cpp
     ${CMAKE_SOURCE_DIR}/native/platform/mouse.cpp
     ${CMAKE_SOURCE_DIR}/native/platform/window.cpp

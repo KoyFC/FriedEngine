@@ -6,6 +6,9 @@ class Input {
 	public static var scrollX(get, never):Float;
 	public static var scrollY(get, never):Float;
 
+	public static var gamepadConnected(get, never):Bool;
+	public static var gamepadDeadzone(get, set):Float;
+
 	public static function isKeyPressed(key:Key):Bool {
 		return InputNative.isKeyPressed(key) != 0;
 	}
@@ -30,10 +33,27 @@ class Input {
 		return MouseNative.isButtonReleased(button) != 0;
 	}
 
+	public static function isGamepadButtonPressed(button:GamepadButton):Bool {
+		return GamepadNative.isButtonPressed(button) != 0;
+	}
+
+	public static function isGamepadButtonDown(button:GamepadButton):Bool {
+		return GamepadNative.isButtonDown(button) != 0;
+	}
+
+	public static function isGamepadButtonReleased(button:GamepadButton):Bool {
+		return GamepadNative.isButtonReleased(button) != 0;
+	}
+
+	public static function getGamepadAxis(axis:GamepadAxis):Float {
+		return GamepadNative.getAxis(axis);
+	}
+
 	@:allow(fried.Application)
 	static function endFrame():Void {
 		InputNative.endFrame();
 		MouseNative.endFrame();
+		GamepadNative.endFrame();
 	}
 
 	static function get_mouseX():Int {
@@ -50,6 +70,19 @@ class Input {
 
 	static function get_scrollY():Float {
 		return MouseNative.getScrollY();
+	}
+
+	static function get_gamepadConnected():Bool {
+		return GamepadNative.isConnected() != 0;
+	}
+
+	static function get_gamepadDeadzone():Float {
+		return GamepadNative.getDeadzone();
+	}
+
+	static function set_gamepadDeadzone(deadzone:Float):Float {
+		GamepadNative.setDeadzone(deadzone);
+		return GamepadNative.getDeadzone();
 	}
 }
 
@@ -92,5 +125,32 @@ private extern class MouseNative {
 	static function getScrollY():Float;
 
 	@:native("fried_mouse_end_frame")
+	static function endFrame():Void;
+}
+
+@:include("platform/gamepad.h")
+private extern class GamepadNative {
+	@:native("fried_gamepad_is_connected")
+	static function isConnected():Int;
+
+	@:native("fried_gamepad_is_button_pressed")
+	static function isButtonPressed(button:Int):Int;
+
+	@:native("fried_gamepad_is_button_down")
+	static function isButtonDown(button:Int):Int;
+
+	@:native("fried_gamepad_is_button_released")
+	static function isButtonReleased(button:Int):Int;
+
+	@:native("fried_gamepad_get_axis")
+	static function getAxis(axis:Int):Float;
+
+	@:native("fried_gamepad_get_deadzone")
+	static function getDeadzone():Float;
+
+	@:native("fried_gamepad_set_deadzone")
+	static function setDeadzone(deadzone:Float):Void;
+
+	@:native("fried_gamepad_end_frame")
 	static function endFrame():Void;
 }

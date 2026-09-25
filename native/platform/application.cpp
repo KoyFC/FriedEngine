@@ -1,4 +1,5 @@
 #include "platform/application.h"
+#include "platform/gamepad.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -19,7 +20,7 @@ namespace
 
 int fried_application_init()
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) != 0)
     {
         return -1;
     }
@@ -45,11 +46,14 @@ int fried_application_init()
         return -1;
     }
 
+    fried_gamepad_init();
+
     return 0;
 }
 
 void fried_application_shutdown()
 {
+    fried_gamepad_shutdown();
     Mix_CloseAudio();
     Mix_Quit();
     TTF_Quit();

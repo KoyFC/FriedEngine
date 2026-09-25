@@ -1,4 +1,5 @@
 #include "platform/events.h"
+#include "platform/gamepad.h"
 #include "platform/mouse.h"
 #include "platform/window.h"
 
@@ -74,11 +75,12 @@ int fried_events_pump()
     int quitRequested = 0;
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_QUIT)
+        switch (event.type)
         {
+        case SDL_QUIT:
             quitRequested = 1;
-        }
-        else if (event.type == SDL_MOUSEWHEEL)
+            break;
+        case SDL_MOUSEWHEEL:
         {
             int x = event.wheel.x;
             int y = event.wheel.y;
@@ -88,10 +90,19 @@ int fried_events_pump()
                 y = -y;
             }
             fried_mouse_report_wheel(x, y);
+            break;
         }
-        else if (event.type == SDL_WINDOWEVENT)
-        {
+        case SDL_CONTROLLERDEVICEADDED:
+            fried_gamepad_report_added(event.cdevice.which);
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            fried_gamepad_report_removed(event.cdevice.which);
+            break;
+        case SDL_WINDOWEVENT:
             queueWindowEvent(event.window);
+            break;
+        default:
+            break;
         }
     }
     return quitRequested;

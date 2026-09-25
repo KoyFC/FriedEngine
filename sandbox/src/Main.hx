@@ -1,11 +1,14 @@
 import fried.Application;
 import fried.Log;
+import fried.Time;
 import fried.Window;
 import fried.audio.Music;
 import fried.audio.Sound;
 import fried.graphics.Font;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
+import fried.input.GamepadAxis;
+import fried.input.GamepadButton;
 import fried.input.Input;
 import fried.input.Key;
 import fried.input.MouseButton;
@@ -54,7 +57,7 @@ class Main {
 		var font = new Font(Assets.engine("font.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
-		var hint = "Space: sound   M: music";
+		var hint = "Space/South: sound   M/East: music   WASD/stick: move";
 		var label = font.renderText(renderer, hint, 220, 220, 230);
 		Log.info('Text rendered: ${label.width}x${label.height} for ${font.measureWidth(hint)} measured pixels');
 
@@ -70,18 +73,27 @@ class Main {
 		var spriteScale = 8;
 		var spriteWidth = sprite.width * spriteScale;
 		var spriteHeight = sprite.height * spriteScale;
+		var spriteX = 0.0;
+		var spriteY = 0.0;
+		var spriteSpeed = 240.0;
+
+		Log.info(Input.gamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
 		Application.run(function() {
 			if (Input.isButtonDown(MouseButton.Left)) {
 				Log.info('Left click at ${Input.mouseX}, ${Input.mouseY}');
 			}
 
-			if (Input.isKeyDown(Key.Space)) {
+			if (Input.isGamepadButtonDown(GamepadButton.South)) {
+				Log.info("Gamepad South pressed");
+			}
+
+			if (Input.isKeyDown(Key.Space) || Input.isGamepadButtonDown(GamepadButton.South)) {
 				beep.play();
 				Log.info("Sound played");
 			}
 
-			if (Input.isKeyDown(Key.M)) {
+			if (Input.isKeyDown(Key.M) || Input.isGamepadButtonDown(GamepadButton.East)) {
 				if (music.paused) {
 					music.resume();
 					Log.info("Music resumed");
@@ -91,8 +103,13 @@ class Main {
 				}
 			}
 
-			renderer.drawTexture(sprite, Std.int((renderer.width - spriteWidth) / 2), Std.int((renderer.height - spriteHeight) / 2), spriteWidth,
-				spriteHeight);
+			var moveX = clamp(Input.getGamepadAxis(GamepadAxis.LeftX) + keyAxis(Key.A, Key.D));
+			var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S));
+			spriteX += moveX * spriteSpeed * Time.deltaSeconds;
+			spriteY += moveY * spriteSpeed * Time.deltaSeconds;
+
+			renderer.drawTexture(sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX), Std.int((renderer.height - spriteHeight) / 2 + spriteY),
+				spriteWidth, spriteHeight);
 			renderer.drawTexture(label, 16, 16);
 		});
 
@@ -107,6 +124,21 @@ class Main {
 		Application.shutdown();
 
 		Log.success("Fried Engine sandbox run complete");
+	}
+
+	static function keyAxis(negative:Key, positive:Key):Float {
+		var value = 0.0;
+		if (Input.isKeyPressed(negative)) {
+			value -= 1.0;
+		}
+		if (Input.isKeyPressed(positive)) {
+			value += 1.0;
+		}
+		return value;
+	}
+
+	static function clamp(value:Float):Float {
+		return Math.max(-1.0, Math.min(1.0, value));
 	}
 
 	static function checkAsset(path:String):Void {
