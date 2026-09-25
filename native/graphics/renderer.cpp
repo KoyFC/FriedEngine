@@ -1,38 +1,19 @@
 #include "graphics/renderer.h"
 
+#include "handle_pool.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
 #include <SDL.h>
-#include <vector>
 
 namespace
 {
-    std::vector<SDL_Renderer *> s_renderers;
-    std::vector<int> s_freeRendererIds;
-
-    int storeRenderer(SDL_Renderer *renderer)
-    {
-        if (!s_freeRendererIds.empty())
-        {
-            int rendererId = s_freeRendererIds.back();
-            s_freeRendererIds.pop_back();
-            s_renderers[rendererId] = renderer;
-            return rendererId;
-        }
-
-        s_renderers.push_back(renderer);
-        return (int)(s_renderers.size() - 1);
-    }
+    HandlePool<SDL_Renderer> s_renderers;
 }
 
 SDL_Renderer *fried_renderer_get_sdl(int rendererId)
 {
-    if (rendererId < 0 || rendererId >= (int)s_renderers.size())
-    {
-        return nullptr;
-    }
-    return s_renderers[rendererId];
+    return s_renderers.get(rendererId);
 }
 
 int fried_renderer_create(int windowId, bool vsync)
@@ -60,19 +41,17 @@ int fried_renderer_create(int windowId, bool vsync)
     }
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    return storeRenderer(renderer);
+    return s_renderers.store(renderer);
 }
 
 void fried_renderer_destroy(int rendererId)
 {
-    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    SDL_Renderer *renderer = s_renderers.release(rendererId);
     if (!renderer)
     {
         return;
     }
     SDL_DestroyRenderer(renderer);
-    s_renderers[rendererId] = nullptr;
-    s_freeRendererIds.push_back(rendererId);
 }
 
 bool fried_renderer_has_vsync(int rendererId)

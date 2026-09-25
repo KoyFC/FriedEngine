@@ -1,25 +1,15 @@
 #include "graphics/font.h"
 
+#include "handle_pool.h"
 #include "graphics/renderer.h"
 #include "graphics/texture.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
-#include <vector>
 
 namespace
 {
-    std::vector<TTF_Font *> s_fonts;
-    std::vector<int> s_freeFontIds;
-
-    TTF_Font *fontAt(int fontId)
-    {
-        if (fontId < 0 || fontId >= (int)s_fonts.size())
-        {
-            return nullptr;
-        }
-        return s_fonts[fontId];
-    }
+    HandlePool<TTF_Font> s_fonts;
 }
 
 int fried_font_load(const char *path, int size)
@@ -35,34 +25,23 @@ int fried_font_load(const char *path, int size)
         return -1;
     }
 
-    if (!s_freeFontIds.empty())
-    {
-        int fontId = s_freeFontIds.back();
-        s_freeFontIds.pop_back();
-        s_fonts[fontId] = font;
-        return fontId;
-    }
-
-    s_fonts.push_back(font);
-    return (int)(s_fonts.size() - 1);
+    return s_fonts.store(font);
 }
 
 void fried_font_destroy(int fontId)
 {
-    TTF_Font *font = fontAt(fontId);
+    TTF_Font *font = s_fonts.release(fontId);
     if (!font)
     {
         return;
     }
 
     TTF_CloseFont(font);
-    s_fonts[fontId] = nullptr;
-    s_freeFontIds.push_back(fontId);
 }
 
 int fried_font_get_line_height(int fontId)
 {
-    TTF_Font *font = fontAt(fontId);
+    TTF_Font *font = s_fonts.get(fontId);
     if (!font)
     {
         return 0;
@@ -72,7 +51,7 @@ int fried_font_get_line_height(int fontId)
 
 int fried_font_measure_width(int fontId, const char *text)
 {
-    TTF_Font *font = fontAt(fontId);
+    TTF_Font *font = s_fonts.get(fontId);
     if (!font || !text)
     {
         return 0;
@@ -88,7 +67,7 @@ int fried_font_measure_width(int fontId, const char *text)
 
 int fried_font_render_text(int fontId, int rendererId, const char *text, int r, int g, int b, int a)
 {
-    TTF_Font *font = fontAt(fontId);
+    TTF_Font *font = s_fonts.get(fontId);
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!font || !renderer || !text)
     {

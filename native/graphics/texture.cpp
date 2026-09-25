@@ -1,43 +1,24 @@
 #include "graphics/texture.h"
 
+#include "handle_pool.h"
 #include "graphics/renderer.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
-#include <vector>
 
 namespace
 {
-    std::vector<SDL_Texture *> s_textures;
-    std::vector<int> s_freeTextureIds;
+    HandlePool<SDL_Texture> s_textures;
 }
 
 int fried_texture_store_sdl(SDL_Texture *texture)
 {
-    if (!texture)
-    {
-        return -1;
-    }
-
-    if (!s_freeTextureIds.empty())
-    {
-        int textureId = s_freeTextureIds.back();
-        s_freeTextureIds.pop_back();
-        s_textures[textureId] = texture;
-        return textureId;
-    }
-
-    s_textures.push_back(texture);
-    return (int)(s_textures.size() - 1);
+    return s_textures.store(texture);
 }
 
 SDL_Texture *fried_texture_get_sdl(int textureId)
 {
-    if (textureId < 0 || textureId >= (int)s_textures.size())
-    {
-        return nullptr;
-    }
-    return s_textures[textureId];
+    return s_textures.get(textureId);
 }
 
 int fried_texture_load(int rendererId, const char *path)
@@ -59,14 +40,12 @@ int fried_texture_load(int rendererId, const char *path)
 
 void fried_texture_destroy(int textureId)
 {
-    SDL_Texture *texture = fried_texture_get_sdl(textureId);
+    SDL_Texture *texture = s_textures.release(textureId);
     if (!texture)
     {
         return;
     }
     SDL_DestroyTexture(texture);
-    s_textures[textureId] = nullptr;
-    s_freeTextureIds.push_back(textureId);
 }
 
 int fried_texture_get_width(int textureId)

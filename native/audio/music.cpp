@@ -1,12 +1,12 @@
 #include "audio/music.h"
 
+#include "handle_pool.h"
+
 #include <SDL_mixer.h>
-#include <vector>
 
 namespace
 {
-    std::vector<Mix_Music *> s_music;
-    std::vector<int> s_freeMusicIds;
+    HandlePool<Mix_Music> s_music;
 
     int s_musicIdOnStream = -1;
 
@@ -28,14 +28,6 @@ namespace
         return musicId >= 0 && musicId == s_musicIdOnStream && Mix_PlayingMusic() != 0;
     }
 
-    Mix_Music *musicAt(int musicId)
-    {
-        if (musicId < 0 || musicId >= (int)s_music.size())
-        {
-            return nullptr;
-        }
-        return s_music[musicId];
-    }
 }
 
 int fried_music_load(const char *path)
@@ -51,35 +43,25 @@ int fried_music_load(const char *path)
         return -1;
     }
 
-    if (!s_freeMusicIds.empty())
-    {
-        int musicId = s_freeMusicIds.back();
-        s_freeMusicIds.pop_back();
-        s_music[musicId] = music;
-        return musicId;
-    }
-
-    s_music.push_back(music);
-    return (int)(s_music.size() - 1);
+    return s_music.store(music);
 }
 
 void fried_music_destroy(int musicId)
 {
-    Mix_Music *music = musicAt(musicId);
+    fried_music_stop(musicId);
+
+    Mix_Music *music = s_music.release(musicId);
     if (!music)
     {
         return;
     }
 
-    fried_music_stop(musicId);
     Mix_FreeMusic(music);
-    s_music[musicId] = nullptr;
-    s_freeMusicIds.push_back(musicId);
 }
 
 void fried_music_play(int musicId, int loops)
 {
-    Mix_Music *music = musicAt(musicId);
+    Mix_Music *music = s_music.get(musicId);
     if (!music)
     {
         return;
