@@ -19,6 +19,16 @@ class Main {
 			Log.warn("README.md not found relative to the working directory");
 		}
 
+		Log.info("Asset path: " + Platform.assetPath);
+		for (asset in ["sprite.png", "beep.wav", "font.ttf"]) {
+			var path = Platform.getAssetPath(asset);
+			if (Filesystem.exists(path)) {
+				Log.success('Found asset: $asset');
+			} else {
+				Log.error('Missing asset: $path');
+			}
+		}
+
 		var window = new Window("Fried Engine sandbox", 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
 

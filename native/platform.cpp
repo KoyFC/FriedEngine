@@ -6,6 +6,12 @@
 namespace
 {
     std::string s_basePath;
+    std::string s_assetPath;
+
+    std::string resolveAssetPath(const std::string &basePath)
+    {
+        return basePath + "assets/";
+    }
 }
 
 void fried_platform_init()
@@ -20,9 +26,16 @@ void fried_platform_init()
     {
         s_basePath = "./";
     }
+
+    s_assetPath = resolveAssetPath(s_basePath);
 }
 
 const char *fried_platform_get_base_path()
 {
     return s_basePath.c_str();
+}
+
+const char *fried_platform_get_asset_path()
+{
+    return s_assetPath.c_str();
 }

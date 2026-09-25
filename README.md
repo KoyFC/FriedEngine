@@ -27,7 +27,7 @@ Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 - [hxcpp](https://lib.haxe.org/p/hxcpp/) (`haxelib install hxcpp`)
 - CMake 3.20+
 - A C++17 compiler: GCC, Clang or MSVC
-- SDL2 2.0+, with its CMake package config available to `find_package(SDL2 CONFIG)` (e.g. the distro's `SDL2-devel`/`libsdl2-dev` package)
+- SDL2 2.0+, plus SDL2_image, SDL2_mixer and SDL2_ttf, each with its CMake package config available to `find_package(... CONFIG)` (e.g. the distro's `SDL2-devel`/`SDL2_image-devel`/`SDL2_mixer-devel`/`SDL2_ttf-devel` or `libsdl2-dev`/`libsdl2-image-dev`/`libsdl2-mixer-dev`/`libsdl2-ttf-dev` packages)
 
 ## Building the sandbox
 
@@ -63,15 +63,18 @@ The repository's `.vscode/` tasks run this same pipeline from the editor. If you
    Expected output:
 
    ```
-   [INFO] Window created: 640x480
-   [INFO] frame 30, elapsed=0.004...s
-   [INFO] frame 60, elapsed=0.004...s
-   [INFO] frame 90, elapsed=0.004...s
-   [INFO] frame 120, elapsed=0.004...s
-   [INFO] Fried Engine sandbox run complete
+   [0 | 0.0s] [SUCCESS] Fried Engine sandbox initialized. Base path: .../build/sandbox/
+   [0 | 0.0s] [INFO] Read README.md: 4642 bytes
+   [0 | 0.0s] [INFO] Asset path: .../build/sandbox/assets/
+   [0 | 0.0s] [SUCCESS] Found asset: sprite.png
+   [0 | 0.0s] [SUCCESS] Found asset: beep.wav
+   [0 | 0.0s] [SUCCESS] Found asset: font.ttf
+   [0 | 0.0s] [SUCCESS] Window created: 640x480
+   [1 | 0.75s] [INFO] Window focused
+   [231 | 3.927s] [SUCCESS] Fried Engine sandbox run complete
    ```
 
-   A real SDL2 window opens, `fried.Application.run()` drives 120 iterations of the game loop (ticking `fried.Time`, pumping `fried.Events`), then the window closes and SDL shuts down — all through `fried.Application`/`fried.Window`/`fried.Events`/`fried.Time`/`fried.Log` (`src/fried/`), the engine's own Haxe code, not sandbox-only test code.
+   A real SDL2 window opens and `fried.Application.run()` drives the game loop (ticking `fried.Time`, pumping `fried.Events`, reporting clicks and window events) until the window is closed, then the window is destroyed and SDL shuts down. All of it goes through `fried.Application`/`fried.Window`/`fried.Events`/`fried.Time`/`fried.Input`/`fried.Platform`/`fried.Filesystem`/`fried.Log` (`src/fried/`), the engine's own Haxe code, not sandbox-only test code. The `Read README.md` line only appears when the sandbox is run from the repository root, since that path is relative to the working directory; the asset lines are resolved through `fried.Platform.getAssetPath()` and work from anywhere.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime/std source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them for a different hxcpp version.
 
