@@ -15,7 +15,7 @@ class Log {
 	private static inline var BOLD:String = "\x1b[1m";
 
 	private static function formatMessage(message:String, colorCode:String):String {
-		var timestamp = Time.formatDuration(Time.elapsedSeconds);
+		var timestamp = Time.formatDuration(Time.unscaledElapsedSeconds);
 		var frame = Time.frameCount;
 		return colorCode + "[" + frame + " | " + timestamp + "] " + message + RESET;
 	}

@@ -6,6 +6,7 @@
 namespace
 {
     std::vector<SDL_Window *> s_windows;
+    std::vector<int> s_freeWindowIds;
 
     SDL_Window *windowAt(int windowId)
     {
@@ -42,6 +43,14 @@ int fried_window_create(const char *title, int width, int height)
 
     paintBackground(window);
 
+    if (!s_freeWindowIds.empty())
+    {
+        int windowId = s_freeWindowIds.back();
+        s_freeWindowIds.pop_back();
+        s_windows[windowId] = window;
+        return windowId;
+    }
+
     s_windows.push_back(window);
     return (int)(s_windows.size() - 1);
 }
@@ -55,6 +64,7 @@ void fried_window_destroy(int windowId)
     }
     SDL_DestroyWindow(window);
     s_windows[windowId] = nullptr;
+    s_freeWindowIds.push_back(windowId);
 }
 
 int fried_window_get_width(int windowId)

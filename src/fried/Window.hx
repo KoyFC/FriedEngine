@@ -23,6 +23,7 @@ class Window {
 	public function destroy():Void {
 		instances.remove(id);
 		WindowNative.destroy(id);
+		id = -1;
 	}
 
 	@:allow(fried.Events)
