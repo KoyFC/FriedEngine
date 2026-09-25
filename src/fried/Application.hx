@@ -5,6 +5,8 @@ class Application {
 
 	public static var targetFps:Int = 60;
 
+	public static var renderer(default, null):Renderer;
+
 	public static function init():Void {
 		if (ApplicationNative.init() != 0) {
 			throw "SDL_Init failed";
@@ -15,12 +17,29 @@ class Application {
 	}
 
 	public static function shutdown():Void {
+		destroyRenderer();
 		ApplicationNative.shutdown();
 		running = false;
 	}
 
 	public static function quit():Void {
 		running = false;
+	}
+
+	public static function createRenderer(window:Window, vsync:Bool = true):Renderer {
+		if (renderer != null) {
+			throw "A renderer already exists. Destroy it before creating another one.";
+		}
+		renderer = new Renderer(window, vsync);
+		return renderer;
+	}
+
+	public static function destroyRenderer():Void {
+		if (renderer == null) {
+			return;
+		}
+		renderer.destroy();
+		renderer = null;
 	}
 
 	public static function run(update:Void->Void):Void {
@@ -32,8 +51,15 @@ class Application {
 				break;
 			}
 			Time.tick();
+
+			if (renderer != null) {
+				renderer.clear();
+			}
 			update();
-			Window.presentAll();
+			if (renderer != null) {
+				renderer.present();
+			}
+
 			Input.endFrame();
 
 			waitForFrameBudget(frameStart);
@@ -41,7 +67,7 @@ class Application {
 	}
 
 	static function waitForFrameBudget(frameStart:Float):Void {
-		if (targetFps <= 0) {
+		if (targetFps <= 0 || (renderer != null && renderer.vsync)) {
 			return;
 		}
 		var budget = 1.0 / targetFps;

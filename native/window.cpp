@@ -7,26 +7,15 @@ namespace
 {
     std::vector<SDL_Window *> s_windows;
     std::vector<int> s_freeWindowIds;
+}
 
-    SDL_Window *windowAt(int windowId)
+SDL_Window *fried_window_get_sdl(int windowId)
+{
+    if (windowId < 0 || windowId >= (int)s_windows.size())
     {
-        if (windowId < 0 || windowId >= (int)s_windows.size())
-        {
-            return nullptr;
-        }
-        return s_windows[windowId];
+        return nullptr;
     }
-
-    void paintBackground(SDL_Window *window)
-    {
-        SDL_Surface *surface = SDL_GetWindowSurface(window);
-        if (!surface)
-        {
-            return;
-        }
-        SDL_FillRect(surface, nullptr, SDL_MapRGB(surface->format, 0, 0, 0));
-        SDL_UpdateWindowSurface(window);
-    }
+    return s_windows[windowId];
 }
 
 int fried_window_create(const char *title, int width, int height)
@@ -40,8 +29,6 @@ int fried_window_create(const char *title, int width, int height)
     {
         return -1;
     }
-
-    paintBackground(window);
 
     if (!s_freeWindowIds.empty())
     {
@@ -57,7 +44,7 @@ int fried_window_create(const char *title, int width, int height)
 
 void fried_window_destroy(int windowId)
 {
-    SDL_Window *window = windowAt(windowId);
+    SDL_Window *window = fried_window_get_sdl(windowId);
     if (!window)
     {
         return;
@@ -69,7 +56,7 @@ void fried_window_destroy(int windowId)
 
 int fried_window_get_width(int windowId)
 {
-    SDL_Window *window = windowAt(windowId);
+    SDL_Window *window = fried_window_get_sdl(windowId);
     if (!window)
     {
         return 0;
@@ -81,7 +68,7 @@ int fried_window_get_width(int windowId)
 
 int fried_window_get_height(int windowId)
 {
-    SDL_Window *window = windowAt(windowId);
+    SDL_Window *window = fried_window_get_sdl(windowId);
     if (!window)
     {
         return 0;
@@ -103,13 +90,3 @@ int fried_window_find_by_sdl_id(unsigned int sdlWindowId)
     return -1;
 }
 
-void fried_window_present_all()
-{
-    for (SDL_Window *window : s_windows)
-    {
-        if (window)
-        {
-            paintBackground(window);
-        }
-    }
-}

@@ -3,6 +3,7 @@ package fried;
 class Window {
 	static var instances:Map<Int, Window> = new Map();
 
+	@:allow(fried.Renderer)
 	var id:Int;
 
 	public var width(get, never):Int;
@@ -31,11 +32,6 @@ class Window {
 		return instances.get(id);
 	}
 
-	@:allow(fried.Application)
-	static function presentAll():Void {
-		WindowNative.presentAll();
-	}
-
 	function get_width():Int {
 		return WindowNative.getWidth(id);
 	}
@@ -58,7 +54,4 @@ private extern class WindowNative {
 
 	@:native("fried_window_get_height")
 	static function getHeight(id:Int):Int;
-
-	@:native("fried_window_present_all")
-	static function presentAll():Void;
 }

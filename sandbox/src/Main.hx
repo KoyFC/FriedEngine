@@ -5,6 +5,8 @@ import fried.Input;
 import fried.Key;
 import fried.Log;
 import fried.MouseButton;
+import fried.Renderer;
+import fried.Texture;
 import fried.Window;
 
 class Main {
@@ -38,14 +40,28 @@ class Main {
 			Log.info(focused ? "Window focused" : "Window unfocused");
 		};
 
-		Application.targetFps = 60;
+		var renderer = Application.createRenderer(window);
+		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.vsync ? "on" : "off"}');
+		renderer.setDrawColor(24, 24, 32);
+
+		var sprite = new Texture(renderer, Assets.game("sprite.png"));
+		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
+
+		var spriteScale = 8;
+		var spriteWidth = sprite.width * spriteScale;
+		var spriteHeight = sprite.height * spriteScale;
 
 		Application.run(function() {
 			if (Input.isButtonDown(MouseButton.Left)) {
 				Log.info('Left click at ${Input.mouseX}, ${Input.mouseY}');
 			}
+
+			renderer.drawTexture(sprite, Std.int((renderer.width - spriteWidth) / 2), Std.int((renderer.height - spriteHeight) / 2), spriteWidth,
+				spriteHeight);
 		});
 
+		sprite.destroy();
+		Application.destroyRenderer();
 		window.destroy();
 
 		Application.shutdown();

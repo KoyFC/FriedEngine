@@ -15,6 +15,8 @@ target_sources(fried_sandbox PRIVATE
     ${CMAKE_SOURCE_DIR}/native/input.cpp
     ${CMAKE_SOURCE_DIR}/native/mouse.cpp
     ${CMAKE_SOURCE_DIR}/native/window.cpp
+    ${CMAKE_SOURCE_DIR}/native/renderer.cpp
+    ${CMAKE_SOURCE_DIR}/native/texture.cpp
     ${CMAKE_SOURCE_DIR}/native/filesystem.cpp
 )
 target_include_directories(fried_sandbox PRIVATE ${CMAKE_SOURCE_DIR}/native)
