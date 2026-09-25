@@ -8,10 +8,18 @@ namespace
     std::string s_basePath;
     std::string s_assetPath;
 
+#ifdef __vita__
+    // The Vita mounts the application read-only at a fixed point.
+    std::string resolveAssetPath(const std::string &)
+    {
+        return "app0:/assets/";
+    }
+#else
     std::string resolveAssetPath(const std::string &basePath)
     {
         return basePath + "assets/";
     }
+#endif
 }
 
 void fried_filesystem_init()

@@ -64,9 +64,27 @@ set(_hxcpp_std_sources
     src/hx/libs/std/Sys.cpp
 )
 
+# Neither compiles on the Vita: it has no subprocesses, and its sockets are a
+# Sony API rather than the BSD one hxcpp is written against.
+set(_hxcpp_std_sources_without_vita
+    src/hx/libs/std/Socket.cpp
+    src/hx/libs/std/Process.cpp
+)
+
 # Used instead of the generated __files__.cpp because we don't build with
 # HXCPP_DEBUGGER (matches Build.xml's `unless="HXCPP_DEBUGGER"` file entry).
 set(_hxcpp_no_files_source src/hx/NoFiles.cpp)
+
+# hxcpp's std sources are written against glibc; cmake/vita/newlib/ fills in
+# what newlib either declares without implementing or does not ship at all.
+set(_hxcpp_vita_newlib_dir "${CMAKE_CURRENT_LIST_DIR}/vita/newlib")
+
+function(fried_apply_vita_newlib_compat sources)
+    set_source_files_properties(${sources} PROPERTIES
+        INCLUDE_DIRECTORIES "${_hxcpp_vita_newlib_dir}"
+        COMPILE_OPTIONS "-include;${_hxcpp_vita_newlib_dir}/posix_extras.h"
+    )
+endfunction()
 
 # fried_add_hxcpp_executable(<target> <generated_dir>)
 #
@@ -91,7 +109,12 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     list(FILTER _generated_sources EXCLUDE REGEX "__files__\\.cpp$")
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
-    list(TRANSFORM _hxcpp_std_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _std_sources)
+    set(_std_source_names ${_hxcpp_std_sources})
+    if(VITA)
+        list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_vita})
+    endif()
+
+    list(TRANSFORM _std_source_names PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _std_sources)
     set(_no_files_source "${HXCPP_ROOT}/${_hxcpp_no_files_source}")
 
     add_executable(${target_name}
@@ -116,7 +139,17 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_definitions(${target_name} PRIVATE HXCPP_M64)
     endif()
 
-    if(APPLE)
+    if(VITA)
+        # hxcpp has no Vita target of its own: HX_LINUX and NEKO_LINUX pick its
+        # generic POSIX paths, and the Vita loads no shared libraries.
+        target_compile_definitions(${target_name} PRIVATE
+            HX_LINUX
+            NEKO_LINUX
+            HXCPP_NO_DYNAMIC_LOADING
+        )
+        fried_apply_vita_newlib_compat("${_std_sources}")
+        target_sources(${target_name} PRIVATE "${_hxcpp_vita_newlib_dir}/posix_extras.cpp")
+    elseif(APPLE)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)
         target_compile_definitions(${target_name} PRIVATE HX_WINDOWS)
@@ -136,9 +169,22 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
     )
 
-    find_package(Threads REQUIRED)
-    target_link_libraries(${target_name} PRIVATE Threads::Threads)
+    if(VITA)
+        # newlib's struct tm has no tm_gmtoff. __SNC__ is one of the defines
+        # Date.cpp keys its mktime() fallback off, and uses for nothing else.
+        set_property(SOURCE "${HXCPP_ROOT}/src/hx/Date.cpp"
+            APPEND PROPERTY COMPILE_DEFINITIONS __SNC__
+        )
+
+        target_link_libraries(${target_name} PRIVATE pthread)
+    else()
+        find_package(Threads REQUIRED)
+        target_link_libraries(${target_name} PRIVATE Threads::Threads)
+    endif()
 
     target_compile_features(${target_name} PRIVATE cxx_std_17)
-    set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+    if(NOT VITA)
+        set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    endif()
 endfunction()
