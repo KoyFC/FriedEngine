@@ -1,20 +1,33 @@
 package fried;
 
 class Window {
+	static var instances:Map<Int, Window> = new Map();
+
 	var id:Int;
 
 	public var width(get, never):Int;
 	public var height(get, never):Int;
+
+	public var onClose:Void->Void;
+	public var onResize:Int->Int->Void;
+	public var onFocusChanged:Bool->Void;
 
 	public function new(title:String, width:Int, height:Int) {
 		id = WindowNative.create(title, width, height);
 		if (id < 0) {
 			throw "Failed to create window";
 		}
+		instances.set(id, this);
 	}
 
 	public function destroy():Void {
+		instances.remove(id);
 		WindowNative.destroy(id);
+	}
+
+	@:allow(fried.Events)
+	static function fromId(id:Int):Null<Window> {
+		return instances.get(id);
 	}
 
 	function get_width():Int {

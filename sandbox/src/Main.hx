@@ -12,6 +12,17 @@ class Main {
 		var window = new Window("Fried Engine sandbox", 640, 480);
 		Log.info('Window created: ${window.width}x${window.height}');
 
+		window.onResize = function(width, height) {
+			Log.info('Window resized: ${width}x${height}');
+		};
+		window.onClose = function() {
+			Log.info("Window close requested");
+			Application.quit();
+		};
+		window.onFocusChanged = function(focused) {
+			Log.info(focused ? "Window focused" : "Window unfocused");
+		};
+
 		Application.run(function() {
 			// if (Time.frameCount % 30 == 0) {
 			// 	Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');
