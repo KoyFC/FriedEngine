@@ -6,12 +6,11 @@ import fried.Key;
 import fried.Log;
 import fried.MouseButton;
 import fried.Window;
-import fried.Platform;
 
 class Main {
 	public static function main():Void {
 		Application.init();
-		Log.success("Fried Engine sandbox initialized. Base path: " + Platform.basePath);
+		Log.success("Fried Engine sandbox initialized. Base path: " + Filesystem.basePath);
 
 		if (Filesystem.exists("README.md")) {
 			var bytes = Filesystem.readBytes("README.md");
@@ -20,7 +19,7 @@ class Main {
 			Log.warn("README.md not found relative to the working directory");
 		}
 
-		Log.info("Asset path: " + Platform.assetPath);
+		Log.info("Asset path: " + Filesystem.assetPath);
 		checkAsset(Assets.engine("font.ttf"));
 		checkAsset(Assets.game("sprite.png"));
 		checkAsset(Assets.game("beep.wav"));

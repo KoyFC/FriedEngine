@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "filesystem.h"
 
 #include <SDL.h>
 #include <string>
@@ -14,7 +14,7 @@ namespace
     }
 }
 
-void fried_platform_init()
+void fried_filesystem_init()
 {
     char *basePath = SDL_GetBasePath();
     if (basePath)
@@ -30,12 +30,12 @@ void fried_platform_init()
     s_assetPath = resolveAssetPath(s_basePath);
 }
 
-const char *fried_platform_get_base_path()
+const char *fried_filesystem_get_base_path()
 {
     return s_basePath.c_str();
 }
 
-const char *fried_platform_get_asset_path()
+const char *fried_filesystem_get_asset_path()
 {
     return s_assetPath.c_str();
 }

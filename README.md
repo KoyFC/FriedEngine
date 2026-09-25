@@ -23,7 +23,7 @@ Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 
 ## Assets
 
-Assets live under the asset root that `fried.Platform` resolves (`assets/` next to the executable on PC, and whatever fixed mount point a console uses), split into two roots: `engine/`, shipped by the engine, and `game/`, shipped by the game. Each side keeps its own assets in a plain `assets/` folder in its own repository (`assets/` here, `sandbox/assets/` for the sandbox); the `engine/` and `game/` split only exists in the runtime layout CMake builds next to the executable:
+Assets live under the asset root that `fried.Filesystem` resolves (`assets/` next to the executable on PC, and whatever fixed mount point a console uses), split into two roots: `engine/`, shipped by the engine, and `game/`, shipped by the game. Each side keeps its own assets in a plain `assets/` folder in its own repository (`assets/` here, `sandbox/assets/` for the sandbox); the `engine/` and `game/` split only exists in the runtime layout CMake builds next to the executable:
 
 ```
 assets/          in the engine repo   -->   assets/engine/   next to the executable
@@ -47,7 +47,7 @@ Being macros is what lets them do three things at compile time, so a bad asset r
 
 Both take a literal string, not a `String` expression: the argument is a macro constant, so a path built at runtime will not compile. That is deliberate at this stage, since it is what makes every asset reference verifiable; it can be loosened later without breaking any existing call.
 
-Each call compiles down to a single `fried.Platform.getAssetPath("engine/font.ttf")`, the whole subpath already folded into one constant, so nothing about this costs anything at runtime.
+Each call compiles down to a single `fried.Filesystem.getAssetPath("engine/font.ttf")`, the whole subpath already folded into one constant, so nothing about this costs anything at runtime.
 
 The engine's own assets are found relative to `src/fried/Assets.hx` on the classpath, so a game gets that for free. The game's own assets are looked for in `assets/` relative to the directory `haxe` runs in, which is what `sandbox/build.hxml` relies on; `-D fried-game-assets=<dir>` overrides it for a project laid out differently.
 
@@ -94,7 +94,7 @@ The repository's `.vscode/` tasks run this same pipeline from the editor. If you
 
    ```
    [0 | 0.0s] [SUCCESS] Fried Engine sandbox initialized. Base path: .../build/sandbox/
-   [0 | 0.0s] [INFO] Read README.md: 8453 bytes
+   [0 | 0.0s] [INFO] Read README.md: 8440 bytes
    [0 | 0.0s] [INFO] Asset path: .../build/sandbox/assets/
    [0 | 0.0s] [SUCCESS] Found asset: .../build/sandbox/assets/engine/font.ttf
    [0 | 0.0s] [SUCCESS] Found asset: .../build/sandbox/assets/game/sprite.png
@@ -104,7 +104,7 @@ The repository's `.vscode/` tasks run this same pipeline from the editor. If you
    [231 | 3.927s] [SUCCESS] Fried Engine sandbox run complete
    ```
 
-   A real SDL2 window opens and `fried.Application.run()` drives the game loop (ticking `fried.Time`, pumping `fried.Events`, reporting clicks and window events) until the window is closed, then the window is destroyed and SDL shuts down. All of it goes through `fried.Application`/`fried.Window`/`fried.Events`/`fried.Time`/`fried.Input`/`fried.Platform`/`fried.Filesystem`/`fried.Assets`/`fried.Log` (`src/fried/`), the engine's own Haxe code, not sandbox-only test code. The `Read README.md` line only appears when the sandbox is run from the repository root, since that path is relative to the working directory; the asset lines are resolved through the asset roots described below and work from anywhere.
+   A real SDL2 window opens and `fried.Application.run()` drives the game loop (ticking `fried.Time`, pumping `fried.Events`, reporting clicks and window events) until the window is closed, then the window is destroyed and SDL shuts down. All of it goes through `fried.Application`/`fried.Window`/`fried.Events`/`fried.Time`/`fried.Input`/`fried.Filesystem`/`fried.Assets`/`fried.Log` (`src/fried/`), the engine's own Haxe code, not sandbox-only test code. The `Read README.md` line only appears when the sandbox is run from the repository root, since that path is relative to the working directory; the asset lines are resolved through the asset roots described below and work from anywhere.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime/std source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them for a different hxcpp version.
 

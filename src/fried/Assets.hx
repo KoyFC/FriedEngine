@@ -35,7 +35,7 @@ class Assets {
 			Context.error('Asset not found: $sourcePath', Context.currentPos());
 		}
 
-		return macro fried.Platform.getAssetPath($v{Path.join([(root : String), relativePath])});
+		return macro fried.Filesystem.getAssetPath($v{Path.join([(root : String), relativePath])});
 	}
 
 	static function sourceDirectory(root:AssetRoot):String {
