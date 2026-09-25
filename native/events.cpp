@@ -62,11 +62,6 @@ namespace
             return;
         }
 
-        if (type == FRIED_WINDOW_EVENT_RESIZED)
-        {
-            fried_window_refresh_surface(windowId);
-        }
-
         s_windowEvents.push_back({windowId, type, data1, data2});
     }
 }

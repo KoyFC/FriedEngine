@@ -23,6 +23,8 @@ class Main {
 			Log.info(focused ? "Window focused" : "Window unfocused");
 		};
 
+		Application.targetFps = 60;
+
 		Application.run(function() {
 			// if (Time.frameCount % 30 == 0) {
 			// 	Log.info('frame ${Time.frameCount}, elapsed=${Time.elapsedSeconds}s, delta=${Time.deltaSeconds}s');

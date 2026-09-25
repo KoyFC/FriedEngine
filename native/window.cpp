@@ -93,12 +93,13 @@ int fried_window_find_by_sdl_id(unsigned int sdlWindowId)
     return -1;
 }
 
-void fried_window_refresh_surface(int windowId)
+void fried_window_present_all()
 {
-    SDL_Window *window = windowAt(windowId);
-    if (!window)
+    for (SDL_Window *window : s_windows)
     {
-        return;
+        if (window)
+        {
+            paintBackground(window);
+        }
     }
-    paintBackground(window);
 }
