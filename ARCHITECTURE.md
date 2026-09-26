@@ -4,7 +4,7 @@ This document describes the **currently implemented** architecture of this repos
 
 ## Scope of this repository
 
-This repository is Fried Engine itself. Fried Build, Fried CLI and Fried Project Manager are separate tools, not yet built, that will live in their own repositories and consume this one as a dependency (a game project will pull this repo in as a pinned Git submodule). None of them exist yet.
+This repository is Fried Engine itself. Fried Build, Fried CLI and Fried Project Manager are separate tools, not yet built, that will live in their own repositories and consume this one as a dependency. None of them exist yet. What a game needs in order to consume the engine as a pinned Git submodule is implemented, and is the next section.
 
 ## Build pipeline (implemented)
 
@@ -15,6 +15,29 @@ Haxe  --(hxcpp)-->  generated C++  --(CMake)-->  compiler  -->  executable
 A minimal sandbox Haxe program is compiled to C++ by hxcpp (`haxe build.hxml`, using `-D no-compilation` to stop before hxcpp's own build tool would run), and that generated C++ is then compiled and linked purely by CMake. `cmake/Hxcpp.cmake` locates the `hxcpp` haxelib and compiles its runtime sources alongside the generated code, with no dependency on hxcpp's own `Build.xml`/`haxelib run hxcpp` build tool.
 
 CMake is the build system for every platform this engine targets. Two are implemented: PC (verified on Linux/GCC) and PlayStation Vita (verified on real hardware), the second one described below.
+
+## Consuming the engine (implemented)
+
+A game builds against the engine by including one file and calling one function:
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(MyGame LANGUAGES CXX)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/engine/cmake/FriedEngine.cmake)
+
+fried_add_game(my_game)
+```
+
+`cmake/FriedEngine.cmake` resolves every path from its own location rather than from `CMAKE_SOURCE_DIR`, and that is the whole reason a game can pull the engine in as a submodule: nothing in it depends on the engine being the top-level project. `sandbox/CMakeLists.txt` is those same two lines with a different path to `cmake/`, so the sandbox exercises the path an external game takes instead of a private one, and a change that would break a game breaks the sandbox first.
+
+What a consumer therefore never repeats: the list of `native/*.cpp`, the four SDL2 packages, where the hxcpp haxelib lives, the VitaSDK link fixups, and the location of either asset root. What it still writes for itself is `cmake_minimum_required`, `project()` and whatever build-type or compile-database defaults it wants, because those are the consumer's policy and not the engine's.
+
+`fried::engine` is the engine's C++ as a static library. It can be one because `native/` includes nothing but SDL2 and the standard library: not a single hxcpp header, so it needs none of the defines or include paths the generated code is compiled with, and it builds once per build tree instead of once per game. `native/` is its `PUBLIC` include root, which is what the `@:include` of every extern resolves against, and the SDL2 targets are `PUBLIC` links, so both reach the game's executable as usage requirements rather than as something the game declares.
+
+`fried_add_game()` takes a target name and nothing else. The paths it needs are the layout every Fried project has, relative to the directory calling it: `build/cpp` holding the output of that project's own `haxe build.hxml`, a `project.fried`, an `assets/`, and a `sce_sys/` for the Vita. It creates the executable from the generated C++, links `fried::engine`, and then either copies both asset roots next to the executable or, on the Vita, reads `name`, `version` and `vita.titleId` out of `project.fried` and packages the `.vpk`. It has no keyword overrides for those paths: the layout is the one thing every project shares, and nothing has needed to diverge from it.
+
+The Haxe side needed no equivalent, because it never had a location to configure. A game's `build.hxml` adds `-cp <submodule>/src`, and the engine's own `assets/` is found relative to `src/fried/io/Assets.hx` on the classpath, so neither the engine's source nor its assets depend on where the submodule sits.
 
 ## SDL2 (implemented)
 
@@ -88,7 +111,7 @@ A game declares itself in a `project.fried` at its own root, next to the `build.
 }
 ```
 
-Every field in it is read by something today. `name` and `organization` are the game's identity, handed verbatim to `SDL_GetPrefPath()` to resolve the writable path below, so both have to be usable as directory names on every target; the engine does not sanitize them, since a silent rewrite would move a game's save directory without its author knowing. `version` and `vita.titleId` are what `sandbox/CMakeLists.txt` passes to `vita_create_vpk()`, which is also why the version is written in the `XX.XX` shape a Vita package requires. `window.title` is the title the game gives `fried.Window`. Each side reads only the keys it consumes: `vita.titleId` never reaches Haxe, `window.title` never reaches CMake.
+Every field in it is read by something today. `name` and `organization` are the game's identity, handed verbatim to `SDL_GetPrefPath()` to resolve the writable path below, so both have to be usable as directory names on every target; the engine does not sanitize them, since a silent rewrite would move a game's save directory without its author knowing. `version` and `vita.titleId` are what `fried_add_game()` passes to `vita_create_vpk()`, which is also why the version is written in the `XX.XX` shape a Vita package requires. `window.title` is the title the game gives `fried.Window`. Each side reads only the keys it consumes: `vita.titleId` never reaches Haxe, `window.title` never reaches CMake.
 
 `fried.Project` is how the identity reaches the engine: four macros (`name()`, `organization()`, `version()`, `windowTitle()`), each folded at compile time into the constant the file declares. Nothing passes an organization or an application name to `fried.Application.init()`, and nothing parses anything at runtime, so the file is an input to the build rather than something the game ships and opens. It is located the way the game's asset root is, `project.fried` relative to the directory `haxe` runs in, overridable with `-D fried-project=<path>`, so it never depends on where the engine itself sits. A missing or malformed file is a single `Context.fatalError`, since it is one fact about the whole project rather than a problem with a call site; a missing or non-string field is a `Context.error` per call site, so one compile reports all of them; an unknown key is ignored, so a file declaring more than this version of the engine consumes still builds. On the CMake side only the Vita branch reads it, because only packaging consumes those two fields, and the file is registered in `CMAKE_CONFIGURE_DEPENDS`, so editing it re-configures the build tree instead of quietly producing a package with stale values.
 
@@ -106,7 +129,7 @@ The LiveArea files in `sandbox/sce_sys/` are palette PNGs (color type 3), not tr
 
 What the port actually cost is in `cmake/Hxcpp.cmake`: hxcpp has no Vita target of its own, and its runtime is written against glibc. `HX_LINUX` and `NEKO_LINUX` select its generic POSIX paths, `HXCPP_NO_DYNAMIC_LOADING` compiles out the `dlopen()` layer for a console that loads no shared libraries, and `cmake/vita/newlib/` fills the three gaps that leaves: headers newlib does not ship (`xlocale.h`, `sys/termios.h`), POSIX that its own headers hide from hxcpp (`PATH_MAX`, the wait status macros), and `readlink()`, which newlib declares and VitaSDK does not implement. `sys.io.Process` and `sys.net.Socket` are left out of the build: the Vita has no subprocesses, and its sockets are a Sony API rather than the BSD one hxcpp calls. Haxe code that uses either fails to link rather than failing on the console.
 
-The engine's own C++ needed one branch, in `native/platform/filesystem.cpp`, for the fixed read-only mount point. The writable path needed none: VitaSDK's SDL2 implements `SDL_GetPrefPath()` and answers `ux0:/data/<organization>/<name>/`, creating it if it is not there, and hxcpp's `sys.io.File` writes to it through newlib, verified on hardware. Everything else in `native/` compiles unchanged, because VitaSDK ships SDL2 and its three companion libraries: the window, the event loop, the renderer, the textures, the fonts and the audio are the same SDL2 calls on both platforms. They are linked as static libraries under their own target names there, with the dependencies VitaSDK's freetype and SDL2 packages leave unnamed (`png`, `z`, `bz2`, `pthread`) declared in `sandbox/CMakeLists.txt`.
+The engine's own C++ needed one branch, in `native/platform/filesystem.cpp`, for the fixed read-only mount point. The writable path needed none: VitaSDK's SDL2 implements `SDL_GetPrefPath()` and answers `ux0:/data/<organization>/<name>/`, creating it if it is not there, and hxcpp's `sys.io.File` writes to it through newlib, verified on hardware. Everything else in `native/` compiles unchanged, because VitaSDK ships SDL2 and its three companion libraries: the window, the event loop, the renderer, the textures, the fonts and the audio are the same SDL2 calls on both platforms. They are linked as static libraries under their own target names there, with the dependencies VitaSDK's freetype and SDL2 packages leave unnamed (`png`, `z`, `bz2`, `pthread`) declared in `cmake/FriedEngine.cmake`.
 
 The Vita has no keyboard or mouse, so `fried.input.Input` reports nothing through those two there; its buttons and sticks arrive as the gamepad, which VitaSDK's SDL2 exposes as an ordinary `SDL_GameController` with no branch of its own. Not addressed yet: touch input.
 
@@ -129,9 +152,11 @@ FriedEngine/
   ARCHITECTURE.md
   README.md
   CMakeLists.txt      <- CMake entry point
-  cmake/Hxcpp.cmake   <- locates hxcpp, compiles generated C++ & runtime
-  cmake/Vita.cmake    <- packages a Vita build as .self/.vpk
-  cmake/vita/newlib/  <- what hxcpp's runtime expects and newlib does not have
+  cmake/
+    FriedEngine.cmake <- the entry point a game includes
+    Hxcpp.cmake       <- locates hxcpp, compiles generated C++ & runtime
+    Vita.cmake        <- packages a Vita build as .self/.vpk
+    vita/newlib/      <- what hxcpp's runtime expects and newlib does not have
   native/             <- hand-written C++ glue wrapping SDL2
     platform/         <- application, window, events, input, mouse, gamepad, filesystem
     graphics/         <- renderer, texture, font
@@ -144,6 +169,7 @@ FriedEngine/
     audio/            <- Sound, Music
   assets/             <- the engine's own assets
   sandbox/            <- app validating the pipeline
+    CMakeLists.txt    <- consumes the engine the way a game does
     project.fried     <- its identity, read by the Haxe macros and by CMake
     sce_sys/          <- its Vita icon and LiveArea files
   .vscode/            <- build/debug tasks for the sandbox

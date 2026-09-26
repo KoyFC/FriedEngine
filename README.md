@@ -77,6 +77,47 @@ That produces `build/vita/sandbox/fried_sandbox.vpk`, with both asset roots unde
 
 Runs on real hardware. hxcpp has no Vita target of its own, so `cmake/Hxcpp.cmake` compiles its runtime against newlib with the gaps filled by `cmake/vita/newlib/`, and `sys.io.Process` and `sys.net.Socket` are left out of the build entirely.
 
+## Using the engine in a game
+
+The engine is consumed as a Git submodule of the game that uses it:
+
+```sh
+git submodule add https://github.com/KoyFC/FriedEngine.git engine
+```
+
+A game's `CMakeLists.txt` then needs two lines for the engine:
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(MyGame LANGUAGES CXX)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/engine/cmake/FriedEngine.cmake)
+
+fried_add_game(my_game)
+```
+
+and its `build.hxml` points at the submodule's source:
+
+```
+-cp engine/src
+-cp src
+-main Main
+-cpp build/cpp
+-D no-compilation
+```
+
+`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried`, an `assets/` for the game's own assets, and a `sce_sys/` for a Vita build. Nothing else about the engine reaches the game's build files: the SDL2 packages, the engine's own C++ and both asset roots are the engine's to know.
+
+A game then builds with the same commands the sandbox does, from the project root:
+
+```sh
+haxe build.hxml
+cmake -S . -B build
+cmake --build build
+```
+
+That produces `build/my_game` with both asset roots copied next to it, or `build/my_game.vpk` when the build tree is configured with the VitaSDK toolchain file. `sandbox/` consumes the engine exactly this way, so it is a working example of a game's build rather than a special case.
+
 ## Assets
 
 Game code resolves assets through `fried.io.Assets`, which has one member per asset root:
