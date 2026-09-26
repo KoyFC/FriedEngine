@@ -60,7 +60,7 @@ The sandbox is a small Haxe program that exercises the engine's runtime. It is c
    ./build/sandbox/fried_sandbox
    ```
 
-A real SDL2 window opens and `fried.Application.run()` drives the game loop until the window is closed, drawing the sandbox's sprite in the middle of the window and a line of text above it, with its music looping. Space plays a sound, M pauses and resumes the music. The line of text starts with how many times the sandbox has been run, counted in a file it keeps in its own writable user data path. The sandbox logs its base path, that user data path, the assets it resolved from each asset root, and the window events it receives.
+A real SDL2 window opens, with the sandbox's own icon on it, and `fried.Application.run()` drives the game loop until the window is closed, drawing the sandbox's sprite in the middle of the window and a line of text above it, with its music looping. Space plays a sound, M pauses and resumes the music. The line of text starts with how many times the sandbox has been run, counted in a file it keeps in its own writable user data path. The sandbox logs its base path, that user data path, the assets it resolved from each asset root, and the window events it receives.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them.
 
@@ -192,6 +192,19 @@ theme.play();
 ```
 
 `Sound` is for short effects, mixed on any free channel, so the same sound can overlap with itself. `Music` is the streamed one, and SDL_mixer streams one at a time: a second `play()` replaces the first, and `pause()`, `resume()` and `stop()` on a `Music` that is not the one playing do nothing. Volume is per sound but global for music, which is why `Music.volume` is static.
+
+## The window icon
+
+A window takes its icon from the game's own assets, like anything else it loads:
+
+```haxe
+var window = new Window("Game", 640, 480);
+window.setIcon(Assets.game("icon.png"));
+```
+
+Anything SDL_image decodes works, at whatever size the image happens to be. The path goes through `fried.io.Assets`, so a missing file is a compile error rather than a window that quietly keeps the default icon, and a file that is not a decodable image throws at the call.
+
+The Vita's `sce_sys/icon0.png` is a separate file for a separate job: the console's installer reads it out of the `.vpk`, and it has to be a palette PNG (see [`ARCHITECTURE.md`](ARCHITECTURE.md)). The console has nothing to show a window icon on, so `setIcon` has no effect there and a game can call it without branching on the platform.
 
 ## The project file
 
