@@ -77,6 +77,8 @@ cmake --build build/vita
 
 That produces `build/vita/sandbox/fried_sandbox.vpk`, with both asset roots under `app0:/assets/` and the LiveArea files from `sandbox/sce_sys/`. Copy it to the console and install it with VitaShell.
 
+Keep spaces out of the path, both to the project and to its build tree. VitaSDK's packaging step passes every path to `vita-pack-vpk` unquoted, as bare `-a <source>=<destination>` pairs, so a space splits an argument and the packing fails after the C++ has already compiled and linked. It surfaces as CMake failing to copy `<target>.vpk.out`, which does not name the real cause. A PC build is unaffected.
+
 Runs on real hardware. hxcpp has no Vita target of its own, so `cmake/Hxcpp.cmake` compiles its runtime against newlib with the gaps filled by `cmake/vita/newlib/`, and `sys.io.Process` and `sys.net.Socket` are left out of the build entirely.
 
 ## Using the engine in a game
