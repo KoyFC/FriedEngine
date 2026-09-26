@@ -16,9 +16,10 @@ This repository contains **only the engine**. See [`ARCHITECTURE.md`](ARCHITECTU
 - [x] 4. Engine and game asset roots, read-only, verified at compile time
 - [x] 5. Renderer and resources (`Renderer`, `Texture`, `Font`, `Sound`, `Music`)
 - [x] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
-- [ ] 7. Real test game
-- [ ] 8. Prove Fried Engine as a submodule in an external project
-- [ ] 9. Define `project.fried`, and the writable user data path, which needs the game identity it declares
+- [ ] 7. Define `project.fried`, and the writable user data path, which needs the game identity it declares
+- [ ] 8. Fried Project Manager: create the basic structure of a new game project
+- [ ] 9. Prove Fried Engine as a submodule in an external project
+- [ ] 10. Real test game
 
 ## Requirements (PC)
 
