@@ -64,7 +64,7 @@ class Main {
 		var font = new Font(Assets.engine("NunitoSans.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
-		var hint = "Space/South: sound   M/East: music   WASD/stick: move";
+		var hint = 'Run $runs   Space/South: sound   M/East: music   WASD/stick: move';
 		var label = font.renderText(renderer, hint, 220, 220, 230);
 		Log.info('Text rendered: ${label.width}x${label.height} for ${font.measureWidth(hint)} measured pixels');
 

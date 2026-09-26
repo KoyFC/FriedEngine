@@ -1,6 +1,7 @@
 include(${CMAKE_SOURCE_DIR}/cmake/Hxcpp.cmake)
 
 set(FRIED_SANDBOX_GENERATED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/cpp)
+set(FRIED_SANDBOX_PROJECT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/project.fried)
 
 fried_add_hxcpp_executable(fried_sandbox ${FRIED_SANDBOX_GENERATED_DIR})
 
@@ -44,10 +45,16 @@ if(VITA)
 
     include(${CMAKE_SOURCE_DIR}/cmake/Vita.cmake)
 
+    file(READ ${FRIED_SANDBOX_PROJECT_FILE} _project_json)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${FRIED_SANDBOX_PROJECT_FILE})
+    string(JSON FRIED_SANDBOX_NAME GET "${_project_json}" name)
+    string(JSON FRIED_SANDBOX_VERSION GET "${_project_json}" version)
+    string(JSON FRIED_SANDBOX_TITLE_ID GET "${_project_json}" vita titleId)
+
     fried_add_vita_vpk(fried_sandbox
-        NAME "Fried Sandbox"
-        TITLE_ID FRIE00001
-        VERSION 01.00
+        NAME "${FRIED_SANDBOX_NAME}"
+        TITLE_ID ${FRIED_SANDBOX_TITLE_ID}
+        VERSION ${FRIED_SANDBOX_VERSION}
         SCE_SYS ${CMAKE_CURRENT_SOURCE_DIR}/sce_sys
         ENGINE_ASSETS ${CMAKE_SOURCE_DIR}/assets
         GAME_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/assets
