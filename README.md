@@ -16,7 +16,7 @@ This repository contains **only the engine**. See [`ARCHITECTURE.md`](ARCHITECTU
 - [x] 4. Engine and game asset roots, read-only, verified at compile time
 - [x] 5. Renderer and resources (`Renderer`, `Texture`, `Font`, `Sound`, `Music`)
 - [x] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
-- [ ] 7. Define `project.fried`, and the writable user data path, which needs the game identity it declares
+- [x] 7. Define `project.fried`, and the writable user data path, which needs the game identity it declares
 - [ ] 8. Fried Project Manager: create the basic structure of a new game project
 - [ ] 9. Prove Fried Engine as a submodule in an external project
 - [ ] 10. Real test game
@@ -60,7 +60,7 @@ The sandbox is a small Haxe program that exercises the engine's runtime. It is c
    ./build/sandbox/fried_sandbox
    ```
 
-A real SDL2 window opens and `fried.Application.run()` drives the game loop until the window is closed, drawing the sandbox's sprite in the middle of the window and a line of text above it, with its music looping. Space plays a sound, M pauses and resumes the music. The sandbox logs its base path, the assets it resolved from each asset root, and the window events it receives.
+A real SDL2 window opens and `fried.Application.run()` drives the game loop until the window is closed, drawing the sandbox's sprite in the middle of the window and a line of text above it, with its music looping. Space plays a sound, M pauses and resumes the music. The line of text starts with how many times the sandbox has been run, counted in a file it keeps in its own writable user data path. The sandbox logs its base path, that user data path, the assets it resolved from each asset root, and the window events it receives.
 
 Verified working on Linux (GCC) with Haxe 4.3.7 and hxcpp 4.3.2. `cmake/Hxcpp.cmake`'s runtime source lists and compiler defines were derived from a real hxcpp build for that version; see the comment at the top of that file if you need to re-derive them.
 
@@ -151,6 +151,50 @@ theme.play();
 ```
 
 `Sound` is for short effects, mixed on any free channel, so the same sound can overlap with itself. `Music` is the streamed one, and SDL_mixer streams one at a time: a second `play()` replaces the first, and `pause()`, `resume()` and `stop()` on a `Music` that is not the one playing do nothing. Volume is per sound but global for music, which is why `Music.volume` is static.
+
+## The project file
+
+A game declares itself in a `project.fried` at its own root, next to its `build.hxml`. It is JSON, and the sandbox's is [`sandbox/project.fried`](sandbox/project.fried):
+
+```json
+{
+	"name": "Fried Sandbox",
+	"organization": "Fried Engine",
+	"version": "01.00",
+	"window": {
+		"title": "Fried Engine sandbox"
+	},
+	"vita": {
+		"titleId": "FRIE00001"
+	}
+}
+```
+
+`fried.Project` reads it at compile time, so what reaches the program is a constant and the file itself never ships with the game:
+
+```haxe
+import fried.Project;
+
+var window = new Window(Project.windowTitle(), 640, 480);
+```
+
+`name` and `organization` are the identity the writable path below is built from, `version` and `vita.titleId` are what CMake hands to the Vita packaging step, and `window.title` is the window title. The file is looked up as `project.fried` relative to the directory `haxe` runs in, which is the project root; `-D fried-project=<path>` points somewhere else.
+
+## Saves and user config
+
+Nothing under the asset roots is writable, because nothing can be: the Vita mounts `app0:` read-only. Anything that has to survive a run goes through `fried.io.UserData` instead, whose root SDL resolves per platform from the identity in `project.fried` (`~/.local/share/<organization>/<name>/` on Linux, `%APPDATA%\<organization>\<name>\` on Windows, `ux0:/data/<organization>/<name>/` on the Vita):
+
+```haxe
+import fried.io.UserData;
+
+if (UserData.exists("saves/slot1.json")) {
+    var save = UserData.read("saves/slot1.json");
+}
+
+UserData.write("saves/slot1.json", '{"level": 3}');
+```
+
+Paths are relative to that root, and may not be absolute or contain `..`. `write()` creates the directories its path names, and `UserData.path` is the root itself, already created by SDL.
 
 ## VS Code
 
