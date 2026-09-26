@@ -54,6 +54,8 @@ The sandbox is a small Haxe program that exercises the engine's runtime. It is c
    cmake --build build
    ```
 
+   `sandbox/CMakeLists.txt` also stands on its own, exactly as a game's does, so it can be configured directly instead: `cmake -S sandbox -B sandbox/build`. The only difference is the build type, which the repo root defaults to Release and a directly configured project leaves to you, as it does for any game.
+
 3. Run it:
 
    ```sh
