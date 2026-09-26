@@ -1,0 +1,11 @@
+{
+	"name": "Fried Sandbox",
+	"organization": "Fried Engine",
+	"version": "01.00",
+	"window": {
+		"title": "Fried Engine sandbox !!!"
+	},
+	"vita": {
+		"titleId": "FRIE00001"
+	}
+}

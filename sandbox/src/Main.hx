@@ -1,5 +1,6 @@
 import fried.Application;
 import fried.Log;
+import fried.Project;
 import fried.Time;
 import fried.Window;
 import fried.audio.Music;
@@ -18,7 +19,7 @@ import fried.io.Filesystem;
 class Main {
 	public static function main():Void {
 		Application.init();
-		Log.success("Fried Engine sandbox initialized. Base path: " + Filesystem.basePath);
+		Log.success('${Project.name()} ${Project.version()} initialized. Base path: ${Filesystem.basePath}');
 
 		if (Filesystem.exists("README.md")) {
 			var bytes = Filesystem.readBytes("README.md");
@@ -33,7 +34,7 @@ class Main {
 		checkAsset(Assets.game("beep.wav"));
 		checkAsset(Assets.game("music.wav"));
 
-		var window = new Window("Fried Engine sandbox", 640, 480);
+		var window = new Window(Project.windowTitle(), 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
 
 		window.onResize = function(width, height) {
