@@ -7,6 +7,7 @@ namespace
 {
     std::string s_basePath;
     std::string s_assetPath;
+    std::string s_userDataPath;
 
 #ifdef __vita__
     // The Vita mounts the application read-only at a fixed point.
@@ -46,4 +47,19 @@ const char *fried_filesystem_get_base_path()
 const char *fried_filesystem_get_asset_path()
 {
     return s_assetPath.c_str();
+}
+
+void fried_filesystem_init_user_data(const char *organization, const char *name)
+{
+    char *userDataPath = SDL_GetPrefPath(organization, name);
+    if (userDataPath)
+    {
+        s_userDataPath = userDataPath;
+        SDL_free(userDataPath);
+    }
+}
+
+const char *fried_filesystem_get_user_data_path()
+{
+    return s_userDataPath.c_str();
 }

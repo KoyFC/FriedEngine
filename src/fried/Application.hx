@@ -3,6 +3,7 @@ package fried;
 import fried.graphics.Renderer;
 import fried.input.Input;
 import fried.io.Filesystem;
+import fried.io.UserData;
 
 class Application {
 	public static var running(default, null):Bool = false;
@@ -16,6 +17,7 @@ class Application {
 			throw "SDL_Init failed";
 		}
 		Filesystem.init();
+		UserData.init();
 		Time.start();
 		running = true;
 	}

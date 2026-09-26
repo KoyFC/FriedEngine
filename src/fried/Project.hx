@@ -23,20 +23,20 @@ class Project {
 	}
 
 	#if macro
-	static var contents:Dynamic;
-	static var path:String;
+	static var file:Dynamic;
+	static var filePath:String;
 
 	static function value(keys:Array<String>):ExprOf<String> {
 		var node:Dynamic = read();
 		for (key in keys) {
 			node = Reflect.isObject(node) ? Reflect.field(node, key) : null;
 			if (node == null) {
-				Context.error('$path does not declare "${keys.join(".")}".', Context.currentPos());
+				Context.error('$filePath does not declare "${keys.join(".")}".', Context.currentPos());
 			}
 		}
 
 		if (!Std.isOfType(node, String) || node == "") {
-			Context.error('$path must declare "${keys.join(".")}" as a non-empty string.', Context.currentPos());
+			Context.error('$filePath must declare "${keys.join(".")}" as a non-empty string.', Context.currentPos());
 		}
 
 		var declared:String = node;
@@ -44,24 +44,24 @@ class Project {
 	}
 
 	static function read():Dynamic {
-		if (contents != null) {
-			return contents;
+		if (file != null) {
+			return file;
 		}
 
 		var overridden = Context.definedValue("fried-project");
-		path = overridden != null ? overridden : "project.fried";
-		if (!sys.FileSystem.exists(path)) {
-			Context.fatalError('Project file not found: $path. Compile from the project root, or point at it with -D fried-project=<path>.',
+		filePath = overridden != null ? overridden : "project.fried";
+		if (!sys.FileSystem.exists(filePath)) {
+			Context.fatalError('Project file not found: $filePath. Compile from the project root, or point at it with -D fried-project=<path>.',
 				Context.currentPos());
 		}
 
 		try {
-			contents = haxe.Json.parse(sys.io.File.getContent(path));
+			file = haxe.Json.parse(sys.io.File.getContent(filePath));
 		} catch (e:Dynamic) {
-			Context.fatalError('$path is not valid JSON: $e', Context.currentPos());
+			Context.fatalError('$filePath is not valid JSON: $e', Context.currentPos());
 		}
 
-		return contents;
+		return file;
 	}
 	#end
 }

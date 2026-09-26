@@ -15,6 +15,7 @@ import fried.input.Key;
 import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
+import fried.io.UserData;
 
 class Main {
 	public static function main():Void {
@@ -33,6 +34,11 @@ class Main {
 		checkAsset(Assets.game("sprite.png"));
 		checkAsset(Assets.game("beep.wav"));
 		checkAsset(Assets.game("music.wav"));
+
+		var previousRuns = UserData.exists("saves/runs.txt") ? Std.parseInt(UserData.read("saves/runs.txt")) : null;
+		var runs = (previousRuns == null ? 0 : previousRuns) + 1;
+		UserData.write("saves/runs.txt", Std.string(runs));
+		Log.success('User data path: ${UserData.path} (run $runs)');
 
 		var window = new Window(Project.windowTitle(), 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
