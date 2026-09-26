@@ -43,6 +43,8 @@ class Main {
 		var window = new Window(Project.windowTitle(), 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
 
+		window.setIcon(Assets.game("icon.png"));
+
 		window.onResize = function(width, height) {
 			Log.info('Window resized: ${width}x${height}');
 		};

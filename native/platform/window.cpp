@@ -3,6 +3,7 @@
 #include "handle_pool.h"
 
 #include <SDL.h>
+#include <SDL_image.h>
 
 namespace
 {
@@ -37,6 +38,26 @@ void fried_window_destroy(int windowId)
         return;
     }
     SDL_DestroyWindow(window);
+}
+
+bool fried_window_set_icon(int windowId, const char *path)
+{
+    SDL_Window *window = fried_window_get_sdl(windowId);
+    if (!window || !path)
+    {
+        return false;
+    }
+
+    SDL_Surface *icon = IMG_Load(path);
+    if (!icon)
+    {
+        return false;
+    }
+
+    // SDL_SetWindowIcon copies the surface.
+    SDL_SetWindowIcon(window, icon);
+    SDL_FreeSurface(icon);
+    return true;
 }
 
 int fried_window_get_width(int windowId)

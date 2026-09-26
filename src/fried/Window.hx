@@ -21,6 +21,12 @@ class Window {
 		instances.set(id, this);
 	}
 
+	public function setIcon(path:String):Void {
+		if (!WindowNative.setIcon(id, path)) {
+			throw 'Failed to set window icon: $path';
+		}
+	}
+
 	public function destroy():Void {
 		instances.remove(id);
 		WindowNative.destroy(id);
@@ -48,6 +54,9 @@ private extern class WindowNative {
 
 	@:native("fried_window_destroy")
 	static function destroy(id:Int):Void;
+
+	@:native("fried_window_set_icon")
+	static function setIcon(id:Int, path:cpp.ConstCharStar):Bool;
 
 	@:native("fried_window_get_width")
 	static function getWidth(id:Int):Int;
