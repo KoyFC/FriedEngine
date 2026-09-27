@@ -22,7 +22,7 @@ import fried.io.Filesystem;
 import fried.io.UserData;
 import fried.scene.GameObject;
 import fried.scene.Scene;
-import fried.scene.Transform;
+import fried.scene.Sprite;
 
 class Main {
 	public static function main():Void {
@@ -86,24 +86,41 @@ class Main {
 		music.play();
 		Log.success('Music playing at volume ${Music.volume}');
 
-		var spriteScale = 8;
-		var spriteWidth = sprite.width * spriteScale;
-		var spriteHeight = sprite.height * spriteScale;
-		var spriteX = 0.0;
-		var spriteY = 0.0;
+		var spriteScale = 8.0;
 		var spriteSpeed = 240.0;
-		var facingLeft = false;
 
 		var iconSize = 64;
-		var cropRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 		var panelRect = new Rect(12, 12, label.width + 8, label.height + 8);
 
-		var scene = new Scene("Sandbox");
-		var spinnerObject = scene.add(new GameObject("Spinning icon"));
-		spinnerObject.addComponent(new Spinner(90.0));
-		Log.success('Scene "${scene.name}" holds ${scene.objectCount} object');
+		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 
-		checkGameObjects();
+		var scene = new Scene("Sandbox");
+
+		var playerObject = scene.add(new GameObject("Player", (renderer.width - sprite.width * spriteScale) / 2,
+			(renderer.height - sprite.height * spriteScale) / 2));
+		playerObject.transform.setScale(spriteScale);
+		var playerSprite = playerObject.addComponent(new Sprite(sprite));
+
+		var spinnerObject = scene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
+		spinnerObject.priority = 1;
+		spinnerObject.transform.scaleX = iconSize / sprite.width;
+		spinnerObject.transform.scaleY = iconSize / sprite.height;
+		spinnerObject.addComponent(new Sprite(sprite));
+		spinnerObject.addComponent(new Spinner(90.0));
+
+		var regionObject = scene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
+		regionObject.priority = 2;
+		regionObject.transform.scaleX = iconSize / scrollRegion.width;
+		regionObject.transform.scaleY = iconSize / scrollRegion.height;
+		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
+		regionObject.addComponent(new RegionScroller(8.0));
+
+		var labelObject = scene.add(new GameObject("Hint label", 16, 16));
+		labelObject.priority = 20;
+		labelObject.addComponent(new Sprite(label));
+
+		Log.success('Scene "${scene.name}" holds ${scene.objectCount} objects');
+		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
 
 		Log.info(Input.gamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
@@ -133,28 +150,22 @@ class Main {
 
 			var moveX = clamp(Input.getGamepadAxis(GamepadAxis.LeftX) + keyAxis(Key.A, Key.D));
 			var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S));
-			spriteX += moveX * spriteSpeed * Time.deltaSeconds;
-			spriteY += moveY * spriteSpeed * Time.deltaSeconds;
+			playerObject.transform.translate(moveX * spriteSpeed * Time.deltaSeconds, moveY * spriteSpeed * Time.deltaSeconds);
 			if (moveX < -0.01) {
-				facingLeft = true;
+				playerSprite.flip = FlipMode.Horizontal;
 			} else if (moveX > 0.01) {
-				facingLeft = false;
+				playerSprite.flip = FlipMode.None;
 			}
+
 			scene.update();
 			scene.draw();
 
-			DrawQueue.submitTextureRegion(0, sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX),
-				Std.int((renderer.height - spriteHeight) / 2 + spriteY), spriteWidth, spriteHeight, 0.0, facingLeft ? FlipMode.Horizontal : FlipMode.None);
-			DrawQueue.submitTextureRegion(1, sprite, renderer.width - iconSize - 16, 16, iconSize, iconSize, spinnerObject.transform.rotation);
-			DrawQueue.submitTextureRegion(2, sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, iconSize, iconSize, 0.0, FlipMode.None, cropRegion);
-
 			DrawQueue.submitFillRect(10, panelRect, Color.rgb(40, 40, 55));
 			DrawQueue.submitRect(11, panelRect, Color.rgb(90, 200, 140));
-
-			DrawQueue.submitTexture(20, label, 16, 16, label.width, label.height);
 		});
 
 		Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees over ${Time.elapsedSeconds} seconds');
+		Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
 
 		scene.destroy();
 		music.destroy();
@@ -168,28 +179,6 @@ class Main {
 		Application.shutdown();
 
 		Log.success("Fried Engine sandbox run complete");
-	}
-
-	static function checkGameObjects():Void {
-		var object = new GameObject("Spinner", 100.0, 50.0);
-		var spinner = object.addComponent(new Spinner(90.0));
-		Log.success('${object.name} created at ${object.transform.x}, ${object.transform.y} with priority ${object.priority}');
-
-		Log.info('getComponent(Spinner) found the instance: ${object.getComponent(Spinner) == spinner}');
-		Log.info('getComponent(Transform) is the irremovable transform: ${object.getComponent(Transform) == object.transform}');
-		Log.info('getComponent(Spinner) on a bare object: ${new GameObject().getComponent(Spinner)}');
-
-		try {
-			object.removeComponent(object.transform);
-		} catch (message:String) {
-			Log.info('Removing the transform was rejected: $message');
-		}
-
-		object.removeComponent(spinner);
-		Log.info('getComponent(Spinner) after removeComponent: ${object.getComponent(Spinner)}');
-
-		object.destroy();
-		Log.success("Game object checks complete");
 	}
 
 	static function keyAxis(negative:Key, positive:Key):Float {
