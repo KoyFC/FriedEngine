@@ -21,6 +21,7 @@ import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
 import fried.scene.GameObject;
+import fried.scene.Scene;
 import fried.scene.Transform;
 
 class Main {
@@ -94,9 +95,13 @@ class Main {
 		var facingLeft = false;
 
 		var iconSize = 64;
-		var spinAngle = 0.0;
 		var cropRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 		var panelRect = new Rect(12, 12, label.width + 8, label.height + 8);
+
+		var scene = new Scene("Sandbox");
+		var spinnerObject = scene.add(new GameObject("Spinning icon"));
+		spinnerObject.addComponent(new Spinner(90.0));
+		Log.success('Scene "${scene.name}" holds ${scene.objectCount} object');
 
 		checkGameObjects();
 
@@ -135,11 +140,12 @@ class Main {
 			} else if (moveX > 0.01) {
 				facingLeft = false;
 			}
-			spinAngle += 90.0 * Time.deltaSeconds;
+			scene.update();
+			scene.draw();
 
 			DrawQueue.submitTextureRegion(0, sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX),
 				Std.int((renderer.height - spriteHeight) / 2 + spriteY), spriteWidth, spriteHeight, 0.0, facingLeft ? FlipMode.Horizontal : FlipMode.None);
-			DrawQueue.submitTextureRegion(1, sprite, renderer.width - iconSize - 16, 16, iconSize, iconSize, spinAngle);
+			DrawQueue.submitTextureRegion(1, sprite, renderer.width - iconSize - 16, 16, iconSize, iconSize, spinnerObject.transform.rotation);
 			DrawQueue.submitTextureRegion(2, sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, iconSize, iconSize, 0.0, FlipMode.None, cropRegion);
 
 			DrawQueue.submitFillRect(10, panelRect, Color.rgb(40, 40, 55));
@@ -148,6 +154,9 @@ class Main {
 			DrawQueue.submitTexture(20, label, 16, 16, label.width, label.height);
 		});
 
+		Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees over ${Time.elapsedSeconds} seconds');
+
+		scene.destroy();
 		music.destroy();
 		beep.destroy();
 		label.destroy();

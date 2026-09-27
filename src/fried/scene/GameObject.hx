@@ -5,7 +5,12 @@ class GameObject {
 	public var active:Bool;
 	public var priority:Int;
 
+	public var destroyed(default, null):Bool;
+
 	public var transform(default, null):Transform;
+
+	@:allow(fried.scene.Scene)
+	public var scene(default, null):Scene;
 
 	var components:Array<Component>;
 
@@ -13,6 +18,7 @@ class GameObject {
 		this.name = name;
 		active = true;
 		priority = 0;
+		destroyed = false;
 		components = [];
 		transform = addComponent(new Transform(xPosition, yPosition));
 	}
@@ -48,6 +54,20 @@ class GameObject {
 	}
 
 	public function destroy():Void {
+		if (destroyed) {
+			return;
+		}
+		destroyed = true;
+		active = false;
+		if (scene != null) {
+			scene.destroyLater(this);
+			return;
+		}
+		destroyComponents();
+	}
+
+	@:allow(fried.scene.Scene)
+	function destroyComponents():Void {
 		for (component in components) {
 			component.destroy();
 			component.detach();
@@ -56,6 +76,7 @@ class GameObject {
 		transform = null;
 	}
 
+	@:allow(fried.scene.Scene)
 	function update():Void {
 		if (!active) {
 			return;
@@ -67,6 +88,7 @@ class GameObject {
 		}
 	}
 
+	@:allow(fried.scene.Scene)
 	function draw():Void {
 		if (!active) {
 			return;
