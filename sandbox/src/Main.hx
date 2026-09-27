@@ -8,11 +8,9 @@ import fried.audio.Sound;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Font;
-import fried.graphics.FlipMode;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
-import fried.input.GamepadAxis;
 import fried.input.GamepadButton;
 import fried.input.Input;
 import fried.input.Key;
@@ -87,42 +85,54 @@ class Main {
 		Log.success('Music playing at volume ${Music.volume}');
 
 		var spriteScale = 8.0;
-		var spriteSpeed = 240.0;
-
+		var playerSpeed = 240.0;
 		var iconSize = 64;
-		var panelRect = new Rect(12, 12, label.width + 8, label.height + 8);
+
+		var wallWidth = Std.int(renderer.width * 0.75);
+		var wallHeight = 48;
 
 		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 
 		var scene = new Scene("Sandbox");
 
-		var playerObject = scene.add(new GameObject("Player", (renderer.width - sprite.width * spriteScale) / 2,
-			(renderer.height - sprite.height * spriteScale) / 2));
-		playerObject.transform.setScale(spriteScale);
-		var playerSprite = playerObject.addComponent(new Sprite(sprite));
+		var labelObject = scene.add(new GameObject("Hint label", 16, 16));
+		labelObject.priority = 20;
+		labelObject.addComponent(new Sprite(label));
 
-		var spinnerObject = scene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
-		spinnerObject.priority = 1;
-		spinnerObject.transform.scaleX = iconSize / sprite.width;
-		spinnerObject.transform.scaleY = iconSize / sprite.height;
-		spinnerObject.addComponent(new Sprite(sprite));
-		spinnerObject.addComponent(new Spinner(90.0));
+		var panelObject = scene.add(new GameObject("Hint panel", 12, 12));
+		panelObject.priority = 10;
+		panelObject.addComponent(new Box(label.width + 8, label.height + 8, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
 
 		var regionObject = scene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
-		regionObject.priority = 2;
+		regionObject.priority = 6;
 		regionObject.transform.scaleX = iconSize / scrollRegion.width;
 		regionObject.transform.scaleY = iconSize / scrollRegion.height;
 		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
 		regionObject.addComponent(new RegionScroller(8.0));
 
-		var labelObject = scene.add(new GameObject("Hint label", 16, 16));
-		labelObject.priority = 20;
-		labelObject.addComponent(new Sprite(label));
+		var spinnerObject = scene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
+		spinnerObject.priority = 5;
+		spinnerObject.transform.scaleX = iconSize / sprite.width;
+		spinnerObject.transform.scaleY = iconSize / sprite.height;
+		spinnerObject.addComponent(new Sprite(sprite));
+		spinnerObject.addComponent(new Spinner(90.0));
 
-		Log.success('Scene "${scene.name}" holds ${scene.objectCount} objects');
+		var wallObject = scene.add(new GameObject("Wall", (renderer.width - wallWidth) / 2, renderer.height / 2));
+		wallObject.addComponent(new Box(wallWidth, wallHeight, Color.rgb(70, 70, 90), Color.rgb(150, 150, 190)));
+
+		var playerObject = scene.add(new GameObject("Player", (renderer.width - sprite.width * spriteScale) / 2,
+			(renderer.height - sprite.height * spriteScale) / 2));
+		playerObject.transform.setScale(spriteScale);
+		playerObject.addComponent(new Sprite(sprite));
+		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
+
+		Log.success('Scene "${scene.name}" holds ${scene.objectCount} objects added in reverse draw order');
 		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
+		Log.info('The player starts at y ${playerObject.transform.y} and the wall sits at y ${wallObject.transform.y}');
 
 		Log.info(Input.gamepadConnected ? "Gamepad connected" : "No gamepad connected");
+
+		var nextCapacityReport = 2.0;
 
 		Application.run(function() {
 			if (Input.isButtonDown(MouseButton.Left)) {
@@ -148,24 +158,18 @@ class Main {
 				}
 			}
 
-			var moveX = clamp(Input.getGamepadAxis(GamepadAxis.LeftX) + keyAxis(Key.A, Key.D));
-			var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S));
-			playerObject.transform.translate(moveX * spriteSpeed * Time.deltaSeconds, moveY * spriteSpeed * Time.deltaSeconds);
-			if (moveX < -0.01) {
-				playerSprite.flip = FlipMode.Horizontal;
-			} else if (moveX > 0.01) {
-				playerSprite.flip = FlipMode.None;
-			}
-
 			scene.update();
 			scene.draw();
 
-			DrawQueue.submitFillRect(10, panelRect, Color.rgb(40, 40, 55));
-			DrawQueue.submitRect(11, panelRect, Color.rgb(90, 200, 140));
+			if (Time.elapsedSeconds >= nextCapacityReport) {
+				nextCapacityReport += 2.0;
+				Log.info('Draw queue pool holds ${DrawQueue.capacity} commands, player priority ${playerObject.priority}');
+			}
 		});
 
 		Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees over ${Time.elapsedSeconds} seconds');
 		Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
+		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount} objects');
 
 		scene.destroy();
 		music.destroy();
@@ -179,21 +183,6 @@ class Main {
 		Application.shutdown();
 
 		Log.success("Fried Engine sandbox run complete");
-	}
-
-	static function keyAxis(negative:Key, positive:Key):Float {
-		var value = 0.0;
-		if (Input.isKeyPressed(negative)) {
-			value -= 1.0;
-		}
-		if (Input.isKeyPressed(positive)) {
-			value += 1.0;
-		}
-		return value;
-	}
-
-	static function clamp(value:Float):Float {
-		return Math.max(-1.0, Math.min(1.0, value));
 	}
 
 	static function checkAsset(path:String):Void {
