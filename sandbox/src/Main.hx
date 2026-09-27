@@ -6,6 +6,7 @@ import fried.Window;
 import fried.audio.Music;
 import fried.audio.Sound;
 import fried.graphics.Color;
+import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 import fried.graphics.FlipMode;
 import fried.graphics.Rect;
@@ -132,18 +133,15 @@ class Main {
 			}
 			spinAngle += 90.0 * Time.deltaSeconds;
 
-			renderer.drawTextureRegion(sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX), Std.int((renderer.height - spriteHeight) / 2 + spriteY),
-				null, spriteWidth, spriteHeight, 0.0, facingLeft ? FlipMode.Horizontal : FlipMode.None);
-			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16, null, iconSize, iconSize, spinAngle);
-			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, cropRegion, iconSize, iconSize);
+			DrawQueue.submitTextureRegion(0, sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX),
+				Std.int((renderer.height - spriteHeight) / 2 + spriteY), spriteWidth, spriteHeight, 0.0, facingLeft ? FlipMode.Horizontal : FlipMode.None);
+			DrawQueue.submitTextureRegion(1, sprite, renderer.width - iconSize - 16, 16, iconSize, iconSize, spinAngle);
+			DrawQueue.submitTextureRegion(2, sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, iconSize, iconSize, 0.0, FlipMode.None, cropRegion);
 
-			renderer.drawColor = Color.rgb(40, 40, 55);
-			renderer.fillRect(panelRect);
-			renderer.drawColor = Color.rgb(90, 200, 140);
-			renderer.drawRect(panelRect);
-			renderer.drawColor = Color.rgb(24, 24, 32);
+			DrawQueue.submitFillRect(10, panelRect, Color.rgb(40, 40, 55));
+			DrawQueue.submitRect(11, panelRect, Color.rgb(90, 200, 140));
 
-			renderer.drawTexture(label, 16, 16);
+			DrawQueue.submitTexture(20, label, 16, 16, label.width, label.height);
 		});
 
 		music.destroy();

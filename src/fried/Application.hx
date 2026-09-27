@@ -1,5 +1,6 @@
 package fried;
 
+import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
 import fried.input.Input;
 import fried.io.Filesystem;
@@ -62,6 +63,7 @@ class Application {
 				renderer.clear();
 			}
 			update();
+			DrawQueue.flush(renderer);
 			if (renderer != null) {
 				renderer.present();
 			}
