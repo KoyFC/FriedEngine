@@ -20,6 +20,8 @@ import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
+import fried.scene.GameObject;
+import fried.scene.Transform;
 
 class Main {
 	public static function main():Void {
@@ -96,6 +98,8 @@ class Main {
 		var cropRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 		var panelRect = new Rect(12, 12, label.width + 8, label.height + 8);
 
+		checkGameObjects();
+
 		Log.info(Input.gamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
 		Application.run(function() {
@@ -155,6 +159,28 @@ class Main {
 		Application.shutdown();
 
 		Log.success("Fried Engine sandbox run complete");
+	}
+
+	static function checkGameObjects():Void {
+		var object = new GameObject("Spinner", 100.0, 50.0);
+		var spinner = object.addComponent(new Spinner(90.0));
+		Log.success('${object.name} created at ${object.transform.x}, ${object.transform.y} with priority ${object.priority}');
+
+		Log.info('getComponent(Spinner) found the instance: ${object.getComponent(Spinner) == spinner}');
+		Log.info('getComponent(Transform) is the irremovable transform: ${object.getComponent(Transform) == object.transform}');
+		Log.info('getComponent(Spinner) on a bare object: ${new GameObject().getComponent(Spinner)}');
+
+		try {
+			object.removeComponent(object.transform);
+		} catch (message:String) {
+			Log.info('Removing the transform was rejected: $message');
+		}
+
+		object.removeComponent(spinner);
+		Log.info('getComponent(Spinner) after removeComponent: ${object.getComponent(Spinner)}');
+
+		object.destroy();
+		Log.success("Game object checks complete");
 	}
 
 	static function keyAxis(negative:Key, positive:Key):Float {
