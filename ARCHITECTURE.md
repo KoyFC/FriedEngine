@@ -10,7 +10,7 @@ Haxe  --(hxcpp)-->  generated C++  --(CMake)-->  compiler  -->  executable
 
 Haxe compiles to C++ with `-D no-compilation`, which stops hxcpp before its own build tool would run, and CMake compiles and links everything from there. `cmake/Hxcpp.cmake` locates the `hxcpp` haxelib and compiles its runtime sources alongside the generated code, so nothing depends on hxcpp's `Build.xml` or on `haxelib run hxcpp`.
 
-The reason for taking that over is that CMake is then the single build system for every target platform, including the ones hxcpp has no support for. The Vita port is what proved it: the Haxe side did not change at all.
+The reason for taking that over is that CMake is then the single build system for every target platform, including the ones hxcpp has no support for. The Vita port is what proved it and the Switch is what confirmed it: the Haxe side did not change for either.
 
 ## Consuming the engine
 
@@ -18,11 +18,11 @@ A game includes one file and calls one function, `fried_add_game()`. `cmake/Frie
 
 `sandbox/CMakeLists.txt` is those same two lines with a different path to `cmake/`, so the sandbox takes the path an external game takes instead of a private one, and a change that would break a game breaks the sandbox first.
 
-A consumer therefore never repeats the list of `native/*.cpp`, the four SDL2 packages, where the hxcpp haxelib lives, the VitaSDK link fixups, or the location of either asset root. It still writes `cmake_minimum_required`, `project()` and its own build-type defaults, because those are the consumer's policy rather than the engine's.
+A consumer therefore never repeats the list of `native/*.cpp`, the four SDL2 packages, where the hxcpp haxelib lives, the link fixups each console needs, or the location of either asset root. It still writes `cmake_minimum_required`, `project()` and its own build-type defaults, because those are the consumer's policy rather than the engine's.
 
 `fried::engine` is the engine's C++ as a static library. It can be one because `native/` includes nothing but SDL2 and the standard library, not a single hxcpp header, so it needs none of the defines the generated code is compiled with and it builds once per build tree instead of once per game. `native/` is its `PUBLIC` include root, which is what the `@:include` of every extern resolves against, and the SDL2 targets are `PUBLIC` links, so both reach the game's executable as usage requirements.
 
-`fried_add_game()` takes a target name and nothing else. The paths it needs are the layout every Fried project has, relative to the caller: `build/cpp`, `project.fried`, `assets/`, and `sce_sys/` for the Vita. There are no keyword overrides, because nothing has needed to diverge from that layout.
+`fried_add_game()` takes a target name and nothing else. The paths it needs are the layout every Fried project has, relative to the caller: `build/cpp`, `project.fried`, `assets/`, `sce_sys/` for the Vita and `switch/icon.jpg` for the Switch. There are no keyword overrides, because nothing has needed to diverge from that layout.
 
 The Haxe side needed no equivalent, since it never had a location to configure. A game's `build.hxml` adds `-cp <submodule>/src`, and the engine's own `assets/` is found relative to `src/fried/io/Assets.hx` on the classpath.
 
@@ -30,7 +30,7 @@ Because that layout is fixed and small, it can be generated: [Fried Project Mana
 
 ## SDL2 and the native layer
 
-SDL2 and its three companion libraries (SDL2_image, SDL2_mixer, SDL2_ttf) are found through CMake's own package configs and initialized together in `native/platform/application.cpp`, so failing to bring one up fails `fried.Application.init()` rather than surfacing later at the first load.
+SDL2 and its three companion libraries (SDL2_image, SDL2_mixer, SDL2_ttf) are found as packages rather than as paths, and initialized together in `native/platform/application.cpp`, so failing to bring one up fails `fried.Application.init()` rather than surfacing later at the first load.
 
 `native/` is hand-written C++ glue wrapping only the SDL2 calls the engine actually makes, bound to Haxe through a small `extern class` per file. No SDL pointer type crosses into Haxe: windows, renderers and textures are tracked by integer handle (`native/handle_pool.h`). Game code never sees SDL2, only the `fried.*` types.
 
@@ -46,7 +46,7 @@ The loop clears before the update callback and presents after it, so drawing cod
 
 Input follows Unity's naming (`isKeyPressed` for held, `isKeyDown` for the frame it went down) rather than the more common convention where `IsKeyDown` means held. All three states come from comparing SDL's live state against a previous-frame snapshot the loop refreshes once per frame.
 
-Gamepad buttons are named by position, not by label: the face buttons are `South`/`East`/`West`/`North`, so the same game code means A on an Xbox pad and cross on a PlayStation pad or a Vita. The triggers appear as both an axis and a button, because SDL reports them only as axes and a game wants them either way.
+Gamepad buttons are named by position, not by label: the face buttons are `South`/`East`/`West`/`North`, so the same game code means A on an Xbox pad, cross on a PlayStation pad or a Vita, and B on a joycon. The triggers appear as both an axis and a button, because SDL reports them only as axes and a game wants them either way.
 
 ## Game objects and draw order
 
@@ -94,23 +94,37 @@ The boundary is a guard rail, not a sandbox. `fried.io.Filesystem.getAssetPath()
 
 A game declares itself in a `project.fried` at its own root. It is JSON because the file is written and rewritten by programs as much as by people: `haxe.Json` parses it in macro context and CMake reads it with `string(JSON ... GET ...)`, so whatever generates one can use its own serializer.
 
-Every field is read by something. `name` and `organization` are the identity handed verbatim to `SDL_GetPrefPath()`; the engine does not sanitize them, since a silent rewrite would move a game's save directory without its author knowing. `version` and `vita.titleId` go to the Vita packaging step, which is why the version uses the `XX.XX` shape a Vita package requires. `window.title` is the window title. Each side reads only the keys it consumes.
+Every field is read by something. `name` and `organization` are the identity handed verbatim to `SDL_GetPrefPath()`; the engine does not sanitize them, since a silent rewrite would move a game's save directory without its author knowing. `version` and `vita.titleId` go to the Vita packaging step, which is why the version uses the `XX.XX` shape a Vita package requires, and the Switch's NACP is built from `name`, `organization` and that same `version`, which is why the Switch added no key of its own. `window.title` is the window title. Each side reads only the keys it consumes.
 
 `fried.Project` exposes the identity as macros folded into constants, so the file is an input to the build rather than something the game ships and opens at runtime. A missing or malformed file is one fatal error, since it is one fact about the whole project; a missing field is an error per call site, so one compile reports all of them. Unknown keys are ignored, so a file declaring more than this version consumes still builds. CMake registers it in `CMAKE_CONFIGURE_DEPENDS`, so editing it cannot produce a package with stale values.
 
-Nothing under the asset root is writable, and that is not a rule the engine chose: the Vita mounts `app0:` read-only and the Switch mounts `romfs:` read-only, so an asset API with a write side could not be implemented there anyway. Anything that has to survive a run goes through `fried.io.UserData`, whose root SDL resolves per platform from that identity. It throws rather than falling back to another directory if SDL cannot resolve one, because a game silently saving somewhere nobody asked for is worse than one that does not start.
+Nothing under the asset root is writable, and that is not a rule the engine chose: the Vita mounts `app0:` read-only and the Switch mounts `romfs:` read-only, so an asset API with a write side could not be implemented there anyway. Anything that has to survive a run goes through `fried.io.UserData`, whose root is resolved per platform from that identity, by SDL wherever it can answer and by the engine on the Switch, where it cannot. It throws rather than falling back to another directory if SDL cannot resolve one, because a game silently saving somewhere nobody asked for is worse than one that does not start.
 
 ## PlayStation Vita
 
-A Vita build is a second CMake build tree configured with VitaSDK's toolchain file. That toolchain sets `VITA` and every Vita branch keys off it, so there is no platform flag of our own and no second entry point: the same `CMakeLists.txt` files build both platforms.
+A Vita build is a second CMake build tree configured with VitaSDK's toolchain file. That toolchain sets `VITA` and every Vita branch keys off it, so there is no platform flag of our own and no second entry point: the same `CMakeLists.txt` files build every platform.
 
-The engine's own C++ needed exactly one branch, in `native/platform/filesystem.cpp`, for the fixed read-only mount point. Everything else in `native/` compiles unchanged, because VitaSDK ships SDL2 and its three companion libraries: the window, the event loop, the renderer, the textures, the fonts and the audio are the same calls on both platforms. The writable path needed no branch either, since VitaSDK's SDL2 implements `SDL_GetPrefPath()`.
+The engine's own C++ needed exactly one branch, in `native/platform/filesystem.cpp`, for the fixed read-only mount point. Everything else in `native/` compiles unchanged, because VitaSDK ships SDL2 and its three companion libraries: the window, the event loop, the renderer, the textures, the fonts and the audio are the same calls there as on PC. The writable path needed no branch either, since VitaSDK's SDL2 implements `SDL_GetPrefPath()`.
 
 What the port actually cost is in `cmake/Hxcpp.cmake`. hxcpp has no Vita target and its runtime is written against glibc, so `HX_LINUX` and `NEKO_LINUX` select its generic POSIX paths, `HXCPP_NO_DYNAMIC_LOADING` compiles out a `dlopen()` layer a console has no use for, and `cmake/newlib/` fills the three remaining gaps: headers newlib does not ship, POSIX its headers hide from hxcpp, and `readlink()`, which newlib declares and VitaSDK does not implement. `sys.io.Process` and `sys.net.Socket` are left out of the build, since the Vita has no subprocesses and its sockets are a Sony API rather than the BSD one hxcpp calls. Haxe code using either fails to link rather than failing on the console.
 
 Two packaging details are easy to lose hours to. The LiveArea files in `sce_sys/` must be palette PNGs: the installer rejects a truecolor one at the end of an otherwise valid install. And `sce_sys/icon0.png` is the installer's icon, read out of the package, which makes it a different thing from the window icon a game sets at runtime.
 
 The Vita has no keyboard or mouse, so those report nothing there; its buttons and sticks arrive as an ordinary `SDL_GameController`. Touch input is not addressed yet.
+
+## Nintendo Switch
+
+A Switch build is a third CMake build tree, configured with devkitPro's toolchain file. That toolchain sets `NINTENDO_SWITCH` and defines `__SWITCH__`, so the Switch keys off the console's own flags exactly as the Vita keys off `VITA` and `__vita__`. It also brings `nx_generate_nacp()` and `nx_create_nro()` with it, so `cmake/Switch.cmake` includes no SDK file, where `cmake/Vita.cmake` has to include VitaSDK's. Reaching the Switch through a hand-written devkitPro Makefile is the usual route; the toolchain file is what lets Fried keep one build system instead.
+
+hxcpp cost the Switch almost nothing the Vita had not already paid, because both consoles run on newlib. `HX_LINUX`, `NEKO_LINUX`, `HXCPP_NO_DYNAMIC_LOADING`, the `__SNC__` on `Date.cpp` and the whole of `cmake/newlib/` are shared by the two, which is why that directory is named after the C library and not after either console. The one gap that is worse on devkitA64 is `readlink()`: VitaSDK declares it and links nothing, while devkitA64 does not declare it at all, so the shim has to declare it as well as answer it. `sys.io.Process` and `sys.net.Socket` are left out here too, the first because the console has no subprocesses and the second because libnx's sockets stay shut until a `socketInitializeDefault()` the engine never calls.
+
+Two things diverged in `native/`. The asset root is `romfs:/assets/`, and unlike the Vita's `app0:` that mount is not automatic, so `fried_filesystem_init()` calls `romfsInit()` and a new `fried_filesystem_shutdown()` answers it, paired from `Application.shutdown()` the way the init already was from `Application.init()`. The writable path had to be branched as well, which the Vita did not need: devkitPro builds SDL on its dummy filesystem backend, so `SDL_GetPrefPath()` answers nothing and `fried.io.UserData` would throw at startup. It resolves to `sdmc:/switch/<name>/`, the flat list of one directory per homebrew application the console already keeps, which is why the organization is dropped rather than nested there.
+
+Everything else compiles unchanged, and more of it than on the Vita. devkitPro's SDL2 drives the applet lifecycle, the controllers and the audio renderer itself, so the exit the HOME button asks for arrives as an ordinary `SDL_QUIT`, a joycon arrives as an ordinary `SDL_GameController`, and the mixer needs only the 48 kHz the console mixes at natively. Naming buttons by position is what makes the Nintendo face layout a non-event: a game asking for `South` gets B without knowing it.
+
+Packaging is simpler than the Vita's in two ways and stricter in one. A `.nro` carries its metadata in a NACP built from fields `project.fried` already declared, so no key was added for it, and `elf2nro` receives quoted arguments, so the spaces in a path that break a Vita package are harmless here. The strict part is the icon: a 256x256 JPEG at `switch/icon.jpg`, a third format after the game's truecolor PNG and the Vita's palette PNG, and a project without one gets libnx's generic icon rather than a failure. The assets are staged into a romfs tree under the same `assets/` prefix the other two platforms use, and the `.nro` depends on the staged files rather than on the directory holding them, because `elf2nro` is handed a folder and would otherwise never notice an edited asset.
+
+A window gets the size it asks for and the console stretches it to the whole screen, so the sandbox's 640x480 fills a 16:9 display distorted. There is no keyboard or mouse, and touch is not addressed yet. Nothing prints either: a `.nro` launched from hbmenu has nowhere to send stdout, so what is on screen is the whole report a run gives. When that report is a black screen, the first thing to rule out is the heap, which is smaller for homebrew launched from the album than for homebrew launched over a game.
 
 ## Source layout
 

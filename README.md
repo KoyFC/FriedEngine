@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux/GCC) and PlayStation Vita are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux/GCC), PlayStation Vita and Nintendo Switch are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -23,6 +23,7 @@ This repository is the engine alone, and it is not the starting point for a game
 - [x] 9. Game objects and components (`Scene`, `GameObject`, `Component`, `Transform`, `Sprite`), drawn through a queue ordered by draw priority
 - [ ] 10. Test Fried Engine as a submodule in an external project
 - [ ] 11. Real test game
+- [x] 12. Port the runtime to Nintendo Switch (devkitPro toolchain, `romfs:` asset root)
 
 ## Requirements
 
@@ -31,7 +32,11 @@ This repository is the engine alone, and it is not the starting point for a game
 - A C++17 compiler: GCC, Clang or MSVC
 - SDL2 2.0+, plus SDL2_image, SDL2_mixer and SDL2_ttf, each with its CMake package config available to `find_package(... CONFIG)`
 
-For a Vita build, [VitaSDK](https://vitasdk.org/) with `$VITASDK` set and its `bin/` on `PATH`, and the same four libraries from its package manager (`vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`). The Haxe side of the build is identical on every platform.
+For a Vita build, [VitaSDK](https://vitasdk.org/) with `$VITASDK` set and its `bin/` on `PATH`, and the same four libraries from its package manager (`vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`).
+
+For a Switch build, [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, and the same four libraries from its own (`dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`). `switch-pkg-config` is not optional there: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
+
+The Haxe side of the build is identical on every platform.
 
 Windows is a planned target but is not yet supported. Nothing has been tested there, and VitaSDK has no native Windows install of its own, so building on Windows is likely going to need changes of your own.
 
@@ -56,6 +61,15 @@ cmake --build build/vita
 ```
 
 That produces `build/vita/sandbox/fried_sandbox.vpk`, which can be installed using VitaShell. Keep spaces out of both the project path and the build tree path: VitaSDK's packaging step passes them to `vita-pack-vpk` unquoted, and the failure surfaces as CMake failing to copy `<target>.vpk.out`.
+
+A Switch build is the same again with devkitPro's toolchain file:
+
+```sh
+cmake -S . -B build/switch -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake
+cmake --build build/switch
+```
+
+That produces `build/switch/sandbox/fried_sandbox.nro`, which runs from hbmenu once copied anywhere under `sdmc:/switch/`. The assets travel inside the `.nro` as a romfs, so it is the only file to copy. Nothing it logs is visible on the console, so the scene on screen is the whole report a run gives.
 
 ## Using the engine in a game
 
@@ -88,7 +102,7 @@ and its `build.hxml` points at the submodule's source:
 -D no-compilation
 ```
 
-`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried` declaring the game's identity, an `assets/` for the game's own assets, and a `sce_sys/` for a Vita build. It then builds with the same commands the sandbox does.
+`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried` declaring the game's identity, an `assets/` for the game's own assets, a `sce_sys/` for a Vita build and a `switch/icon.jpg` for a Switch one. It then builds with the same commands the sandbox does.
 
 ## VS Code
 
