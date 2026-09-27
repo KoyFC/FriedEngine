@@ -61,7 +61,7 @@ class Main {
 
 		var renderer = Application.createRenderer(window);
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.vsync ? "on" : "off"}');
-		renderer.setDrawColor(Color.rgb(24, 24, 32));
+		renderer.drawColor = Color.rgb(24, 24, 32);
 
 		var sprite = Texture.load(renderer, Assets.game("sprite.png"));
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
@@ -137,11 +137,11 @@ class Main {
 			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16, null, iconSize, iconSize, spinAngle);
 			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, cropRegion, iconSize, iconSize);
 
-			renderer.setDrawColor(Color.rgb(40, 40, 55));
+			renderer.drawColor = Color.rgb(40, 40, 55);
 			renderer.fillRect(panelRect);
-			renderer.setDrawColor(Color.rgb(90, 200, 140));
+			renderer.drawColor = Color.rgb(90, 200, 140);
 			renderer.drawRect(panelRect);
-			renderer.setDrawColor(Color.rgb(24, 24, 32));
+			renderer.drawColor = Color.rgb(24, 24, 32);
 
 			renderer.drawTexture(label, 16, 16);
 		});

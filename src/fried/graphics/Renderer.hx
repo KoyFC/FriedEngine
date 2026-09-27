@@ -12,6 +12,8 @@ class Renderer {
 	public var width(get, never):Int;
 	public var height(get, never):Int;
 
+	public var drawColor(default, set):Color;
+
 	@:allow(fried.Application)
 	function new(window:Window, requestVsync:Bool) {
 		id = RendererNative.create(window.id, requestVsync);
@@ -19,6 +21,7 @@ class Renderer {
 			throw "Failed to create renderer";
 		}
 		vsync = RendererNative.hasVsync(id);
+		drawColor = Color.rgb(255, 255, 255);
 	}
 
 	public function destroy():Void {
@@ -26,8 +29,10 @@ class Renderer {
 		id = -1;
 	}
 
-	public function setDrawColor(color:Color):Void {
+	function set_drawColor(color:Color):Color {
+		drawColor = color;
 		RendererNative.setDrawColor(id, color.red, color.green, color.blue, color.alpha);
+		return color;
 	}
 
 	public function clear():Void {
