@@ -6,11 +6,7 @@ class DrawQueue {
 	static var pool:Array<DrawCommand> = [];
 	static var submitted:Array<DrawCommand> = [];
 
-	public static function submitTexture(priority:Int, texture:Texture, x:Int, y:Int, width:Int, height:Int):Void {
-		submitTextureRegion(priority, texture, x, y, width, height);
-	}
-
-	public static function submitTextureRegion(priority:Int, texture:Texture, x:Int, y:Int, width:Int, height:Int, angle:Float = 0.0, flip:FlipMode = None,
+	public static function submitTexture(priority:Int, texture:Texture, x:Int, y:Int, width:Int, height:Int, angle:Float = 0.0, flip:FlipMode = None,
 			?source:Rect):Void {
 		var command = next(priority);
 		command.type = TextureRegion;
