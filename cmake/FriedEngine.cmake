@@ -57,6 +57,10 @@ if(NOT TARGET fried_engine)
 
     target_include_directories(fried_engine PUBLIC ${FRIED_ENGINE_DIR}/native)
     target_compile_features(fried_engine PUBLIC cxx_std_17)
+    set_target_properties(fried_engine PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+    )
 
     if(VITA)
         target_link_libraries(fried_engine PUBLIC

@@ -125,10 +125,8 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         ${_std_sources}
     )
 
-    target_include_directories(${target_name} PRIVATE
-        "${generated_dir}/include"
-        "${HXCPP_INCLUDE_DIR}"
-    )
+    target_include_directories(${target_name} PRIVATE "${generated_dir}/include")
+    target_include_directories(${target_name} SYSTEM PRIVATE "${HXCPP_INCLUDE_DIR}")
 
     target_compile_definitions(${target_name} PRIVATE
         HXCPP_API_LEVEL=${_hxcpp_api_level}
@@ -184,7 +182,13 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_link_libraries(${target_name} PRIVATE Threads::Threads)
     endif()
 
-    target_compile_features(${target_name} PRIVATE cxx_std_17)
+    # Pinned, not the minimum target_compile_features() asks for: hxcpp 4.3.2
+    # is written for C++17, and in C++20 cpp::VirtualArray::operator== resolves
+    # to itself through the reversed candidate.
+    set_target_properties(${target_name} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+    )
 
     if(NOT VITA)
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
