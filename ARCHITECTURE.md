@@ -48,6 +48,32 @@ Input follows Unity's naming (`isKeyPressed` for held, `isKeyDown` for the frame
 
 Gamepad buttons are named by position, not by label: the face buttons are `South`/`East`/`West`/`North`, so the same game code means A on an Xbox pad and cross on a PlayStation pad or a Vita. The triggers appear as both an axis and a button, because SDL reports them only as axes and a game wants them either way.
 
+## Game objects and draw order
+
+A `fried.scene.GameObject` is a name, a draw priority, a transform and a list of components. Behaviour comes from the components a game writes rather than from subclassing the object, and the rest of this section follows from that: a game adds a `Component` subclass, overrides `update()` or `draw()`, and never extends an engine type. An entity base class that carries `update`, `render`, a transform and a collider as its own members makes every object pay for the collider it may not want, and makes that collider unusable on anything that is not an entity.
+
+`Transform` is a component like any other and lives in that same list, so it takes part in the same lifecycle and `getComponent(Transform)` finds it. The constructor creates it and `removeComponent` refuses to take it away, because every component that positions itself reads it. It holds position, rotation and scale and nothing else. A drawn size belongs to the `Sprite`, which takes the texture's dimensions, or those of its source region, and multiplies them by the scale. There is one source of truth, so no stored size can disagree with a scale.
+
+The lifecycle hooks `start`, `update` and `draw` are private, and the calls into them are opened one by one with targeted `@:allow` the way `Renderer.id` is: the game object may drive its components, the scene may drive its objects, and nothing else may drive anything. A component overrides a hook and the frame calls it, but game code cannot call it by hand. Haxe's `private` is visible to subclasses from any other package, so a game's own components still override the hooks while the calls stay closed.
+
+A `Scene` updates every object and then draws every object, in two passes rather than one. All movement therefore happens before any drawing, so an object that another object's component moved in the same frame is never drawn where it used to be. With a single pass, creation order would quietly decide which objects got a stale position.
+
+Adds and removals happen immediately while the scene is not iterating and are deferred while it is, so a component can create or destroy objects from inside `update()` without the iteration skipping entries. Destruction is deferred whole, not just the removal from the list: `destroy()` marks the object, and its components are torn down when the scene next applies pending changes. A component that destroys its own game object would otherwise be detached from it while it was still running.
+
+Drawing never reaches the renderer directly. A component's `draw()` submits a command to `fried.graphics.DrawQueue`, the loop flushes the queue between the update callback and `present()`, and the queue sorts before dispatching to the renderer. That is what separates the order things are drawn in from the order the code emits them in. Before the queue existed those two orders were the same thing, and changing what went on top meant moving lines.
+
+The sort key is the pair of draw priority and submission index, ascending, so a smaller priority is further back and equal priorities keep the order they were submitted in. The submission index is unique within a frame, which makes the pair a total order: two commands never compare equal, so no sorting algorithm can produce a different picture from another. The guarantee is in the key rather than in the stability of an implementation.
+
+Commands come from a pool that is reused between frames instead of one allocation per sprite per frame, since the cost that matters is GC pressure on a console. Each command copies the values it was given, including the contents of a `Rect`, so mutating a rect after submitting cannot alter a command already queued. The pool grows to the largest frame the program has drawn and stops there.
+
+The draw color is ambient renderer state that `clear()` also reads, so the queue takes note of it before dispatching and puts it back if any command changed it. Otherwise the last rectangle of one frame would become the background of the next. Flushing also happens when there is no renderer, minus the sorting and the dispatch, because a queue that only drained when something could draw would grow without a ceiling.
+
+The queue is static, like `Time` and `Input`, because only one renderer exists at a time. The application flushes it but does not own a scene: framing a frame is the loop's job, while a scene is game content and nothing about a scene says there can only be one. A game therefore drives its scene from the update callback. One consequence is worth knowing: anything drawn by calling the renderer directly from that callback is drawn before the flush, so it ends up underneath everything queued, whatever priority the queued commands carry.
+
+`Sprite` lives in `fried.scene` rather than in `fried.graphics` so that the dependency runs one way. The scene knows what graphics are, and graphics know nothing about game objects, which is the same rule that keeps windows from knowing that renderers exist.
+
+Application layers, parent and child hierarchies, and cameras are not implemented. A draw priority is a single flat number, and a game sets it on the object at any time, including from a component in the middle of a frame.
+
 ## Asset roots
 
 Assets sit under one root, split in two at runtime: `engine/`, shipped by the engine, and `game/`, shipped by the game. Engine code may read only the engine root; game code may read both.
@@ -92,6 +118,6 @@ The two source trees are split by different domains, because they are read by di
 
 `native/` is split by where an implementation comes from: `platform/` for what the operating system and the hardware provide, `graphics/` for what draws, `audio/` for what plays. Whoever opens it is asking which SDL calls the engine makes and what a new platform would have to answer for.
 
-`src/fried/` is split by concept, because whoever opens it is writing a game and thinks in `Renderer`, `Key` and `Assets`: `fried` itself for what drives a program and the window it drives, then `fried.input`, `fried.io`, `fried.graphics` and `fried.audio`. So `fried.input.Key` is glued by `native/platform/input.cpp`, and that is deliberate rather than an oversight: a keyboard is part of the platform layer and part of input, and each tree names it the way its own reader would look for it.
+`src/fried/` is split by concept, because whoever opens it is writing a game and thinks in `Renderer`, `Key` and `Assets`: `fried` itself for what drives a program and the window it drives, then `fried.input`, `fried.io`, `fried.graphics`, `fried.audio` and `fried.scene`. So `fried.input.Key` is glued by `native/platform/input.cpp`, and that is deliberate rather than an oversight: a keyboard is part of the platform layer and part of input, and each tree names it the way its own reader would look for it.
 
 Neither tree has a platform axis, and above the glue there cannot be one, since the whole point of `native/` is that the Haxe side never learns which platform it is on. Below it, a header is the contract shared by every platform, because it is what the `@:include` of the extern names.

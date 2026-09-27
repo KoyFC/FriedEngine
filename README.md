@@ -20,8 +20,9 @@ This repository is the engine alone, and it is not the starting point for a game
 - [x] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
 - [x] 7. Define `project.fried`, and the writable user data path, which needs the game identity it declares
 - [x] 8. Fried Project Manager: create the basic structure of a new game project
-- [ ] 9. Test Fried Engine as a submodule in an external project
-- [ ] 10. Real test game
+- [x] 9. Game objects and components (`Scene`, `GameObject`, `Component`, `Transform`, `Sprite`), drawn through a queue ordered by draw priority
+- [ ] 10. Test Fried Engine as a submodule in an external project
+- [ ] 11. Real test game
 
 ## Requirements
 
@@ -45,7 +46,7 @@ cmake --build build
 ./build/sandbox/fried_sandbox
 ```
 
-A window opens and the sandbox draws a sprite and a line of text, loops its music, plays a sound on space and pauses the music on M.
+A window opens on a small scene of game objects. WASD or the left stick moves a sprite, which passes behind or in front of the wall across the middle depending on which side of it it stands on, without anything being added to or removed from the scene. Two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it stays above everything else. The sandbox also loops its music, plays a sound on space and pauses the music on M.
 
 For a Vita build the generated C++ is the same, so only the CMake step changes:
 
