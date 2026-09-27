@@ -26,8 +26,8 @@ class Renderer {
 		id = -1;
 	}
 
-	public function setDrawColor(r:Int, g:Int, b:Int, a:Int = 255):Void {
-		RendererNative.setDrawColor(id, r, g, b, a);
+	public function setDrawColor(color:Color):Void {
+		RendererNative.setDrawColor(id, color.red, color.green, color.blue, color.alpha);
 	}
 
 	public function clear():Void {

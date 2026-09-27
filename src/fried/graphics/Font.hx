@@ -26,8 +26,8 @@ class Font {
 		return FontNative.measureWidth(id, text);
 	}
 
-	public function renderText(renderer:Renderer, text:String, r:Int = 255, g:Int = 255, b:Int = 255, a:Int = 255):Texture {
-		var textureId = FontNative.renderText(id, renderer.id, text, r, g, b, a);
+	public function renderText(renderer:Renderer, text:String, color:Color):Texture {
+		var textureId = FontNative.renderText(id, renderer.id, text, color.red, color.green, color.blue, color.alpha);
 		if (textureId < 0) {
 			throw 'Failed to render text: $text';
 		}

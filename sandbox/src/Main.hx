@@ -5,6 +5,7 @@ import fried.Time;
 import fried.Window;
 import fried.audio.Music;
 import fried.audio.Sound;
+import fried.graphics.Color;
 import fried.graphics.Font;
 import fried.graphics.FlipMode;
 import fried.graphics.Rect;
@@ -60,7 +61,7 @@ class Main {
 
 		var renderer = Application.createRenderer(window);
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.vsync ? "on" : "off"}');
-		renderer.setDrawColor(24, 24, 32);
+		renderer.setDrawColor(Color.rgb(24, 24, 32));
 
 		var sprite = Texture.load(renderer, Assets.game("sprite.png"));
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
@@ -69,7 +70,7 @@ class Main {
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hint = 'Run $runs   Space/South: sound   M/East: music   WASD/stick: move';
-		var label = font.renderText(renderer, hint, 220, 220, 230);
+		var label = font.renderText(renderer, hint, Color.rgb(220, 220, 230));
 		Log.info('Text rendered: ${label.width}x${label.height} for ${font.measureWidth(hint)} measured pixels');
 
 		var beep = new Sound(Assets.game("beep.wav"));
@@ -136,11 +137,11 @@ class Main {
 			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16, null, iconSize, iconSize, spinAngle);
 			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, cropRegion, iconSize, iconSize);
 
-			renderer.setDrawColor(40, 40, 55);
+			renderer.setDrawColor(Color.rgb(40, 40, 55));
 			renderer.fillRect(panelRect);
-			renderer.setDrawColor(90, 200, 140);
+			renderer.setDrawColor(Color.rgb(90, 200, 140));
 			renderer.drawRect(panelRect);
-			renderer.setDrawColor(24, 24, 32);
+			renderer.setDrawColor(Color.rgb(24, 24, 32));
 
 			renderer.drawTexture(label, 16, 16);
 		});
