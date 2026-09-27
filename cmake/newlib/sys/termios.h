@@ -1,5 +1,5 @@
-// newlib's <termios.h> forwards to <sys/termios.h>, which VitaSDK does not
-// ship: the Vita has no terminal. hxcpp's std sources include it for
+// newlib's <termios.h> forwards to <sys/termios.h>, which neither console's
+// toolchain ships: a console has no terminal. hxcpp's std sources include it for
 // Sys.getChar(), so the type and the three calls that use it are stubbed out
 // here, leaving Sys.getChar() to read stdin with no raw mode to switch to.
 

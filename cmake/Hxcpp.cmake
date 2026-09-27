@@ -64,9 +64,10 @@ set(_hxcpp_std_sources
     src/hx/libs/std/Sys.cpp
 )
 
-# Neither compiles on the Vita: it has no subprocesses, and its sockets are a
-# Sony API rather than the BSD one hxcpp is written against.
-set(_hxcpp_std_sources_without_vita
+# Neither compiles, or works, on a console: neither has subprocesses, the Vita's
+# sockets are a Sony API rather than the BSD one hxcpp is written against, and
+# libnx's do not open until a socketInitializeDefault() the engine never calls.
+set(_hxcpp_std_sources_without_console
     src/hx/libs/std/Socket.cpp
     src/hx/libs/std/Process.cpp
 )
@@ -75,14 +76,14 @@ set(_hxcpp_std_sources_without_vita
 # HXCPP_DEBUGGER (matches Build.xml's `unless="HXCPP_DEBUGGER"` file entry).
 set(_hxcpp_no_files_source src/hx/NoFiles.cpp)
 
-# hxcpp's std sources are written against glibc; cmake/vita/newlib/ fills in
-# what newlib either declares without implementing or does not ship at all.
-set(_hxcpp_vita_newlib_dir "${CMAKE_CURRENT_LIST_DIR}/vita/newlib")
+# hxcpp's std sources are written against glibc; cmake/newlib/ fills in what
+# newlib either declares without implementing or does not ship at all.
+set(_hxcpp_newlib_dir "${CMAKE_CURRENT_LIST_DIR}/newlib")
 
-function(fried_apply_vita_newlib_compat sources)
+function(fried_apply_newlib_compat sources)
     set_source_files_properties(${sources} PROPERTIES
-        INCLUDE_DIRECTORIES "${_hxcpp_vita_newlib_dir}"
-        COMPILE_OPTIONS "-include;${_hxcpp_vita_newlib_dir}/posix_extras.h"
+        INCLUDE_DIRECTORIES "${_hxcpp_newlib_dir}"
+        COMPILE_OPTIONS "-include;${_hxcpp_newlib_dir}/posix_extras.h"
     )
 endfunction()
 
@@ -111,7 +112,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
     if(VITA)
-        list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_vita})
+        list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_console})
     endif()
 
     list(TRANSFORM _std_source_names PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _std_sources)
@@ -147,8 +148,8 @@ function(fried_add_hxcpp_executable target_name generated_dir)
             NEKO_LINUX
             HXCPP_NO_DYNAMIC_LOADING
         )
-        fried_apply_vita_newlib_compat("${_std_sources}")
-        target_sources(${target_name} PRIVATE "${_hxcpp_vita_newlib_dir}/posix_extras.cpp")
+        fried_apply_newlib_compat("${_std_sources}")
+        target_sources(${target_name} PRIVATE "${_hxcpp_newlib_dir}/posix_extras.cpp")
     elseif(APPLE)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)
