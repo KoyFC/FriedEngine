@@ -12,12 +12,20 @@ include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 
 if(VITA)
     include("${CMAKE_CURRENT_LIST_DIR}/Vita.cmake")
+elseif(NINTENDO_SWITCH)
+    include("${CMAKE_CURRENT_LIST_DIR}/Switch.cmake")
 endif()
 
 find_package(SDL2 REQUIRED CONFIG)
-find_package(SDL2_image REQUIRED CONFIG)
-find_package(SDL2_mixer REQUIRED CONFIG)
 find_package(SDL2_ttf REQUIRED CONFIG)
+
+if(NINTENDO_SWITCH)
+    fried_find_switch_sdl2_module(SDL2_image fried::sdl2_image)
+    fried_find_switch_sdl2_module(SDL2_mixer fried::sdl2_mixer)
+else()
+    find_package(SDL2_image REQUIRED CONFIG)
+    find_package(SDL2_mixer REQUIRED CONFIG)
+endif()
 
 # VitaSDK's freetype and SDL2 packages leave these dependencies unnamed.
 if(VITA)
@@ -54,6 +62,13 @@ if(NOT TARGET fried_engine)
         target_link_libraries(fried_engine PUBLIC
             SDL2_image::SDL2_image-static
             SDL2_mixer::SDL2_mixer-static
+            SDL2_ttf::SDL2_ttf-static
+            SDL2::SDL2
+        )
+    elseif(NINTENDO_SWITCH)
+        target_link_libraries(fried_engine PUBLIC
+            fried::sdl2_image
+            fried::sdl2_mixer
             SDL2_ttf::SDL2_ttf-static
             SDL2::SDL2
         )
@@ -100,6 +115,23 @@ function(fried_add_game target_name)
             TITLE_ID ${_title_id}
             VERSION ${_version}
             SCE_SYS ${CMAKE_CURRENT_SOURCE_DIR}/sce_sys
+            ENGINE_ASSETS ${_engine_assets}
+            GAME_ASSETS ${_game_assets}
+        )
+    elseif(NINTENDO_SWITCH)
+        # A .nro's metadata is the identity project.fried already declares, so
+        # the Switch adds no keys of its own.
+        file(READ ${_project_file} _project_json)
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
+        string(JSON _name GET "${_project_json}" name)
+        string(JSON _organization GET "${_project_json}" organization)
+        string(JSON _version GET "${_project_json}" version)
+
+        fried_add_switch_nro(${target_name}
+            NAME "${_name}"
+            AUTHOR "${_organization}"
+            VERSION ${_version}
+            ICON ${CMAKE_CURRENT_SOURCE_DIR}/switch/icon.jpg
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )

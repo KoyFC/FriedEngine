@@ -8,7 +8,8 @@
 
 namespace
 {
-#ifdef __vita__
+#if defined(__vita__) || defined(__SWITCH__)
+    // Both consoles mix at 48 kHz natively, so anything else resamples.
     constexpr int s_audioFrequency = 48000;
     constexpr int s_audioChunkSize = 1024;
 #else

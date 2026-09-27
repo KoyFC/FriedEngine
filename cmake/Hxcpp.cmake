@@ -111,7 +111,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
-    if(VITA)
+    if(VITA OR NINTENDO_SWITCH)
         list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_console})
     endif()
 
@@ -140,9 +140,10 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_definitions(${target_name} PRIVATE HXCPP_M64)
     endif()
 
-    if(VITA)
-        # hxcpp has no Vita target of its own: HX_LINUX and NEKO_LINUX pick its
-        # generic POSIX paths, and the Vita loads no shared libraries.
+    if(VITA OR NINTENDO_SWITCH)
+        # hxcpp has no target of its own for either console: HX_LINUX and
+        # NEKO_LINUX pick its generic POSIX paths, and neither console loads a
+        # shared library.
         target_compile_definitions(${target_name} PRIVATE
             HX_LINUX
             NEKO_LINUX
@@ -170,7 +171,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
     )
 
-    if(VITA)
+    if(VITA OR NINTENDO_SWITCH)
         # newlib's struct tm has no tm_gmtoff. __SNC__ is one of the defines
         # Date.cpp keys its mktime() fallback off, and uses for nothing else.
         set_property(SOURCE "${HXCPP_ROOT}/src/hx/Date.cpp"

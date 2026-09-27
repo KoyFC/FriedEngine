@@ -26,6 +26,7 @@ class Application {
 	public static function shutdown():Void {
 		destroyRenderer();
 		ApplicationNative.shutdown();
+		Filesystem.shutdown();
 		running = false;
 	}
 

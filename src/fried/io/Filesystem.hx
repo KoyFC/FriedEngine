@@ -23,12 +23,20 @@ class Filesystem {
 		basePath = FilesystemNative.getBasePath();
 		assetPath = FilesystemNative.getAssetPath();
 	}
+
+	@:allow(fried.Application)
+	static function shutdown():Void {
+		FilesystemNative.shutdown();
+	}
 }
 
 @:include("platform/filesystem.h")
 private extern class FilesystemNative {
 	@:native("fried_filesystem_init")
 	static function init():Void;
+
+	@:native("fried_filesystem_shutdown")
+	static function shutdown():Void;
 
 	@:native("fried_filesystem_get_base_path")
 	static function getBasePath():cpp.ConstCharStar;
