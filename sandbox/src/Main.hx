@@ -6,6 +6,8 @@ import fried.Window;
 import fried.audio.Music;
 import fried.audio.Sound;
 import fried.graphics.Font;
+import fried.graphics.FlipMode;
+import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.input.GamepadAxis;
@@ -85,6 +87,12 @@ class Main {
 		var spriteX = 0.0;
 		var spriteY = 0.0;
 		var spriteSpeed = 240.0;
+		var facingLeft = false;
+
+		var iconSize = 64;
+		var spinAngle = 0.0;
+		var cropRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
+		var panelRect = new Rect(12, 12, label.width + 8, label.height + 8);
 
 		Log.info(Input.gamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
@@ -116,9 +124,24 @@ class Main {
 			var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S));
 			spriteX += moveX * spriteSpeed * Time.deltaSeconds;
 			spriteY += moveY * spriteSpeed * Time.deltaSeconds;
+			if (moveX < -0.01) {
+				facingLeft = true;
+			} else if (moveX > 0.01) {
+				facingLeft = false;
+			}
+			spinAngle += 90.0 * Time.deltaSeconds;
 
-			renderer.drawTexture(sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX), Std.int((renderer.height - spriteHeight) / 2 + spriteY),
-				spriteWidth, spriteHeight);
+			renderer.drawTextureRegion(sprite, Std.int((renderer.width - spriteWidth) / 2 + spriteX), Std.int((renderer.height - spriteHeight) / 2 + spriteY),
+				null, spriteWidth, spriteHeight, 0.0, facingLeft ? FlipMode.Horizontal : FlipMode.None);
+			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16, null, iconSize, iconSize, spinAngle);
+			renderer.drawTextureRegion(sprite, renderer.width - iconSize - 16, 16 + iconSize + 16, cropRegion, iconSize, iconSize);
+
+			renderer.setDrawColor(40, 40, 55);
+			renderer.fillRect(panelRect);
+			renderer.setDrawColor(90, 200, 140);
+			renderer.drawRect(panelRect);
+			renderer.setDrawColor(24, 24, 32);
+
 			renderer.drawTexture(label, 16, 16);
 		});
 

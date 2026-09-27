@@ -136,3 +136,41 @@ void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, in
     SDL_Rect destination = {x, y, width, height};
     SDL_RenderCopy(renderer, texture, nullptr, &destination);
 }
+
+void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, int x, int y, int width, int height, double angle, int flipMode)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    SDL_Texture *texture = fried_texture_get_sdl(textureId);
+    if (!renderer || !texture)
+    {
+        return;
+    }
+
+    SDL_Rect source = {srcX, srcY, srcWidth, srcHeight};
+    SDL_Rect destination = {x, y, width, height};
+    SDL_RenderCopyEx(renderer, texture, &source, &destination, angle, nullptr, (SDL_RendererFlip)flipMode);
+}
+
+void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int height)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer)
+    {
+        return;
+    }
+
+    SDL_Rect rect = {x, y, width, height};
+    SDL_RenderFillRect(renderer, &rect);
+}
+
+void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int height)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer)
+    {
+        return;
+    }
+
+    SDL_Rect rect = {x, y, width, height};
+    SDL_RenderDrawRect(renderer, &rect);
+}
