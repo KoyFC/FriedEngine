@@ -14,6 +14,9 @@ class Renderer {
 
 	public var drawColor(default, set):Color;
 
+	var cachedByPath:Map<String, Texture>;
+	var liveTextures:Array<Texture>;
+
 	@:allow(fried.Application)
 	function new(window:Window, requestVsync:Bool) {
 		id = RendererNative.create(window.id, requestVsync);
@@ -22,11 +25,41 @@ class Renderer {
 		}
 		vsync = RendererNative.hasVsync(id);
 		drawColor = Color.rgb(255, 255, 255);
+		cachedByPath = new Map();
+		liveTextures = [];
 	}
 
-	public function destroy():Void {
+	@:allow(fried.Application)
+	function destroy():Void {
+		for (texture in liveTextures.copy()) {
+			texture.destroy();
+		}
+		liveTextures.resize(0);
+		cachedByPath.clear();
+
 		RendererNative.destroy(id);
 		id = -1;
+	}
+
+	@:allow(fried.graphics.Texture)
+	function cachedTexture(path:String):Texture {
+		return cachedByPath.get(path);
+	}
+
+	@:allow(fried.graphics.Texture)
+	function registerTexture(texture:Texture, path:String):Void {
+		liveTextures.push(texture);
+		if (path != null) {
+			cachedByPath.set(path, texture);
+		}
+	}
+
+	@:allow(fried.graphics.Texture)
+	function unregisterTexture(texture:Texture, path:String):Void {
+		liveTextures.remove(texture);
+		if (path != null) {
+			cachedByPath.remove(path);
+		}
 	}
 
 	function set_drawColor(color:Color):Color {

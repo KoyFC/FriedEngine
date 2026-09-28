@@ -1,19 +1,17 @@
 package fried.graphics;
 
 class Texture {
-	static var pathToTextureMap:Map<String, Texture> = new Map();
-	static var activeTextures:Array<Texture> = [];
-
 	@:allow(fried.graphics.Renderer)
 	var id:Int;
 
+	var renderer:Renderer;
 	var path:String;
 
 	public var width(default, null):Int;
 	public var height(default, null):Int;
 
 	public static function from(renderer:Renderer, path:String):Texture {
-		var cached = pathToTextureMap.get(path);
+		var cached = renderer.cachedTexture(path);
 		if (cached != null) {
 			return cached;
 		}
@@ -23,18 +21,17 @@ class Texture {
 			throw 'Failed to load texture: $path';
 		}
 
-		var texture = new Texture(id, path);
-		pathToTextureMap.set(path, texture);
-		return texture;
+		return new Texture(renderer, id, path);
 	}
 
 	@:allow(fried.graphics.Font)
-	function new(id:Int, ?path:String) {
+	function new(renderer:Renderer, id:Int, ?path:String) {
+		this.renderer = renderer;
 		this.id = id;
 		this.path = path;
 		width = TextureNative.getWidth(id);
 		height = TextureNative.getHeight(id);
-		activeTextures.push(this);
+		renderer.registerTexture(this, path);
 	}
 
 	public function destroy():Void {
@@ -47,20 +44,9 @@ class Texture {
 		width = 0;
 		height = 0;
 
-		activeTextures.remove(this);
-		if (path != null) {
-			pathToTextureMap.remove(path);
-			path = null;
-		}
-	}
-
-	@:allow(fried.Application)
-	static function destroyAll():Void {
-		for (texture in activeTextures.copy()) {
-			texture.destroy();
-		}
-		activeTextures = [];
-		pathToTextureMap = new Map();
+		renderer.unregisterTexture(this, path);
+		renderer = null;
+		path = null;
 	}
 }
 

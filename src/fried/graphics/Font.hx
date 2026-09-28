@@ -31,7 +31,7 @@ class Font {
 		if (textureId < 0) {
 			throw 'Failed to render text: $text';
 		}
-		return new Texture(textureId);
+		return new Texture(renderer, textureId);
 	}
 }
 

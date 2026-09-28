@@ -53,15 +53,13 @@ class Main {
 		window.onResize = function(width, height) {
 			Log.info('Window resized: ${width}x${height}');
 		};
-		window.onClose = function() {
-			Log.info("Window close requested");
-			Application.quit();
-		};
 		window.onFocusChanged = function(focused) {
 			Log.info(focused ? "Window focused" : "Window unfocused");
 		};
 
-		var renderer = Application.createRenderer(window);
+		var vsyncEnabled = true;
+
+		var renderer = Application.createRenderer(window, vsyncEnabled);
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.vsync ? "on" : "off"}');
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
@@ -126,6 +124,53 @@ class Main {
 		playerObject.addComponent(new Sprite(sprite));
 		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
 
+		var secondWindow = new Window("Fried Sandbox: second window", 320, 240);
+		var secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
+		secondRenderer.drawColor = Color.rgb(32, 24, 24);
+
+		var secondSprite = Texture.from(secondRenderer, Assets.game("sprite.png"));
+		Log.info('Same path twice on one renderer: ${sprite == Texture.from(renderer, Assets.game("sprite.png"))}');
+		Log.info('Same path across two renderers: ${sprite == secondSprite}');
+
+		var secondScene = new Scene("Second window");
+		var secondObject = secondScene.add(new GameObject("Second sprite", 32, 32));
+		secondObject.transform.setScale(4.0);
+		secondObject.addComponent(new Sprite(secondSprite));
+		secondObject.addComponent(new Spinner(-120.0));
+
+		var openWindows = 2;
+
+		function closeMainWindow():Void {
+			if (renderer == null) {
+				return;
+			}
+			Application.destroyRenderer(renderer);
+			renderer = null;
+			window.destroy();
+			openWindows--;
+			Log.info('Main window closed, $openWindows still open');
+			if (openWindows == 0) {
+				Application.quit();
+			}
+		}
+
+		function closeSecondWindow():Void {
+			if (secondRenderer == null) {
+				return;
+			}
+			Application.destroyRenderer(secondRenderer);
+			secondRenderer = null;
+			secondWindow.destroy();
+			openWindows--;
+			Log.info('Second window closed, $openWindows still open');
+			if (openWindows == 0) {
+				Application.quit();
+			}
+		}
+
+		window.onClose = closeMainWindow;
+		secondWindow.onClose = closeSecondWindow;
+
 		Log.success('Scene "${scene.name}" holds ${scene.objectCount} objects added in reverse draw order');
 		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
 		Log.info('The player starts at y ${playerObject.transform.y} and the wall sits at y ${wallObject.transform.y}');
@@ -158,8 +203,14 @@ class Main {
 				}
 			}
 
-			scene.update();
-			scene.draw();
+			if (renderer != null) {
+				scene.update();
+				scene.draw(renderer);
+			}
+			if (secondRenderer != null) {
+				secondScene.update();
+				secondScene.draw(secondRenderer);
+			}
 
 			if (Time.elapsedSeconds >= nextCapacityReport) {
 				nextCapacityReport += 2.0;
@@ -171,13 +222,13 @@ class Main {
 		Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
 		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount} objects');
 
+		closeMainWindow();
+		closeSecondWindow();
 		scene.destroy();
+		secondScene.destroy();
 		music.destroy();
 		beep.destroy();
-		label.destroy();
 		font.destroy();
-		Application.destroyRenderer();
-		window.destroy();
 
 		Application.shutdown();
 

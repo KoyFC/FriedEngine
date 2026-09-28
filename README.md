@@ -51,7 +51,7 @@ cmake --build build
 ./build/sandbox/fried_sandbox
 ```
 
-A window opens on a small scene of game objects. WASD or the left stick moves a sprite, which passes behind or in front of the wall across the middle depending on which side of it it stands on, without anything being added to or removed from the scene. Two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it stays above everything else. The sandbox also loops its music, plays a sound on space and pauses the music on M.
+A window opens on a small scene of game objects. WASD or the left stick moves a sprite, which passes behind or in front of the wall across the middle depending on which side of it it stands on, without anything being added to or removed from the scene. Two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it stays above everything else. The sandbox also loops its music, plays a sound on space and pauses the music on M. A second, smaller window opens beside it with its own renderer and its own scene, drawn from the same image file: closing either window destroys that window and its renderer, and the program ends once both are closed. The `vsyncEnabled` flag at the top of `main()` governs both renderers.
 
 For a Vita build the generated C++ is the same, so only the CMake step changes:
 

@@ -2,7 +2,6 @@ package fried;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
-import fried.graphics.Texture;
 import fried.input.Input;
 import fried.io.Filesystem;
 import fried.io.UserData;
@@ -12,7 +11,7 @@ class Application {
 
 	public static var targetFps:Int = 60;
 
-	public static var renderer(default, null):Renderer;
+	public static var renderers(default, null):Array<Renderer> = [];
 
 	public static function init():Void {
 		if (ApplicationNative.init() != 0) {
@@ -25,7 +24,7 @@ class Application {
 	}
 
 	public static function shutdown():Void {
-		destroyRenderer();
+		destroyRenderers();
 		ApplicationNative.shutdown();
 		Filesystem.shutdown();
 		running = false;
@@ -36,20 +35,25 @@ class Application {
 	}
 
 	public static function createRenderer(window:Window, vsync:Bool = true):Renderer {
-		if (renderer != null) {
-			throw "A renderer already exists. Destroy it before creating another one.";
-		}
-		renderer = new Renderer(window, vsync);
+		var renderer = new Renderer(window, vsync);
+		renderers.push(renderer);
 		return renderer;
 	}
 
-	public static function destroyRenderer():Void {
-		if (renderer == null) {
+	public static function destroyRenderer(renderer:Renderer):Void {
+		if (!renderers.remove(renderer)) {
 			return;
 		}
-		Texture.destroyAll();
+		if (DrawQueue.currentRenderTarget == renderer) {
+			DrawQueue.currentRenderTarget = null;
+		}
 		renderer.destroy();
-		renderer = null;
+	}
+
+	public static function destroyRenderers():Void {
+		for (renderer in renderers.copy()) {
+			destroyRenderer(renderer);
+		}
 	}
 
 	public static function run(update:Void->Void):Void {
@@ -62,12 +66,13 @@ class Application {
 			}
 			Time.tick();
 
-			if (renderer != null) {
+			for (renderer in renderers) {
 				renderer.clear();
 			}
+			DrawQueue.currentRenderTarget = renderers.length > 0 ? renderers[0] : null;
 			update();
-			DrawQueue.flush(renderer);
-			if (renderer != null) {
+			DrawQueue.flush(renderers);
+			for (renderer in renderers) {
 				renderer.present();
 			}
 
@@ -77,8 +82,20 @@ class Application {
 		}
 	}
 
+	static function everyRendererHasVsync():Bool {
+		if (renderers.length == 0) {
+			return false;
+		}
+		for (renderer in renderers) {
+			if (!renderer.vsync) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	static function waitForFrameBudget(frameStart:Float):Void {
-		if (targetFps <= 0 || (renderer != null && renderer.vsync)) {
+		if (targetFps <= 0 || everyRendererHasVsync()) {
 			return;
 		}
 		var budget = 1.0 / targetFps;

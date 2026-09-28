@@ -3,8 +3,10 @@ package fried.graphics;
 class DrawQueue {
 	public static var capacity(get, never):Int;
 
-	static var pool:Array<DrawCommand> = [];
-	static var submitted:Array<DrawCommand> = [];
+	public static var currentRenderTarget:Renderer;
+
+	static var drawCommandPool:Array<DrawCommand> = [];
+	static var pendingDrawCommands:Array<DrawCommand> = [];
 
 	public static function submitTexture(priority:Int, texture:Texture, x:Int, y:Int, width:Int, height:Int, angle:Float = 0.0, flip:FlipMode = None,
 			?source:Rect):Void {
@@ -35,25 +37,30 @@ class DrawQueue {
 	}
 
 	@:allow(fried.Application)
-	static function flush(renderer:Renderer):Void {
-		if (renderer != null) {
+	static function flush(renderers:Array<Renderer>):Void {
+		if (pendingDrawCommands.length > 1) {
+			pendingDrawCommands.sort(compare);
+		}
+
+		for (renderer in renderers) {
 			draw(renderer);
 		}
-		for (command in submitted) {
+
+		for (command in pendingDrawCommands) {
 			command.texture = null;
+			command.target = null;
 		}
-		submitted.resize(0);
+		pendingDrawCommands.resize(0);
 	}
 
 	static function draw(renderer:Renderer):Void {
-		if (submitted.length > 1) {
-			submitted.sort(compare);
-		}
-
 		var restoreColor = renderer.drawColor;
 		var colorChanged = false;
 
-		for (command in submitted) {
+		for (command in pendingDrawCommands) {
+			if (command.target != renderer) {
+				continue;
+			}
 			switch (command.type) {
 				case TextureRegion:
 					renderer.drawTextureRegion(command.texture, command.x, command.y, command.hasSource ? command.rect : null, command.width, command.height,
@@ -85,14 +92,15 @@ class DrawQueue {
 	}
 
 	static function next(priority:Int):DrawCommand {
-		var sequence = submitted.length;
-		if (sequence == pool.length) {
-			pool.push(new DrawCommand());
+		var sequence = pendingDrawCommands.length;
+		if (sequence == drawCommandPool.length) {
+			drawCommandPool.push(new DrawCommand());
 		}
-		var command = pool[sequence];
+		var command = drawCommandPool[sequence];
 		command.priority = priority;
 		command.sequence = sequence;
-		submitted.push(command);
+		command.target = currentRenderTarget;
+		pendingDrawCommands.push(command);
 		return command;
 	}
 
@@ -104,7 +112,7 @@ class DrawQueue {
 	}
 
 	static function get_capacity():Int {
-		return pool.length;
+		return drawCommandPool.length;
 	}
 }
 
@@ -118,6 +126,7 @@ private class DrawCommand {
 	public var type:DrawCommandType;
 	public var priority:Int;
 	public var sequence:Int;
+	public var target:Renderer;
 
 	public var texture:Texture;
 	public var x:Int;

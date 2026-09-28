@@ -1,11 +1,14 @@
 package fried.scene;
 
+import fried.graphics.DrawQueue;
+import fried.graphics.Renderer;
+
 class Scene {
 	public var name:String;
 
 	public var objectCount(get, never):Int;
 
-	var objects:Array<GameObject>;
+	var sceneObjects:Array<GameObject>;
 	var pendingAdds:Array<GameObject>;
 	var pendingRemovals:Array<GameObject>;
 	var pendingDestroys:Array<GameObject>;
@@ -13,7 +16,7 @@ class Scene {
 
 	public function new(name:String = "Scene") {
 		this.name = name;
-		objects = [];
+		sceneObjects = [];
 		pendingAdds = [];
 		pendingRemovals = [];
 		pendingDestroys = [];
@@ -28,7 +31,7 @@ class Scene {
 		if (iterating) {
 			pendingAdds.push(object);
 		} else {
-			objects.push(object);
+			sceneObjects.push(object);
 		}
 		return object;
 	}
@@ -41,23 +44,24 @@ class Scene {
 		if (iterating) {
 			pendingRemovals.push(object);
 		} else {
-			objects.remove(object);
+			sceneObjects.remove(object);
 		}
 	}
 
 	public function update():Void {
 		applyPendingChanges();
 		iterating = true;
-		for (object in objects) {
+		for (object in sceneObjects) {
 			object.update();
 		}
 		iterating = false;
 	}
 
-	public function draw():Void {
+	public function draw(renderer:Renderer):Void {
 		applyPendingChanges();
+		DrawQueue.currentRenderTarget = renderer;
 		iterating = true;
-		for (object in objects) {
+		for (object in sceneObjects) {
 			object.draw();
 		}
 		iterating = false;
@@ -66,12 +70,12 @@ class Scene {
 	public function destroy():Void {
 		applyPendingChanges();
 		iterating = true;
-		for (object in objects) {
+		for (object in sceneObjects) {
 			object.scene = null;
 			object.destroy();
 		}
 		iterating = false;
-		objects.resize(0);
+		sceneObjects.resize(0);
 		pendingAdds.resize(0);
 		pendingRemovals.resize(0);
 		pendingDestroys.resize(0);
@@ -84,24 +88,24 @@ class Scene {
 
 	function applyPendingChanges():Void {
 		for (object in pendingDestroys) {
-			objects.remove(object);
+			sceneObjects.remove(object);
 			object.scene = null;
 			object.destroyComponents();
 		}
 		pendingDestroys.resize(0);
 
 		for (object in pendingRemovals) {
-			objects.remove(object);
+			sceneObjects.remove(object);
 		}
 		pendingRemovals.resize(0);
 
 		for (object in pendingAdds) {
-			objects.push(object);
+			sceneObjects.push(object);
 		}
 		pendingAdds.resize(0);
 	}
 
 	function get_objectCount():Int {
-		return objects.length;
+		return sceneObjects.length;
 	}
 }
