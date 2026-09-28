@@ -60,7 +60,7 @@ class Main {
 		var vsyncEnabled = true;
 
 		var renderer = Application.createRenderer(window, vsyncEnabled);
-		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.vsync ? "on" : "off"}');
+		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.isVsyncEnabled ? "on" : "off"}');
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
 		var sprite = Texture.from(renderer, Assets.game("sprite.png"));
@@ -175,7 +175,7 @@ class Main {
 		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
 		Log.info('The player starts at y ${playerObject.transform.y} and the wall sits at y ${wallObject.transform.y}');
 
-		Log.info(Input.gamepadConnected ? "Gamepad connected" : "No gamepad connected");
+		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
 		var nextCapacityReport = 2.0;
 

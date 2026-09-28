@@ -7,7 +7,7 @@ class Renderer {
 	@:allow(fried.graphics.Font)
 	var id:Int;
 
-	public var vsync(default, null):Bool;
+	public var isVsyncEnabled(default, null):Bool;
 
 	public var width(get, never):Int;
 	public var height(get, never):Int;
@@ -23,7 +23,7 @@ class Renderer {
 		if (id < 0) {
 			throw "Failed to create renderer";
 		}
-		vsync = RendererNative.hasVsync(id);
+		isVsyncEnabled = RendererNative.hasVsync(id);
 		drawColor = Color.rgb(255, 255, 255);
 		cachedByPath = new Map();
 		liveTextures = [];

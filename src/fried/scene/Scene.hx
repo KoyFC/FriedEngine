@@ -12,7 +12,7 @@ class Scene {
 	var pendingAdds:Array<GameObject>;
 	var pendingRemovals:Array<GameObject>;
 	var pendingDestroys:Array<GameObject>;
-	var iterating:Bool;
+	var isIterating:Bool;
 
 	public function new(name:String = "Scene") {
 		this.name = name;
@@ -20,7 +20,7 @@ class Scene {
 		pendingAdds = [];
 		pendingRemovals = [];
 		pendingDestroys = [];
-		iterating = false;
+		isIterating = false;
 	}
 
 	public function add(object:GameObject):GameObject {
@@ -28,7 +28,7 @@ class Scene {
 			throw 'The game object ${object.name} already belongs to the scene ${object.scene.name}.';
 		}
 		object.scene = this;
-		if (iterating) {
+		if (isIterating) {
 			pendingAdds.push(object);
 		} else {
 			sceneObjects.push(object);
@@ -41,7 +41,7 @@ class Scene {
 			return;
 		}
 		object.scene = null;
-		if (iterating) {
+		if (isIterating) {
 			pendingRemovals.push(object);
 		} else {
 			sceneObjects.remove(object);
@@ -50,31 +50,31 @@ class Scene {
 
 	public function update():Void {
 		applyPendingChanges();
-		iterating = true;
+		isIterating = true;
 		for (object in sceneObjects) {
 			object.update();
 		}
-		iterating = false;
+		isIterating = false;
 	}
 
 	public function draw(renderer:Renderer):Void {
 		applyPendingChanges();
 		DrawQueue.currentRenderTarget = renderer;
-		iterating = true;
+		isIterating = true;
 		for (object in sceneObjects) {
 			object.draw();
 		}
-		iterating = false;
+		isIterating = false;
 	}
 
 	public function destroy():Void {
 		applyPendingChanges();
-		iterating = true;
+		isIterating = true;
 		for (object in sceneObjects) {
 			object.scene = null;
 			object.destroy();
 		}
-		iterating = false;
+		isIterating = false;
 		sceneObjects.resize(0);
 		pendingAdds.resize(0);
 		pendingRemovals.resize(0);

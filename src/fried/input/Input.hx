@@ -6,7 +6,7 @@ class Input {
 	public static var scrollX(get, never):Float;
 	public static var scrollY(get, never):Float;
 
-	public static var gamepadConnected(get, never):Bool;
+	public static var isGamepadConnected(get, never):Bool;
 	public static var gamepadDeadzone(get, set):Float;
 
 	public static function isKeyPressed(key:Key):Bool {
@@ -72,7 +72,7 @@ class Input {
 		return MouseNative.getScrollY();
 	}
 
-	static function get_gamepadConnected():Bool {
+	static function get_isGamepadConnected():Bool {
 		return GamepadNative.isConnected() != 0;
 	}
 

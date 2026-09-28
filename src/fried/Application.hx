@@ -7,7 +7,7 @@ import fried.io.Filesystem;
 import fried.io.UserData;
 
 class Application {
-	public static var running(default, null):Bool = false;
+	public static var isRunning(default, null):Bool = false;
 
 	public static var targetFps:Int = 60;
 
@@ -20,18 +20,18 @@ class Application {
 		Filesystem.init();
 		UserData.init();
 		Time.start();
-		running = true;
+		isRunning = true;
 	}
 
 	public static function shutdown():Void {
 		destroyRenderers();
 		ApplicationNative.shutdown();
 		Filesystem.shutdown();
-		running = false;
+		isRunning = false;
 	}
 
 	public static function quit():Void {
-		running = false;
+		isRunning = false;
 	}
 
 	public static function createRenderer(window:Window, vsync:Bool = true):Renderer {
@@ -57,11 +57,11 @@ class Application {
 	}
 
 	public static function run(update:Void->Void):Void {
-		while (running) {
+		while (isRunning) {
 			var frameStart = Sys.time();
 
 			if (Events.pump()) {
-				running = false;
+				isRunning = false;
 				break;
 			}
 			Time.tick();
@@ -87,7 +87,7 @@ class Application {
 			return false;
 		}
 		for (renderer in renderers) {
-			if (!renderer.vsync) {
+			if (!renderer.isVsyncEnabled) {
 				return false;
 			}
 		}
