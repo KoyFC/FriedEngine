@@ -1,6 +1,7 @@
 package fried.graphics;
 
 import fried.Window;
+import fried.NativeError;
 
 class Renderer {
 	@:allow(fried.graphics.Texture)
@@ -21,7 +22,7 @@ class Renderer {
 	function new(window:Window, requestVsync:Bool) {
 		id = RendererNative.create(window.id, requestVsync);
 		if (id < 0) {
-			throw "Failed to create renderer";
+			throw NativeError.describe("Failed to create renderer");
 		}
 		isVsyncEnabled = RendererNative.hasVsync(id);
 		drawColor = Color.rgb(255, 255, 255);

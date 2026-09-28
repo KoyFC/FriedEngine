@@ -1,5 +1,7 @@
 package fried.audio;
 
+import fried.NativeError;
+
 class Sound {
 	var id:Int;
 
@@ -9,7 +11,7 @@ class Sound {
 	public function new(path:String) {
 		id = SoundNative.load(path);
 		if (id < 0) {
-			throw 'Failed to load sound: $path';
+			throw NativeError.describe('Failed to load sound: $path');
 		}
 	}
 

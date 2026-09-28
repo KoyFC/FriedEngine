@@ -1,5 +1,7 @@
 package fried.io;
 
+import fried.NativeError;
+
 import fried.Project;
 
 class UserData {
@@ -34,7 +36,7 @@ class UserData {
 		UserDataNative.init(Project.organization(), Project.name());
 		path = UserDataNative.getPath();
 		if (path == "") {
-			throw "SDL_GetPrefPath failed";
+			throw NativeError.describe("Failed to resolve the user data path");
 		}
 	}
 }

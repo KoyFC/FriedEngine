@@ -1,6 +1,7 @@
 #include "audio/sound.h"
 
 #include "handle_pool.h"
+#include "last_error.h"
 
 #include <SDL_mixer.h>
 
@@ -27,12 +28,14 @@ int fried_sound_load(const char *path)
 {
     if (!path)
     {
+        fried_set_last_error("No path given");
         return -1;
     }
 
     Mix_Chunk *sound = Mix_LoadWAV(path);
     if (!sound)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 

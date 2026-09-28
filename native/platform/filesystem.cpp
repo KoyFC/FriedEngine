@@ -1,5 +1,7 @@
 #include "platform/filesystem.h"
 
+#include "last_error.h"
+
 #include <SDL.h>
 #include <string>
 
@@ -48,6 +50,7 @@ namespace
         char *userDataPath = SDL_GetPrefPath(organization, name);
         if (!userDataPath)
         {
+            fried_capture_sdl_error();
             return std::string();
         }
 

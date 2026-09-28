@@ -1,6 +1,7 @@
 #include "platform/window.h"
 
 #include "handle_pool.h"
+#include "last_error.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -24,6 +25,7 @@ int fried_window_create(const char *title, int width, int height)
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (!window)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 
@@ -45,12 +47,14 @@ bool fried_window_set_icon(int windowId, const char *path)
     SDL_Window *window = fried_window_get_sdl(windowId);
     if (!window || !path)
     {
+        fried_set_last_error("No such window, or no path given");
         return false;
     }
 
     SDL_Surface *icon = IMG_Load(path);
     if (!icon)
     {
+        fried_capture_sdl_error();
         return false;
     }
 

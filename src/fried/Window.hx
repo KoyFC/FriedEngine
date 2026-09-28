@@ -16,14 +16,14 @@ class Window {
 	public function new(title:String, width:Int, height:Int) {
 		id = WindowNative.create(title, width, height);
 		if (id < 0) {
-			throw "Failed to create window";
+			throw NativeError.describe("Failed to create window");
 		}
 		instances.set(id, this);
 	}
 
 	public function setIcon(path:String):Void {
 		if (!WindowNative.setIcon(id, path)) {
-			throw 'Failed to set window icon: $path';
+			throw NativeError.describe('Failed to set window icon: $path');
 		}
 	}
 

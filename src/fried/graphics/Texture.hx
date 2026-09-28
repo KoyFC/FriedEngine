@@ -1,5 +1,7 @@
 package fried.graphics;
 
+import fried.NativeError;
+
 class Texture {
 	@:allow(fried.graphics.Renderer)
 	var id:Int;
@@ -18,7 +20,7 @@ class Texture {
 
 		var id = TextureNative.load(renderer.id, path);
 		if (id < 0) {
-			throw 'Failed to load texture: $path';
+			throw NativeError.describe('Failed to load texture: $path');
 		}
 
 		return new Texture(renderer, id, path);

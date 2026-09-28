@@ -34,6 +34,10 @@ SDL2 and its three companion libraries (SDL2_image, SDL2_mixer, SDL2_ttf) are fo
 
 `native/` is hand-written C++ glue wrapping only the SDL2 calls the engine actually makes, bound to Haxe through a small `extern class` per file. No SDL pointer type crosses into Haxe: windows, renderers and textures are tracked by integer handle (`native/handle_pool.h`). Game code never sees SDL2, only the `fried.*` types.
 
+A failure that reaches Haxe as a thrown error carries SDL's own explanation with it. Every failing path in `native/` calls `fried_capture_sdl_error()` or `fried_set_last_error()` before it returns, and `fried.NativeError.describe()` appends what it stored, so `Failed to load texture: x.png` becomes `Failed to load texture: x.png (Unsupported image format)`. Missing file and wrong format are otherwise the same message.
+
+The error is copied at the point of failure rather than read later, because the next SDL call overwrites it. `fried_application_init()` is where that is not theoretical: each of its failure paths tears down the libraries it already brought up, and every one of those teardown calls would replace the error that explains why it is tearing down. The same reason puts the capture in `fried_font_render_text()` between the failed `SDL_CreateTextureFromSurface()` and the `SDL_FreeSurface()` that follows it.
+
 Two things reach Haxe as events rather than as state because SDL only reports them that way: the mouse wheel, accumulated per frame in `native/platform/mouse.cpp`, and gamepad connection, handled in `native/platform/gamepad.cpp`. Window events are translated into a small queue that Haxe drains after SDL polling is over, so a game callback never runs while SDL state is mid-update.
 
 ## Ownership in the runtime

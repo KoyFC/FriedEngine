@@ -41,6 +41,7 @@ endif()
 # than sources folded into every game's executable.
 if(NOT TARGET fried_engine)
     add_library(fried_engine STATIC
+        ${FRIED_ENGINE_DIR}/native/last_error.cpp
         ${FRIED_ENGINE_DIR}/native/platform/application.cpp
         ${FRIED_ENGINE_DIR}/native/platform/events.cpp
         ${FRIED_ENGINE_DIR}/native/platform/filesystem.cpp

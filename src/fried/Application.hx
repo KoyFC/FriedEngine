@@ -15,7 +15,7 @@ class Application {
 
 	public static function init():Void {
 		if (ApplicationNative.init() != 0) {
-			throw "SDL_Init failed";
+			throw NativeError.describe("Failed to initialize SDL");
 		}
 		Filesystem.init();
 		UserData.init();

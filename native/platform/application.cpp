@@ -1,5 +1,6 @@
 #include "platform/application.h"
 #include "platform/gamepad.h"
+#include "last_error.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -23,17 +24,21 @@ int fried_application_init()
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) != 0)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 
+    // Every cleanup call below would overwrite the error, so it is captured first.
     if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0)
     {
+        fried_capture_sdl_error();
         SDL_Quit();
         return -1;
     }
 
     if (TTF_Init() != 0)
     {
+        fried_capture_sdl_error();
         IMG_Quit();
         SDL_Quit();
         return -1;
@@ -41,6 +46,7 @@ int fried_application_init()
 
     if (Mix_OpenAudio(s_audioFrequency, MIX_DEFAULT_FORMAT, s_audioChannels, s_audioChunkSize) != 0)
     {
+        fried_capture_sdl_error();
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();

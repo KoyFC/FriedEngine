@@ -1,6 +1,7 @@
 #include "graphics/font.h"
 
 #include "handle_pool.h"
+#include "last_error.h"
 #include "graphics/renderer.h"
 #include "graphics/texture.h"
 
@@ -16,12 +17,14 @@ int fried_font_load(const char *path, int size)
 {
     if (!path || size <= 0)
     {
+        fried_set_last_error("No path given, or the size is not positive");
         return -1;
     }
 
     TTF_Font *font = TTF_OpenFont(path, size);
     if (!font)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 
@@ -71,6 +74,7 @@ int fried_font_render_text(int fontId, int rendererId, const char *text, int r, 
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!font || !renderer || !text)
     {
+        fried_set_last_error("No such font or renderer, or no text given");
         return -1;
     }
 
@@ -78,10 +82,16 @@ int fried_font_render_text(int fontId, int rendererId, const char *text, int r, 
     SDL_Surface *surface = TTF_RenderUTF8_Blended(font, text, color);
     if (!surface)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    // Captured before the surface is freed, since freeing it would overwrite the error.
+    if (!texture)
+    {
+        fried_capture_sdl_error();
+    }
     SDL_FreeSurface(surface);
     if (!texture)
     {

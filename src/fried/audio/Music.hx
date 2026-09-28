@@ -1,5 +1,7 @@
 package fried.audio;
 
+import fried.NativeError;
+
 class Music {
 	public static var volume(get, set):Float;
 
@@ -11,7 +13,7 @@ class Music {
 	public function new(path:String) {
 		id = MusicNative.load(path);
 		if (id < 0) {
-			throw 'Failed to load music: $path';
+			throw NativeError.describe('Failed to load music: $path');
 		}
 	}
 

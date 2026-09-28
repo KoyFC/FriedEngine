@@ -1,6 +1,7 @@
 #include "audio/music.h"
 
 #include "handle_pool.h"
+#include "last_error.h"
 
 #include <SDL_mixer.h>
 
@@ -34,12 +35,14 @@ int fried_music_load(const char *path)
 {
     if (!path)
     {
+        fried_set_last_error("No path given");
         return -1;
     }
 
     Mix_Music *music = Mix_LoadMUS(path);
     if (!music)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 

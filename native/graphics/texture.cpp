@@ -1,6 +1,7 @@
 #include "graphics/texture.h"
 
 #include "handle_pool.h"
+#include "last_error.h"
 #include "graphics/renderer.h"
 
 #include <SDL.h>
@@ -26,12 +27,14 @@ int fried_texture_load(int rendererId, const char *path)
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer || !path)
     {
+        fried_set_last_error("No such renderer, or no path given");
         return -1;
     }
 
     SDL_Texture *texture = IMG_LoadTexture(renderer, path);
     if (!texture)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 

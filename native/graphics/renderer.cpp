@@ -1,6 +1,7 @@
 #include "graphics/renderer.h"
 
 #include "handle_pool.h"
+#include "last_error.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
@@ -21,6 +22,7 @@ int fried_renderer_create(int windowId, bool vsync)
     SDL_Window *window = fried_window_get_sdl(windowId);
     if (!window)
     {
+        fried_set_last_error("No such window");
         return -1;
     }
 
@@ -37,6 +39,7 @@ int fried_renderer_create(int windowId, bool vsync)
     }
     if (!renderer)
     {
+        fried_capture_sdl_error();
         return -1;
     }
 

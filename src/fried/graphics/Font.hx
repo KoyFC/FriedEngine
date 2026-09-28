@@ -1,5 +1,7 @@
 package fried.graphics;
 
+import fried.NativeError;
+
 class Font {
 	var id:Int;
 
@@ -9,7 +11,7 @@ class Font {
 	public function new(path:String, size:Int) {
 		id = FontNative.load(path, size);
 		if (id < 0) {
-			throw 'Failed to load font: $path';
+			throw NativeError.describe('Failed to load font: $path');
 		}
 		this.size = size;
 		lineHeight = FontNative.getLineHeight(id);
@@ -29,7 +31,7 @@ class Font {
 	public function renderText(renderer:Renderer, text:String, color:Color):Texture {
 		var textureId = FontNative.renderText(id, renderer.id, text, color.red, color.green, color.blue, color.alpha);
 		if (textureId < 0) {
-			throw 'Failed to render text: $text';
+			throw NativeError.describe('Failed to render text: $text');
 		}
 		return new Texture(renderer, textureId);
 	}
