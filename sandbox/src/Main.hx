@@ -66,14 +66,14 @@ class Main {
 		var sprite = Texture.from(renderer, Assets.game("sprite.png"));
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
-		var font = new Font(Assets.engine("NunitoSans.ttf"), 16);
+		var font = Font.from(Assets.engine("NunitoSans.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hint = 'Run $runs   Space/South: sound   M/East: music   WASD/stick: move';
 		var label = font.renderText(renderer, hint, Color.rgb(220, 220, 230));
 		Log.info('Text rendered: ${label.width}x${label.height} for ${font.measureWidth(hint)} measured pixels');
 
-		var beep = new Sound(Assets.game("beep.wav"));
+		var beep = Sound.from(Assets.game("beep.wav"));
 		beep.volume = 0.6;
 		Log.success('Sound loaded at volume ${beep.volume}');
 
@@ -227,8 +227,6 @@ class Main {
 		scene.destroy();
 		secondScene.destroy();
 		music.destroy();
-		beep.destroy();
-		font.destroy();
 
 		Application.shutdown();
 

@@ -1,6 +1,8 @@
 package fried;
 
+import fried.audio.Sound;
 import fried.graphics.DrawQueue;
+import fried.graphics.Font;
 import fried.graphics.Renderer;
 import fried.input.Input;
 import fried.io.Filesystem;
@@ -25,6 +27,9 @@ class Application {
 
 	public static function shutdown():Void {
 		destroyRenderers();
+		// Both must go before the native shutdown, which calls TTF_Quit() and Mix_CloseAudio().
+		Font.destroyAll();
+		Sound.destroyAll();
 		ApplicationNative.shutdown();
 		Filesystem.shutdown();
 		isRunning = false;

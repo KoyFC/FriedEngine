@@ -3,25 +3,61 @@ package fried.graphics;
 import fried.NativeError;
 
 class Font {
+	static var fontsByKey:Map<String, Font> = new Map();
+	static var activeFonts:Array<Font> = [];
+
 	var id:Int;
+	var key:String;
 
 	public var size(default, null):Int;
 	public var lineHeight(default, null):Int;
 
-	public function new(path:String, size:Int) {
+	public static function from(path:String, size:Int):Font {
+		// The size is part of the key because one file at two sizes is two TTF_Fonts
+		var key = '$size:$path';
+		var cached = fontsByKey.get(key);
+		if (cached != null) {
+			return cached;
+		}
+
+		return new Font(path, size, key);
+	}
+
+	function new(path:String, size:Int, key:String) {
 		id = FontNative.load(path, size);
 		if (id < 0) {
 			throw NativeError.describe('Failed to load font: $path');
 		}
 		this.size = size;
+		this.key = key;
 		lineHeight = FontNative.getLineHeight(id);
+
+		fontsByKey.set(key, this);
+		activeFonts.push(this);
 	}
 
 	public function destroy():Void {
+		if (id < 0) {
+			return;
+		}
+
 		FontNative.destroy(id);
 		id = -1;
 		size = 0;
 		lineHeight = 0;
+
+		activeFonts.remove(this);
+		fontsByKey.remove(key);
+		key = null;
+	}
+
+	@:allow(fried.Application)
+	static function destroyAll():Void {
+		for (font in activeFonts.copy()) {
+			font.destroy();
+		}
+		activeFonts.resize(0);
+		fontsByKey.clear();
 	}
 
 	public function measureWidth(text:String):Int {

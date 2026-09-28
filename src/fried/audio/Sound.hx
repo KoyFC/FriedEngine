@@ -3,21 +3,55 @@ package fried.audio;
 import fried.NativeError;
 
 class Sound {
+	static var soundsByPath:Map<String, Sound> = new Map();
+	static var activeSounds:Array<Sound> = [];
+
 	var id:Int;
+	var path:String;
 
 	public var volume(get, set):Float;
 	public var playing(get, never):Bool;
 
-	public function new(path:String) {
+	public static function from(path:String):Sound {
+		var cached = soundsByPath.get(path);
+		if (cached != null) {
+			return cached;
+		}
+
+		return new Sound(path);
+	}
+
+	function new(path:String) {
 		id = SoundNative.load(path);
 		if (id < 0) {
 			throw NativeError.describe('Failed to load sound: $path');
 		}
+		this.path = path;
+
+		soundsByPath.set(path, this);
+		activeSounds.push(this);
 	}
 
 	public function destroy():Void {
+		if (id < 0) {
+			return;
+		}
+
 		SoundNative.destroy(id);
 		id = -1;
+
+		activeSounds.remove(this);
+		soundsByPath.remove(path);
+		path = null;
+	}
+
+	@:allow(fried.Application)
+	static function destroyAll():Void {
+		for (sound in activeSounds.copy()) {
+			sound.destroy();
+		}
+		activeSounds.resize(0);
+		soundsByPath.clear();
 	}
 
 	public function play(loops:Int = 0):Void {

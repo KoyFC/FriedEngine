@@ -15,8 +15,8 @@ class Renderer {
 
 	public var drawColor(default, set):Color;
 
-	var cachedByPath:Map<String, Texture>;
-	var liveTextures:Array<Texture>;
+	var texturesByPath:Map<String, Texture>;
+	var activeTextures:Array<Texture>;
 
 	@:allow(fried.Application)
 	function new(window:Window, requestVsync:Bool) {
@@ -26,17 +26,17 @@ class Renderer {
 		}
 		isVsyncEnabled = RendererNative.hasVsync(id);
 		drawColor = Color.rgb(255, 255, 255);
-		cachedByPath = new Map();
-		liveTextures = [];
+		texturesByPath = new Map();
+		activeTextures = [];
 	}
 
 	@:allow(fried.Application)
 	function destroy():Void {
-		for (texture in liveTextures.copy()) {
+		for (texture in activeTextures.copy()) {
 			texture.destroy();
 		}
-		liveTextures.resize(0);
-		cachedByPath.clear();
+		activeTextures.resize(0);
+		texturesByPath.clear();
 
 		RendererNative.destroy(id);
 		id = -1;
@@ -44,22 +44,22 @@ class Renderer {
 
 	@:allow(fried.graphics.Texture)
 	function cachedTexture(path:String):Texture {
-		return cachedByPath.get(path);
+		return texturesByPath.get(path);
 	}
 
 	@:allow(fried.graphics.Texture)
 	function registerTexture(texture:Texture, path:String):Void {
-		liveTextures.push(texture);
+		activeTextures.push(texture);
 		if (path != null) {
-			cachedByPath.set(path, texture);
+			texturesByPath.set(path, texture);
 		}
 	}
 
 	@:allow(fried.graphics.Texture)
 	function unregisterTexture(texture:Texture, path:String):Void {
-		liveTextures.remove(texture);
+		activeTextures.remove(texture);
 		if (path != null) {
-			cachedByPath.remove(path);
+			texturesByPath.remove(path);
 		}
 	}
 
