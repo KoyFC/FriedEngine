@@ -65,7 +65,7 @@ class Main {
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.vsync ? "on" : "off"}');
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
-		var sprite = Texture.load(renderer, Assets.game("sprite.png"));
+		var sprite = Texture.from(renderer, Assets.game("sprite.png"));
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
 		var font = new Font(Assets.engine("NunitoSans.ttf"), 16);
@@ -176,7 +176,6 @@ class Main {
 		beep.destroy();
 		label.destroy();
 		font.destroy();
-		sprite.destroy();
 		Application.destroyRenderer();
 		window.destroy();
 

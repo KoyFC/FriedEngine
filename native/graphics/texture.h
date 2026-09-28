@@ -6,6 +6,7 @@ extern "C"
 {
     int fried_texture_load(int rendererId, const char *path);
     void fried_texture_destroy(int textureId);
+    void fried_texture_destroy_all();
 
     int fried_texture_get_width(int textureId);
     int fried_texture_get_height(int textureId);

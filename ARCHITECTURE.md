@@ -40,6 +40,12 @@ Two things reach Haxe as events rather than as state because SDL only reports th
 
 `fried.Application` owns the SDL lifecycle, the renderer and the game loop. `fried.Window` is only a window: it has no renderer field and nothing in it knows that renderers exist. A renderer is built from a window and owned by the application, so the two are created and destroyed separately, and only one renderer exists at a time.
 
+Textures are owned by the renderer rather than by the game. `Texture.from()` is keyed by path and returns the same instance for the same file, so a texture used by ten sprites is one `SDL_Texture`, and `Application.destroyRenderer()` destroys every texture before the renderer goes with it. A game therefore loads what it needs and writes no teardown list for it.
+
+`destroy()` stays public, because a texture built by `Font.renderText()` has no path and a lifetime only the game knows: text rebuilt as a score changes would otherwise accumulate until shutdown. Destroying a texture drops it from the cache too, so a later `from()` on that path loads a new one instead of handing out a destroyed instance. What the cache does not do is count references, so two callers that share a path share the consequence if one of them destroys it. That is a guard rail rather than a sandbox, the same way the asset roots are.
+
+`fried_renderer_destroy()` sweeps the texture pool before calling `SDL_DestroyRenderer()`, which is what makes the order safe rather than merely conventional. SDL frees a renderer's textures along with it, so the pool would otherwise hold dangling pointers under ids it still considers live, and a later draw or destroy would reach freed memory. With the sweep, destroying a texture after its renderer is a no-op in both layers.
+
 The loop clears before the update callback and presents after it, so drawing code is only ever the middle of a frame that is already framed for it. A renderer is optional; with none, the loop runs exactly as it did before that step existed.
 
 `vsync` is read back from SDL after creation rather than remembered from what was asked for, because a driver may refuse it and a loop that skipped its fps cap believing it had vsync would run unbounded. While vsync is active `targetFps` is ignored entirely: sleeping on top of vsync would push the next frame past the following vblank and halve the rate.

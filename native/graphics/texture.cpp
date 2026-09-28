@@ -48,6 +48,14 @@ void fried_texture_destroy(int textureId)
     SDL_DestroyTexture(texture);
 }
 
+void fried_texture_destroy_all()
+{
+    for (SDL_Texture *texture : s_textures.releaseAll())
+    {
+        SDL_DestroyTexture(texture);
+    }
+}
+
 int fried_texture_get_width(int textureId)
 {
     SDL_Texture *texture = fried_texture_get_sdl(textureId);

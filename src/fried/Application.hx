@@ -2,6 +2,7 @@ package fried;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
+import fried.graphics.Texture;
 import fried.input.Input;
 import fried.io.Filesystem;
 import fried.io.UserData;
@@ -46,6 +47,7 @@ class Application {
 		if (renderer == null) {
 			return;
 		}
+		Texture.destroyAll();
 		renderer.destroy();
 		renderer = null;
 	}

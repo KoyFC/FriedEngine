@@ -51,6 +51,8 @@ void fried_renderer_destroy(int rendererId)
     {
         return;
     }
+
+    fried_texture_destroy_all();
     SDL_DestroyRenderer(renderer);
 }
 

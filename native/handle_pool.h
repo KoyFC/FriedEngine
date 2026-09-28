@@ -47,6 +47,22 @@ public:
         return resource;
     }
 
+    std::vector<T *> releaseAll()
+    {
+        std::vector<T *> released;
+        for (T *resource : m_resources)
+        {
+            if (resource)
+            {
+                released.push_back(resource);
+            }
+        }
+
+        m_resources.clear();
+        m_freeIds.clear();
+        return released;
+    }
+
     int capacity() const
     {
         return (int)m_resources.size();
