@@ -1,9 +1,12 @@
 package fried;
 
+import fried.input.Input;
+
 class Events {
 	public static function pump():Bool {
 		var quitRequested = EventsNative.pump() != 0;
 		dispatchWindowEvents();
+		Input.collectEvents();
 		return quitRequested;
 	}
 

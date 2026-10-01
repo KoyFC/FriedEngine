@@ -19,3 +19,9 @@ extern "C"
 
 void fried_gamepad_report_added(int joystickIndex);
 void fried_gamepad_report_removed(int instanceId);
+
+int fried_gamepad_is_active_instance(int instanceId);
+
+// Turns a raw SDL axis reading into the same value the polled axis getter would
+// report for it, deadzone included.
+double fried_gamepad_normalize_axis(int rawValue);

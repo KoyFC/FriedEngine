@@ -1,6 +1,14 @@
 package fried.input;
 
+import fried.Window;
+
 class Input {
+	static inline var NO_EVENT:Int = 0;
+
+	static var eventPool:Array<InputEvent> = [];
+
+	public static var events(default, null):Array<InputEvent> = [];
+
 	public static var mouseX(get, never):Int;
 	public static var mouseY(get, never):Int;
 	public static var scrollX(get, never):Float;
@@ -49,6 +57,43 @@ class Input {
 		return GamepadNative.getAxis(axis);
 	}
 
+	@:allow(fried.Events)
+	static function collectEvents():Void {
+		events.resize(0);
+
+		var nativeType = EventsNative.pollInputEvent();
+		while (nativeType != NO_EVENT) {
+			var type:InputEventType = cast nativeType;
+			var window = Window.fromId(EventsNative.getWindowId());
+			var code = EventsNative.getCode();
+			var event = nextEvent();
+			switch (type) {
+				case KeyDown | KeyUp:
+					event.setKey(type, window, cast code);
+				case MouseButtonDown | MouseButtonUp:
+					event.setMouseButton(type, window, cast code, EventsNative.getX(), EventsNative.getY());
+				case MouseMoved:
+					event.setMouseMotion(window, EventsNative.getX(), EventsNative.getY());
+				case MouseWheel:
+					event.setMouseWheel(window, EventsNative.getScrollX(), EventsNative.getScrollY());
+				case GamepadButtonDown | GamepadButtonUp:
+					event.setGamepadButton(type, cast code);
+				case GamepadAxisMoved:
+					event.setGamepadAxis(cast code, EventsNative.getValue());
+			}
+			nativeType = EventsNative.pollInputEvent();
+		}
+	}
+
+	static function nextEvent():InputEvent {
+		if (events.length == eventPool.length) {
+			eventPool.push(new InputEvent());
+		}
+		var event = eventPool[events.length];
+		events.push(event);
+		return event;
+	}
+
 	@:allow(fried.Application)
 	static function endFrame():Void {
 		InputNative.endFrame();
@@ -84,6 +129,35 @@ class Input {
 		GamepadNative.setDeadzone(deadzone);
 		return GamepadNative.getDeadzone();
 	}
+}
+
+// `fried.Events` drains the window half of this same header, so each class owns
+// the events it exposes.
+@:include("platform/events.h")
+private extern class EventsNative {
+	@:native("fried_events_poll_input_event")
+	static function pollInputEvent():Int;
+
+	@:native("fried_events_get_input_window_id")
+	static function getWindowId():Int;
+
+	@:native("fried_events_get_input_code")
+	static function getCode():Int;
+
+	@:native("fried_events_get_input_x")
+	static function getX():Int;
+
+	@:native("fried_events_get_input_y")
+	static function getY():Int;
+
+	@:native("fried_events_get_input_scroll_x")
+	static function getScrollX():Float;
+
+	@:native("fried_events_get_input_scroll_y")
+	static function getScrollY():Float;
+
+	@:native("fried_events_get_input_value")
+	static function getValue():Float;
 }
 
 @:include("platform/input.h")

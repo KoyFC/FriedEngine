@@ -13,6 +13,7 @@ import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.input.GamepadButton;
 import fried.input.Input;
+import fried.input.InputEventType;
 import fried.input.Key;
 import fried.input.MouseButton;
 import fried.io.Assets;
@@ -196,10 +197,16 @@ class Main {
 		var nextCapacityReport = 2.0;
 
 		Application.run(function() {
-			if (Input.isButtonDown(MouseButton.Left) && renderer != null) {
-				var worldX = camera.screenToWorldX(Input.mouseX, renderer);
-				var worldY = camera.screenToWorldY(Input.mouseY, renderer);
-				Log.info('Left click at screen ${Input.mouseX}, ${Input.mouseY}, world $worldX, $worldY');
+			for (event in Input.events) {
+				if (event.type != InputEventType.MouseButtonDown || event.mouseButton != MouseButton.Left) {
+					continue;
+				}
+				if (event.window != window || renderer == null) {
+					continue;
+				}
+				var worldX = camera.screenToWorldX(event.x, renderer);
+				var worldY = camera.screenToWorldY(event.y, renderer);
+				Log.info('Left click at screen ${event.x}, ${event.y}, world $worldX, $worldY');
 			}
 
 			if (Input.isKeyPressed(Key.Q)) {

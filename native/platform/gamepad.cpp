@@ -18,6 +18,18 @@ namespace
     Uint8 s_previousButtons[s_buttonCount] = {};
     double s_deadzone = 0.25;
 
+    double clampAxis(int rawValue)
+    {
+        double value = rawValue / s_axisRange;
+        return value < -1.0 ? -1.0 : value;
+    }
+
+    double applyDeadzone(double value)
+    {
+        double magnitude = value < 0.0 ? -value : value;
+        return magnitude < s_deadzone ? 0.0 : value;
+    }
+
     double rawAxis(int axis)
     {
         if (s_controller == nullptr || axis < 0 || axis >= SDL_CONTROLLER_AXIS_MAX)
@@ -25,8 +37,7 @@ namespace
             return 0.0;
         }
 
-        double value = SDL_GameControllerGetAxis(s_controller, (SDL_GameControllerAxis)axis) / s_axisRange;
-        return value < -1.0 ? -1.0 : value;
+        return clampAxis(SDL_GameControllerGetAxis(s_controller, (SDL_GameControllerAxis)axis));
     }
 
     Uint8 buttonState(int button)
@@ -107,9 +118,7 @@ int fried_gamepad_is_button_released(int button)
 
 double fried_gamepad_get_axis(int axis)
 {
-    double value = rawAxis(axis);
-    double magnitude = value < 0.0 ? -value : value;
-    return magnitude < s_deadzone ? 0.0 : value;
+    return applyDeadzone(rawAxis(axis));
 }
 
 double fried_gamepad_get_deadzone()
@@ -136,6 +145,16 @@ void fried_gamepad_end_frame()
     {
         s_previousButtons[button] = buttonState(button);
     }
+}
+
+int fried_gamepad_is_active_instance(int instanceId)
+{
+    return s_controller != nullptr && instanceId == s_instanceId;
+}
+
+double fried_gamepad_normalize_axis(int rawValue)
+{
+    return applyDeadzone(clampAxis(rawValue));
 }
 
 void fried_gamepad_report_added(int joystickIndex)

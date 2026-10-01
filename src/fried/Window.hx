@@ -34,6 +34,7 @@ class Window {
 	}
 
 	@:allow(fried.Events)
+	@:allow(fried.input.Input)
 	static function fromId(id:Int):Null<Window> {
 		return instances.get(id);
 	}
