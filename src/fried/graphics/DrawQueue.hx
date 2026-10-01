@@ -1,12 +1,16 @@
 package fried.graphics;
 
+import fried.scene.Camera;
+
 class DrawQueue {
 	public static var capacity(get, never):Int;
 
 	public static var currentRenderTarget:Renderer;
+	public static var currentCamera:Camera;
 
 	static var drawCommandPool:Array<DrawCommand> = [];
 	static var pendingDrawCommands:Array<DrawCommand> = [];
+	static var viewRect:Rect = new Rect(0, 0, 0, 0);
 
 	public static function submitTexture(priority:Int, texture:Texture, x:Int, y:Int, width:Int, height:Int, angle:Float = 0.0, flip:FlipMode = None,
 			?source:Rect):Void {
@@ -21,10 +25,10 @@ class DrawQueue {
 		command.flip = flip;
 		command.hasSource = source != null;
 		if (source != null) {
-			command.rect.x = source.x;
-			command.rect.y = source.y;
-			command.rect.width = source.width;
-			command.rect.height = source.height;
+			command.source.x = source.x;
+			command.source.y = source.y;
+			command.source.width = source.width;
+			command.source.height = source.height;
 		}
 	}
 
@@ -49,6 +53,7 @@ class DrawQueue {
 		for (command in pendingDrawCommands) {
 			command.texture = null;
 			command.target = null;
+			command.camera = null;
 		}
 		pendingDrawCommands.resize(0);
 	}
@@ -61,18 +66,19 @@ class DrawQueue {
 			if (command.target != renderer) {
 				continue;
 			}
+			var view = viewOf(command, renderer);
 			switch (command.type) {
 				case TextureRegion:
-					renderer.drawTextureRegion(command.texture, command.x, command.y, command.hasSource ? command.rect : null, command.width, command.height,
+					renderer.drawTextureRegion(command.texture, view.x, view.y, command.hasSource ? command.source : null, view.width, view.height,
 						command.angle, command.flip);
 				case FillRect:
 					renderer.drawColor = command.color;
 					colorChanged = true;
-					renderer.fillRect(command.rect);
+					renderer.fillRect(view);
 				case DrawRect:
 					renderer.drawColor = command.color;
 					colorChanged = true;
-					renderer.drawRect(command.rect);
+					renderer.drawRect(view);
 			}
 		}
 
@@ -81,14 +87,30 @@ class DrawQueue {
 		}
 	}
 
+	static function viewOf(command:DrawCommand, renderer:Renderer):Rect {
+		var camera = command.camera;
+		if (camera == null) {
+			viewRect.x = command.x;
+			viewRect.y = command.y;
+			viewRect.width = command.width;
+			viewRect.height = command.height;
+			return viewRect;
+		}
+		viewRect.x = Std.int(camera.worldToScreenX(command.x, renderer));
+		viewRect.y = Std.int(camera.worldToScreenY(command.y, renderer));
+		viewRect.width = Std.int(command.width * camera.zoom);
+		viewRect.height = Std.int(command.height * camera.zoom);
+		return viewRect;
+	}
+
 	static function submitShape(type:DrawCommandType, priority:Int, rect:Rect, color:Color):Void {
 		var command = next(priority);
 		command.type = type;
 		command.color = color;
-		command.rect.x = rect.x;
-		command.rect.y = rect.y;
-		command.rect.width = rect.width;
-		command.rect.height = rect.height;
+		command.x = rect.x;
+		command.y = rect.y;
+		command.width = rect.width;
+		command.height = rect.height;
 	}
 
 	static function next(priority:Int):DrawCommand {
@@ -100,6 +122,7 @@ class DrawQueue {
 		command.priority = priority;
 		command.sequence = sequence;
 		command.target = currentRenderTarget;
+		command.camera = currentCamera;
 		pendingDrawCommands.push(command);
 		return command;
 	}
@@ -127,6 +150,7 @@ private class DrawCommand {
 	public var priority:Int;
 	public var sequence:Int;
 	public var target:Renderer;
+	public var camera:Camera;
 
 	public var texture:Texture;
 	public var x:Int;
@@ -136,12 +160,11 @@ private class DrawCommand {
 	public var angle:Float;
 	public var flip:FlipMode;
 	public var hasSource:Bool;
+	public var source:Rect;
 
 	public var color:Color;
 
-	public var rect:Rect;
-
 	public function new() {
-		rect = new Rect(0, 0, 0, 0);
+		source = new Rect(0, 0, 0, 0);
 	}
 }

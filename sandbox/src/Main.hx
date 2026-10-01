@@ -18,6 +18,7 @@ import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
+import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.Scene;
 import fried.scene.Sprite;
@@ -69,7 +70,7 @@ class Main {
 		var font = Font.from(Assets.engine("NunitoSans.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
-		var hint = 'Run $runs   Space/South: sound   M/East: music   WASD/stick: move';
+		var hint = 'Run $runs   Space: sound   M: music   WASD/stick: move   Q/E: zoom';
 		var label = font.renderText(renderer, hint, Color.rgb(220, 220, 230));
 		Log.info('Text rendered: ${label.width}x${label.height} for ${font.measureWidth(hint)} measured pixels');
 
@@ -86,43 +87,55 @@ class Main {
 		var playerSpeed = 240.0;
 		var iconSize = 64;
 
-		var wallWidth = Std.int(renderer.width * 0.75);
+		var wallWidth = 900;
 		var wallHeight = 48;
 
 		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 
 		var scene = new Scene("Sandbox");
 
-		var labelObject = scene.add(new GameObject("Hint label", 16, 16));
+		var wallObject = scene.add(new GameObject("Wall", -wallWidth / 2, 160));
+		wallObject.addComponent(new Box(wallWidth, wallHeight, Color.rgb(70, 70, 90), Color.rgb(150, 150, 190)));
+
+		for (index in 0...5) {
+			var postObject = scene.add(new GameObject('Post $index', -600 + index * 300, -220));
+			postObject.priority = -2;
+			postObject.addComponent(new Box(32, 96, Color.rgb(58, 48, 44), Color.rgb(120, 100, 80)));
+		}
+
+		var playerObject = scene.add(new GameObject("Player", -sprite.width * spriteScale / 2, -sprite.height * spriteScale / 2));
+		playerObject.transform.setScale(spriteScale);
+		playerObject.addComponent(new Sprite(sprite));
+		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
+
+		var cameraObject = scene.add(new GameObject("Camera"));
+		var camera = cameraObject.addComponent(new Camera());
+		cameraObject.addComponent(new CameraFollow(playerObject, sprite.width * spriteScale / 2, sprite.height * spriteScale / 2));
+		scene.camera = camera;
+
+		var uiScene = new Scene("Sandbox UI");
+
+		var labelObject = uiScene.add(new GameObject("Hint label", 16, 16));
 		labelObject.priority = 20;
 		labelObject.addComponent(new Sprite(label));
 
-		var panelObject = scene.add(new GameObject("Hint panel", 12, 12));
+		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
 		panelObject.priority = 10;
 		panelObject.addComponent(new Box(label.width + 8, label.height + 8, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
 
-		var regionObject = scene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
+		var regionObject = uiScene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
 		regionObject.priority = 6;
 		regionObject.transform.scaleX = iconSize / scrollRegion.width;
 		regionObject.transform.scaleY = iconSize / scrollRegion.height;
 		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
 		regionObject.addComponent(new RegionScroller(8.0));
 
-		var spinnerObject = scene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
+		var spinnerObject = uiScene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
 		spinnerObject.priority = 5;
 		spinnerObject.transform.scaleX = iconSize / sprite.width;
 		spinnerObject.transform.scaleY = iconSize / sprite.height;
 		spinnerObject.addComponent(new Sprite(sprite));
 		spinnerObject.addComponent(new Spinner(90.0));
-
-		var wallObject = scene.add(new GameObject("Wall", (renderer.width - wallWidth) / 2, renderer.height / 2));
-		wallObject.addComponent(new Box(wallWidth, wallHeight, Color.rgb(70, 70, 90), Color.rgb(150, 150, 190)));
-
-		var playerObject = scene.add(new GameObject("Player", (renderer.width - sprite.width * spriteScale) / 2,
-			(renderer.height - sprite.height * spriteScale) / 2));
-		playerObject.transform.setScale(spriteScale);
-		playerObject.addComponent(new Sprite(sprite));
-		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
 
 		var secondWindow = new Window("Fried Sandbox: second window", 320, 240);
 		var secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
@@ -133,10 +146,13 @@ class Main {
 		Log.info('Same path across two renderers: ${sprite == secondSprite}');
 
 		var secondScene = new Scene("Second window");
-		var secondObject = secondScene.add(new GameObject("Second sprite", 32, 32));
+		var secondObject = secondScene.add(new GameObject("Second sprite", 0, 0));
 		secondObject.transform.setScale(4.0);
 		secondObject.addComponent(new Sprite(secondSprite));
 		secondObject.addComponent(new Spinner(-120.0));
+
+		var secondCameraObject = secondScene.add(new GameObject("Second camera"));
+		secondScene.camera = secondCameraObject.addComponent(new Camera(0.5));
 
 		var openWindows = 2;
 
@@ -171,17 +187,26 @@ class Main {
 		window.onClose = closeMainWindow;
 		secondWindow.onClose = closeSecondWindow;
 
-		Log.success('Scene "${scene.name}" holds ${scene.objectCount} objects added in reverse draw order');
+		Log.success('Scene "${scene.name}" holds ${scene.objectCount} world objects, "${uiScene.name}" holds ${uiScene.objectCount} screen-space ones');
 		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
-		Log.info('The player starts at y ${playerObject.transform.y} and the wall sits at y ${wallObject.transform.y}');
+		Log.info('The player starts at world ${playerObject.transform.x}, ${playerObject.transform.y} and the wall sits at world y ${wallObject.transform.y}');
 
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
 		var nextCapacityReport = 2.0;
 
 		Application.run(function() {
-			if (Input.isButtonDown(MouseButton.Left)) {
-				Log.info('Left click at ${Input.mouseX}, ${Input.mouseY}');
+			if (Input.isButtonDown(MouseButton.Left) && renderer != null) {
+				var worldX = camera.screenToWorldX(Input.mouseX, renderer);
+				var worldY = camera.screenToWorldY(Input.mouseY, renderer);
+				Log.info('Left click at screen ${Input.mouseX}, ${Input.mouseY}, world $worldX, $worldY');
+			}
+
+			if (Input.isKeyPressed(Key.Q)) {
+				camera.zoom -= Time.deltaSeconds;
+			}
+			if (Input.isKeyPressed(Key.E)) {
+				camera.zoom += Time.deltaSeconds;
 			}
 
 			if (Input.isGamepadButtonDown(GamepadButton.South)) {
@@ -206,6 +231,8 @@ class Main {
 			if (renderer != null) {
 				scene.update();
 				scene.draw(renderer);
+				uiScene.update();
+				uiScene.draw(renderer);
 			}
 			if (secondRenderer != null) {
 				secondScene.update();
@@ -214,17 +241,18 @@ class Main {
 
 			if (Time.elapsedSeconds >= nextCapacityReport) {
 				nextCapacityReport += 2.0;
-				Log.info('Draw queue pool holds ${DrawQueue.capacity} commands, player priority ${playerObject.priority}');
+				Log.info('Draw queue pool holds ${DrawQueue.capacity} commands, player priority ${playerObject.priority}, camera at ${camera.transform.x}, ${camera.transform.y} zoom ${camera.zoom}');
 			}
 		});
 
 		Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees over ${Time.elapsedSeconds} seconds');
 		Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
-		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount} objects');
+		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount + uiScene.objectCount} objects');
 
 		closeMainWindow();
 		closeSecondWindow();
 		scene.destroy();
+		uiScene.destroy();
 		secondScene.destroy();
 		music.destroy();
 

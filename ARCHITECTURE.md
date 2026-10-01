@@ -90,7 +90,19 @@ The queue is static, like `Time` and `Input`, and each command records the rende
 
 `Sprite` lives in `fried.scene` rather than in `fried.graphics` so that the dependency runs one way. The scene knows what graphics are, and graphics know nothing about game objects, which is the same rule that keeps windows from knowing that renderers exist.
 
-Application layers, parent and child hierarchies, and cameras are not implemented. A draw priority is a single flat number, and a game sets it on the object at any time, including from a component in the middle of a frame.
+Application layers and parent and child hierarchies are not implemented. A draw priority is a single flat number, and a game sets it on the object at any time, including from a component in the middle of a frame.
+
+## Cameras
+
+A `fried.scene.Camera` is a component, so a game object carries it and any component can move it, which is what makes following another object fall out of the `update()` that already exists instead of needing a mechanism of its own. Its position is the point of the world that lands at the centre of the view, because that is the form a camera that follows something needs; a top left origin would make every follow write the same half-viewport subtraction. It holds a `zoom` and nothing else. `Transform` rotation and scale are ignored, since rotating the view would have to rotate the rectangle commands too and SDL2 draws those axis aligned.
+
+The camera belongs to the `Scene`, not to the `Renderer`. That is what makes screen space fall out for free: a scene with no camera draws in screen coordinates, so a game puts its interface in a second scene, leaves its camera null, and the interface stays still while the world moves. Nothing had to be added to `Sprite`, and a game's own drawing components need no flag, which is the test that decided it. On the `Renderer` the camera would have been one view per window, and the view is per scene, since a window draws several of them.
+
+A command records the camera it was submitted under, the way it already records its render target, and `Scene.draw()` sets both for the length of a pass. So the transform is applied at dispatch, in the one place every drawn thing already passes through, rather than at every call site that computes a position. A component keeps submitting world coordinates and never learns a camera exists.
+
+Assigning a camera links the two, and destroying it unlinks them, so `Scene.camera` is either a camera that can be drawn through or nothing. The alternative was to keep the field plain and filter it on every pass, since a camera whose game object was destroyed still sits in the field while its transform is already gone. Validating once where the state changes beats testing a condition every frame that only assignment can create, and it leaves one name for the concept rather than one the game writes and another the engine reads. Assignment therefore refuses a camera with no game object, which has no transform to read, and refuses one that is already another scene's view, which is the rule `addComponent` already applies to components. Destruction being deferred is what makes the unlink safe: it happens in the pending changes a pass applies before it reads the field.
+
+Two consequences are worth knowing. A scene has one camera and a camera has one scene, so a world cannot be seen through two views at once, which a split screen would want; that needs viewports, which the renderer does not have, and a scene cannot be drawn to two renderers anyway because textures belong to the renderer that created them. And a transform position is a corner rather than a centre, since nothing in the engine has a pivot, so a camera that follows an object centres the view on that object's corner unless the game offsets it by half of what it drew. `sandbox/src/CameraFollow.hx` carries that offset.
 
 ## Asset roots
 

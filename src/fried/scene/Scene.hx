@@ -6,6 +6,8 @@ import fried.graphics.Renderer;
 class Scene {
 	public var name:String;
 
+	public var camera(default, set):Camera;
+
 	public var objectCount(get, never):Int;
 
 	var sceneObjects:Array<GameObject>;
@@ -60,6 +62,7 @@ class Scene {
 	public function draw(renderer:Renderer):Void {
 		applyPendingChanges();
 		DrawQueue.currentRenderTarget = renderer;
+		DrawQueue.currentCamera = camera;
 		isIterating = true;
 		for (object in sceneObjects) {
 			object.draw();
@@ -107,5 +110,27 @@ class Scene {
 
 	function get_objectCount():Int {
 		return sceneObjects.length;
+	}
+
+	function set_camera(value:Camera):Camera {
+		if (value == camera) {
+			return camera;
+		}
+		if (value != null) {
+			if (value.gameObject == null) {
+				throw 'A camera must belong to a game object before the scene $name can draw through it.';
+			}
+			if (value.assignedScene != null) {
+				throw 'That camera is already the view of the scene ${value.assignedScene.name}.';
+			}
+		}
+		if (camera != null) {
+			camera.assignedScene = null;
+		}
+		camera = value;
+		if (value != null) {
+			value.assignedScene = this;
+		}
+		return camera;
 	}
 }

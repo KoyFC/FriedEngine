@@ -27,7 +27,6 @@ class Application {
 
 	public static function shutdown():Void {
 		destroyRenderers();
-		// Both must go before the native shutdown, which calls TTF_Quit() and Mix_CloseAudio().
 		Font.destroyAll();
 		Sound.destroyAll();
 		ApplicationNative.shutdown();
@@ -75,6 +74,7 @@ class Application {
 				renderer.clear();
 			}
 			DrawQueue.currentRenderTarget = renderers.length > 0 ? renderers[0] : null;
+			DrawQueue.currentCamera = null;
 			update();
 			DrawQueue.flush(renderers);
 			for (renderer in renderers) {

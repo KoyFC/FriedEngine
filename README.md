@@ -24,6 +24,7 @@ This repository is the engine alone, and it is not the starting point for a game
 - [ ] 10. Test Fried Engine as a submodule in an external project
 - [ ] 11. Real test game
 - [x] 12. Port the runtime to Nintendo Switch (devkitPro toolchain, `romfs:` asset root)
+- [x] 13. Cameras (`Camera` as a component, one per scene, with screen space for anything a scene draws without one)
 
 ## Requirements
 
@@ -51,7 +52,9 @@ cmake --build build
 ./build/sandbox/fried_sandbox
 ```
 
-A window opens on a small scene of game objects. WASD or the left stick moves a sprite, which passes behind or in front of the wall across the middle depending on which side of it it stands on, without anything being added to or removed from the scene. Two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it stays above everything else. The sandbox also loops its music, plays a sound on space and pauses the music on M. A second, smaller window opens beside it with its own renderer and its own scene, drawn from the same image file: closing either window destroys that window and its renderer, and the program ends once both are closed. The `vsyncEnabled` flag at the top of `main()` governs both renderers.
+A window opens on a small scene of game objects. WASD or the left stick moves a sprite through a world larger than the window, and a camera follows it: the wall and the row of posts scroll past, and the sprite passes behind or in front of the wall depending on which side of it it stands on, without anything being added to or removed from the scene. Q and E zoom out and in, and zooming all the way out stops at the smallest zoom the camera allows rather than collapsing the view. A left click logs where it landed in both screen and world coordinates.
+
+The interface is a second scene with no camera of its own, so it draws in screen coordinates and stays put while the world moves: two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it stays above everything else. The sandbox also loops its music, plays a sound on space and pauses the music on M. A second, smaller window opens beside it with its own renderer, its own scene and its own camera at half zoom, drawn from the same image file: closing either window destroys that window and its renderer, and the program ends once both are closed. The `vsyncEnabled` flag at the top of `main()` governs both renderers.
 
 For a Vita build the generated C++ is the same, so only the CMake step changes:
 
