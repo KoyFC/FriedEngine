@@ -14,7 +14,7 @@ class CameraFollow extends Component {
 	}
 
 	override function update():Void {
-		if (target == null || target.destroyed) {
+		if (target == null || target.isDestroyed) {
 			return;
 		}
 		transform.x = target.transform.x + offsetX;

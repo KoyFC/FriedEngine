@@ -2,10 +2,10 @@ package fried.scene;
 
 class GameObject {
 	public var name:String;
-	public var active:Bool;
+	public var isActive:Bool;
 	public var priority:Int;
 
-	public var destroyed(default, null):Bool;
+	public var isDestroyed(default, null):Bool;
 
 	public var transform(default, null):Transform;
 
@@ -16,9 +16,9 @@ class GameObject {
 
 	public function new(name:String = "GameObject", xPosition:Float = 0.0, yPosition:Float = 0.0) {
 		this.name = name;
-		active = true;
+		isActive = true;
 		priority = 0;
-		destroyed = false;
+		isDestroyed = false;
 		components = [];
 		transform = addComponent(new Transform(xPosition, yPosition));
 	}
@@ -54,11 +54,11 @@ class GameObject {
 	}
 
 	public function destroy():Void {
-		if (destroyed) {
+		if (isDestroyed) {
 			return;
 		}
-		destroyed = true;
-		active = false;
+		isDestroyed = true;
+		isActive = false;
 		if (scene != null) {
 			scene.destroyLater(this);
 			return;
@@ -78,7 +78,7 @@ class GameObject {
 
 	@:allow(fried.scene.Scene)
 	function update():Void {
-		if (!active) {
+		if (!isActive) {
 			return;
 		}
 		for (component in components) {
@@ -90,7 +90,7 @@ class GameObject {
 
 	@:allow(fried.scene.Scene)
 	function draw():Void {
-		if (!active) {
+		if (!isActive) {
 			return;
 		}
 		for (component in components) {
