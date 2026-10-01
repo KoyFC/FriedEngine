@@ -1,7 +1,9 @@
 package fried.graphics;
 
-import fried.Window;
+import fried.Layer;
 import fried.NativeError;
+import fried.Window;
+import fried.input.InputEvent;
 
 class Renderer {
 	@:allow(fried.graphics.Texture)
@@ -9,6 +11,10 @@ class Renderer {
 	var id:Int;
 
 	public var isVsyncEnabled(default, null):Bool;
+
+	public var window(default, null):Window;
+
+	public var layers(default, null):Array<Layer>;
 
 	public var width(get, never):Int;
 	public var height(get, never):Int;
@@ -24,14 +30,38 @@ class Renderer {
 		if (id < 0) {
 			throw NativeError.describe("Failed to create renderer");
 		}
+		this.window = window;
 		isVsyncEnabled = RendererNative.hasVsync(id);
 		drawColor = Color.rgb(255, 255, 255);
 		texturesByPath = new Map();
 		activeTextures = [];
+		layers = [];
+	}
+
+	public function pushLayer<T:Layer>(layer:T):T {
+		if (layer.renderer != null) {
+			throw 'The layer ${layer.name} is already on a renderer.';
+		}
+		layers.push(layer);
+		layer.setRenderer(this);
+		return layer;
+	}
+
+	public function removeLayer(layer:Layer):Void {
+		if (layer.renderer != this) {
+			return;
+		}
+		layers.remove(layer);
+		layer.setRenderer(null);
 	}
 
 	@:allow(fried.Application)
 	function destroy():Void {
+		for (layer in layers) {
+			layer.setRenderer(null);
+		}
+		layers.resize(0);
+
 		for (texture in activeTextures.copy()) {
 			texture.destroy();
 		}
@@ -40,6 +70,49 @@ class Renderer {
 
 		RendererNative.destroy(id);
 		id = -1;
+	}
+
+	@:allow(fried.Application)
+	function updateLayers():Void {
+		var index = 0;
+		while (index < layers.length) {
+			var layer = layers[index];
+			if (layer.isEnabled) {
+				layer.update();
+			}
+			index++;
+		}
+	}
+
+	@:allow(fried.Application)
+	function drawLayers():Void {
+		var index = 0;
+		while (index < layers.length) {
+			var layer = layers[index];
+			if (layer.isEnabled) {
+				DrawQueue.currentRenderTarget = this;
+				DrawQueue.currentCamera = null;
+				DrawQueue.currentLayerIndex = index;
+				layer.draw();
+			}
+			index++;
+		}
+		DrawQueue.currentLayerIndex = 0;
+	}
+
+	@:allow(fried.Application)
+	function dispatchEvent(event:InputEvent):Void {
+		var index = layers.length - 1;
+		while (index >= 0) {
+			var layer = layers[index];
+			if (layer.isEnabled) {
+				layer.onEvent(event);
+				if (event.handled) {
+					return;
+				}
+			}
+			index--;
+		}
 	}
 
 	@:allow(fried.graphics.Texture)

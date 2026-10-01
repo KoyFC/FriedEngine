@@ -22,6 +22,7 @@ import fried.io.UserData;
 import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.Scene;
+import fried.scene.SceneLayer;
 import fried.scene.Sprite;
 
 class Main {
@@ -117,26 +118,26 @@ class Main {
 		var uiScene = new Scene("Sandbox UI");
 
 		var labelObject = uiScene.add(new GameObject("Hint label", 16, 16));
-		labelObject.priority = 20;
+		labelObject.priority = 1;
 		labelObject.addComponent(new Sprite(label));
 
 		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
-		panelObject.priority = 10;
 		panelObject.addComponent(new Box(label.width + 8, label.height + 8, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
 
 		var regionObject = uiScene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
-		regionObject.priority = 6;
 		regionObject.transform.scaleX = iconSize / scrollRegion.width;
 		regionObject.transform.scaleY = iconSize / scrollRegion.height;
 		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
 		regionObject.addComponent(new RegionScroller(8.0));
 
 		var spinnerObject = uiScene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
-		spinnerObject.priority = 5;
 		spinnerObject.transform.scaleX = iconSize / sprite.width;
 		spinnerObject.transform.scaleY = iconSize / sprite.height;
 		spinnerObject.addComponent(new Sprite(sprite));
 		spinnerObject.addComponent(new Spinner(90.0));
+
+		renderer.pushLayer(new SceneLayer(scene));
+		renderer.pushLayer(new SceneLayer(uiScene));
 
 		var secondWindow = new Window("Fried Sandbox: second window", 320, 240);
 		var secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
@@ -154,6 +155,8 @@ class Main {
 
 		var secondCameraObject = secondScene.add(new GameObject("Second camera"));
 		secondScene.camera = secondCameraObject.addComponent(new Camera(0.5));
+
+		secondRenderer.pushLayer(new SceneLayer(secondScene));
 
 		var openWindows = 2;
 
@@ -233,17 +236,6 @@ class Main {
 					music.pause();
 					Log.info("Music paused");
 				}
-			}
-
-			if (renderer != null) {
-				scene.update();
-				scene.draw(renderer);
-				uiScene.update();
-				uiScene.draw(renderer);
-			}
-			if (secondRenderer != null) {
-				secondScene.update();
-				secondScene.draw(secondRenderer);
 			}
 
 			if (Time.elapsedSeconds >= nextCapacityReport) {

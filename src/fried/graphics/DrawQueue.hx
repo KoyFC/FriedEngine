@@ -7,6 +7,7 @@ class DrawQueue {
 
 	public static var currentRenderTarget:Renderer;
 	public static var currentCamera:Camera;
+	public static var currentLayerIndex:Int = 0;
 
 	static var drawCommandPool:Array<DrawCommand> = [];
 	static var pendingDrawCommands:Array<DrawCommand> = [];
@@ -121,6 +122,7 @@ class DrawQueue {
 		var command = drawCommandPool[sequence];
 		command.priority = priority;
 		command.sequence = sequence;
+		command.layerIndex = currentLayerIndex;
 		command.target = currentRenderTarget;
 		command.camera = currentCamera;
 		pendingDrawCommands.push(command);
@@ -128,6 +130,9 @@ class DrawQueue {
 	}
 
 	static function compare(a:DrawCommand, b:DrawCommand):Int {
+		if (a.layerIndex != b.layerIndex) {
+			return a.layerIndex < b.layerIndex ? -1 : 1;
+		}
 		if (a.priority != b.priority) {
 			return a.priority < b.priority ? -1 : 1;
 		}
@@ -149,6 +154,7 @@ private class DrawCommand {
 	public var type:DrawCommandType;
 	public var priority:Int;
 	public var sequence:Int;
+	public var layerIndex:Int;
 	public var target:Renderer;
 	public var camera:Camera;
 

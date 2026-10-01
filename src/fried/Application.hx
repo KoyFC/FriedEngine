@@ -68,6 +68,7 @@ class Application {
 				isRunning = false;
 				break;
 			}
+			dispatchInputEvents();
 			Time.tick();
 
 			for (renderer in renderers) {
@@ -75,7 +76,14 @@ class Application {
 			}
 			DrawQueue.currentRenderTarget = renderers.length > 0 ? renderers[0] : null;
 			DrawQueue.currentCamera = null;
+			DrawQueue.currentLayerIndex = 0;
 			update();
+			for (renderer in renderers) {
+				renderer.updateLayers();
+			}
+			for (renderer in renderers) {
+				renderer.drawLayers();
+			}
 			DrawQueue.flush(renderers);
 			for (renderer in renderers) {
 				renderer.present();
@@ -84,6 +92,20 @@ class Application {
 			Input.endFrame();
 
 			waitForFrameBudget(frameStart);
+		}
+	}
+
+	static function dispatchInputEvents():Void {
+		for (event in Input.events) {
+			for (renderer in renderers) {
+				if (event.window != null && event.window != renderer.window) {
+					continue;
+				}
+				renderer.dispatchEvent(event);
+				if (event.handled) {
+					break;
+				}
+			}
 		}
 	}
 
