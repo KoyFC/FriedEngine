@@ -23,6 +23,9 @@ class Renderer {
 
 	var texturesByPath:Map<String, Texture>;
 	var activeTextures:Array<Texture>;
+	var pendingLayerAdds:Array<Layer>;
+	var pendingLayerRemovals:Array<Layer>;
+	var isIteratingLayers:Bool;
 
 	@:allow(fried.Application)
 	function new(window:Window, requestVsync:Bool) {
@@ -36,14 +39,21 @@ class Renderer {
 		texturesByPath = new Map();
 		activeTextures = [];
 		layers = [];
+		pendingLayerAdds = [];
+		pendingLayerRemovals = [];
+		isIteratingLayers = false;
 	}
 
 	public function pushLayer<T:Layer>(layer:T):T {
 		if (layer.renderer != null) {
 			throw 'The layer ${layer.name} is already on a renderer.';
 		}
-		layers.push(layer);
 		layer.setRenderer(this);
+		if (isIteratingLayers) {
+			pendingLayerAdds.push(layer);
+		} else {
+			layers.push(layer);
+		}
 		return layer;
 	}
 
@@ -51,16 +61,22 @@ class Renderer {
 		if (layer.renderer != this) {
 			return;
 		}
-		layers.remove(layer);
 		layer.setRenderer(null);
+		if (isIteratingLayers) {
+			pendingLayerRemovals.push(layer);
+		} else {
+			layers.remove(layer);
+		}
 	}
 
 	@:allow(fried.Application)
 	function destroy():Void {
+		applyPendingLayerChanges();
 		for (layer in layers) {
 			layer.setRenderer(null);
 		}
 		layers.resize(0);
+		pendingLayerRemovals.resize(0);
 
 		for (texture in activeTextures.copy()) {
 			texture.destroy();
@@ -74,20 +90,21 @@ class Renderer {
 
 	@:allow(fried.Application)
 	function updateLayers():Void {
-		var index = 0;
-		while (index < layers.length) {
-			var layer = layers[index];
+		applyPendingLayerChanges();
+		isIteratingLayers = true;
+		for (layer in layers) {
 			if (layer.isEnabled) {
 				layer.update();
 			}
-			index++;
 		}
+		isIteratingLayers = false;
 	}
 
 	@:allow(fried.Application)
 	function drawLayers():Void {
-		var index = 0;
-		while (index < layers.length) {
+		applyPendingLayerChanges();
+		isIteratingLayers = true;
+		for (index in 0...layers.length) {
 			var layer = layers[index];
 			if (layer.isEnabled) {
 				DrawQueue.currentRenderTarget = this;
@@ -95,24 +112,36 @@ class Renderer {
 				DrawQueue.currentLayerIndex = index;
 				layer.draw();
 			}
-			index++;
 		}
+		isIteratingLayers = false;
 		DrawQueue.currentLayerIndex = 0;
 	}
 
 	@:allow(fried.Application)
 	function dispatchEvent(event:InputEvent):Void {
+		applyPendingLayerChanges();
+		isIteratingLayers = true;
 		var index = layers.length - 1;
-		while (index >= 0) {
+		while (index >= 0 && !event.handled) {
 			var layer = layers[index];
 			if (layer.isEnabled) {
 				layer.onEvent(event);
-				if (event.handled) {
-					return;
-				}
 			}
 			index--;
 		}
+		isIteratingLayers = false;
+	}
+
+	function applyPendingLayerChanges():Void {
+		for (layer in pendingLayerRemovals) {
+			layers.remove(layer);
+		}
+		pendingLayerRemovals.resize(0);
+
+		for (layer in pendingLayerAdds) {
+			layers.push(layer);
+		}
+		pendingLayerAdds.resize(0);
 	}
 
 	@:allow(fried.graphics.Texture)
