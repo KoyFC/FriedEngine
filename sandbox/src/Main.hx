@@ -20,7 +20,6 @@ import fried.io.UserData;
 import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.Scene;
-import fried.scene.SceneLayer;
 import fried.scene.Sprite;
 
 class Main {
@@ -58,6 +57,7 @@ class Main {
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
 		var sprite = Texture.from(renderer, Assets.game("sprite.png"));
+		Log.info('Same path twice on one renderer: ${sprite == Texture.from(renderer, Assets.game("sprite.png"))}');
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
 		var font = Font.from(Assets.engine("NunitoSans.ttf"), 16);
@@ -143,57 +143,18 @@ class Main {
 		renderer.pushLayer(overlay);
 		renderer.pushLayer(interfaceLayer);
 
-		var secondWindow = new Window("Fried Sandbox: second window", 320, 240);
-		var secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
-		secondRenderer.drawColor = Color.rgb(32, 24, 24);
-
-		var secondSprite = Texture.from(secondRenderer, Assets.game("sprite.png"));
-		Log.info('Same path twice on one renderer: ${sprite == Texture.from(renderer, Assets.game("sprite.png"))}');
-		Log.info('Same path across two renderers: ${sprite == secondSprite}');
-
-		var secondScene = new Scene("Second window");
-		var secondObject = secondScene.add(new GameObject("Second sprite", 0, 0));
-		secondObject.transform.setScale(4.0);
-		secondObject.addComponent(new Sprite(secondSprite));
-		secondObject.addComponent(new Spinner(-120.0));
-
-		var secondCameraObject = secondScene.add(new GameObject("Second camera"));
-		secondScene.camera = secondCameraObject.addComponent(new Camera(0.5));
-
-		secondRenderer.pushLayer(new SceneLayer(secondScene));
-
-		var openWindows = 2;
-
-		function closeMainWindow():Void {
+		function closeWindow():Void {
 			if (renderer == null) {
 				return;
 			}
 			Application.destroyRenderer(renderer);
 			renderer = null;
 			window.destroy();
-			openWindows--;
-			Log.info('Main window closed, $openWindows still open');
-			if (openWindows == 0) {
-				Application.quit();
-			}
+			Log.info("Window closed");
+			Application.quit();
 		}
 
-		function closeSecondWindow():Void {
-			if (secondRenderer == null) {
-				return;
-			}
-			Application.destroyRenderer(secondRenderer);
-			secondRenderer = null;
-			secondWindow.destroy();
-			openWindows--;
-			Log.info('Second window closed, $openWindows still open');
-			if (openWindows == 0) {
-				Application.quit();
-			}
-		}
-
-		window.onClose = closeMainWindow;
-		secondWindow.onClose = closeSecondWindow;
+		window.onClose = closeWindow;
 
 		Log.success('Scene "${scene.name}" holds ${scene.objectCount} world objects, "${uiScene.name}" holds ${uiScene.objectCount} screen-space ones');
 		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
@@ -243,12 +204,10 @@ class Main {
 		Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
 		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount + uiScene.objectCount} objects');
 
-		closeMainWindow();
-		closeSecondWindow();
+		closeWindow();
 		overlay.destroy();
 		scene.destroy();
 		uiScene.destroy();
-		secondScene.destroy();
 		music.destroy();
 
 		Application.shutdown();

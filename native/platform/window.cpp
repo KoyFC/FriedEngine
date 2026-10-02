@@ -6,6 +6,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+#include <cstdio>
+
 namespace
 {
     HandlePool<SDL_Window> s_windows;
@@ -18,6 +20,17 @@ SDL_Window *fried_window_get_sdl(int windowId)
 
 int fried_window_create(const char *title, int width, int height)
 {
+    if (s_windows.count() >= FRIED_MAX_WINDOWS)
+    {
+        char message[128];
+        std::snprintf(
+            message, sizeof(message),
+            "This platform shows at most %d window(s) at a time",
+            FRIED_MAX_WINDOWS);
+        fried_set_last_error(message);
+        return -1;
+    }
+
     SDL_Window *window = SDL_CreateWindow(
         title,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

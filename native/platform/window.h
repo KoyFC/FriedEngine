@@ -1,5 +1,10 @@
 #pragma once
 
+// How many windows the platform can show at once. A console's screens are
+// fixed hardware, so this is a property of the platform and not a choice the
+// game makes; dual screen hardware raises it per platform.
+#define FRIED_MAX_WINDOWS 1
+
 struct SDL_Window;
 
 extern "C"

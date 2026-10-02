@@ -52,6 +52,11 @@ public:
         return (int)m_resources.size();
     }
 
+    int count() const
+    {
+        return (int)(m_resources.size() - m_freeIds.size());
+    }
+
 private:
     std::vector<T *> m_resources;
     std::vector<int> m_freeIds;
