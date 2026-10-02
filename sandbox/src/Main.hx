@@ -63,9 +63,11 @@ class Main {
 		var font = Font.from(Assets.engine("NunitoSans.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
-		var hint = 'Run $runs   Space: sound   M: music   WASD/stick: move   Q/E: zoom';
-		var label = font.renderText(renderer, hint, Color.rgb(220, 220, 230));
-		Log.info('Text rendered: ${label.width}x${label.height} for ${font.measureWidth(hint)} measured pixels');
+		var hintTop = 'Run $runs   Space/A: sound   M/B: music   WASD/stick: move   Q/E: zoom';
+		var hintBottom = 'F3/Select: overlay   F4: interface   Start: quit';
+		var topLabel = font.renderText(renderer, hintTop, Color.rgb(220, 220, 230));
+		var bottomLabel = font.renderText(renderer, hintBottom, Color.rgb(220, 220, 230));
+		Log.info('Text rendered: ${topLabel.width}x${topLabel.height} for ${font.measureWidth(hintTop)} measured pixels');
 
 		var beep = Sound.from(Assets.game("beep.wav"));
 		beep.volume = 0.6;
@@ -108,12 +110,16 @@ class Main {
 
 		var uiScene = new Scene("Sandbox UI");
 
-		var labelObject = uiScene.add(new GameObject("Hint label", 16, 16));
-		labelObject.priority = 1;
-		labelObject.addComponent(new Sprite(label));
+		var topLabelObject = uiScene.add(new GameObject("Hint label, top line", 16, 16));
+		topLabelObject.priority = 1;
+		topLabelObject.addComponent(new Sprite(topLabel));
 
-		var panelWidth = label.width + 8;
-		var panelHeight = label.height + 8;
+		var bottomLabelObject = uiScene.add(new GameObject("Hint label, bottom line", 16, 16 + topLabel.height));
+		bottomLabelObject.priority = 1;
+		bottomLabelObject.addComponent(new Sprite(bottomLabel));
+
+		var panelWidth = (topLabel.width > bottomLabel.width ? topLabel.width : bottomLabel.width) + 8;
+		var panelHeight = topLabel.height + bottomLabel.height + 8;
 
 		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
 		panelObject.addComponent(new Box(panelWidth, panelHeight, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
@@ -130,8 +136,12 @@ class Main {
 		spinnerObject.addComponent(new Sprite(sprite));
 		spinnerObject.addComponent(new Spinner(90.0));
 
+		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
+		var overlay = new DebugOverlay(font, camera, playerObject, interfaceLayer);
+
 		renderer.pushLayer(new WorldLayer(scene));
-		renderer.pushLayer(new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight));
+		renderer.pushLayer(overlay);
+		renderer.pushLayer(interfaceLayer);
 
 		var secondWindow = new Window("Fried Sandbox: second window", 320, 240);
 		var secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
@@ -191,9 +201,17 @@ class Main {
 
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
-		var nextCapacityReport = 2.0;
-
 		Application.run(function() {
+			if (Input.isGamepadButtonDown(GamepadButton.Start)) {
+				Log.info("Start pressed, so the program quits without a window to close");
+				Application.quit();
+			}
+
+			if (Input.isKeyDown(Key.F3) || Input.isGamepadButtonDown(GamepadButton.Select)) {
+				overlay.isEnabled = !overlay.isEnabled;
+				Log.info('Debug overlay ${overlay.isEnabled ? "enabled" : "disabled"}, still on the stack either way');
+			}
+
 			if (Input.isKeyPressed(Key.Q)) {
 				camera.zoom -= Time.deltaSeconds;
 			}
@@ -219,11 +237,6 @@ class Main {
 					Log.info("Music paused");
 				}
 			}
-
-			if (Time.elapsedSeconds >= nextCapacityReport) {
-				nextCapacityReport += 2.0;
-				Log.info('Draw queue pool holds ${DrawQueue.capacity} commands, player priority ${playerObject.priority}, camera at ${camera.transform.x}, ${camera.transform.y} zoom ${camera.zoom}');
-			}
 		});
 
 		Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees over ${Time.elapsedSeconds} seconds');
@@ -232,6 +245,7 @@ class Main {
 
 		closeMainWindow();
 		closeSecondWindow();
+		overlay.destroy();
 		scene.destroy();
 		uiScene.destroy();
 		secondScene.destroy();

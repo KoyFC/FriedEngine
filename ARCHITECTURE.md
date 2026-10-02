@@ -112,7 +112,7 @@ Two consequences are worth knowing. A scene has one camera and a camera has one 
 
 ## Layers
 
-A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the first two hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer that is not a scene at all, a debug overlay or a fade, still has somewhere to live. Making a layer *be* a scene would have closed that door to save those few lines.
+A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the first two hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer that is not a scene at all still has somewhere to live: `sandbox/src/DebugOverlay.hx` wraps no scene, draws straight to the queue from its own `draw()`, and keeps a rendered string it only rebuilds when the numbers in it change. Making a layer *be* a scene would have closed that door to save those few lines.
 
 A `SceneLayer` does not own its scene. The game created it and the game destroys it, so removing a layer takes down the presentation and leaves the content alone.
 
