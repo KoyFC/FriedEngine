@@ -21,6 +21,7 @@ import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.Scene;
 import fried.scene.Sprite;
+import fried.scene.Text;
 
 class Main {
 	public static function main():Void {
@@ -65,9 +66,7 @@ class Main {
 
 		var hintTop = 'Run $runs   Space/A: sound   M/B: music   WASD/stick: move   Q/E: zoom';
 		var hintBottom = 'F3/Select: overlay   F4: interface   Start: quit';
-		var topLabel = font.renderText(renderer, hintTop, Color.rgb(220, 220, 230));
-		var bottomLabel = font.renderText(renderer, hintBottom, Color.rgb(220, 220, 230));
-		Log.info('Text rendered: ${topLabel.width}x${topLabel.height} for ${font.measureWidth(hintTop)} measured pixels');
+		var labelColor = Color.rgb(220, 220, 230);
 
 		var beep = Sound.from(Assets.game("beep.wav"));
 		beep.volume = 0.6;
@@ -112,11 +111,13 @@ class Main {
 
 		var topLabelObject = uiScene.add(new GameObject("Hint label, top line", 16, 16));
 		topLabelObject.priority = 1;
-		topLabelObject.addComponent(new Sprite(topLabel));
+		var topLabel = topLabelObject.addComponent(new Text(font, hintTop, labelColor));
 
 		var bottomLabelObject = uiScene.add(new GameObject("Hint label, bottom line", 16, 16 + topLabel.height));
 		bottomLabelObject.priority = 1;
-		bottomLabelObject.addComponent(new Sprite(bottomLabel));
+		var bottomLabel = bottomLabelObject.addComponent(new Text(font, hintBottom, labelColor));
+
+		Log.info('The top hint measures ${topLabel.width}x${topLabel.height} before a frame has drawn it');
 
 		var panelWidth = (topLabel.width > bottomLabel.width ? topLabel.width : bottomLabel.width) + 8;
 		var panelHeight = topLabel.height + bottomLabel.height + 8;
@@ -129,6 +130,13 @@ class Main {
 		regionObject.transform.scaleY = iconSize / scrollRegion.height;
 		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
 		regionObject.addComponent(new RegionScroller(8.0));
+
+		var regionLabelText = 'region x ${scrollRegion.x}';
+		var regionLabelX = renderer.width - font.measureWidth(regionLabelText) - 16;
+		var regionLabelObject = uiScene.add(new GameObject("Region label", regionLabelX, 16 + iconSize + 16 + iconSize + 4));
+		regionLabelObject.priority = 1;
+		regionLabelObject.addComponent(new Text(font, regionLabelText, labelColor));
+		regionLabelObject.addComponent(new RegionLabel(regionSprite));
 
 		var spinnerObject = uiScene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
 		spinnerObject.transform.scaleX = iconSize / sprite.width;

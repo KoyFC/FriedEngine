@@ -98,6 +98,10 @@ The queue is static, like `Time` and `Input`, and each command records the rende
 
 `Sprite` lives in `fried.scene` rather than in `fried.graphics` so that the dependency runs one way. The scene knows what graphics are, and graphics know nothing about game objects, which is the same rule that keeps windows from knowing that renderers exist.
 
+`Text` is the other drawn component the engine ships, and it exists because a string is a texture. `Font.renderText()` makes one, so a line that changes means destroying the old texture and making another, and that bookkeeping was the game's until the component took it: a game assigns `text`, `font` or `color`, the setter notes that the texture no longer matches, and the next draw rebuilds it. An assignment equal to what is already there is not a change, so a component that writes the same string every frame renders once, and the texture goes with the game object, which is the lifetime `Texture.destroy()` stayed public for.
+
+The rebuild happens in `draw()` rather than in the setter, because a texture belongs to the renderer that created it and the component only learns which renderer that is when a pass names its target. It reads the same field dispatch reads, so a text drawn through a second renderer rebuilds against that one instead of holding a texture that renderer cannot draw. `width` and `height` come from the font rather than from the texture, so a size is there before the first frame and right after a change that has not been rendered yet: the sandbox sizes its hint panel around two labels that have never been drawn. An empty string renders nothing rather than failing, since SDL_ttf has no zero width surface to give. One `Text` is one line, because its blended render takes no newline, and wrapping would be a layout pass the engine does not have.
+
 Parent and child hierarchies are not implemented. A draw priority is a single flat number within its layer, and a game sets it on the object at any time, including from a component in the middle of a frame.
 
 ## Cameras
@@ -114,7 +118,7 @@ Two consequences are worth knowing. A scene has one camera and a camera has one 
 
 ## Layers
 
-A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the first two hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer that is not a scene at all still has somewhere to live: `sandbox/src/DebugOverlay.hx` wraps no scene, draws straight to the queue from its own `draw()`, and keeps a rendered string it only rebuilds when the numbers in it change. Making a layer *be* a scene would have closed that door to save those few lines.
+A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the first two hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer that is not a scene at all still has somewhere to live: `sandbox/src/DebugOverlay.hx` wraps no scene, draws straight to the queue from its own `draw()`, and keeps a rendered string it only rebuilds when the numbers in it change, which is what `Text` does for a component and what a layer wrapping no scene has no component to do for it. Making a layer *be* a scene would have closed that door to save those few lines.
 
 A `SceneLayer` does not own its scene. The game created it and the game destroys it, so removing a layer takes down the presentation and leaves the content alone.
 
