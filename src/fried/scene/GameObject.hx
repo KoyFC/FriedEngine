@@ -12,6 +12,7 @@ class GameObject {
 	@:allow(fried.scene.Scene)
 	public var scene(default, null):Scene;
 
+	@:allow(fried.physics.Physics)
 	var components:Array<Component>;
 
 	public function new(name:String = "GameObject", xPosition:Float = 0.0, yPosition:Float = 0.0) {

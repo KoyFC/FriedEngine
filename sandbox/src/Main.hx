@@ -17,6 +17,7 @@ import fried.input.Key;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
+import fried.physics.Collider;
 import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.Scene;
@@ -65,7 +66,7 @@ class Main {
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hintTop = 'Run $runs   Space/A: sound   M/B: music   WASD/stick: move   Q/E: zoom';
-		var hintBottom = 'F3/Select: overlay   F4: interface   Start: quit';
+		var hintBottom = 'F3/Select: overlay   F4: interface   F5: collider bounds   Start: quit';
 		var labelColor = Color.rgb(220, 220, 230);
 
 		var beep = Sound.from(Assets.game("beep.wav"));
@@ -91,15 +92,22 @@ class Main {
 		var wallObject = scene.add(new GameObject("Wall", -wallWidth / 2, 160));
 		wallObject.addComponent(new Box(wallWidth, wallHeight, Color.rgb(70, 70, 90), Color.rgb(150, 150, 190)));
 
+		var postWidth = 32;
+		var postHeight = 96;
+		var colliders = [];
+
 		for (index in 0...5) {
 			var postObject = scene.add(new GameObject('Post $index', -600 + index * 300, -220));
 			postObject.priority = -2;
-			postObject.addComponent(new Box(32, 96, Color.rgb(58, 48, 44), Color.rgb(120, 100, 80)));
+			postObject.addComponent(new Box(postWidth, postHeight, Color.rgb(58, 48, 44), Color.rgb(120, 100, 80)));
+			colliders.push(postObject.addComponent(new Collider(postWidth, postHeight)));
 		}
 
 		var playerObject = scene.add(new GameObject("Player", -sprite.width * spriteScale / 2, -sprite.height * spriteScale / 2));
 		playerObject.transform.setScale(spriteScale);
 		playerObject.addComponent(new Sprite(sprite));
+		var playerCollider = playerObject.addComponent(new Collider(sprite.width, sprite.height));
+		colliders.push(playerCollider);
 		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
 
 		var cameraObject = scene.add(new GameObject("Camera"));
@@ -147,7 +155,7 @@ class Main {
 		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
 		var overlay = new DebugOverlay(font, camera, playerObject, interfaceLayer);
 
-		renderer.pushLayer(new WorldLayer(scene));
+		renderer.pushLayer(new WorldLayer(scene, playerCollider));
 		renderer.pushLayer(overlay);
 		renderer.pushLayer(interfaceLayer);
 
@@ -167,6 +175,8 @@ class Main {
 		Log.success('Scene "${scene.name}" holds ${scene.objectCount} world objects, "${uiScene.name}" holds ${uiScene.objectCount} screen-space ones');
 		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
 		Log.info('The player starts at world ${playerObject.transform.x}, ${playerObject.transform.y} and the wall sits at world y ${wallObject.transform.y}');
+		Log.info('The player collider measures ${playerCollider.right - playerCollider.left}x${playerCollider.bottom - playerCollider.top} once the transform scale of $spriteScale is applied to a ${sprite.width}x${sprite.height} sprite');
+		Log.info('The wall carries no collider, so it stays the draw order demo and the ${colliders.length - 1} posts are what the player cannot walk through');
 
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
@@ -174,6 +184,13 @@ class Main {
 			if (Input.isGamepadButtonDown(GamepadButton.Start)) {
 				Log.info("Start pressed, so the program quits without a window to close");
 				Application.quit();
+			}
+
+			if (Input.isKeyDown(Key.F5)) {
+				for (collider in colliders) {
+					collider.isDebugVisible = !collider.isDebugVisible;
+				}
+				Log.info('Collider bounds ${colliders[0].isDebugVisible ? "shown" : "hidden"} for ${colliders.length} colliders');
 			}
 
 			if (Input.isKeyDown(Key.F3) || Input.isGamepadButtonDown(GamepadButton.Select)) {

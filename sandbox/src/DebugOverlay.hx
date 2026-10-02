@@ -19,6 +19,7 @@ class DebugOverlay extends Layer {
 	var camera:Camera;
 	var player:GameObject;
 	var togglesInterface:Layer;
+	var playerController:PlayerController;
 
 	var background:Rect;
 	var text:Texture;
@@ -34,6 +35,7 @@ class DebugOverlay extends Layer {
 		this.camera = camera;
 		this.player = player;
 		this.togglesInterface = togglesInterface;
+		playerController = player.getComponent(PlayerController);
 		refreshInterval = 0.25;
 		background = new Rect(0, 0, 0, 0);
 		nextRefresh = 0.0;
@@ -83,7 +85,8 @@ class DebugOverlay extends Layer {
 		var zoom = Math.round(camera.zoom * 100) / 100;
 		var cameraX = Std.int(camera.transform.x);
 		var cameraY = Std.int(camera.transform.y);
-		return 'frame ${Time.frameCount}   queue ${DrawQueue.capacity}   camera $cameraX, $cameraY   zoom $zoom   player priority ${player.priority}';
+		var contact = playerController.blockedBy == null ? "none" : playerController.blockedBy;
+		return 'frame ${Time.frameCount}   queue ${DrawQueue.capacity}   camera $cameraX, $cameraY   zoom $zoom   player priority ${player.priority}   blocked by $contact';
 	}
 
 	// A rendered string is a texture, so one per frame would be one allocation
