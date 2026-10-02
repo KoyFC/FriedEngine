@@ -25,7 +25,7 @@ This repository is the engine alone, and it is not the starting point for a game
 - [ ] 11. Real test game
 - [x] 12. Port the runtime to Nintendo Switch (devkitPro toolchain, `romfs:` asset root)
 - [x] 13. Cameras (`Camera` as a component, one per scene, with screen space for anything a scene draws without one)
-- [ ] 14. Layer stack (ordered update and draw per renderer, with input events walking the stack from the top down)
+- [x] 14. Layer stack (ordered update and draw per renderer, with input events walking the stack from the top down)
 
 ## Requirements
 
@@ -53,9 +53,9 @@ cmake --build build
 ./build/sandbox/fried_sandbox
 ```
 
-A window opens on a small scene of game objects. WASD or the left stick moves a sprite through a world larger than the window, and a camera follows it: the wall and the row of posts scroll past, and the sprite passes behind or in front of the wall depending on which side of it it stands on, without anything being added to or removed from the scene. Q and E zoom out and in, and zooming all the way out stops at the smallest zoom the camera allows rather than collapsing the view. A left click in it logs where it landed in both screen and world coordinates, read from the frame's input events rather than polled, so a click in the other window is not mistaken for one here.
+A window opens on a small scene of game objects. WASD or the left stick moves a sprite through a world larger than the window, and a camera follows it: the wall and the row of posts scroll past, and the sprite passes behind or in front of the wall depending on which side of it it stands on, without anything being added to or removed from the scene. Q and E zoom out and in, and zooming all the way out stops at the smallest zoom the camera allows rather than collapsing the view. A left click in it logs where it landed in both screen and world coordinates.
 
-The interface is a second scene with no camera of its own, so it draws in screen coordinates and stays put while the world moves: two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it stays above everything else. The sandbox also loops its music, plays a sound on space and pauses the music on M. A second, smaller window opens beside it with its own renderer, its own scene and its own camera at half zoom, drawn from the same image file: closing either window destroys that window and its renderer, and the program ends once both are closed. The `vsyncEnabled` flag at the top of `main()` governs both renderers.
+The interface is a second scene with no camera of its own, so it draws in screen coordinates and stays put while the world moves, and it is pushed as a layer above the world, which is what keeps it on top rather than a hand-picked draw priority: two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with a line of text over it. A click inside that panel is taken by the interface layer, so the world layer below it never logs that one, which is the same stack walked from the top down. The sandbox also loops its music, plays a sound on space and pauses the music on M. A second, smaller window opens beside it with its own renderer, its own scene and its own camera at half zoom, drawn from the same image file: closing either window destroys that window and its renderer, and the program ends once both are closed. The `vsyncEnabled` flag at the top of `main()` governs both renderers.
 
 For a Vita build the generated C++ is the same, so only the CMake step changes:
 

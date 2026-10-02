@@ -13,9 +13,7 @@ import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.input.GamepadButton;
 import fried.input.Input;
-import fried.input.InputEventType;
 import fried.input.Key;
-import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
@@ -29,13 +27,6 @@ class Main {
 	public static function main():Void {
 		Application.init();
 		Log.success('${Project.name()} ${Project.version()} initialized. Base path: ${Filesystem.basePath}');
-
-		if (Filesystem.exists("README.md")) {
-			var bytes = Filesystem.readBytes("README.md");
-			Log.info('Read README.md: ${bytes.length} bytes');
-		} else {
-			Log.warn("README.md not found relative to the working directory");
-		}
 
 		Log.info("Asset path: " + Filesystem.assetPath);
 		checkAsset(Assets.engine("NunitoSans.ttf"));
@@ -121,8 +112,11 @@ class Main {
 		labelObject.priority = 1;
 		labelObject.addComponent(new Sprite(label));
 
+		var panelWidth = label.width + 8;
+		var panelHeight = label.height + 8;
+
 		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
-		panelObject.addComponent(new Box(label.width + 8, label.height + 8, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
+		panelObject.addComponent(new Box(panelWidth, panelHeight, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
 
 		var regionObject = uiScene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
 		regionObject.transform.scaleX = iconSize / scrollRegion.width;
@@ -136,8 +130,8 @@ class Main {
 		spinnerObject.addComponent(new Sprite(sprite));
 		spinnerObject.addComponent(new Spinner(90.0));
 
-		renderer.pushLayer(new SceneLayer(scene));
-		renderer.pushLayer(new SceneLayer(uiScene));
+		renderer.pushLayer(new WorldLayer(scene));
+		renderer.pushLayer(new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight));
 
 		var secondWindow = new Window("Fried Sandbox: second window", 320, 240);
 		var secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
@@ -200,18 +194,6 @@ class Main {
 		var nextCapacityReport = 2.0;
 
 		Application.run(function() {
-			for (event in Input.events) {
-				if (event.type != InputEventType.MouseButtonDown || event.mouseButton != MouseButton.Left) {
-					continue;
-				}
-				if (event.window != window || renderer == null) {
-					continue;
-				}
-				var worldX = camera.screenToWorldX(event.x, renderer);
-				var worldY = camera.screenToWorldY(event.y, renderer);
-				Log.info('Left click at screen ${event.x}, ${event.y}, world $worldX, $worldY');
-			}
-
 			if (Input.isKeyPressed(Key.Q)) {
 				camera.zoom -= Time.deltaSeconds;
 			}
