@@ -1,6 +1,7 @@
 #include "platform/events.h"
 #include "platform/gamepad.h"
 #include "platform/mouse.h"
+#include "platform/touch.h"
 #include "platform/window.h"
 
 #include <SDL.h>
@@ -21,6 +22,7 @@ namespace
         int m_type;
         int m_windowId;
         int m_code;
+        int m_device;
         int m_x;
         int m_y;
         double m_scrollX;
@@ -92,7 +94,7 @@ namespace
 
     InputEvent &queueInputEvent(int type, unsigned int sdlWindowId)
     {
-        s_inputEvents.push_back({type, fried_window_find_by_sdl_id(sdlWindowId), 0, 0, 0, 0.0, 0.0, 0.0});
+        s_inputEvents.push_back({type, fried_window_find_by_sdl_id(sdlWindowId), 0, 0, 0, 0, 0.0, 0.0, 0.0});
         return s_inputEvents.back();
     }
 
@@ -127,6 +129,20 @@ namespace
         InputEvent &queued = queueInputEvent(FRIED_INPUT_EVENT_MOUSE_WHEEL, event.windowID);
         queued.m_scrollX = x;
         queued.m_scrollY = y;
+    }
+
+    void queueTouchEvent(const SDL_TouchFingerEvent &event, int type)
+    {
+        FriedTouchPoint point;
+        if (!fried_touch_report(event, point))
+        {
+            return;
+        }
+        InputEvent &queued = queueInputEvent(type, event.windowID);
+        queued.m_code = point.m_fingerId;
+        queued.m_device = point.m_device;
+        queued.m_x = point.m_x;
+        queued.m_y = point.m_y;
     }
 
     void queueGamepadButtonEvent(const SDL_ControllerButtonEvent &event, int type)
@@ -204,6 +220,15 @@ int fried_events_pump()
             queueMouseWheelEvent(event.wheel, x, y);
             break;
         }
+        case SDL_FINGERDOWN:
+            queueTouchEvent(event.tfinger, FRIED_INPUT_EVENT_TOUCH_DOWN);
+            break;
+        case SDL_FINGERUP:
+            queueTouchEvent(event.tfinger, FRIED_INPUT_EVENT_TOUCH_UP);
+            break;
+        case SDL_FINGERMOTION:
+            queueTouchEvent(event.tfinger, FRIED_INPUT_EVENT_TOUCH_MOVED);
+            break;
         case SDL_CONTROLLERBUTTONDOWN:
             queueGamepadButtonEvent(event.cbutton, FRIED_INPUT_EVENT_GAMEPAD_BUTTON_DOWN);
             break;
@@ -277,6 +302,12 @@ int fried_events_get_input_code()
 {
     const InputEvent *event = currentInputEvent();
     return event ? event->m_code : 0;
+}
+
+int fried_events_get_input_device()
+{
+    const InputEvent *event = currentInputEvent();
+    return event ? event->m_device : 0;
 }
 
 int fried_events_get_input_x()

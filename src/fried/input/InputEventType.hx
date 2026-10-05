@@ -12,4 +12,7 @@ enum abstract InputEventType(Int) to Int {
 	var GamepadButtonDown = 7;
 	var GamepadButtonUp = 8;
 	var GamepadAxisMoved = 9;
+	var TouchDown = 10;
+	var TouchUp = 11;
+	var TouchMoved = 12;
 }

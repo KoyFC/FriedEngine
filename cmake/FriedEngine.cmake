@@ -62,6 +62,7 @@ if(NOT TARGET fried_engine)
         ${FRIED_ENGINE_DIR}/native/platform/gamepad.cpp
         ${FRIED_ENGINE_DIR}/native/platform/input.cpp
         ${FRIED_ENGINE_DIR}/native/platform/mouse.cpp
+        ${FRIED_ENGINE_DIR}/native/platform/touch.cpp
         ${FRIED_ENGINE_DIR}/native/platform/window.cpp
         ${FRIED_ENGINE_DIR}/native/graphics/renderer_${_fried_graphics_backend}.cpp
         ${FRIED_ENGINE_DIR}/native/graphics/texture_${_fried_graphics_backend}.cpp

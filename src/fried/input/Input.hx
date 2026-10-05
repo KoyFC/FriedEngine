@@ -14,6 +14,8 @@ class Input {
 	public static var scrollX(get, never):Float;
 	public static var scrollY(get, never):Float;
 
+	public static var touchDeviceCount(get, never):Int;
+
 	public static var isGamepadConnected(get, never):Bool;
 	public static var gamepadDeadzone(get, set):Float;
 
@@ -39,6 +41,36 @@ class Input {
 
 	public static function isButtonReleased(button:MouseButton):Bool {
 		return MouseNative.isButtonReleased(button) != 0;
+	}
+
+	// On the Vita device 0 is the front screen and 1 the rear pad. A finger's
+	// index shifts down when an earlier finger lifts; its id does not.
+	public static function isTouchPressed(device:Int = 0):Bool {
+		return TouchNative.getFingerCount(device) > 0;
+	}
+
+	public static function isTouchDown(device:Int = 0):Bool {
+		return TouchNative.isDown(device) != 0;
+	}
+
+	public static function isTouchReleased(device:Int = 0):Bool {
+		return TouchNative.isReleased(device) != 0;
+	}
+
+	public static function getTouchCount(device:Int = 0):Int {
+		return TouchNative.getFingerCount(device);
+	}
+
+	public static function getTouchFingerId(index:Int, device:Int = 0):Int {
+		return TouchNative.getFingerId(device, index);
+	}
+
+	public static function getTouchX(index:Int, device:Int = 0):Int {
+		return TouchNative.getX(device, index);
+	}
+
+	public static function getTouchY(index:Int, device:Int = 0):Int {
+		return TouchNative.getY(device, index);
 	}
 
 	public static function isGamepadButtonPressed(button:GamepadButton):Bool {
@@ -80,6 +112,8 @@ class Input {
 					event.setGamepadButton(type, cast code);
 				case GamepadAxisMoved:
 					event.setGamepadAxis(cast code, EventsNative.getValue());
+				case TouchDown | TouchUp | TouchMoved:
+					event.setTouch(type, window, EventsNative.getDevice(), code, EventsNative.getX(), EventsNative.getY());
 			}
 			nativeType = EventsNative.pollInputEvent();
 		}
@@ -99,6 +133,7 @@ class Input {
 		InputNative.endFrame();
 		MouseNative.endFrame();
 		GamepadNative.endFrame();
+		TouchNative.endFrame();
 	}
 
 	static function get_mouseX():Int {
@@ -115,6 +150,10 @@ class Input {
 
 	static function get_scrollY():Float {
 		return MouseNative.getScrollY();
+	}
+
+	static function get_touchDeviceCount():Int {
+		return TouchNative.getDeviceCount();
 	}
 
 	static function get_isGamepadConnected():Bool {
@@ -143,6 +182,9 @@ private extern class EventsNative {
 
 	@:native("fried_events_get_input_code")
 	static function getCode():Int;
+
+	@:native("fried_events_get_input_device")
+	static function getDevice():Int;
 
 	@:native("fried_events_get_input_x")
 	static function getX():Int;
@@ -226,5 +268,32 @@ private extern class GamepadNative {
 	static function setDeadzone(deadzone:Float):Void;
 
 	@:native("fried_gamepad_end_frame")
+	static function endFrame():Void;
+}
+
+@:include("platform/touch.h")
+private extern class TouchNative {
+	@:native("fried_touch_get_device_count")
+	static function getDeviceCount():Int;
+
+	@:native("fried_touch_get_finger_count")
+	static function getFingerCount(device:Int):Int;
+
+	@:native("fried_touch_get_finger_id")
+	static function getFingerId(device:Int, index:Int):Int;
+
+	@:native("fried_touch_get_x")
+	static function getX(device:Int, index:Int):Int;
+
+	@:native("fried_touch_get_y")
+	static function getY(device:Int, index:Int):Int;
+
+	@:native("fried_touch_is_down")
+	static function isDown(device:Int):Int;
+
+	@:native("fried_touch_is_released")
+	static function isReleased(device:Int):Int;
+
+	@:native("fried_touch_end_frame")
 	static function endFrame():Void;
 }

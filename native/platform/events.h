@@ -21,6 +21,9 @@ enum FriedInputEventType
     FRIED_INPUT_EVENT_GAMEPAD_BUTTON_DOWN = 7,
     FRIED_INPUT_EVENT_GAMEPAD_BUTTON_UP = 8,
     FRIED_INPUT_EVENT_GAMEPAD_AXIS_MOVED = 9,
+    FRIED_INPUT_EVENT_TOUCH_DOWN = 10,
+    FRIED_INPUT_EVENT_TOUCH_UP = 11,
+    FRIED_INPUT_EVENT_TOUCH_MOVED = 12,
 };
 
 extern "C"
@@ -37,10 +40,11 @@ extern "C"
 
     // Each getter below reads zero for an event type that does not carry it,
     // and the window id is -1 for a gamepad event, which SDL reports with no
-    // window at all.
+    // window at all. A touch event's code is its finger id.
     int fried_events_poll_input_event();
     int fried_events_get_input_window_id();
     int fried_events_get_input_code();
+    int fried_events_get_input_device();
     int fried_events_get_input_x();
     int fried_events_get_input_y();
     double fried_events_get_input_scroll_x();

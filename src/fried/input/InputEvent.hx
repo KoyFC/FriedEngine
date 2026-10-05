@@ -16,6 +16,9 @@ class InputEvent {
 	public var gamepadButton(default, null):GamepadButton;
 	public var gamepadAxis(default, null):GamepadAxis;
 
+	public var touchDevice(default, null):Int;
+	public var fingerId(default, null):Int;
+
 	public var x(default, null):Int;
 	public var y(default, null):Int;
 	public var scrollX(default, null):Float;
@@ -35,6 +38,7 @@ class InputEvent {
 			case MouseWheel: '$type($scrollX, $scrollY)';
 			case GamepadButtonDown | GamepadButtonUp: '$type($gamepadButton)';
 			case GamepadAxisMoved: '$type($gamepadAxis at $axisValue)';
+			case TouchDown | TouchUp | TouchMoved: '$type(finger $fingerId on device $touchDevice at $x, $y)';
 		}
 	}
 
@@ -79,6 +83,15 @@ class InputEvent {
 		axisValue = value;
 	}
 
+	@:allow(fried.input.Input)
+	function setTouch(type:InputEventType, window:Window, device:Int, fingerId:Int, x:Int, y:Int):Void {
+		reset(type, window);
+		touchDevice = device;
+		this.fingerId = fingerId;
+		this.x = x;
+		this.y = y;
+	}
+
 	function reset(type:InputEventType, window:Window):Void {
 		this.type = type;
 		this.window = window;
@@ -87,6 +100,8 @@ class InputEvent {
 		mouseButton = cast 0;
 		gamepadButton = cast 0;
 		gamepadAxis = cast 0;
+		touchDevice = 0;
+		fingerId = 0;
 		x = 0;
 		y = 0;
 		scrollX = 0.0;
