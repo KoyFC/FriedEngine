@@ -62,6 +62,9 @@ class Renderer {
 			return;
 		}
 		layer.setRenderer(null);
+		if (pendingLayerAdds.remove(layer)) {
+			return;
+		}
 		if (isIteratingLayers) {
 			pendingLayerRemovals.push(layer);
 		} else {
