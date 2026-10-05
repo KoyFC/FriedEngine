@@ -1,0 +1,35 @@
+pkgname=3ds-sdl2_mixer
+pkgver=2.8.1
+pkgrel=1
+pkgdesc='SDL2 multi-channel audio mixer library (Nintendo 3DS port)'
+arch=('any')
+url='https://github.com/libsdl-org/SDL_mixer'
+license=('Zlib')
+options=(!strip !buildflags staticlibs)
+depends=('3ds-sdl2')
+makedepends=('3ds-cmake' '3ds-pkg-config')
+source=("https://github.com/libsdl-org/SDL_mixer/releases/download/release-${pkgver}/SDL2_mixer-${pkgver}.tar.gz")
+sha256sums=('cb760211b056bfe44f4a1e180cc7cb201137e4d1572f2002cc1be728efd22660')
+
+# WAV, OGG (stb_vorbis), MP3 (minimp3) and FLAC (dr_flac) are bundled with
+# SDL2_mixer. The formats that would need an outside library are left out.
+build() {
+  cmake -S SDL2_mixer-${pkgver} -B build \
+    -DCMAKE_TOOLCHAIN_FILE="${DEVKITPRO}/cmake/3DS.cmake" \
+    -DCMAKE_INSTALL_PREFIX="${DEVKITPRO}/portlibs/3ds" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DSDL2MIXER_SAMPLES=OFF \
+    -DSDL2MIXER_DEPS_SHARED=OFF \
+    -DSDL2MIXER_VENDORED=OFF \
+    -DSDL2MIXER_CMD=OFF \
+    -DSDL2MIXER_MIDI=OFF \
+    -DSDL2MIXER_MOD=OFF \
+    -DSDL2MIXER_OPUS=OFF \
+    -DSDL2MIXER_WAVPACK=OFF
+  cmake --build build
+}
+
+package() {
+  DESTDIR="${pkgdir}" cmake --install build
+}

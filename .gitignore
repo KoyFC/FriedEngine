@@ -406,3 +406,9 @@ FodyWeavers.xsd
 build/
 *.ndll
 haxe_*.log
+
+# makepkg working folders, downloaded sources and built packages
+packaging/*/*/src/
+packaging/*/*/pkg/
+packaging/*/*/*.tar.gz
+packaging/*/*/*.pkg.tar.*

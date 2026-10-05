@@ -1,0 +1,35 @@
+pkgname=3ds-sdl2_image
+pkgver=2.8.8
+pkgrel=1
+pkgdesc='SDL2 image loading library (Nintendo 3DS port)'
+arch=('any')
+url='https://github.com/libsdl-org/SDL_image'
+license=('Zlib')
+options=(!strip !buildflags staticlibs)
+depends=('3ds-sdl2')
+makedepends=('3ds-cmake' '3ds-pkg-config')
+source=("https://github.com/libsdl-org/SDL_image/releases/download/release-${pkgver}/SDL2_image-${pkgver}.tar.gz")
+sha256sums=('2213b56fdaff2220d0e38c8e420cbe1a83c87374190cba8c70af2156097ce30a')
+
+# PNG and JPEG decode through the bundled stb_image, so no image library is a
+# dependency. The formats that would need one are left out.
+build() {
+  cmake -S SDL2_image-${pkgver} -B build \
+    -DCMAKE_TOOLCHAIN_FILE="${DEVKITPRO}/cmake/3DS.cmake" \
+    -DCMAKE_INSTALL_PREFIX="${DEVKITPRO}/portlibs/3ds" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DSDL2IMAGE_SAMPLES=OFF \
+    -DSDL2IMAGE_DEPS_SHARED=OFF \
+    -DSDL2IMAGE_VENDORED=OFF \
+    -DSDL2IMAGE_BACKEND_STB=ON \
+    -DSDL2IMAGE_AVIF=OFF \
+    -DSDL2IMAGE_JXL=OFF \
+    -DSDL2IMAGE_TIF=OFF \
+    -DSDL2IMAGE_WEBP=OFF
+  cmake --build build
+}
+
+package() {
+  DESTDIR="${pkgdir}" cmake --install build
+}
