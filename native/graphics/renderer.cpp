@@ -7,9 +7,20 @@
 
 #include <SDL.h>
 
+#ifdef __3DS__
+#include <3ds.h>
+#endif
+
 namespace
 {
     HandlePool<SDL_Renderer> s_renderers;
+
+#ifdef __3DS__
+    // SDL's 3DS port has no GPU render driver, only the software one.
+    constexpr Uint32 s_rendererType = SDL_RENDERER_SOFTWARE;
+#else
+    constexpr Uint32 s_rendererType = SDL_RENDERER_ACCELERATED;
+#endif
 }
 
 SDL_Renderer *fried_renderer_get_sdl(int rendererId)
@@ -26,7 +37,7 @@ int fried_renderer_create(int windowId, bool vsync)
         return -1;
     }
 
-    Uint32 flags = SDL_RENDERER_ACCELERATED;
+    Uint32 flags = s_rendererType;
     if (vsync)
     {
         flags |= SDL_RENDERER_PRESENTVSYNC;
@@ -35,7 +46,7 @@ int fried_renderer_create(int windowId, bool vsync)
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, flags);
     if (!renderer && vsync)
     {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        renderer = SDL_CreateRenderer(window, -1, s_rendererType);
     }
     if (!renderer)
     {
@@ -125,6 +136,14 @@ void fried_renderer_present(int rendererId)
         return;
     }
     SDL_RenderPresent(renderer);
+
+#ifdef __3DS__
+    // SDL's 3DS port reports vsync but swaps the screen's buffers without waiting for it.
+    if (fried_renderer_has_vsync(rendererId))
+    {
+        gspWaitForVBlank();
+    }
+#endif
 }
 
 void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, int width, int height)

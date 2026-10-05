@@ -64,9 +64,10 @@ set(_hxcpp_std_sources
     src/hx/libs/std/Sys.cpp
 )
 
-# Neither compiles, or works, on a console: neither has subprocesses, the Vita's
+# Neither compiles, or works, on a console: none has subprocesses, the Vita's
 # sockets are a Sony API rather than the BSD one hxcpp is written against, and
-# libnx's do not open until a socketInitializeDefault() the engine never calls.
+# libnx's and libctru's do not open until a socket service initialization the
+# engine never calls.
 set(_hxcpp_std_sources_without_console
     src/hx/libs/std/Socket.cpp
     src/hx/libs/std/Process.cpp
@@ -86,6 +87,10 @@ function(fried_apply_newlib_compat sources)
         COMPILE_OPTIONS "-include;${_hxcpp_newlib_dir}/posix_extras.h"
     )
 endfunction()
+
+# Replaces hxcpp's pthread-key thread local storage on libctru, which has no
+# working pthread keys.
+set(_hxcpp_libctru_tls_header "${CMAKE_CURRENT_LIST_DIR}/libctru/hx_tls.h")
 
 # fried_add_hxcpp_executable(<target> <generated_dir>)
 #
@@ -114,7 +119,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
-    if(VITA OR NINTENDO_SWITCH)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_console})
     endif()
 
@@ -141,9 +146,9 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_definitions(${target_name} PRIVATE HXCPP_M64)
     endif()
 
-    if(VITA OR NINTENDO_SWITCH)
-        # hxcpp has no target of its own for either console: HX_LINUX and
-        # NEKO_LINUX pick its generic POSIX paths, and neither console loads a
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
+        # hxcpp has no target of its own for any of the consoles: HX_LINUX and
+        # NEKO_LINUX pick its generic POSIX paths, and none of them loads a
         # shared library.
         target_compile_definitions(${target_name} PRIVATE
             HX_LINUX
@@ -152,6 +157,12 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         )
         fried_apply_newlib_compat("${_std_sources}")
         target_sources(${target_name} PRIVATE "${_hxcpp_newlib_dir}/posix_extras.cpp")
+
+        if(NINTENDO_3DS)
+            target_compile_definitions(${target_name} PRIVATE
+                "HX_TLS_H_OVERRIDE=\"${_hxcpp_libctru_tls_header}\""
+            )
+        endif()
     elseif(APPLE)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)
@@ -172,7 +183,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
     )
 
-    if(VITA OR NINTENDO_SWITCH)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         # newlib's struct tm has no tm_gmtoff. __SNC__ is one of the defines
         # Date.cpp keys its mktime() fallback off, and uses for nothing else.
         set_property(SOURCE "${HXCPP_ROOT}/src/hx/Date.cpp"
@@ -193,7 +204,8 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         CXX_STANDARD_REQUIRED ON
     )
 
-    if(NOT VITA)
+    # A .3dsx is relocated by its loader from -mword-relocations, not as a PIE.
+    if(NOT VITA AND NOT NINTENDO_3DS)
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     endif()
 endfunction()

@@ -19,10 +19,21 @@ class Application {
 		if (ApplicationNative.init() != 0) {
 			throw NativeError.describe("Failed to initialize SDL");
 		}
+		openAudio();
 		Filesystem.init();
 		UserData.init();
 		Time.start();
 		isRunning = true;
+	}
+
+	static function openAudio():Void {
+		if (ApplicationNative.openAudioDevice() == 0) {
+			return;
+		}
+		Log.warn(NativeError.describe("No audio device, running without sound"));
+		if (ApplicationNative.openSilentAudio() != 0) {
+			throw NativeError.describe("Failed to initialize audio");
+		}
 	}
 
 	public static function shutdown():Void {
@@ -137,6 +148,12 @@ class Application {
 private extern class ApplicationNative {
 	@:native("fried_application_init")
 	static function init():Int;
+
+	@:native("fried_application_open_audio_device")
+	static function openAudioDevice():Int;
+
+	@:native("fried_application_open_silent_audio")
+	static function openSilentAudio():Int;
 
 	@:native("fried_application_shutdown")
 	static function shutdown():Void;

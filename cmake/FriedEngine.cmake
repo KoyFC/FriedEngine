@@ -14,6 +14,8 @@ if(VITA)
     include("${CMAKE_CURRENT_LIST_DIR}/Vita.cmake")
 elseif(NINTENDO_SWITCH)
     include("${CMAKE_CURRENT_LIST_DIR}/Switch.cmake")
+elseif(NINTENDO_3DS)
+    include("${CMAKE_CURRENT_LIST_DIR}/3DS.cmake")
 endif()
 
 find_package(SDL2 REQUIRED CONFIG)
@@ -27,11 +29,15 @@ else()
     find_package(SDL2_mixer REQUIRED CONFIG)
 endif()
 
-# VitaSDK's freetype and SDL2 packages leave these dependencies unnamed.
-if(VITA)
+# VitaSDK's and devkitPro's 3DS freetype packages leave these dependencies
+# unnamed, and so does VitaSDK's SDL2.
+if(VITA OR NINTENDO_3DS)
     set_property(TARGET Freetype::Freetype APPEND PROPERTY
         INTERFACE_LINK_LIBRARIES png z bz2
     )
+endif()
+
+if(VITA)
     set_property(TARGET SDL2::SDL2-static APPEND PROPERTY
         INTERFACE_LINK_LIBRARIES pthread
     )
@@ -63,7 +69,7 @@ if(NOT TARGET fried_engine)
         CXX_STANDARD_REQUIRED ON
     )
 
-    if(VITA)
+    if(VITA OR NINTENDO_3DS)
         target_link_libraries(fried_engine PUBLIC
             SDL2_image::SDL2_image-static
             SDL2_mixer::SDL2_mixer-static
@@ -137,6 +143,23 @@ function(fried_add_game target_name)
             AUTHOR "${_organization}"
             VERSION ${_version}
             ICON ${CMAKE_CURRENT_SOURCE_DIR}/switch/icon.jpg
+            ENGINE_ASSETS ${_engine_assets}
+            GAME_ASSETS ${_game_assets}
+        )
+    elseif(NINTENDO_3DS)
+        # The SMDH carries the same identity as the Switch's .nro. It also has a
+        # description line, which shows the version rather than a new key.
+        file(READ ${_project_file} _project_json)
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
+        string(JSON _name GET "${_project_json}" name)
+        string(JSON _organization GET "${_project_json}" organization)
+        string(JSON _version GET "${_project_json}" version)
+
+        fried_add_3ds_3dsx(${target_name}
+            NAME "${_name}"
+            DESCRIPTION "Version ${_version}"
+            AUTHOR "${_organization}"
+            ICON ${CMAKE_CURRENT_SOURCE_DIR}/3ds/icon.png
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )

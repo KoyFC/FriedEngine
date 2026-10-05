@@ -1,6 +1,6 @@
 pkgname=3ds-sdl2_image
 pkgver=2.8.8
-pkgrel=1
+pkgrel=2
 pkgdesc='SDL2 image loading library (Nintendo 3DS port)'
 arch=('any')
 url='https://github.com/libsdl-org/SDL_image'
@@ -12,7 +12,9 @@ source=("https://github.com/libsdl-org/SDL_image/releases/download/release-${pkg
 sha256sums=('2213b56fdaff2220d0e38c8e420cbe1a83c87374190cba8c70af2156097ce30a')
 
 # PNG and JPEG decode through the bundled stb_image, so no image library is a
-# dependency. The formats that would need one are left out.
+# dependency. The formats that would need one are left out. VENDORED vendors
+# nothing with that setup, but the installed SDL2_imageConfig.cmake only skips
+# looking for libjpeg and libpng when it is on: it does not account for stb.
 build() {
   cmake -S SDL2_image-${pkgver} -B build \
     -DCMAKE_TOOLCHAIN_FILE="${DEVKITPRO}/cmake/3DS.cmake" \
@@ -21,7 +23,7 @@ build() {
     -DBUILD_SHARED_LIBS=OFF \
     -DSDL2IMAGE_SAMPLES=OFF \
     -DSDL2IMAGE_DEPS_SHARED=OFF \
-    -DSDL2IMAGE_VENDORED=OFF \
+    -DSDL2IMAGE_VENDORED=ON \
     -DSDL2IMAGE_BACKEND_STB=ON \
     -DSDL2IMAGE_AVIF=OFF \
     -DSDL2IMAGE_JXL=OFF \

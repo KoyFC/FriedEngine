@@ -7,6 +7,8 @@
 
 #ifdef __SWITCH__
 #include <switch.h>
+#elif defined(__3DS__)
+#include <3ds.h>
 #endif
 
 namespace
@@ -21,9 +23,9 @@ namespace
     {
         return "app0:/assets/";
     }
-#elif defined(__SWITCH__)
-    // The Switch reads its assets out of the .nro, through the romfs mounted
-    // below. Unlike the Vita's, that mount is not automatic.
+#elif defined(__SWITCH__) || defined(__3DS__)
+    // The Switch and the 3DS read their assets out of the .nro or .3dsx, through
+    // the romfs mounted below. Unlike the Vita's, that mount is not automatic.
     std::string resolveAssetPath(const std::string &)
     {
         return "romfs:/assets/";
@@ -63,7 +65,7 @@ namespace
 
 void fried_filesystem_init()
 {
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__3DS__)
     romfsInit();
 #endif
 
@@ -83,7 +85,7 @@ void fried_filesystem_init()
 
 void fried_filesystem_shutdown()
 {
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__3DS__)
     romfsExit();
 #endif
 }

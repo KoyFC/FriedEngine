@@ -7,6 +7,10 @@
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 
+#ifdef __3DS__
+#include <3ds.h>
+#endif
+
 namespace
 {
 #if defined(__vita__) || defined(__SWITCH__)
@@ -22,7 +26,12 @@ namespace
 
 int fried_application_init()
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) != 0)
+#ifdef __3DS__
+    // SDL2main would ask for the New 3DS's clock and cache, but hxcpp brings its own main().
+    osSetSpeedupEnable(true);
+#endif
+
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) != 0)
     {
         fried_capture_sdl_error();
         return -1;
@@ -44,18 +53,33 @@ int fried_application_init()
         return -1;
     }
 
-    if (Mix_OpenAudio(s_audioFrequency, MIX_DEFAULT_FORMAT, s_audioChannels, s_audioChunkSize) != 0)
-    {
-        fried_capture_sdl_error();
-        TTF_Quit();
-        IMG_Quit();
-        SDL_Quit();
-        return -1;
-    }
-
     fried_gamepad_init();
 
     return 0;
+}
+
+int fried_application_open_audio_device()
+{
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+
+    if (Mix_OpenAudio(s_audioFrequency, MIX_DEFAULT_FORMAT, s_audioChannels, s_audioChunkSize) != 0)
+    {
+        fried_capture_sdl_error();
+        SDL_QuitSubSystem(SDL_INIT_AUDIO);
+        return -1;
+    }
+
+    return 0;
+}
+
+int fried_application_open_silent_audio()
+{
+    SDL_SetHintWithPriority(SDL_HINT_AUDIODRIVER, "dummy", SDL_HINT_OVERRIDE);
+    return fried_application_open_audio_device();
 }
 
 void fried_application_shutdown()

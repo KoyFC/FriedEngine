@@ -9,6 +9,8 @@
 # nx_generate_nacp() and nx_create_nro() come from that toolchain's platform
 # module, so unlike the Vita there is no SDK file to include here.
 
+include("${CMAKE_CURRENT_LIST_DIR}/DevkitProRomfs.cmake")
+
 find_package(PkgConfig REQUIRED)
 
 # devkitPro ships CMake package configs for SDL2 and SDL2_ttf but not for
@@ -42,8 +44,8 @@ function(fried_add_switch_nro target_name)
     dkp_add_asset_target(${target_name}_romfs "${CMAKE_CURRENT_BINARY_DIR}/romfs")
 
     set(_staged_assets "")
-    fried_stage_switch_assets(${target_name}_romfs "${NRO_ENGINE_ASSETS}" "assets/engine" _staged_assets)
-    fried_stage_switch_assets(${target_name}_romfs "${NRO_GAME_ASSETS}" "assets/game" _staged_assets)
+    fried_stage_romfs_assets(${target_name}_romfs "${NRO_ENGINE_ASSETS}" "assets/engine" _staged_assets)
+    fried_stage_romfs_assets(${target_name}_romfs "${NRO_GAME_ASSETS}" "assets/game" _staged_assets)
 
     # nx_create_nro() depends on the files listed here rather than on the folder,
     # so an asset left off this property would pack but never repack.
@@ -66,34 +68,4 @@ function(fried_add_switch_nro target_name)
         ROMFS ${target_name}_romfs
         ${_icon_argument}
     )
-endfunction()
-
-# Stages every file under <source_dir> into <asset_target>'s folder at
-# <destination>, appending the staged paths to <out_var>. elf2nro takes one
-# directory rather than the source/destination pairs vita_create_vpk() takes, so
-# the layout is built in the build tree first.
-function(fried_stage_switch_assets asset_target source_dir destination out_var)
-    get_target_property(_romfs_dir ${asset_target} DKP_ASSET_FOLDER)
-
-    file(GLOB_RECURSE _assets CONFIGURE_DEPENDS "${source_dir}/*")
-
-    set(_files ${${out_var}})
-    foreach(_asset ${_assets})
-        file(RELATIVE_PATH _relative "${source_dir}" "${_asset}")
-        set(_staged "${_romfs_dir}/${destination}/${_relative}")
-        get_filename_component(_staged_dir "${_staged}" DIRECTORY)
-
-        add_custom_command(
-            OUTPUT "${_staged}"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${_staged_dir}"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_asset}" "${_staged}"
-            DEPENDS "${_asset}"
-            COMMENT "Staging ${destination}/${_relative} into the romfs"
-            VERBATIM
-        )
-
-        list(APPEND _files "${_staged}")
-    endforeach()
-
-    set(${out_var} ${_files} PARENT_SCOPE)
 endfunction()

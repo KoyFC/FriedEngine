@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux/GCC), PlayStation Vita and Nintendo Switch are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux/GCC), PlayStation Vita, Nintendo Switch and Nintendo 3DS are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -27,6 +27,7 @@ This repository is the engine alone, and it is not the starting point for a game
 - [x] 13. Cameras (`Camera` as a component, one per scene, with screen space for anything a scene draws without one)
 - [x] 14. Layer stack (ordered update and draw per renderer, with input events walking the stack from the top down)
 - [x] 15. AABB collisions (`Collider` as a component, overlap and raycast queries over a scene, in `fried.physics`)
+- [x] 16. Port the runtime to Nintendo 3DS (devkitPro toolchain, `romfs:` asset root, SDL's software renderer)
 
 ## Requirements
 
@@ -38,6 +39,8 @@ This repository is the engine alone, and it is not the starting point for a game
 For a Vita build, [VitaSDK](https://vitasdk.org/) with `$VITASDK` set and its `bin/` on `PATH`, and the same four libraries from its package manager (`vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`).
 
 For a Switch build, [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, and the same four libraries from its own (`dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`). `switch-pkg-config` is not optional there: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
+
+For a 3DS build, the same devkitPro install with `3ds-dev`, and the four libraries built from [`packaging/3ds/`](packaging/3ds/README.md), since devkitPro ships no SDL2 for the 3DS.
 
 The Haxe side of the build is identical on every platform.
 
@@ -76,6 +79,15 @@ cmake --build build/switch
 
 That produces `build/switch/sandbox/fried_sandbox.nro`, which runs from hbmenu once copied anywhere under `sdmc:/switch/`. The assets travel inside the `.nro` as a romfs, so it is the only file to copy. Nothing it logs is visible on the console, so the scene on screen is the whole report a run gives.
 
+A 3DS build is the same with the 3DS toolchain file:
+
+```sh
+cmake -S . -B build/3ds -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake
+cmake --build build/3ds
+```
+
+That produces `build/3ds/sandbox/fried_sandbox.3dsx`, which runs from the Homebrew Launcher once copied anywhere under `sdmc:/3ds/`, with its assets inside it as on the Switch. The scene draws on the top screen only, at 400x240. Sound needs the console's DSP firmware dumped to `sdmc:/3ds/dspfirm.cdc` (by DSP1 on a console; any file of that name satisfies Azahar), and without it the program runs silent.
+
 ## Using the engine in a game
 
 [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager) writes all of this for you, and that is the recommended route. What follows is what it produces, for a project set up by hand or for reading what a generated one contains.
@@ -107,7 +119,7 @@ and its `build.hxml` points at the submodule's source:
 -D no-compilation
 ```
 
-`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried` declaring the game's identity, an `assets/` for the game's own assets, a `sce_sys/` for a Vita build and a `switch/icon.jpg` for a Switch one. It then builds with the same commands the sandbox does.
+`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried` declaring the game's identity, an `assets/` for the game's own assets, a `sce_sys/` for a Vita build, a `switch/icon.jpg` for a Switch one and a `3ds/icon.png` for a 3DS one. It then builds with the same commands the sandbox does.
 
 ## VS Code
 

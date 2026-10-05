@@ -208,6 +208,18 @@ Packaging is simpler than the Vita's in two ways and stricter in one. A `.nro` c
 
 A window gets the size it asks for and the console stretches it to the whole screen, so the sandbox's 640x480 fills a 16:9 display distorted. There is no keyboard or mouse, and touch is not addressed yet. Nothing prints either: a `.nro` launched from hbmenu has nowhere to send stdout, so what is on screen is the whole report a run gives. When that report is a black screen, the first thing to rule out is the heap, which is smaller for homebrew launched from the album than for homebrew launched over a game.
 
+## Nintendo 3DS
+
+A 3DS build is configured with devkitPro's 3DS toolchain file, which sets `NINTENDO_3DS` and defines `__3DS__`, and brings `ctr_generate_smdh()` and `ctr_create_3dsx()` the way the Switch's brings its NACP and `.nro` steps. What it does not bring is SDL2: devkitPro ships only SDL 1.2 for the 3DS, so `packaging/3ds/` builds SDL2 and its three companion libraries as pacman packages installed next to devkitPro's own. Once installed they are found exactly as on the Vita, through their CMake package configs.
+
+hxcpp had one gap here that neither of the other consoles had, although the 3DS runs on newlib too. libctru implements no pthread keys: `pthread_key_create()` and the rest are newlib stubs that fail, and `pthread_getspecific()` reads back null, so the GC lost its per-thread context on the first allocation and stopped with a zone mismatch. hxcpp lets a build replace its TLS header through `HX_TLS_H_OVERRIDE`, and `cmake/libctru/hx_tls.h` puts the same macros on `thread_local`, which libctru does implement for every thread it creates. Everything else in `cmake/Hxcpp.cmake` is shared with the other two consoles, apart from PIE, which a `.3dsx` does not use: its loader relocates it from the word relocations the toolchain compiles with.
+
+In `native/`, the asset root and its `romfsInit()` are the Switch's, and the writable path needed no branch, since SDL's 3DS port answers `SDL_GetPrefPath()` with `sdmc:/3ds/<name>/`. Two things are the 3DS's own. SDL has no GPU render driver there, so `fried_renderer_create()` asks for the software one, and a window is the top screen at 400x240 whatever size it asks for. And `fried_application_init()` calls `osSetSpeedupEnable()`, because SDL2main would have asked for the New 3DS's clock and cache and hxcpp brings its own `main()` instead.
+
+Audio goes through the DSP, whose firmware is not something a homebrew application can carry: libctru loads it from `sdmc:/3ds/dspfirm.cdc`, dumped from the console. Without it no audio device opens, which is not fatal on any platform: `Application.init()` logs a warning and opens SDL's dummy audio driver instead, so sounds and music still load and play, unheard, and a game needs no branch for a console that cannot make sound.
+
+The `.3dsx` packaging follows the Switch's. Its SMDH is built from `name`, `organization` and `version` in `project.fried`, the version going on the description line, and the icon is a 48x48 PNG at `3ds/icon.png`, with libctru's generic one in its place when a project has none. The romfs is staged by the same `cmake/DevkitProRomfs.cmake` the Switch uses, which is why that helper is named after devkitPro rather than either console.
+
 ## Source layout
 
 The two source trees are split by different domains, because they are read by different people asking different questions.
