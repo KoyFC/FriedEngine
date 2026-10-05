@@ -6,12 +6,16 @@ SDL2_image decodes PNG and JPEG through its bundled stb_image, and SDL2_mixer pl
 
 ## Building and installing
 
-This needs [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, `makepkg` and `fakeroot`. Each package builds against the ones before it, so they go in this order:
+This needs [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, `makepkg` and `fakeroot`. Each package builds against the ones before it, so they are built and installed one at a time, in this order:
 
 ```sh
+export PACMAN=pacman
+sudo $PACMAN -S --needed libctru 3ds-cmake 3ds-pkg-config 3ds-freetype
 for package in 3ds-sdl2 3ds-sdl2_image 3ds-sdl2_mixer 3ds-sdl2_ttf; do
-    (cd packaging/3ds/$package && makepkg -si) || break
+    (cd packaging/3ds/$package && makepkg -f && sudo $PACMAN -U --noconfirm $(makepkg --packagelist)) || break
 done
 ```
 
-`-s` installs what a package depends on from devkitPro's repository (`3ds-dev` tools, `3ds-freetype`) and `-i` installs the package once built, both through `sudo pacman`. Where devkitPro's package manager is installed as `dkp-pacman`, run it with `PACMAN=dkp-pacman makepkg -si`.
+`PACMAN` names the pacman that has devkitPro's repositories, and makepkg reads it too when it checks dependencies. Set it to `dkp-pacman` where devkitPro installs it under that name, and to the full path of the system's own (`/usr/bin/pacman`) where VitaSDK is also installed, since VitaSDK puts a `pacman` of its own first on `PATH` that cannot read the system's configuration.
+
+The installs are left out of makepkg on purpose: `makepkg -si` would do the same in one command, but it runs `sudo -k`, which discards the cached password and asks for it again for every package.
