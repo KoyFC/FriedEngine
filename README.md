@@ -127,4 +127,6 @@ Install the recommended extensions when prompted (C/C++, CMake Tools, Haxe & Nek
 
 CMake Tools auto-configure on open is disabled on purpose, because configuring has to happen after the Haxe generation step. Use the build task, not the CMake Tools sidebar. The debug config uses `cppdbg`/`gdb`, matching the verified Linux/GCC setup.
 
+IntelliSense follows the PC build, so the files only a console compiles, such as `native/graphics/renderer_citro.cpp`, show errors under it. For those, pick the **Nintendo 3DS** configuration (*C/C++: Select a Configuration*), which reads the flags from `build/3ds/compile_commands.json` and so needs that build tree configured first.
+
 For the Flatpak build of VS Code, see [`docs/flatpak.md`](docs/flatpak.md).

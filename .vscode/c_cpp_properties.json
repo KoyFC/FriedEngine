@@ -21,6 +21,13 @@
             ],
             "cStandard": "c17",
             "cppStandard": "c++17"
+        },
+        {
+            "name": "Nintendo 3DS",
+            "compileCommands": "${workspaceFolder}/build/3ds/compile_commands.json",
+            "compilerPath": "/opt/devkitpro/devkitARM/bin/arm-none-eabi-g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
         }
     ],
     "version": 4
