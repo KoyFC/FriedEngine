@@ -11,6 +11,37 @@
 namespace
 {
     HandlePool<SDL_Window> s_windows;
+
+    bool displayHasWindow(int displayIndex)
+    {
+        for (int i = 0; i < s_windows.capacity(); ++i)
+        {
+            SDL_Window *window = s_windows.get(i);
+            if (window && SDL_GetWindowDisplayIndex(window) == displayIndex)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int firstDisplayWithoutWindow()
+    {
+        int displayCount = SDL_GetNumVideoDisplays();
+        for (int displayIndex = 0; displayIndex < displayCount; ++displayIndex)
+        {
+            if (!displayHasWindow(displayIndex))
+            {
+                return displayIndex;
+            }
+        }
+        return 0;
+    }
+}
+
+int fried_window_get_max_count()
+{
+    return FRIED_MAX_WINDOWS;
 }
 
 SDL_Window *fried_window_get_sdl(int windowId)
@@ -31,9 +62,15 @@ int fried_window_create(const char *title, int width, int height)
         return -1;
     }
 
+#ifdef __3DS__
+    int displayIndex = firstDisplayWithoutWindow();
+#else
+    int displayIndex = 0;
+#endif
+
     SDL_Window *window = SDL_CreateWindow(
         title,
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex), SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex),
         width, height,
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (!window)

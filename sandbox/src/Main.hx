@@ -152,16 +152,31 @@ class Main {
 		spinnerObject.addComponent(new Sprite(sprite));
 		spinnerObject.addComponent(new Spinner(90.0));
 
+		var secondWindow:Window = null;
+		var secondRenderer:Renderer = null;
+		if (Window.maxCount > 1) {
+			secondWindow = new Window(Project.windowTitle(), 320, 240);
+			secondRenderer = Application.createRenderer(secondWindow, vsyncEnabled);
+			secondRenderer.drawColor = Color.rgb(32, 24, 24);
+			Log.success('Second window created: ${secondRenderer.width}x${secondRenderer.height}, so the debug overlay moves to it');
+		}
+
 		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
-		var overlay = new DebugOverlay(font, camera, playerObject, interfaceLayer);
+		var overlay = new DebugOverlay(font, camera, playerObject, interfaceLayer, renderer);
 
 		renderer.pushLayer(new WorldLayer(scene, playerCollider));
-		renderer.pushLayer(overlay);
+		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
+		overlayRenderer.pushLayer(overlay);
 		renderer.pushLayer(interfaceLayer);
 
 		function closeWindow():Void {
 			if (renderer == null) {
 				return;
+			}
+			if (secondRenderer != null) {
+				Application.destroyRenderer(secondRenderer);
+				secondRenderer = null;
+				secondWindow.destroy();
 			}
 			Application.destroyRenderer(renderer);
 			renderer = null;

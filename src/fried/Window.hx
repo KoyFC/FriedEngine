@@ -3,6 +3,8 @@ package fried;
 class Window {
 	static var instances:Map<Int, Window> = new Map();
 
+	public static var maxCount(get, never):Int;
+
 	@:allow(fried.graphics.Renderer)
 	var id:Int;
 
@@ -39,6 +41,10 @@ class Window {
 		return instances.get(id);
 	}
 
+	static function get_maxCount():Int {
+		return WindowNative.getMaxCount();
+	}
+
 	function get_width():Int {
 		return WindowNative.getWidth(id);
 	}
@@ -50,6 +56,9 @@ class Window {
 
 @:include("platform/window.h")
 private extern class WindowNative {
+	@:native("fried_window_get_max_count")
+	static function getMaxCount():Int;
+
 	@:native("fried_window_create")
 	static function create(title:cpp.ConstCharStar, width:Int, height:Int):Int;
 

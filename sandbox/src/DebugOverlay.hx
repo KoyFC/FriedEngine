@@ -5,6 +5,7 @@ import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 import fried.graphics.Rect;
+import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.input.InputEvent;
 import fried.input.InputEventType;
@@ -19,6 +20,7 @@ class DebugOverlay extends Layer {
 	var camera:Camera;
 	var player:GameObject;
 	var togglesInterface:Layer;
+	var interfaceRenderer:Renderer;
 	var playerController:PlayerController;
 
 	var background:Rect;
@@ -29,12 +31,13 @@ class DebugOverlay extends Layer {
 	static inline var PADDING:Int = 6;
 	static inline var MARGIN:Int = 12;
 
-	public function new(font:Font, camera:Camera, player:GameObject, togglesInterface:Layer) {
+	public function new(font:Font, camera:Camera, player:GameObject, togglesInterface:Layer, interfaceRenderer:Renderer) {
 		super("Debug overlay");
 		this.font = font;
 		this.camera = camera;
 		this.player = player;
 		this.togglesInterface = togglesInterface;
+		this.interfaceRenderer = interfaceRenderer;
 		playerController = player.getComponent(PlayerController);
 		refreshInterval = 0.25;
 		background = new Rect(0, 0, 0, 0);
@@ -65,11 +68,11 @@ class DebugOverlay extends Layer {
 		}
 		event.handled = true;
 		if (togglesInterface.renderer == null) {
-			renderer.pushLayer(togglesInterface);
-			Log.info('Interface layer pushed back from inside the event walk, stack still reads ${renderer.layers.length} layers');
+			interfaceRenderer.pushLayer(togglesInterface);
+			Log.info('Interface layer pushed back from inside the event walk, stack still reads ${interfaceRenderer.layers.length} layers');
 		} else {
-			renderer.removeLayer(togglesInterface);
-			Log.info('Interface layer taken off from inside the event walk, stack still reads ${renderer.layers.length} layers');
+			interfaceRenderer.removeLayer(togglesInterface);
+			Log.info('Interface layer taken off from inside the event walk, stack still reads ${interfaceRenderer.layers.length} layers');
 		}
 	}
 

@@ -9,6 +9,8 @@
 
 #ifdef __3DS__
 #include <3ds.h>
+
+#include <unordered_set>
 #endif
 
 namespace
@@ -18,6 +20,8 @@ namespace
 #ifdef __3DS__
     // SDL's 3DS port has no GPU render driver, only the software one.
     constexpr Uint32 s_rendererType = SDL_RENDERER_SOFTWARE;
+
+    std::unordered_set<int> s_renderersPresentedSinceVBlank;
 #else
     constexpr Uint32 s_rendererType = SDL_RENDERER_ACCELERATED;
 #endif
@@ -135,15 +139,18 @@ void fried_renderer_present(int rendererId)
     {
         return;
     }
-    SDL_RenderPresent(renderer);
-
 #ifdef __3DS__
-    // SDL's 3DS port reports vsync but swaps the screen's buffers without waiting for it.
-    if (fried_renderer_has_vsync(rendererId))
+    // SDL's 3DS port swaps a screen's buffers without waiting for the VBlank that
+    // shows them, so a second swap before it would draw into the buffer on screen.
+    if (s_renderersPresentedSinceVBlank.count(rendererId) != 0)
     {
         gspWaitForVBlank();
+        s_renderersPresentedSinceVBlank.clear();
     }
+    s_renderersPresentedSinceVBlank.insert(rendererId);
 #endif
+
+    SDL_RenderPresent(renderer);
 }
 
 void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, int width, int height)
