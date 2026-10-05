@@ -68,8 +68,10 @@ class Main {
 		var font = Font.from(Assets.engine("NunitoSans.ttf"), 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
-		var hintTop = 'Run $runs   Space/A: sound   M/B: music   WASD/stick: move   Q/E: zoom';
-		var hintBottom = 'F3/Select: overlay   F4: interface   F5: collider bounds   Start: quit';
+		var hints = [
+			'Run $runs', "Space/A: sound", "M/B: music", "WASD/stick: move", "Q/E: zoom",
+			"F3/Select: overlay", "F4: interface", "F5: collider bounds", "Start: quit"
+		];
 		var labelColor = Color.rgb(220, 220, 230);
 
 		var beep = Sound.from(Assets.game("beep.wav"));
@@ -120,18 +122,23 @@ class Main {
 
 		var uiScene = new Scene("Sandbox UI");
 
-		var topLabelObject = uiScene.add(new GameObject("Hint label, top line", 16, 16));
-		topLabelObject.priority = 1;
-		var topLabel = topLabelObject.addComponent(new Text(font, hintTop, labelColor));
+		// The hints stop short of the icons down the right edge, so a narrow screen stacks more lines.
+		var hintMaxWidth = renderer.width - iconSize - 16 * 3;
+		var hintLines = LinePacker.pack(font, hints, hintMaxWidth);
+		var hintTextWidth = 0;
+		var hintTextHeight = 0;
+		for (index in 0...hintLines.length) {
+			var labelObject = uiScene.add(new GameObject('Hint label, line ${index + 1}', 16, 16 + hintTextHeight));
+			labelObject.priority = 1;
+			var label = labelObject.addComponent(new Text(font, hintLines[index], labelColor));
+			hintTextWidth = label.width > hintTextWidth ? label.width : hintTextWidth;
+			hintTextHeight += label.height;
+		}
 
-		var bottomLabelObject = uiScene.add(new GameObject("Hint label, bottom line", 16, 16 + topLabel.height));
-		bottomLabelObject.priority = 1;
-		var bottomLabel = bottomLabelObject.addComponent(new Text(font, hintBottom, labelColor));
+		Log.info('The hints take ${hintLines.length} lines, ${hintTextWidth}x${hintTextHeight}, before a frame has drawn them');
 
-		Log.info('The top hint measures ${topLabel.width}x${topLabel.height} before a frame has drawn it');
-
-		var panelWidth = (topLabel.width > bottomLabel.width ? topLabel.width : bottomLabel.width) + 8;
-		var panelHeight = topLabel.height + bottomLabel.height + 8;
+		var panelWidth = hintTextWidth + 8;
+		var panelHeight = hintTextHeight + 8;
 
 		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
 		panelObject.addComponent(new Box(panelWidth, panelHeight, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));

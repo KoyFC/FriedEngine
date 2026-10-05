@@ -24,7 +24,7 @@ class DebugOverlay extends Layer {
 	var playerController:PlayerController;
 
 	var background:Rect;
-	var text:Texture;
+	var lines:Array<Texture>;
 	var renderedText:String;
 	var nextRefresh:Float;
 
@@ -41,6 +41,7 @@ class DebugOverlay extends Layer {
 		playerController = player.getComponent(PlayerController);
 		refreshInterval = 0.25;
 		background = new Rect(0, 0, 0, 0);
+		lines = [];
 		nextRefresh = 0.0;
 	}
 
@@ -53,13 +54,17 @@ class DebugOverlay extends Layer {
 	}
 
 	override function draw():Void {
-		if (text == null) {
+		if (lines.length == 0) {
 			return;
 		}
 		background.x = MARGIN;
 		background.y = renderer.height - background.height - MARGIN;
 		DrawQueue.submitFillRect(0, background, Color.rgba(12, 12, 18, 200));
-		DrawQueue.submitTexture(1, text, background.x + PADDING, background.y + PADDING, text.width, text.height);
+		var lineY = background.y + PADDING;
+		for (line in lines) {
+			DrawQueue.submitTexture(1, line, background.x + PADDING, lineY, line.width, line.height);
+			lineY += line.height;
+		}
 	}
 
 	override function onEvent(event:InputEvent):Void {
@@ -77,34 +82,47 @@ class DebugOverlay extends Layer {
 	}
 
 	public function destroy():Void {
-		if (text != null) {
-			text.destroy();
-			text = null;
-		}
+		destroyLines();
 		renderedText = null;
 	}
 
-	function describe():String {
+	function describe():Array<String> {
 		var zoom = Math.round(camera.zoom * 100) / 100;
 		var cameraX = Std.int(camera.transform.x);
 		var cameraY = Std.int(camera.transform.y);
 		var contact = playerController.blockedBy == null ? "none" : playerController.blockedBy;
-		return 'frame ${Time.frameCount}   queue ${DrawQueue.capacity}   camera $cameraX, $cameraY   zoom $zoom   player priority ${player.priority}   blocked by $contact';
+		return [
+			'frame ${Time.frameCount}', 'queue ${DrawQueue.capacity}', 'camera $cameraX, $cameraY', 'zoom $zoom',
+			'player priority ${player.priority}', 'blocked by $contact'
+		];
 	}
 
 	// A rendered string is a texture, so one per frame would be one allocation
 	// and one upload per frame. The interval bounds how often that can happen
 	// and the comparison skips it entirely while the numbers hold still.
-	function render(description:String):Void {
-		if (description == renderedText) {
+	function render(description:Array<String>):Void {
+		var text = description.join(LinePacker.SEPARATOR);
+		if (text == renderedText) {
 			return;
 		}
-		if (text != null) {
-			text.destroy();
+		destroyLines();
+		background.width = 0;
+		background.height = 0;
+		for (lineText in LinePacker.pack(font, description, renderer.width - (MARGIN + PADDING) * 2)) {
+			var line = font.renderText(renderer, lineText, Color.rgb(200, 215, 230));
+			lines.push(line);
+			background.width = line.width > background.width ? line.width : background.width;
+			background.height += line.height;
 		}
-		text = font.renderText(renderer, description, Color.rgb(200, 215, 230));
-		renderedText = description;
-		background.width = text.width + PADDING * 2;
-		background.height = text.height + PADDING * 2;
+		background.width += PADDING * 2;
+		background.height += PADDING * 2;
+		renderedText = text;
+	}
+
+	function destroyLines():Void {
+		for (line in lines) {
+			line.destroy();
+		}
+		lines.resize(0);
 	}
 }
