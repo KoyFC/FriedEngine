@@ -9,6 +9,8 @@ extern "C"
 
     int fried_texture_get_width(int textureId);
     int fried_texture_get_height(int textureId);
+    // How many times smaller than its source a texture is stored, where the GPU caps its size.
+    int fried_texture_get_downscale(int textureId);
 }
 
 // The surface stays the caller's.

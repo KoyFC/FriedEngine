@@ -1,5 +1,6 @@
 package fried.graphics;
 
+import fried.Log;
 import fried.NativeError;
 
 class Texture {
@@ -34,6 +35,12 @@ class Texture {
 		width = TextureNative.getWidth(id);
 		height = TextureNative.getHeight(id);
 		renderer.registerTexture(this, path);
+
+		var downscale = TextureNative.getDownscale(id);
+		if (downscale > 1) {
+			var source = path != null ? path : "A rendered text";
+			Log.warn('$source is ${width}x${height}, more than this GPU takes, so it is stored at 1/$downscale of that and drawn blurrier.');
+		}
 	}
 
 	public function destroy():Void {
@@ -65,4 +72,7 @@ private extern class TextureNative {
 
 	@:native("fried_texture_get_height")
 	static function getHeight(id:Int):Int;
+
+	@:native("fried_texture_get_downscale")
+	static function getDownscale(id:Int):Int;
 }

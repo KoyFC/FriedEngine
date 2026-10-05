@@ -88,3 +88,8 @@ int fried_texture_get_height(int textureId)
     SDL_QueryTexture(texture, nullptr, nullptr, nullptr, &height);
     return height;
 }
+
+int fried_texture_get_downscale(int textureId)
+{
+    return fried_texture_get_sdl(textureId) ? 1 : 0;
+}

@@ -8,11 +8,14 @@
 #include <SDL.h>
 #include <citro2d.h>
 
+#include <cstring>
+
 namespace
 {
     struct CitroRenderer
     {
         C3D_RenderTarget *target;
+        gfxScreen_t screen;
         int width;
         int height;
         u32 drawColor;
@@ -48,6 +51,28 @@ namespace
     {
         C2D_Fini();
         C3D_Fini();
+    }
+
+    gfxScreen_t otherScreen(gfxScreen_t screen)
+    {
+        return screen == GFX_TOP ? GFX_BOTTOM : GFX_TOP;
+    }
+
+    // Both of its buffers, so a screen nothing draws on stops showing whatever
+    // the launcher or a closed renderer left there.
+    void blankScreen(gfxScreen_t screen)
+    {
+        u32 bytesPerPixel = gspGetBytesPerPixel(gfxGetScreenFormat(screen));
+        for (int buffer = 0; buffer < 2; ++buffer)
+        {
+            u16 width = 0;
+            u16 height = 0;
+            u8 *framebuffer = gfxGetFramebuffer(screen, GFX_LEFT, &width, &height);
+            u32 size = width * height * bytesPerPixel;
+            std::memset(framebuffer, 0, size);
+            GSPGPU_FlushDataCache(framebuffer, size);
+            gfxScreenSwapBuffers(screen, false);
+        }
     }
 
     void beginScene(CitroRenderer *renderer)
@@ -91,20 +116,25 @@ int fried_renderer_create(int windowId, bool vsync)
         return -1;
     }
 
-    if (s_renderers.count() == 0 && !startCitro())
+    bool isFirstRenderer = s_renderers.count() == 0;
+    if (isFirstRenderer && !startCitro())
     {
         fried_set_last_error("Failed to initialize citro2d");
         return -1;
     }
 
     gfxScreen_t screen = SDL_GetWindowDisplayIndex(window) == 0 ? GFX_TOP : GFX_BOTTOM;
+    if (isFirstRenderer)
+    {
+        blankScreen(otherScreen(screen));
+    }
     // citro2d's screen targets output BGR8, and SDL left the screens at RGBA8.
     gfxSetScreenFormat(screen, GSP_BGR8_OES);
 
     C3D_RenderTarget *target = C2D_CreateScreenTarget(screen, GFX_LEFT);
     if (!target)
     {
-        if (s_renderers.count() == 0)
+        if (isFirstRenderer)
         {
             stopCitro();
         }
@@ -114,6 +144,7 @@ int fried_renderer_create(int windowId, bool vsync)
 
     CitroRenderer *renderer = new CitroRenderer();
     renderer->target = target;
+    renderer->screen = screen;
     renderer->width = screen == GFX_TOP ? GSP_SCREEN_HEIGHT_TOP : GSP_SCREEN_HEIGHT_BOTTOM;
     renderer->height = GSP_SCREEN_WIDTH;
     renderer->drawColor = C2D_Color32(0, 0, 0, 255);
@@ -132,6 +163,7 @@ void fried_renderer_destroy(int rendererId)
         s_sceneRenderer = nullptr;
     }
     C3D_RenderTargetDelete(renderer->target);
+    blankScreen(renderer->screen);
     delete renderer;
 
     if (s_renderers.count() == 0)
@@ -211,16 +243,17 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
         return;
     }
 
+    // The region is in the source's pixels, which a downscaled texture holds fewer of.
     const Tex3DS_SubTexture *whole = image->subtex;
-    float texWidth = image->tex->width;
-    float texHeight = image->tex->height;
+    float uPerPixel = (whole->right - whole->left) / whole->width;
+    float vPerPixel = (whole->top - whole->bottom) / whole->height;
     Tex3DS_SubTexture region = {
         (u16)srcWidth,
         (u16)srcHeight,
-        whole->left + srcX / texWidth,
-        whole->top - srcY / texHeight,
-        whole->left + (srcX + srcWidth) / texWidth,
-        whole->top - (srcY + srcHeight) / texHeight,
+        whole->left + srcX * uPerPixel,
+        whole->top - srcY * vPerPixel,
+        whole->left + (srcX + srcWidth) * uPerPixel,
+        whole->top - (srcY + srcHeight) * vPerPixel,
     };
 
     // Rotated about the centre of the destination, as SDL_RenderCopyEx() does.

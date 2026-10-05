@@ -15,6 +15,7 @@ namespace
         C3D_Tex tex;
         Tex3DS_SubTexture subtexture;
         C2D_Image image;
+        int downscale;
     };
 
     HandlePool<CitroTexture> s_textures;
@@ -30,6 +31,59 @@ namespace
             power *= 2;
         }
         return power;
+    }
+
+    int downscaleToFit(int width, int height)
+    {
+        int downscale = 1;
+        while (width > s_maxTextureSide * downscale || height > s_maxTextureSide * downscale)
+        {
+            downscale *= 2;
+        }
+        return downscale;
+    }
+
+    // Each texel is the average of the block of pixels it replaces, channel by
+    // channel, so detail thins out evenly rather than whole rows going missing.
+    SDL_Surface *downscaled(const SDL_Surface *rgbaSurface, int downscale)
+    {
+        int width = (rgbaSurface->w + downscale - 1) / downscale;
+        int height = (rgbaSurface->h + downscale - 1) / downscale;
+        SDL_Surface *result = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_RGBA8888);
+        if (!result)
+        {
+            return nullptr;
+        }
+
+        for (int y = 0; y < height; ++y)
+        {
+            Uint32 *resultRow = (Uint32 *)((Uint8 *)result->pixels + y * result->pitch);
+            for (int x = 0; x < width; ++x)
+            {
+                Uint32 sums[4] = {};
+                Uint32 count = 0;
+                for (int sourceY = y * downscale; sourceY < (y + 1) * downscale && sourceY < rgbaSurface->h; ++sourceY)
+                {
+                    const Uint8 *sourceRow = (const Uint8 *)rgbaSurface->pixels + sourceY * rgbaSurface->pitch;
+                    for (int sourceX = x * downscale; sourceX < (x + 1) * downscale && sourceX < rgbaSurface->w; ++sourceX)
+                    {
+                        const Uint8 *channels = sourceRow + sourceX * 4;
+                        for (int channel = 0; channel < 4; ++channel)
+                        {
+                            sums[channel] += channels[channel];
+                        }
+                        ++count;
+                    }
+                }
+
+                Uint8 *channels = (Uint8 *)&resultRow[x];
+                for (int channel = 0; channel < 4; ++channel)
+                {
+                    channels[channel] = (Uint8)(sums[channel] / count);
+                }
+            }
+        }
+        return result;
     }
 
     // The GPU reads textures in 8x8 tiles, each laid out in Morton order.
@@ -69,17 +123,24 @@ int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
         fried_set_last_error("No surface given");
         return -1;
     }
-    if (surface->w > s_maxTextureSide || surface->h > s_maxTextureSide)
-    {
-        fried_set_last_error("The 3DS GPU takes textures of at most 1024 pixels a side");
-        return -1;
-    }
-
     SDL_Surface *rgbaSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA8888, 0);
     if (!rgbaSurface)
     {
         fried_capture_sdl_error();
         return -1;
+    }
+
+    int downscale = downscaleToFit(rgbaSurface->w, rgbaSurface->h);
+    if (downscale > 1)
+    {
+        SDL_Surface *fitted = downscaled(rgbaSurface, downscale);
+        SDL_FreeSurface(rgbaSurface);
+        if (!fitted)
+        {
+            fried_capture_sdl_error();
+            return -1;
+        }
+        rgbaSurface = fitted;
     }
 
     CitroTexture *texture = new CitroTexture();
@@ -100,15 +161,17 @@ int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
     C3D_TexSetWrap(&texture->tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 
     // The GPU's v runs from the bottom of a texture, so the image's top row is v = 1.
+    // The size stays the source's, so a downscaled texture still draws and measures as it.
     texture->subtexture = {
-        (u16)rgbaSurface->w,
-        (u16)rgbaSurface->h,
+        (u16)surface->w,
+        (u16)surface->h,
         0.0f,
         1.0f,
         rgbaSurface->w / (float)texWidth,
         1.0f - rgbaSurface->h / (float)texHeight,
     };
     texture->image = {&texture->tex, &texture->subtexture};
+    texture->downscale = downscale;
 
     SDL_FreeSurface(rgbaSurface);
     return s_textures.store(texture);
@@ -155,4 +218,10 @@ int fried_texture_get_height(int textureId)
 {
     CitroTexture *texture = s_textures.get(textureId);
     return texture ? texture->subtexture.height : 0;
+}
+
+int fried_texture_get_downscale(int textureId)
+{
+    CitroTexture *texture = s_textures.get(textureId);
+    return texture ? texture->downscale : 0;
 }
