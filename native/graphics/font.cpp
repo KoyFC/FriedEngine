@@ -2,7 +2,6 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
-#include "graphics/renderer.h"
 #include "graphics/texture.h"
 
 #include <SDL.h>
@@ -71,10 +70,9 @@ int fried_font_measure_width(int fontId, const char *text)
 int fried_font_render_text(int fontId, int rendererId, const char *text, int r, int g, int b, int a)
 {
     TTF_Font *font = s_fonts.get(fontId);
-    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
-    if (!font || !renderer || !text)
+    if (!font || !text)
     {
-        fried_set_last_error("No such font or renderer, or no text given");
+        fried_set_last_error("No such font, or no text given");
         return -1;
     }
 
@@ -86,17 +84,7 @@ int fried_font_render_text(int fontId, int rendererId, const char *text, int r, 
         return -1;
     }
 
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    // Captured before the surface is freed, since freeing it would overwrite the error.
-    if (!texture)
-    {
-        fried_capture_sdl_error();
-    }
+    int textureId = fried_texture_create_from_surface(rendererId, surface);
     SDL_FreeSurface(surface);
-    if (!texture)
-    {
-        return -1;
-    }
-
-    return fried_texture_store_sdl(texture);
+    return textureId;
 }

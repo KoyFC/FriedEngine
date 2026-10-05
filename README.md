@@ -27,7 +27,7 @@ This repository is the engine alone, and it is not the starting point for a game
 - [x] 13. Cameras (`Camera` as a component, one per scene, with screen space for anything a scene draws without one)
 - [x] 14. Layer stack (ordered update and draw per renderer, with input events walking the stack from the top down)
 - [x] 15. AABB collisions (`Collider` as a component, overlap and raycast queries over a scene, in `fried.physics`)
-- [x] 16. Port the runtime to Nintendo 3DS (devkitPro toolchain, `romfs:` asset root, SDL's software renderer)
+- [x] 16. Port the runtime to Nintendo 3DS (devkitPro toolchain, `romfs:` asset root, both screens, drawn through citro2d)
 
 ## Requirements
 

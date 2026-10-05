@@ -7,24 +7,9 @@
 
 #include <SDL.h>
 
-#ifdef __3DS__
-#include <3ds.h>
-
-#include <unordered_set>
-#endif
-
 namespace
 {
     HandlePool<SDL_Renderer> s_renderers;
-
-#ifdef __3DS__
-    // SDL's 3DS port has no GPU render driver, only the software one.
-    constexpr Uint32 s_rendererType = SDL_RENDERER_SOFTWARE;
-
-    std::unordered_set<int> s_renderersPresentedSinceVBlank;
-#else
-    constexpr Uint32 s_rendererType = SDL_RENDERER_ACCELERATED;
-#endif
 }
 
 SDL_Renderer *fried_renderer_get_sdl(int rendererId)
@@ -41,7 +26,7 @@ int fried_renderer_create(int windowId, bool vsync)
         return -1;
     }
 
-    Uint32 flags = s_rendererType;
+    Uint32 flags = SDL_RENDERER_ACCELERATED;
     if (vsync)
     {
         flags |= SDL_RENDERER_PRESENTVSYNC;
@@ -50,7 +35,7 @@ int fried_renderer_create(int windowId, bool vsync)
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, flags);
     if (!renderer && vsync)
     {
-        renderer = SDL_CreateRenderer(window, -1, s_rendererType);
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     }
     if (!renderer)
     {
@@ -139,17 +124,6 @@ void fried_renderer_present(int rendererId)
     {
         return;
     }
-#ifdef __3DS__
-    // SDL's 3DS port swaps a screen's buffers without waiting for the VBlank that
-    // shows them, so a second swap before it would draw into the buffer on screen.
-    if (s_renderersPresentedSinceVBlank.count(rendererId) != 0)
-    {
-        gspWaitForVBlank();
-        s_renderersPresentedSinceVBlank.clear();
-    }
-    s_renderersPresentedSinceVBlank.insert(rendererId);
-#endif
-
     SDL_RenderPresent(renderer);
 }
 

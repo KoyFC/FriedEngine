@@ -43,6 +43,14 @@ if(VITA)
     )
 endif()
 
+# The 3DS draws through its own GPU library. SDL2's port there has no GPU
+# render driver, only a software one.
+if(NINTENDO_3DS)
+    set(_fried_graphics_backend citro)
+else()
+    set(_fried_graphics_backend sdl)
+endif()
+
 # The engine's C++ needs nothing from hxcpp, so it is its own library rather
 # than sources folded into every game's executable.
 if(NOT TARGET fried_engine)
@@ -55,8 +63,8 @@ if(NOT TARGET fried_engine)
         ${FRIED_ENGINE_DIR}/native/platform/input.cpp
         ${FRIED_ENGINE_DIR}/native/platform/mouse.cpp
         ${FRIED_ENGINE_DIR}/native/platform/window.cpp
-        ${FRIED_ENGINE_DIR}/native/graphics/renderer.cpp
-        ${FRIED_ENGINE_DIR}/native/graphics/texture.cpp
+        ${FRIED_ENGINE_DIR}/native/graphics/renderer_${_fried_graphics_backend}.cpp
+        ${FRIED_ENGINE_DIR}/native/graphics/texture_${_fried_graphics_backend}.cpp
         ${FRIED_ENGINE_DIR}/native/graphics/font.cpp
         ${FRIED_ENGINE_DIR}/native/audio/sound.cpp
         ${FRIED_ENGINE_DIR}/native/audio/music.cpp
@@ -93,6 +101,10 @@ if(NOT TARGET fried_engine)
 
         # The executable this archive links into is a PIE.
         set_target_properties(fried_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    endif()
+
+    if(NINTENDO_3DS)
+        target_link_libraries(fried_engine PUBLIC citro2d citro3d)
     endif()
 
     add_library(fried::engine ALIAS fried_engine)

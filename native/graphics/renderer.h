@@ -1,7 +1,5 @@
 #pragma once
 
-struct SDL_Renderer;
-
 extern "C"
 {
     int fried_renderer_create(int windowId, bool vsync);
@@ -22,4 +20,8 @@ extern "C"
     void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int height);
 }
 
+#ifndef __3DS__
+struct SDL_Renderer;
+
 struct SDL_Renderer *fried_renderer_get_sdl(int rendererId);
+#endif

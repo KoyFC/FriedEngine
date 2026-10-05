@@ -12,11 +12,6 @@ namespace
     HandlePool<SDL_Texture> s_textures;
 }
 
-int fried_texture_store_sdl(SDL_Texture *texture)
-{
-    return s_textures.store(texture);
-}
-
 SDL_Texture *fried_texture_get_sdl(int textureId)
 {
     return s_textures.get(textureId);
@@ -38,7 +33,26 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    return fried_texture_store_sdl(texture);
+    return s_textures.store(texture);
+}
+
+int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer || !surface)
+    {
+        fried_set_last_error("No such renderer, or no surface given");
+        return -1;
+    }
+
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+
+    return s_textures.store(texture);
 }
 
 void fried_texture_destroy(int textureId)
