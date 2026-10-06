@@ -39,6 +39,7 @@ namespace
     struct LoadedFont
     {
         TTF_Font *m_font;
+        void *m_fileData;
         int m_ascent;
         int m_lineHeight;
         std::unordered_map<Uint32, GlyphMetrics> m_metrics;
@@ -254,15 +255,26 @@ int fried_font_load(const char *path, int size)
         return -1;
     }
 
-    TTF_Font *ttfFont = TTF_OpenFont(path, size);
-    if (!ttfFont)
+    // FreeType reads the file glyph by glyph, which from a 3DS's SD card costs milliseconds each.
+    size_t fileSize = 0;
+    void *fileData = SDL_LoadFile(path, &fileSize);
+    if (!fileData)
     {
         fried_capture_sdl_error();
         return -1;
     }
 
+    TTF_Font *ttfFont = TTF_OpenFontRW(SDL_RWFromConstMem(fileData, (int)fileSize), 1, size);
+    if (!ttfFont)
+    {
+        fried_capture_sdl_error();
+        SDL_free(fileData);
+        return -1;
+    }
+
     LoadedFont *font = new LoadedFont();
     font->m_font = ttfFont;
+    font->m_fileData = fileData;
     font->m_ascent = TTF_FontAscent(ttfFont);
     font->m_lineHeight = TTF_FontHeight(ttfFont);
     return s_fonts.store(font);
@@ -281,6 +293,7 @@ void fried_font_destroy(int fontId)
         fried_texture_destroy(atlas.m_textureId);
     }
     TTF_CloseFont(font->m_font);
+    SDL_free(font->m_fileData);
     delete font;
 }
 
