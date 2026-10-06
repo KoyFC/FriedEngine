@@ -7,6 +7,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+#include <vector>
+
 namespace
 {
     HandlePool<SDL_Texture> s_textures;
@@ -53,6 +55,63 @@ int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
     }
 
     return s_textures.store(texture);
+}
+
+int fried_texture_create_blank(int rendererId, int width, int height)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer)
+    {
+        fried_set_last_error("No such renderer");
+        return -1;
+    }
+
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, width, height);
+    if (!texture)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+
+    // SDL leaves a new texture's contents undefined.
+    std::vector<Uint32> transparent((size_t)width * height, 0);
+    if (SDL_UpdateTexture(texture, nullptr, transparent.data(), width * (int)sizeof(Uint32)) != 0)
+    {
+        fried_capture_sdl_error();
+        SDL_DestroyTexture(texture);
+        return -1;
+    }
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    return s_textures.store(texture);
+}
+
+bool fried_texture_write(int textureId, int x, int y, SDL_Surface *surface, const SDL_Rect *sourceRect)
+{
+    SDL_Texture *texture = fried_texture_get_sdl(textureId);
+    if (!texture || !surface || !sourceRect)
+    {
+        fried_set_last_error("No such texture, or no surface given");
+        return false;
+    }
+
+    Uint32 format = 0;
+    SDL_QueryTexture(texture, &format, nullptr, nullptr, nullptr);
+    SDL_Surface *converted = SDL_ConvertSurfaceFormat(surface, format, 0);
+    if (!converted)
+    {
+        fried_capture_sdl_error();
+        return false;
+    }
+
+    const Uint8 *firstPixel = (const Uint8 *)converted->pixels + sourceRect->y * converted->pitch + sourceRect->x * converted->format->BytesPerPixel;
+    SDL_Rect destination = {x, y, sourceRect->w, sourceRect->h};
+    bool isWritten = SDL_UpdateTexture(texture, &destination, firstPixel, converted->pitch) == 0;
+    if (!isWritten)
+    {
+        fried_capture_sdl_error();
+    }
+    SDL_FreeSurface(converted);
+    return isWritten;
 }
 
 void fried_texture_destroy(int textureId)

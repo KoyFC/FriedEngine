@@ -9,4 +9,9 @@ extern "C"
     int fried_font_measure_width(int fontId, const char *text);
 
     int fried_font_render_text(int fontId, int rendererId, const char *text, int r, int g, int b, int a);
+
+    // Stretched to fill width x height, rotated about the centre of that box.
+    void fried_font_draw_text(int fontId, int rendererId, const char *text, int x, int y, int width, int height, double angle, int r, int g, int b, int a);
 }
+
+void fried_font_release_renderer(int rendererId);

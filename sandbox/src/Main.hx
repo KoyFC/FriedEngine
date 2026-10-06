@@ -263,7 +263,6 @@ class Main {
 		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount + uiScene.objectCount} objects');
 
 		closeWindow();
-		overlay.destroy();
 		scene.destroy();
 		uiScene.destroy();
 		music.destroy();

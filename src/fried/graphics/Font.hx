@@ -64,6 +64,11 @@ class Font {
 		return FontNative.measureWidth(id, text);
 	}
 
+	@:allow(fried.graphics.Renderer)
+	function drawText(renderer:Renderer, text:String, x:Int, y:Int, width:Int, height:Int, angle:Float, color:Color):Void {
+		FontNative.drawText(id, renderer.id, text, x, y, width, height, angle, color.red, color.green, color.blue, color.alpha);
+	}
+
 	public function renderText(renderer:Renderer, text:String, color:Color):Texture {
 		var textureId = FontNative.renderText(id, renderer.id, text, color.red, color.green, color.blue, color.alpha);
 		if (textureId < 0) {
@@ -89,4 +94,8 @@ private extern class FontNative {
 
 	@:native("fried_font_render_text")
 	static function renderText(id:Int, rendererId:Int, text:cpp.ConstCharStar, r:Int, g:Int, b:Int, a:Int):Int;
+
+	@:native("fried_font_draw_text")
+	static function drawText(id:Int, rendererId:Int, text:cpp.ConstCharStar, x:Int, y:Int, width:Int, height:Int, angle:Float, r:Int, g:Int, b:Int,
+		a:Int):Void;
 }

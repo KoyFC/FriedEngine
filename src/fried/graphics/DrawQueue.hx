@@ -33,6 +33,19 @@ class DrawQueue {
 		}
 	}
 
+	public static function submitText(priority:Int, font:Font, text:String, x:Int, y:Int, width:Int, height:Int, color:Color, angle:Float = 0.0):Void {
+		var command = next(priority);
+		command.type = Text;
+		command.font = font;
+		command.text = text;
+		command.color = color;
+		command.x = x;
+		command.y = y;
+		command.width = width;
+		command.height = height;
+		command.angle = angle;
+	}
+
 	public static function submitFillRect(priority:Int, rect:Rect, color:Color):Void {
 		submitShape(FillRect, priority, rect, color);
 	}
@@ -53,6 +66,8 @@ class DrawQueue {
 
 		for (command in pendingDrawCommands) {
 			command.texture = null;
+			command.font = null;
+			command.text = null;
 			command.target = null;
 			command.camera = null;
 		}
@@ -72,6 +87,8 @@ class DrawQueue {
 				case TextureRegion:
 					renderer.drawTextureRegion(command.texture, view.x, view.y, command.hasSource ? command.source : null, view.width, view.height,
 						command.angle, command.flip);
+				case Text:
+					renderer.drawText(command.font, command.text, view.x, view.y, command.color, view.width, view.height, command.angle);
 				case FillRect:
 					renderer.drawColor = command.color;
 					colorChanged = true;
@@ -148,6 +165,7 @@ private enum abstract DrawCommandType(Int) {
 	var TextureRegion = 0;
 	var FillRect = 1;
 	var DrawRect = 2;
+	var Text = 3;
 }
 
 private class DrawCommand {
@@ -159,6 +177,8 @@ private class DrawCommand {
 	public var camera:Camera;
 
 	public var texture:Texture;
+	public var font:Font;
+	public var text:String;
 	public var x:Int;
 	public var y:Int;
 	public var width:Int;

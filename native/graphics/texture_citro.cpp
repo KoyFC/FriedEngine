@@ -95,17 +95,56 @@ namespace
     }
 
     // GPU_RGBA8 texels are SDL_PIXELFORMAT_RGBA8888 words, so each one copies as is.
-    void copyToTiles(const SDL_Surface *rgbaSurface, C3D_Tex *tex)
+    void copyToTiles(const SDL_Surface *rgbaSurface, const SDL_Rect &source, int x, int y, C3D_Tex *tex)
     {
         Uint32 *texels = (Uint32 *)tex->data;
-        for (int y = 0; y < rgbaSurface->h; ++y)
+        for (int row = 0; row < source.h; ++row)
         {
-            const Uint32 *row = (const Uint32 *)((const Uint8 *)rgbaSurface->pixels + y * rgbaSurface->pitch);
-            for (int x = 0; x < rgbaSurface->w; ++x)
+            const Uint32 *pixels = (const Uint32 *)((const Uint8 *)rgbaSurface->pixels + (source.y + row) * rgbaSurface->pitch) + source.x;
+            for (int column = 0; column < source.w; ++column)
             {
-                texels[tiledOffset(x, y, tex->width)] = row[x];
+                texels[tiledOffset(x + column, y + row, tex->width)] = pixels[column];
             }
         }
+    }
+
+    // Each row of tiles is contiguous in memory.
+    void flushTileRows(C3D_Tex *tex, int y, int height)
+    {
+        int bytesPerTileRow = tex->width * 8 * (int)sizeof(Uint32);
+        int firstRow = y / 8;
+        int lastRow = (y + height - 1) / 8;
+        GSPGPU_FlushDataCache((u8 *)tex->data + firstRow * bytesPerTileRow, (lastRow - firstRow + 1) * bytesPerTileRow);
+    }
+
+    CitroTexture *newTexture(int width, int height)
+    {
+        CitroTexture *texture = new CitroTexture();
+        int texWidth = nextPowerOfTwo(width);
+        int texHeight = nextPowerOfTwo(height);
+        if (!C3D_TexInit(&texture->tex, texWidth, texHeight, GPU_RGBA8))
+        {
+            delete texture;
+            fried_set_last_error("Out of GPU memory for a texture");
+            return nullptr;
+        }
+
+        std::memset(texture->tex.data, 0, texture->tex.size);
+        C3D_TexSetFilter(&texture->tex, GPU_NEAREST, GPU_NEAREST);
+        C3D_TexSetWrap(&texture->tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+
+        // The GPU's v runs from the bottom of a texture, so the image's top row is v = 1.
+        texture->subtexture = {
+            (u16)width,
+            (u16)height,
+            0.0f,
+            1.0f,
+            width / (float)texWidth,
+            1.0f - height / (float)texHeight,
+        };
+        texture->image = {&texture->tex, &texture->subtexture};
+        texture->downscale = 1;
+        return texture;
     }
 }
 
@@ -143,38 +182,70 @@ int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
         rgbaSurface = fitted;
     }
 
-    CitroTexture *texture = new CitroTexture();
-    int texWidth = nextPowerOfTwo(rgbaSurface->w);
-    int texHeight = nextPowerOfTwo(rgbaSurface->h);
-    if (!C3D_TexInit(&texture->tex, texWidth, texHeight, GPU_RGBA8))
+    CitroTexture *texture = newTexture(rgbaSurface->w, rgbaSurface->h);
+    if (!texture)
     {
         SDL_FreeSurface(rgbaSurface);
-        delete texture;
-        fried_set_last_error("Out of GPU memory for a texture");
         return -1;
     }
 
-    std::memset(texture->tex.data, 0, texture->tex.size);
-    copyToTiles(rgbaSurface, &texture->tex);
+    copyToTiles(rgbaSurface, {0, 0, rgbaSurface->w, rgbaSurface->h}, 0, 0, &texture->tex);
     C3D_TexFlush(&texture->tex);
-    C3D_TexSetFilter(&texture->tex, GPU_NEAREST, GPU_NEAREST);
-    C3D_TexSetWrap(&texture->tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 
-    // The GPU's v runs from the bottom of a texture, so the image's top row is v = 1.
     // The size stays the source's, so a downscaled texture still draws and measures as it.
-    texture->subtexture = {
-        (u16)surface->w,
-        (u16)surface->h,
-        0.0f,
-        1.0f,
-        rgbaSurface->w / (float)texWidth,
-        1.0f - rgbaSurface->h / (float)texHeight,
-    };
-    texture->image = {&texture->tex, &texture->subtexture};
+    texture->subtexture.width = (u16)surface->w;
+    texture->subtexture.height = (u16)surface->h;
     texture->downscale = downscale;
 
     SDL_FreeSurface(rgbaSurface);
     return s_textures.store(texture);
+}
+
+int fried_texture_create_blank(int rendererId, int width, int height)
+{
+    (void)rendererId;
+    if (width > s_maxTextureSide || height > s_maxTextureSide)
+    {
+        fried_set_last_error("Larger than the GPU takes");
+        return -1;
+    }
+
+    CitroTexture *texture = newTexture(width, height);
+    if (!texture)
+    {
+        return -1;
+    }
+    C3D_TexFlush(&texture->tex);
+    return s_textures.store(texture);
+}
+
+bool fried_texture_write(int textureId, int x, int y, SDL_Surface *surface, const SDL_Rect *sourceRect)
+{
+    CitroTexture *texture = s_textures.get(textureId);
+    if (!texture || !surface || !sourceRect)
+    {
+        fried_set_last_error("No such texture, or no surface given");
+        return false;
+    }
+    if (texture->downscale != 1 || x < 0 || y < 0 || x + sourceRect->w > texture->subtexture.width || y + sourceRect->h > texture->subtexture.height)
+    {
+        fried_set_last_error("The region does not fit the texture");
+        return false;
+    }
+
+    SDL_Surface *rgbaSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA8888, 0);
+    if (!rgbaSurface)
+    {
+        fried_capture_sdl_error();
+        return false;
+    }
+    copyToTiles(rgbaSurface, *sourceRect, x, y, &texture->tex);
+    SDL_FreeSurface(rgbaSurface);
+    if (sourceRect->h > 0)
+    {
+        flushTileRows(&texture->tex, y, sourceRect->h);
+    }
+    return true;
 }
 
 int fried_texture_load(int rendererId, const char *path)

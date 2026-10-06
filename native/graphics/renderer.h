@@ -20,6 +20,25 @@ extern "C"
     void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int height);
 }
 
+// The pivot may lie outside the quad, so a line of glyphs turns as one.
+struct FriedQuad
+{
+    int m_srcX;
+    int m_srcY;
+    int m_srcWidth;
+    int m_srcHeight;
+    float m_x;
+    float m_y;
+    float m_width;
+    float m_height;
+    float m_angle;
+    float m_pivotX;
+    float m_pivotY;
+};
+
+// Only a white texture tints the same on every backend.
+void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a);
+
 #ifndef __3DS__
 struct SDL_Renderer;
 

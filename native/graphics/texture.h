@@ -1,5 +1,6 @@
 #pragma once
 
+struct SDL_Rect;
 struct SDL_Surface;
 
 extern "C"
@@ -15,6 +16,9 @@ extern "C"
 
 // The surface stays the caller's.
 int fried_texture_create_from_surface(int rendererId, struct SDL_Surface *surface);
+
+int fried_texture_create_blank(int rendererId, int width, int height);
+bool fried_texture_write(int textureId, int x, int y, struct SDL_Surface *surface, const struct SDL_Rect *sourceRect);
 
 #ifdef __3DS__
 #include <citro2d.h>

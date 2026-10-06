@@ -193,6 +193,11 @@ class Renderer {
 			width != null ? width : srcWidth, height != null ? height : srcHeight, angle, cast flip);
 	}
 
+	// Rotates about the centre of the box.
+	public function drawText(font:Font, text:String, x:Int, y:Int, color:Color, ?width:Int, ?height:Int, angle:Float = 0.0):Void {
+		font.drawText(this, text, x, y, width != null ? width : font.measureWidth(text), height != null ? height : font.lineHeight, angle, color);
+	}
+
 	public function fillRect(rect:Rect):Void {
 		RendererNative.fillRect(id, rect.x, rect.y, rect.width, rect.height);
 	}

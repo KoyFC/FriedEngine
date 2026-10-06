@@ -2,6 +2,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/font.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
@@ -100,6 +101,22 @@ namespace
         return renderer;
     }
 
+    // The region is in the source's pixels, which a downscaled texture holds fewer of.
+    Tex3DS_SubTexture regionOf(const C2D_Image &image, int srcX, int srcY, int srcWidth, int srcHeight)
+    {
+        const Tex3DS_SubTexture *whole = image.subtex;
+        float uPerPixel = (whole->right - whole->left) / whole->width;
+        float vPerPixel = (whole->top - whole->bottom) / whole->height;
+        return {
+            (u16)srcWidth,
+            (u16)srcHeight,
+            whole->left + srcX * uPerPixel,
+            whole->top - srcY * vPerPixel,
+            whole->left + (srcX + srcWidth) * uPerPixel,
+            whole->top - (srcY + srcHeight) * vPerPixel,
+        };
+    }
+
     void fillRect(float x, float y, float width, float height, u32 color)
     {
         C2D_DrawRectSolid(x, y, s_depth, width, height, color);
@@ -153,11 +170,13 @@ int fried_renderer_create(int windowId, bool vsync)
 
 void fried_renderer_destroy(int rendererId)
 {
-    CitroRenderer *renderer = s_renderers.release(rendererId);
+    CitroRenderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
         return;
     }
+    fried_font_release_renderer(rendererId);
+    s_renderers.release(rendererId);
     if (s_sceneRenderer == renderer)
     {
         s_sceneRenderer = nullptr;
@@ -243,18 +262,7 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
         return;
     }
 
-    // The region is in the source's pixels, which a downscaled texture holds fewer of.
-    const Tex3DS_SubTexture *whole = image->subtex;
-    float uPerPixel = (whole->right - whole->left) / whole->width;
-    float vPerPixel = (whole->top - whole->bottom) / whole->height;
-    Tex3DS_SubTexture region = {
-        (u16)srcWidth,
-        (u16)srcHeight,
-        whole->left + srcX * uPerPixel,
-        whole->top - srcY * vPerPixel,
-        whole->left + (srcX + srcWidth) * uPerPixel,
-        whole->top - (srcY + srcHeight) * vPerPixel,
-    };
+    Tex3DS_SubTexture region = regionOf(*image, srcX, srcY, srcWidth, srcHeight);
 
     // Rotated about the centre of the destination, as SDL_RenderCopyEx() does.
     // A negative size is how citro2d flips an image.
@@ -271,6 +279,30 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
     params.depth = s_depth;
     params.angle = (float)angle * s_degreesToRadians;
     C2D_DrawImage({image->tex, &region}, &params, nullptr);
+}
+
+void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
+{
+    const C2D_Image *image = fried_texture_get_citro(textureId);
+    if (!image || !sceneRenderer(rendererId))
+    {
+        return;
+    }
+
+    // At full blend the solid tint replaces the colour and multiplies the alpha.
+    C2D_ImageTint tint;
+    C2D_PlainImageTint(&tint, C2D_Color32((u8)r, (u8)g, (u8)b, (u8)a), 1.0f);
+    for (int index = 0; index < count; ++index)
+    {
+        const FriedQuad &quad = quads[index];
+        Tex3DS_SubTexture region = regionOf(*image, quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight);
+        C2D_DrawParams params = {};
+        params.pos = {quad.m_pivotX, quad.m_pivotY, quad.m_width, quad.m_height};
+        params.center = {quad.m_pivotX - quad.m_x, quad.m_pivotY - quad.m_y};
+        params.depth = s_depth;
+        params.angle = quad.m_angle * s_degreesToRadians;
+        C2D_DrawImage({image->tex, &region}, &params, &tint);
+    }
 }
 
 void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int height)

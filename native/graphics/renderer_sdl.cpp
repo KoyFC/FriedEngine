@@ -2,6 +2,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/font.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
@@ -49,11 +50,13 @@ int fried_renderer_create(int windowId, bool vsync)
 
 void fried_renderer_destroy(int rendererId)
 {
-    SDL_Renderer *renderer = s_renderers.release(rendererId);
+    SDL_Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
         return;
     }
+    fried_font_release_renderer(rendererId);
+    s_renderers.release(rendererId);
     SDL_DestroyRenderer(renderer);
 }
 
@@ -152,6 +155,27 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
     SDL_Rect source = {srcX, srcY, srcWidth, srcHeight};
     SDL_Rect destination = {x, y, width, height};
     SDL_RenderCopyEx(renderer, texture, &source, &destination, angle, nullptr, (SDL_RendererFlip)flipMode);
+}
+
+void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    SDL_Texture *texture = fried_texture_get_sdl(textureId);
+    if (!renderer || !texture)
+    {
+        return;
+    }
+
+    SDL_SetTextureColorMod(texture, (Uint8)r, (Uint8)g, (Uint8)b);
+    SDL_SetTextureAlphaMod(texture, (Uint8)a);
+    for (int index = 0; index < count; ++index)
+    {
+        const FriedQuad &quad = quads[index];
+        SDL_Rect source = {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight};
+        SDL_FRect destination = {quad.m_x, quad.m_y, quad.m_width, quad.m_height};
+        SDL_FPoint pivot = {quad.m_pivotX - quad.m_x, quad.m_pivotY - quad.m_y};
+        SDL_RenderCopyExF(renderer, texture, &source, &destination, quad.m_angle, &pivot, SDL_FLIP_NONE);
+    }
 }
 
 void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int height)

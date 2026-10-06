@@ -6,7 +6,6 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;
-import fried.graphics.Texture;
 import fried.input.Input;
 import fried.input.InputEvent;
 import fried.input.InputEventType;
@@ -25,12 +24,13 @@ class DebugOverlay extends Layer {
 	var playerController:PlayerController;
 
 	var background:Rect;
-	var lines:Array<Texture>;
-	var renderedText:String;
+	var lines:Array<String>;
+	var lineWidths:Array<Int>;
 	var nextRefresh:Float;
 
 	static inline var PADDING:Int = 6;
 	static inline var MARGIN:Int = 12;
+	static var TEXT_COLOR:Color = Color.rgb(200, 215, 230);
 
 	public function new(font:Font, camera:Camera, player:GameObject, togglesInterface:Layer, interfaceRenderer:Renderer) {
 		super("Debug overlay");
@@ -43,6 +43,7 @@ class DebugOverlay extends Layer {
 		refreshInterval = 0.25;
 		background = new Rect(0, 0, 0, 0);
 		lines = [];
+		lineWidths = [];
 		nextRefresh = 0.0;
 	}
 
@@ -51,7 +52,7 @@ class DebugOverlay extends Layer {
 			return;
 		}
 		nextRefresh = Time.elapsedSeconds + refreshInterval;
-		render(describe());
+		layOut(describe());
 	}
 
 	override function draw():Void {
@@ -62,9 +63,9 @@ class DebugOverlay extends Layer {
 		background.y = renderer.height - background.height - MARGIN;
 		DrawQueue.submitFillRect(0, background, Color.rgba(12, 12, 18, 200));
 		var lineY = background.y + PADDING;
-		for (line in lines) {
-			DrawQueue.submitTexture(1, line, background.x + PADDING, lineY, line.width, line.height);
-			lineY += line.height;
+		for (index in 0...lines.length) {
+			DrawQueue.submitText(1, font, lines[index], background.x + PADDING, lineY, lineWidths[index], font.lineHeight, TEXT_COLOR);
+			lineY += font.lineHeight;
 		}
 	}
 
@@ -80,11 +81,6 @@ class DebugOverlay extends Layer {
 			interfaceRenderer.removeLayer(togglesInterface);
 			Log.info('Interface layer taken off from inside the event walk, stack still reads ${interfaceRenderer.layers.length} layers');
 		}
-	}
-
-	public function destroy():Void {
-		destroyLines();
-		renderedText = null;
 	}
 
 	function describe():Array<String> {
@@ -110,32 +106,17 @@ class DebugOverlay extends Layer {
 		return 'touch $device ${fingerCount}x, first at ${Input.getTouchX(0, device)}, ${Input.getTouchY(0, device)}';
 	}
 
-	// A rendered string is a texture, so one per frame would be one allocation
-	// and one upload per frame. The interval bounds how often that can happen
-	// and the comparison skips it entirely while the numbers hold still.
-	function render(description:Array<String>):Void {
-		var text = description.join(LinePacker.SEPARATOR);
-		if (text == renderedText) {
-			return;
-		}
-		destroyLines();
+	// The interval keeps numbers that change every frame slow enough to read.
+	function layOut(description:Array<String>):Void {
+		lines = LinePacker.pack(font, description, renderer.width - (MARGIN + PADDING) * 2);
+		lineWidths.resize(0);
 		background.width = 0;
-		background.height = 0;
-		for (lineText in LinePacker.pack(font, description, renderer.width - (MARGIN + PADDING) * 2)) {
-			var line = font.renderText(renderer, lineText, Color.rgb(200, 215, 230));
-			lines.push(line);
-			background.width = line.width > background.width ? line.width : background.width;
-			background.height += line.height;
+		for (line in lines) {
+			var width = font.measureWidth(line);
+			lineWidths.push(width);
+			background.width = width > background.width ? width : background.width;
 		}
 		background.width += PADDING * 2;
-		background.height += PADDING * 2;
-		renderedText = text;
-	}
-
-	function destroyLines():Void {
-		for (line in lines) {
-			line.destroy();
-		}
-		lines.resize(0);
+		background.height = lines.length * font.lineHeight + PADDING * 2;
 	}
 }
