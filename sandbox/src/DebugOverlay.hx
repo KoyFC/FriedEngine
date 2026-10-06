@@ -7,6 +7,7 @@ import fried.graphics.Font;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
+import fried.input.Input;
 import fried.input.InputEvent;
 import fried.input.InputEventType;
 import fried.input.Key;
@@ -91,10 +92,22 @@ class DebugOverlay extends Layer {
 		var cameraX = Std.int(camera.transform.x);
 		var cameraY = Std.int(camera.transform.y);
 		var contact = playerController.blockedBy == null ? "none" : playerController.blockedBy;
-		return [
+		var description = [
 			'frame ${Time.frameCount}', 'queue ${DrawQueue.capacity}', 'camera $cameraX, $cameraY', 'zoom $zoom',
 			'player priority ${player.priority}', 'blocked by $contact'
 		];
+		for (device in 0...Input.touchDeviceCount) {
+			description.push(describeTouch(device));
+		}
+		return description;
+	}
+
+	function describeTouch(device:Int):String {
+		var fingerCount = Input.getTouchCount(device);
+		if (fingerCount == 0) {
+			return 'touch $device none';
+		}
+		return 'touch $device ${fingerCount}x, first at ${Input.getTouchX(0, device)}, ${Input.getTouchY(0, device)}';
 	}
 
 	// A rendered string is a texture, so one per frame would be one allocation

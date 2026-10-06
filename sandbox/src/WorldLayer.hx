@@ -16,13 +16,15 @@ class WorldLayer extends SceneLayer {
 	}
 
 	override function onEvent(event:InputEvent):Void {
-		if (event.type != InputEventType.MouseButtonDown || event.mouseButton != MouseButton.Left) {
+		var isClick = event.type == InputEventType.MouseButtonDown && event.mouseButton == MouseButton.Left;
+		var isFrontTouch = event.type == InputEventType.TouchDown && event.touchDevice == 0;
+		if (!isClick && !isFrontTouch) {
 			return;
 		}
 		var camera = scene.camera;
 		var worldX = camera.screenToWorldX(event.x, renderer);
 		var worldY = camera.screenToWorldY(event.y, renderer);
-		Log.info('Left click at screen ${event.x}, ${event.y}, world $worldX, $worldY');
+		Log.info('${isClick ? "Left click" : "Touch"} at screen ${event.x}, ${event.y}, world $worldX, $worldY');
 
 		var clicked = Physics.overlapPoint(scene, worldX, worldY);
 		Log.info(clicked == null ? "Nothing has a collider under that point" : 'That point is inside the collider of ${clicked.gameObject.name}');

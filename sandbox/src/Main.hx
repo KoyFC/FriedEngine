@@ -13,6 +13,7 @@ import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.input.GamepadButton;
 import fried.input.Input;
+import fried.input.InputEventType;
 import fried.input.Key;
 import fried.io.Assets;
 import fried.io.Filesystem;
@@ -206,6 +207,13 @@ class Main {
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
 		Application.run(function() {
+			for (event in Input.events) {
+				if (event.type == InputEventType.TouchDown || event.type == InputEventType.TouchUp) {
+					var action = event.type == InputEventType.TouchDown ? "down" : "up";
+					Log.info('Finger ${event.fingerId} $action on touch device ${event.touchDevice} at ${event.x}, ${event.y}');
+				}
+			}
+
 			if (Input.isGamepadButtonDown(GamepadButton.Start)) {
 				Log.info("Start pressed, so the program quits without a window to close");
 				Application.quit();

@@ -19,14 +19,16 @@ class InterfaceLayer extends SceneLayer {
 	}
 
 	override function onEvent(event:InputEvent):Void {
-		if (event.type != InputEventType.MouseButtonDown || event.mouseButton != MouseButton.Left) {
+		var isClick = event.type == InputEventType.MouseButtonDown && event.mouseButton == MouseButton.Left;
+		var isFrontTouch = event.type == InputEventType.TouchDown && event.touchDevice == 0;
+		if (!isClick && !isFrontTouch) {
 			return;
 		}
 		if (!panelContains(event.x, event.y)) {
 			return;
 		}
 		event.handled = true;
-		Log.info('The interface took the click at ${event.x}, ${event.y}, so the world below never sees it');
+		Log.info('The interface took the press at ${event.x}, ${event.y}, so the world below never sees it');
 	}
 
 	function panelContains(x:Int, y:Int):Bool {
