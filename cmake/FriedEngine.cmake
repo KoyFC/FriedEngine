@@ -106,6 +106,7 @@ if(NOT TARGET fried_engine)
 
     if(NINTENDO_3DS)
         target_link_libraries(fried_engine PUBLIC citro2d citro3d)
+        target_compile_options(fried_engine PRIVATE -Wno-psabi)
     endif()
 
     add_library(fried::engine ALIAS fried_engine)
