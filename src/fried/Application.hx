@@ -79,7 +79,7 @@ class Application {
 				isRunning = false;
 				break;
 			}
-			dispatchInputEvents();
+			propagateInputEvents();
 			Time.tick();
 
 			for (renderer in renderers) {
@@ -106,13 +106,13 @@ class Application {
 		}
 	}
 
-	static function dispatchInputEvents():Void {
+	static function propagateInputEvents():Void {
 		for (event in Input.events) {
 			for (renderer in renderers) {
 				if (event.window != null && event.window != renderer.window) {
 					continue;
 				}
-				renderer.dispatchEvent(event);
+				renderer.propagateEvent(event);
 				if (event.handled) {
 					break;
 				}

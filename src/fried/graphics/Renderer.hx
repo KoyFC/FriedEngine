@@ -121,7 +121,7 @@ class Renderer {
 	}
 
 	@:allow(fried.Application)
-	function dispatchEvent(event:InputEvent):Void {
+	function propagateEvent(event:InputEvent):Void {
 		applyPendingLayerChanges();
 		isIteratingLayers = true;
 		var index = layers.length - 1;

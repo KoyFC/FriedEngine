@@ -105,7 +105,7 @@ class GameObject {
 	}
 
 	@:allow(fried.scene.Scene)
-	function dispatchEvent(event:InputEvent, renderer:Renderer):Void {
+	function propagateEvent(event:InputEvent, renderer:Renderer):Void {
 		if (!isActive) {
 			return;
 		}
