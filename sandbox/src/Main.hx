@@ -81,8 +81,6 @@ class Main {
 
 		var music = new Music(Assets.game("music.wav"));
 		Music.volume = 0.2;
-		music.play();
-		Log.success('Music playing at volume ${Music.volume}');
 
 		var spriteScale = 8.0;
 		var playerSpeed = 240.0;
@@ -205,6 +203,10 @@ class Main {
 		Log.info('The wall carries no collider, so it stays the draw order demo and the ${colliders.length - 1} posts are what the player cannot walk through');
 
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
+
+		// Started last, so it does not play over a screen still being set up.
+		music.play();
+		Log.success('Music playing at volume ${Music.volume}');
 
 		Application.run(function() {
 			for (event in Input.events) {
