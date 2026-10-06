@@ -70,7 +70,7 @@ class Main {
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hints = [
-			'Run $runs', "Space/A: sound", "M/B: music", "WASD/stick: move", "Q/E: zoom",
+			'Run $runs', "Space/A: sound", "M/B: music", "WASD/stick: move", "Q/E/L/R: zoom",
 			"F3/Select: overlay", "F4: interface", "F5: collider bounds", "Start: quit"
 		];
 		var labelColor = Color.rgb(220, 220, 230);
@@ -257,10 +257,10 @@ class Main {
 				Log.info('Debug overlay ${overlay.isEnabled ? "enabled" : "disabled"}, still on the stack either way');
 			}
 
-			if (Input.isKeyPressed(Key.Q)) {
+			if (Input.isKeyPressed(Key.Q) || Input.isGamepadButtonPressed(GamepadButton.L1)) {
 				camera.zoom -= Time.deltaSeconds;
 			}
-			if (Input.isKeyPressed(Key.E)) {
+			if (Input.isKeyPressed(Key.E) || Input.isGamepadButtonPressed(GamepadButton.R1)) {
 				camera.zoom += Time.deltaSeconds;
 			}
 
