@@ -171,7 +171,34 @@ class Main {
 		}
 
 		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
-		var overlay = new DebugOverlay(font, camera, playerObject, interfaceLayer, renderer);
+		var debugScene = new Scene("Sandbox debug");
+		var overlay = new DebugOverlay(debugScene, font, camera, playerObject, interfaceLayer, renderer);
+
+		function toggleColliders():Void {
+			for (collider in colliders) {
+				collider.isDebugVisible = !collider.isDebugVisible;
+			}
+			Log.info('Collider bounds ${colliders[0].isDebugVisible ? "shown" : "hidden"} for ${colliders.length} colliders');
+		}
+
+		function toggleMusic():Void {
+			if (music.paused) {
+				music.resume();
+				Log.info("Music resumed");
+			} else {
+				music.pause();
+				Log.info("Music paused");
+			}
+		}
+
+		function playSound():Void {
+			beep.play();
+			Log.info("Sound played");
+		}
+
+		overlay.addButton(() -> 'Colliders ${colliders[0].isDebugVisible ? "on" : "off"}', toggleColliders);
+		overlay.addButton(() -> 'Music ${music.paused ? "off" : "on"}', toggleMusic);
+		overlay.addButton(() -> "Sound", playSound);
 
 		renderer.pushLayer(new WorldLayer(scene, playerCollider));
 		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
@@ -222,10 +249,7 @@ class Main {
 			}
 
 			if (Input.isKeyDown(Key.F5)) {
-				for (collider in colliders) {
-					collider.isDebugVisible = !collider.isDebugVisible;
-				}
-				Log.info('Collider bounds ${colliders[0].isDebugVisible ? "shown" : "hidden"} for ${colliders.length} colliders');
+				toggleColliders();
 			}
 
 			if (Input.isKeyDown(Key.F3) || Input.isGamepadButtonDown(GamepadButton.Select)) {
@@ -245,18 +269,11 @@ class Main {
 			}
 
 			if (Input.isKeyDown(Key.Space) || Input.isGamepadButtonDown(GamepadButton.South)) {
-				beep.play();
-				Log.info("Sound played");
+				playSound();
 			}
 
 			if (Input.isKeyDown(Key.M) || Input.isGamepadButtonDown(GamepadButton.East)) {
-				if (music.paused) {
-					music.resume();
-					Log.info("Music resumed");
-				} else {
-					music.pause();
-					Log.info("Music paused");
-				}
+				toggleMusic();
 			}
 		});
 
@@ -267,6 +284,7 @@ class Main {
 		closeWindow();
 		scene.destroy();
 		uiScene.destroy();
+		debugScene.destroy();
 		music.destroy();
 
 		Application.shutdown();

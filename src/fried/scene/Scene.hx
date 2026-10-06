@@ -2,6 +2,8 @@ package fried.scene;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
+import fried.input.InputEvent;
+import haxe.ds.ArraySort;
 
 class Scene {
 	public var name:String;
@@ -15,6 +17,7 @@ class Scene {
 	var pendingAdds:Array<GameObject>;
 	var pendingRemovals:Array<GameObject>;
 	var pendingDestroys:Array<GameObject>;
+	var eventOrder:Array<GameObject>;
 	var isIterating:Bool;
 
 	public function new(name:String = "Scene") {
@@ -23,6 +26,7 @@ class Scene {
 		pendingAdds = [];
 		pendingRemovals = [];
 		pendingDestroys = [];
+		eventOrder = [];
 		isIterating = false;
 	}
 
@@ -71,6 +75,24 @@ class Scene {
 		isIterating = false;
 	}
 
+	// Top first, the reverse of the order things are drawn in.
+	public function dispatchEvent(event:InputEvent, renderer:Renderer):Void {
+		applyPendingChanges();
+		var index = sceneObjects.length - 1;
+		while (index >= 0) {
+			eventOrder.push(sceneObjects[index]);
+			index--;
+		}
+		ArraySort.sort(eventOrder, byPriorityDescending);
+		for (object in eventOrder) {
+			if (event.handled) {
+				break;
+			}
+			object.dispatchEvent(event, renderer);
+		}
+		eventOrder.resize(0);
+	}
+
 	public function destroy():Void {
 		applyPendingChanges();
 		isIterating = true;
@@ -107,6 +129,10 @@ class Scene {
 			sceneObjects.push(object);
 		}
 		pendingAdds.resize(0);
+	}
+
+	static function byPriorityDescending(first:GameObject, second:GameObject):Int {
+		return second.priority - first.priority;
 	}
 
 	function get_objectCount():Int {

@@ -1,6 +1,7 @@
 package fried.scene;
 
 import fried.Layer;
+import fried.input.InputEvent;
 
 class SceneLayer extends Layer {
 	public var scene(default, null):Scene;
@@ -16,5 +17,9 @@ class SceneLayer extends Layer {
 
 	override function draw():Void {
 		scene.draw(renderer);
+	}
+
+	override function onEvent(event:InputEvent):Void {
+		scene.dispatchEvent(event, renderer);
 	}
 }

@@ -1,5 +1,8 @@
 package fried.scene;
 
+import fried.graphics.Renderer;
+import fried.input.InputEvent;
+
 class Component {
 	public var gameObject(default, null):GameObject;
 	public var enabled:Bool;
@@ -31,6 +34,9 @@ class Component {
 
 	@:allow(fried.scene.GameObject)
 	function draw():Void {}
+
+	@:allow(fried.scene.GameObject)
+	function onEvent(event:InputEvent, renderer:Renderer):Void {}
 
 	inline function get_transform():Transform {
 		return gameObject.transform;

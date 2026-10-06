@@ -106,6 +106,8 @@ The glyphs are rasterized in white and tinted when drawn, so one atlas serves ev
 
 `width` comes from the font and is measured once per change of `text` or `font`, so a size is there before the first frame: the sandbox sizes its hint panel around two labels that have never been drawn. One `Text` is one line, since wrapping would be a layout pass the engine does not have.
 
+`Button` is the one component that takes input, which is why components have an `onEvent()` hook next to `update()` and `draw()`. A scene receives the events of the layer it is in and hands each one to its objects top first, in the order they are drawn reversed: higher priority before lower, and the later added before the earlier at the same priority, so the button drawn over another is the one pressed. The walk stops at the first component that sets `handled`, and it goes over a copy of the object list, so a click that adds or destroys objects does not disturb it. A button is held by the mouse or by one finger on the front touch device, shows as pressed while that pointer is over it, and calls `onClick` when the pointer is released over it; released elsewhere, it lets go without a click. Its state is `isPressed` and nothing more: no focus, so a gamepad cannot reach it yet. It hit tests through its scene's camera, so it works in world space as well as on an interface scene without one.
+
 Parent and child hierarchies are not implemented. A draw priority is a single flat number within its layer, and a game sets it on the object at any time, including from a component in the middle of a frame.
 
 ## Cameras
@@ -122,7 +124,7 @@ Two consequences are worth knowing. A scene has one camera and a camera has one 
 
 ## Layers
 
-A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the first two hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer that is not a scene at all still has somewhere to live: `sandbox/src/DebugOverlay.hx` wraps no scene, and draws straight to the queue from its own `draw()`. Making a layer *be* a scene would have closed that door to save those few lines.
+A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the three hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer can still draw what is not a scene: `sandbox/src/DebugOverlay.hx` draws its buttons through a scene and its readout straight to the queue from its own `draw()`. Making a layer *be* a scene would have closed that door to save those few lines.
 
 A `SceneLayer` does not own its scene. The game created it and the game destroys it, so removing a layer takes down the presentation and leaves the content alone.
 

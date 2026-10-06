@@ -1,5 +1,8 @@
 package fried.scene;
 
+import fried.graphics.Renderer;
+import fried.input.InputEvent;
+
 class GameObject {
 	public var name:String;
 	public var isActive:Bool;
@@ -97,6 +100,21 @@ class GameObject {
 		for (component in components) {
 			if (component.enabled) {
 				component.draw();
+			}
+		}
+	}
+
+	@:allow(fried.scene.Scene)
+	function dispatchEvent(event:InputEvent, renderer:Renderer):Void {
+		if (!isActive) {
+			return;
+		}
+		for (component in components) {
+			if (event.handled) {
+				return;
+			}
+			if (component.enabled) {
+				component.onEvent(event, renderer);
 			}
 		}
 	}
