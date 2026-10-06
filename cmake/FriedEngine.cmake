@@ -104,9 +104,12 @@ if(NOT TARGET fried_engine)
         set_target_properties(fried_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
     endif()
 
+    if(VITA OR NINTENDO_3DS)
+        target_compile_options(fried_engine PRIVATE -Wno-psabi)
+    endif()
+
     if(NINTENDO_3DS)
         target_link_libraries(fried_engine PUBLIC citro2d citro3d)
-        target_compile_options(fried_engine PRIVATE -Wno-psabi)
     endif()
 
     add_library(fried::engine ALIAS fried_engine)
