@@ -2,6 +2,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/display.h"
 #include "graphics/font.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
@@ -18,8 +19,7 @@ namespace
     {
         C3D_RenderTarget *target;
         gfxScreen_t screen;
-        int width;
-        int height;
+        FriedDisplayLayout layout;
         u32 drawColor;
     };
 
@@ -55,6 +55,30 @@ namespace
         C3D_Fini();
     }
 
+    // The screens are mounted rotated, so GSP names their width a height.
+    int screenWidth(gfxScreen_t screen)
+    {
+        return screen == GFX_TOP ? GSP_SCREEN_HEIGHT_TOP : GSP_SCREEN_HEIGHT_BOTTOM;
+    }
+
+    constexpr int s_screenHeight = GSP_SCREEN_WIDTH;
+
+    // The project's display only applies to the top screen.
+    FriedDisplayLayout layoutOfScreen(gfxScreen_t screen)
+    {
+        int width = screenWidth(screen);
+        if (screen == GFX_TOP)
+        {
+            return fried_display_layout(width, s_screenHeight);
+        }
+        return {width, s_screenHeight, 0, 0, width, s_screenHeight, 1.0f, 1.0f};
+    }
+
+    gfxScreen_t screenOfWindow(SDL_Window *window)
+    {
+        return SDL_GetWindowDisplayIndex(window) == 0 ? GFX_TOP : GFX_BOTTOM;
+    }
+
     gfxScreen_t otherScreen(gfxScreen_t screen)
     {
         return screen == GFX_TOP ? GFX_BOTTOM : GFX_TOP;
@@ -88,6 +112,10 @@ namespace
         if (s_sceneRenderer != renderer)
         {
             C2D_SceneBegin(renderer->target);
+            const FriedDisplayLayout &layout = renderer->layout;
+            C2D_ViewReset();
+            C2D_ViewTranslate(layout.m_viewportX, layout.m_viewportY);
+            C2D_ViewScale(layout.m_scaleX, layout.m_scaleY);
             s_sceneRenderer = renderer;
         }
     }
@@ -122,6 +150,30 @@ namespace
     {
         C2D_DrawRectSolid(x, y, s_depth, width, height, color);
     }
+
+    // Painted over the frame rather than clipped to, so whatever was drawn past
+    // the viewport is hidden too.
+    void drawLetterboxBars(CitroRenderer *renderer)
+    {
+        const FriedDisplayLayout &layout = renderer->layout;
+        int outputWidth = screenWidth(renderer->screen);
+        int outputHeight = s_screenHeight;
+        int viewportRight = layout.m_viewportX + layout.m_viewportWidth;
+        int viewportBottom = layout.m_viewportY + layout.m_viewportHeight;
+        if (layout.m_viewportX == 0 && layout.m_viewportY == 0 && viewportRight == outputWidth && viewportBottom == outputHeight)
+        {
+            return;
+        }
+
+        beginScene(renderer);
+        C2D_ViewReset();
+        u32 black = C2D_Color32(0, 0, 0, 255);
+        fillRect(0, 0, outputWidth, layout.m_viewportY, black);
+        fillRect(0, viewportBottom, outputWidth, outputHeight - viewportBottom, black);
+        fillRect(0, layout.m_viewportY, layout.m_viewportX, layout.m_viewportHeight, black);
+        fillRect(viewportRight, layout.m_viewportY, outputWidth - viewportRight, layout.m_viewportHeight, black);
+        s_sceneRenderer = nullptr;
+    }
 }
 
 int fried_renderer_create(int windowId, bool vsync)
@@ -141,7 +193,7 @@ int fried_renderer_create(int windowId, bool vsync)
         return -1;
     }
 
-    gfxScreen_t screen = SDL_GetWindowDisplayIndex(window) == 0 ? GFX_TOP : GFX_BOTTOM;
+    gfxScreen_t screen = screenOfWindow(window);
     if (isFirstRenderer)
     {
         blankScreen(otherScreen(screen));
@@ -163,8 +215,7 @@ int fried_renderer_create(int windowId, bool vsync)
     CitroRenderer *renderer = new CitroRenderer();
     renderer->target = target;
     renderer->screen = screen;
-    renderer->width = screen == GFX_TOP ? GSP_SCREEN_HEIGHT_TOP : GSP_SCREEN_HEIGHT_BOTTOM;
-    renderer->height = GSP_SCREEN_WIDTH;
+    renderer->layout = layoutOfScreen(screen);
     renderer->drawColor = C2D_Color32(0, 0, 0, 255);
     return s_renderers.store(renderer);
 }
@@ -201,13 +252,13 @@ bool fried_renderer_has_vsync(int rendererId)
 int fried_renderer_get_width(int rendererId)
 {
     CitroRenderer *renderer = s_renderers.get(rendererId);
-    return renderer ? renderer->width : 0;
+    return renderer ? renderer->layout.m_width : 0;
 }
 
 int fried_renderer_get_height(int rendererId)
 {
     CitroRenderer *renderer = s_renderers.get(rendererId);
-    return renderer ? renderer->height : 0;
+    return renderer ? renderer->layout.m_height : 0;
 }
 
 void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
@@ -235,6 +286,14 @@ void fried_renderer_present(int rendererId)
     if (!s_renderers.get(rendererId) || !s_isFrameOpen)
     {
         return;
+    }
+    for (int id = 0; id < s_renderers.capacity(); ++id)
+    {
+        CitroRenderer *renderer = s_renderers.get(id);
+        if (renderer)
+        {
+            drawLetterboxBars(renderer);
+        }
     }
     C3D_FrameEnd(0);
     s_isFrameOpen = false;
@@ -340,8 +399,19 @@ void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX,
 
 void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logicalX, int &logicalY)
 {
-    int width = fried_window_get_width(windowId);
-    int height = fried_window_get_height(windowId);
-    logicalX = std::clamp((int)(x * width), 0, std::max(0, width - 1));
-    logicalY = std::clamp((int)(y * height), 0, std::max(0, height - 1));
+    SDL_Window *window = fried_window_get_sdl(windowId);
+    if (!window)
+    {
+        logicalX = 0;
+        logicalY = 0;
+        return;
+    }
+
+    FriedDisplayLayout layout = layoutOfScreen(screenOfWindow(window));
+    float outputX = x * fried_window_get_width(windowId);
+    float outputY = y * fried_window_get_height(windowId);
+    int pixelX = (int)((outputX - layout.m_viewportX) / layout.m_scaleX);
+    int pixelY = (int)((outputY - layout.m_viewportY) / layout.m_scaleY);
+    logicalX = std::clamp(pixelX, 0, std::max(0, layout.m_width - 1));
+    logicalY = std::clamp(pixelY, 0, std::max(0, layout.m_height - 1));
 }
