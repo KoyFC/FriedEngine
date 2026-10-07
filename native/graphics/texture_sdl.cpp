@@ -45,25 +45,6 @@ int fried_texture_load(int rendererId, const char *path)
     return storeFiltered(texture);
 }
 
-int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
-{
-    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
-    if (!renderer || !surface)
-    {
-        fried_set_last_error("No such renderer, or no surface given");
-        return -1;
-    }
-
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    if (!texture)
-    {
-        fried_capture_sdl_error();
-        return -1;
-    }
-
-    return storeFiltered(texture);
-}
-
 int fried_texture_create_blank(int rendererId, int width, int height)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);

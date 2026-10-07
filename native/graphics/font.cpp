@@ -397,28 +397,6 @@ int fried_font_measure_width(int fontId, const char *text)
     return layOut(*font, text, s_placedGlyphs, originX);
 }
 
-int fried_font_render_text(int fontId, int rendererId, const char *text, int r, int g, int b, int a)
-{
-    LoadedFont *font = s_fonts.get(fontId);
-    if (!font || !text)
-    {
-        fried_set_last_error("No such font, or no text given");
-        return -1;
-    }
-
-    SDL_Color color = {(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a};
-    SDL_Surface *surface = TTF_RenderUTF8_Blended(font->m_layoutSource.m_font, text, color);
-    if (!surface)
-    {
-        fried_capture_sdl_error();
-        return -1;
-    }
-
-    int textureId = fried_texture_create_from_surface(rendererId, surface);
-    SDL_FreeSurface(surface);
-    return textureId;
-}
-
 void fried_font_draw_text(int fontId, int rendererId, const char *text, int x, int y, int width, int height, double angle, int r, int g, int b, int a)
 {
     LoadedFont *font = s_fonts.get(fontId);

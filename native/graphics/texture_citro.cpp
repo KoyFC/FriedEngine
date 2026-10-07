@@ -156,51 +156,53 @@ const C2D_Image *fried_texture_get_citro(int textureId)
     return texture ? &texture->image : nullptr;
 }
 
-int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
+namespace
 {
-    (void)rendererId;
-    if (!surface)
+    int textureFromSurface(SDL_Surface *surface)
     {
-        fried_set_last_error("No surface given");
-        return -1;
-    }
-    SDL_Surface *rgbaSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA8888, 0);
-    if (!rgbaSurface)
-    {
-        fried_capture_sdl_error();
-        return -1;
-    }
-
-    int downscale = downscaleToFit(rgbaSurface->w, rgbaSurface->h);
-    if (downscale > 1)
-    {
-        SDL_Surface *fitted = downscaled(rgbaSurface, downscale);
-        SDL_FreeSurface(rgbaSurface);
-        if (!fitted)
+        if (!surface)
+        {
+            fried_set_last_error("No surface given");
+            return -1;
+        }
+        SDL_Surface *rgbaSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA8888, 0);
+        if (!rgbaSurface)
         {
             fried_capture_sdl_error();
             return -1;
         }
-        rgbaSurface = fitted;
-    }
 
-    CitroTexture *texture = newTexture(rgbaSurface->w, rgbaSurface->h);
-    if (!texture)
-    {
+        int downscale = downscaleToFit(rgbaSurface->w, rgbaSurface->h);
+        if (downscale > 1)
+        {
+            SDL_Surface *fitted = downscaled(rgbaSurface, downscale);
+            SDL_FreeSurface(rgbaSurface);
+            if (!fitted)
+            {
+                fried_capture_sdl_error();
+                return -1;
+            }
+            rgbaSurface = fitted;
+        }
+
+        CitroTexture *texture = newTexture(rgbaSurface->w, rgbaSurface->h);
+        if (!texture)
+        {
+            SDL_FreeSurface(rgbaSurface);
+            return -1;
+        }
+
+        copyToTiles(rgbaSurface, {0, 0, rgbaSurface->w, rgbaSurface->h}, 0, 0, &texture->tex);
+        C3D_TexFlush(&texture->tex);
+
+        // The size stays the source's, so a downscaled texture still draws and measures as it.
+        texture->subtexture.width = (u16)surface->w;
+        texture->subtexture.height = (u16)surface->h;
+        texture->downscale = downscale;
+
         SDL_FreeSurface(rgbaSurface);
-        return -1;
+        return s_textures.store(texture);
     }
-
-    copyToTiles(rgbaSurface, {0, 0, rgbaSurface->w, rgbaSurface->h}, 0, 0, &texture->tex);
-    C3D_TexFlush(&texture->tex);
-
-    // The size stays the source's, so a downscaled texture still draws and measures as it.
-    texture->subtexture.width = (u16)surface->w;
-    texture->subtexture.height = (u16)surface->h;
-    texture->downscale = downscale;
-
-    SDL_FreeSurface(rgbaSurface);
-    return s_textures.store(texture);
 }
 
 int fried_texture_create_blank(int rendererId, int width, int height)
@@ -265,7 +267,7 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    int textureId = fried_texture_create_from_surface(rendererId, surface);
+    int textureId = textureFromSurface(surface);
     SDL_FreeSurface(surface);
     return textureId;
 }

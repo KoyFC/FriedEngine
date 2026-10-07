@@ -1,21 +1,31 @@
 {
-	"name": "Fried Sandbox",
-	"organization": "Fried Engine",
-	"version": "01.00",
-	"window": {
-		"title": "Fried Engine sandbox !!!"
-	},
-	"display": {
-		"mode": "expand",
-		"width": 640,
-		"height": 480
-	},
-	"vita": {
-		"titleId": "FRIE00001"
-	},
 	"3ds": {
 		"display": {
 			"mode": "default"
 		}
+	},
+	"display": {
+		"height": 480,
+		"mode": "expand",
+		"width": 640
+	},
+	"name": "Fried Sandbox",
+	"organization": "Fried Engine",
+	"switch": {
+		"display": {
+			"filter": "nearest",
+			"mode": "default"
+		}
+	},
+	"version": "01.00",
+	"vita": {
+		"display": {
+			"filter": "nearest",
+			"mode": "default"
+		},
+		"titleId": "FRIE00001"
+	},
+	"window": {
+		"title": "Fried Engine sandbox !!!"
 	}
 }

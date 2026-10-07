@@ -27,8 +27,7 @@ class Texture {
 		return new Texture(renderer, id, path);
 	}
 
-	@:allow(fried.graphics.Font)
-	function new(renderer:Renderer, id:Int, ?path:String) {
+	function new(renderer:Renderer, id:Int, path:String) {
 		this.renderer = renderer;
 		this.id = id;
 		this.path = path;
@@ -38,8 +37,7 @@ class Texture {
 
 		var downscale = TextureNative.getDownscale(id);
 		if (downscale > 1) {
-			var source = path != null ? path : "A rendered text";
-			Log.warn('$source is ${width}x${height}, more than this GPU takes, so it is stored at 1/$downscale of that and drawn blurrier.');
+			Log.warn('$path is ${width}x${height}, more than this GPU takes, so it is stored at 1/$downscale of that and drawn blurrier.');
 		}
 	}
 

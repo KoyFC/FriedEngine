@@ -155,17 +155,13 @@ class Renderer {
 	@:allow(fried.graphics.Texture)
 	function registerTexture(texture:Texture, path:String):Void {
 		activeTextures.push(texture);
-		if (path != null) {
-			texturesByPath.set(path, texture);
-		}
+		texturesByPath.set(path, texture);
 	}
 
 	@:allow(fried.graphics.Texture)
 	function unregisterTexture(texture:Texture, path:String):Void {
 		activeTextures.remove(texture);
-		if (path != null) {
-			texturesByPath.remove(path);
-		}
+		texturesByPath.remove(path);
 	}
 
 	function set_drawColor(color:Color):Color {
