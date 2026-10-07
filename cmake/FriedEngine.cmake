@@ -9,6 +9,7 @@
 get_filename_component(FRIED_ENGINE_DIR "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 
 if(VITA)
     include("${CMAKE_CURRENT_LIST_DIR}/Vita.cmake")
@@ -131,9 +132,33 @@ function(fried_add_game target_name)
     fried_add_hxcpp_executable(${target_name} ${_generated_dir})
     target_link_libraries(${target_name} PRIVATE fried::engine)
 
+    file(READ ${_project_file} _project_json)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
+
     if(VITA)
-        file(READ ${_project_file} _project_json)
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
+        set(_platform vita)
+    elseif(NINTENDO_SWITCH)
+        set(_platform switch)
+    elseif(NINTENDO_3DS)
+        set(_platform 3ds)
+    else()
+        set(_platform pc)
+    endif()
+
+    # The renderer applies the display, so it is compiled into the engine rather than the game.
+    fried_read_project_display("${_project_json}" ${_platform} _display_mode _display_width _display_height)
+    if(NOT _display_mode STREQUAL "default")
+        string(SUBSTRING ${_display_mode} 0 1 _initial)
+        string(TOUPPER ${_initial} _initial)
+        string(SUBSTRING ${_display_mode} 1 -1 _rest)
+        target_compile_definitions(fried_engine PRIVATE
+            FRIED_DISPLAY_MODE=FriedDisplayMode::${_initial}${_rest}
+            FRIED_DISPLAY_WIDTH=${_display_width}
+            FRIED_DISPLAY_HEIGHT=${_display_height}
+        )
+    endif()
+
+    if(VITA)
         string(JSON _name GET "${_project_json}" name)
         string(JSON _version GET "${_project_json}" version)
         string(JSON _title_id GET "${_project_json}" vita titleId)
@@ -149,8 +174,6 @@ function(fried_add_game target_name)
     elseif(NINTENDO_SWITCH)
         # A .nro's metadata is the identity project.fried already declares, so
         # the Switch adds no keys of its own.
-        file(READ ${_project_file} _project_json)
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
@@ -166,8 +189,6 @@ function(fried_add_game target_name)
     elseif(NINTENDO_3DS)
         # The SMDH carries the same identity as the Switch's .nro. It also has a
         # description line, which shows the version rather than a new key.
-        file(READ ${_project_file} _project_json)
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
