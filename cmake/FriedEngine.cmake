@@ -147,7 +147,7 @@ function(fried_add_game target_name)
     endif()
 
     # The renderer applies the display, so it is compiled into the engine rather than the game.
-    fried_read_project_display("${_project_json}" ${_platform} _display_mode _display_width _display_height)
+    fried_read_project_display("${_project_json}" ${_platform} _display_mode _display_width _display_height _display_filter)
     if(NOT _display_mode STREQUAL "default")
         string(SUBSTRING ${_display_mode} 0 1 _initial)
         string(TOUPPER ${_initial} _initial)
@@ -157,6 +157,9 @@ function(fried_add_game target_name)
             FRIED_DISPLAY_WIDTH=${_display_width}
             FRIED_DISPLAY_HEIGHT=${_display_height}
         )
+    endif()
+    if(_display_filter STREQUAL "linear")
+        target_compile_definitions(fried_engine PRIVATE FRIED_DISPLAY_LINEAR_FILTER)
     endif()
 
     if(VITA)

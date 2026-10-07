@@ -23,3 +23,5 @@ struct FriedDisplayLayout
 };
 
 FriedDisplayLayout fried_display_layout(int outputWidth, int outputHeight);
+
+bool fried_display_filters_linearly();

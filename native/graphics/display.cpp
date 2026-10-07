@@ -68,3 +68,12 @@ FriedDisplayLayout fried_display_layout(int outputWidth, int outputHeight)
 }
 
 #endif
+
+bool fried_display_filters_linearly()
+{
+#ifdef FRIED_DISPLAY_LINEAR_FILTER
+    return true;
+#else
+    return false;
+#endif
+}

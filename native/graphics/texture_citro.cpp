@@ -2,6 +2,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/display.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -130,7 +131,8 @@ namespace
         }
 
         std::memset(texture->tex.data, 0, texture->tex.size);
-        C3D_TexSetFilter(&texture->tex, GPU_NEAREST, GPU_NEAREST);
+        GPU_TEXTURE_FILTER_PARAM filter = fried_display_filters_linearly() ? GPU_LINEAR : GPU_NEAREST;
+        C3D_TexSetFilter(&texture->tex, filter, filter);
         C3D_TexSetWrap(&texture->tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 
         // The GPU's v runs from the bottom of a texture, so the image's top row is v = 1.

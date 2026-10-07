@@ -2,6 +2,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/display.h"
 #include "graphics/renderer.h"
 
 #include <SDL.h>
@@ -12,6 +13,12 @@
 namespace
 {
     HandlePool<SDL_Texture> s_textures;
+
+    int storeFiltered(SDL_Texture *texture)
+    {
+        SDL_SetTextureScaleMode(texture, fried_display_filters_linearly() ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
+        return s_textures.store(texture);
+    }
 }
 
 SDL_Texture *fried_texture_get_sdl(int textureId)
@@ -35,7 +42,7 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    return s_textures.store(texture);
+    return storeFiltered(texture);
 }
 
 int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
@@ -54,7 +61,7 @@ int fried_texture_create_from_surface(int rendererId, SDL_Surface *surface)
         return -1;
     }
 
-    return s_textures.store(texture);
+    return storeFiltered(texture);
 }
 
 int fried_texture_create_blank(int rendererId, int width, int height)
@@ -82,7 +89,7 @@ int fried_texture_create_blank(int rendererId, int width, int height)
         return -1;
     }
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
-    return s_textures.store(texture);
+    return storeFiltered(texture);
 }
 
 bool fried_texture_write(int textureId, int x, int y, SDL_Surface *surface, const SDL_Rect *sourceRect)

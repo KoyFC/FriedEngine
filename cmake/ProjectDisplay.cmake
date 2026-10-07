@@ -1,13 +1,14 @@
-# fried_read_project_display(<json> <platform> <out_mode> <out_width> <out_height>)
+# fried_read_project_display(<json> <platform> <out_mode> <out_width> <out_height> <out_filter>)
 #
 # Resolves the display a project declares for one platform: each key under
 # "<platform>.display" overrides the same key under the top-level "display".
 # Width and height are only required, and only returned, when the mode is not
 # "default".
-function(fried_read_project_display json platform out_mode out_width out_height)
+function(fried_read_project_display json platform out_mode out_width out_height out_filter)
     set(_modes default fit integer expand stretch)
+    set(_filters nearest linear)
 
-    foreach(_key mode width height)
+    foreach(_key mode width height filter)
         string(JSON _value ERROR_VARIABLE _error GET "${json}" ${platform} display ${_key})
         if(_error)
             string(JSON _value ERROR_VARIABLE _error GET "${json}" display ${_key})
@@ -20,6 +21,13 @@ function(fried_read_project_display json platform out_mode out_width out_height)
 
     if(_mode STREQUAL "")
         set(_mode default)
+    endif()
+    if(_filter STREQUAL "")
+        set(_filter nearest)
+    endif()
+    if(NOT _filter IN_LIST _filters)
+        list(JOIN _filters ", " _filter_list)
+        message(FATAL_ERROR "project.fried declares the display filter \"${_filter}\" for ${platform}, which is not one of: ${_filter_list}.")
     endif()
     if(NOT _mode IN_LIST _modes)
         list(JOIN _modes ", " _mode_list)
@@ -40,4 +48,5 @@ function(fried_read_project_display json platform out_mode out_width out_height)
     set(${out_mode} ${_mode} PARENT_SCOPE)
     set(${out_width} ${_width} PARENT_SCOPE)
     set(${out_height} ${_height} PARENT_SCOPE)
+    set(${out_filter} ${_filter} PARENT_SCOPE)
 endfunction()
