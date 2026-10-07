@@ -16,8 +16,8 @@ class Renderer {
 
 	public var layers(default, null):Array<Layer>;
 
-	public var width(get, never):Int;
-	public var height(get, never):Int;
+	public var width(default, null):Int;
+	public var height(default, null):Int;
 
 	public var drawColor(default, set):Color;
 
@@ -35,6 +35,7 @@ class Renderer {
 		}
 		this.window = window;
 		isVsyncEnabled = RendererNative.hasVsync(id);
+		refreshSize();
 		drawColor = Color.rgb(255, 255, 255);
 		texturesByPath = new Map();
 		activeTextures = [];
@@ -213,12 +214,10 @@ class Renderer {
 		RendererNative.drawRect(id, x, y, width, height);
 	}
 
-	function get_width():Int {
-		return RendererNative.getWidth(id);
-	}
-
-	function get_height():Int {
-		return RendererNative.getHeight(id);
+	@:allow(fried.Application)
+	function refreshSize():Void {
+		width = RendererNative.getWidth(id);
+		height = RendererNative.getHeight(id);
 	}
 }
 

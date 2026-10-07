@@ -22,6 +22,7 @@ class Events {
 							window.onClose();
 						}
 					case Resized:
+						Application.refreshRendererSizes(window);
 						if (window.onResize != null) {
 							window.onResize(EventsNative.getData1(), EventsNative.getData2());
 						}

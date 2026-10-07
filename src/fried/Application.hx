@@ -71,6 +71,15 @@ class Application {
 		}
 	}
 
+	@:allow(fried.Events)
+	static function refreshRendererSizes(window:Window):Void {
+		for (renderer in renderers) {
+			if (renderer.window == window) {
+				renderer.refreshSize();
+			}
+		}
+	}
+
 	public static function run(update:Void->Void):Void {
 		while (isRunning) {
 			var frameStart = Sys.time();
