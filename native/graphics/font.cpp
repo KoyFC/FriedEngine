@@ -397,7 +397,7 @@ int fried_font_measure_width(int fontId, const char *text)
     return layOut(*font, text, s_placedGlyphs, originX);
 }
 
-void fried_font_draw_text(int fontId, int rendererId, const char *text, int x, int y, int width, int height, double angle, int r, int g, int b, int a)
+void fried_font_draw_text(int fontId, int rendererId, const char *text, float x, float y, float width, float height, double angle, int r, int g, int b, int a)
 {
     LoadedFont *font = s_fonts.get(fontId);
     if (!font || !text || width <= 0 || height <= 0)

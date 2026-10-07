@@ -26,8 +26,8 @@ class Text extends Component {
 		if (font == null || text == null || text == "") {
 			return;
 		}
-		DrawQueue.submitText(gameObject.priority, font, text, Std.int(transform.x), Std.int(transform.y), Std.int(width * transform.scaleX),
-			Std.int(height * transform.scaleY), color, transform.rotation);
+		DrawQueue.submitText(gameObject.priority, font, text, transform.x, transform.y, width * transform.scaleX, height * transform.scaleY, color,
+			transform.rotation);
 	}
 
 	function set_font(value:Font):Font {

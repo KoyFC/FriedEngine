@@ -77,3 +77,18 @@ bool fried_display_filters_linearly()
     return false;
 #endif
 }
+
+namespace
+{
+    float snapEdge(float logical, float scale)
+    {
+        return std::round(logical * scale) / scale;
+    }
+}
+
+FriedRect fried_display_snap(float x, float y, float width, float height, float scaleX, float scaleY)
+{
+    float left = snapEdge(x, scaleX);
+    float top = snapEdge(y, scaleY);
+    return {left, top, snapEdge(x + width, scaleX) - left, snapEdge(y + height, scaleY) - top};
+}

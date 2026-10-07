@@ -11,10 +11,13 @@ class DrawQueue {
 
 	static var drawCommandPool:Array<DrawCommand> = [];
 	static var pendingDrawCommands:Array<DrawCommand> = [];
-	static var viewRect:Rect = new Rect(0, 0, 0, 0);
+	static var viewX:Float = 0.0;
+	static var viewY:Float = 0.0;
+	static var viewWidth:Float = 0.0;
+	static var viewHeight:Float = 0.0;
 
-	public static function submitTexture(priority:Int, texture:Texture, x:Int, y:Int, width:Int, height:Int, angle:Float = 0.0, flip:FlipMode = None,
-			?source:Rect):Void {
+	public static function submitTexture(priority:Int, texture:Texture, x:Float, y:Float, width:Float, height:Float, angle:Float = 0.0,
+			flip:FlipMode = None, ?source:Rect):Void {
 		var command = next(priority);
 		command.type = TextureRegion;
 		command.texture = texture;
@@ -33,7 +36,8 @@ class DrawQueue {
 		}
 	}
 
-	public static function submitText(priority:Int, font:Font, text:String, x:Int, y:Int, width:Int, height:Int, color:Color, angle:Float = 0.0):Void {
+	public static function submitText(priority:Int, font:Font, text:String, x:Float, y:Float, width:Float, height:Float, color:Color,
+			angle:Float = 0.0):Void {
 		var command = next(priority);
 		command.type = Text;
 		command.font = font;
@@ -82,21 +86,21 @@ class DrawQueue {
 			if (command.target != renderer) {
 				continue;
 			}
-			var view = viewOf(command, renderer);
+			computeView(command, renderer);
 			switch (command.type) {
 				case TextureRegion:
-					renderer.drawTextureRegion(command.texture, view.x, view.y, command.hasSource ? command.source : null, view.width, view.height,
+					renderer.drawTextureRegion(command.texture, viewX, viewY, command.hasSource ? command.source : null, viewWidth, viewHeight,
 						command.angle, command.flip);
 				case Text:
-					renderer.drawText(command.font, command.text, view.x, view.y, command.color, view.width, view.height, command.angle);
+					renderer.drawText(command.font, command.text, viewX, viewY, command.color, viewWidth, viewHeight, command.angle);
 				case FillRect:
 					renderer.drawColor = command.color;
 					colorChanged = true;
-					renderer.fillRect(view);
+					renderer.fillArea(viewX, viewY, viewWidth, viewHeight);
 				case DrawRect:
 					renderer.drawColor = command.color;
 					colorChanged = true;
-					renderer.drawRect(view);
+					renderer.outlineArea(viewX, viewY, viewWidth, viewHeight);
 			}
 		}
 
@@ -105,20 +109,20 @@ class DrawQueue {
 		}
 	}
 
-	static function viewOf(command:DrawCommand, renderer:Renderer):Rect {
+	// Kept fractional all the way down, so the backend rounds each edge once, to a pixel of the real screen.
+	static function computeView(command:DrawCommand, renderer:Renderer):Void {
 		var camera = command.camera;
 		if (camera == null) {
-			viewRect.x = command.x;
-			viewRect.y = command.y;
-			viewRect.width = command.width;
-			viewRect.height = command.height;
-			return viewRect;
+			viewX = command.x;
+			viewY = command.y;
+			viewWidth = command.width;
+			viewHeight = command.height;
+			return;
 		}
-		viewRect.x = Std.int(camera.worldToScreenX(command.x, renderer));
-		viewRect.y = Std.int(camera.worldToScreenY(command.y, renderer));
-		viewRect.width = Std.int(command.width * camera.zoom);
-		viewRect.height = Std.int(command.height * camera.zoom);
-		return viewRect;
+		viewX = camera.worldToScreenX(command.x, renderer);
+		viewY = camera.worldToScreenY(command.y, renderer);
+		viewWidth = command.width * camera.zoom;
+		viewHeight = command.height * camera.zoom;
 	}
 
 	static function submitShape(type:DrawCommandType, priority:Int, rect:Rect, color:Color):Void {
@@ -179,10 +183,10 @@ private class DrawCommand {
 	public var texture:Texture;
 	public var font:Font;
 	public var text:String;
-	public var x:Int;
-	public var y:Int;
-	public var width:Int;
-	public var height:Int;
+	public var x:Float;
+	public var y:Float;
+	public var width:Float;
+	public var height:Float;
 	public var angle:Float;
 	public var flip:FlipMode;
 	public var hasSource:Bool;

@@ -23,7 +23,7 @@ class Sprite extends Component {
 		}
 		var baseWidth = source != null ? source.width : texture.width;
 		var baseHeight = source != null ? source.height : texture.height;
-		DrawQueue.submitTexture(gameObject.priority, texture, Std.int(transform.x), Std.int(transform.y), Std.int(baseWidth * transform.scaleX),
-			Std.int(baseHeight * transform.scaleY), transform.rotation, flip, source);
+		DrawQueue.submitTexture(gameObject.priority, texture, transform.x, transform.y, baseWidth * transform.scaleX, baseHeight * transform.scaleY,
+			transform.rotation, flip, source);
 	}
 }

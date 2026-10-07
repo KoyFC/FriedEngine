@@ -178,11 +178,12 @@ class Renderer {
 		RendererNative.present(id);
 	}
 
-	public function drawTexture(texture:Texture, x:Int, y:Int, ?width:Int, ?height:Int):Void {
+	public function drawTexture(texture:Texture, x:Float, y:Float, ?width:Float, ?height:Float):Void {
 		RendererNative.drawTexture(id, texture.id, x, y, width != null ? width : texture.width, height != null ? height : texture.height);
 	}
 
-	public function drawTextureRegion(texture:Texture, x:Int, y:Int, ?source:Rect, ?width:Int, ?height:Int, angle:Float = 0.0, flip:FlipMode = None):Void {
+	public function drawTextureRegion(texture:Texture, x:Float, y:Float, ?source:Rect, ?width:Float, ?height:Float, angle:Float = 0.0,
+			flip:FlipMode = None):Void {
 		var srcWidth = source != null ? source.width : texture.width;
 		var srcHeight = source != null ? source.height : texture.height;
 		RendererNative.drawTextureEx(id, texture.id, source != null ? source.x : 0, source != null ? source.y : 0, srcWidth, srcHeight, x, y,
@@ -190,16 +191,26 @@ class Renderer {
 	}
 
 	// Rotates about the centre of the box.
-	public function drawText(font:Font, text:String, x:Int, y:Int, color:Color, ?width:Int, ?height:Int, angle:Float = 0.0):Void {
+	public function drawText(font:Font, text:String, x:Float, y:Float, color:Color, ?width:Float, ?height:Float, angle:Float = 0.0):Void {
 		font.drawText(this, text, x, y, width != null ? width : font.measureWidth(text), height != null ? height : font.lineHeight, angle, color);
 	}
 
 	public function fillRect(rect:Rect):Void {
-		RendererNative.fillRect(id, rect.x, rect.y, rect.width, rect.height);
+		fillArea(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	public function drawRect(rect:Rect):Void {
-		RendererNative.drawRect(id, rect.x, rect.y, rect.width, rect.height);
+		outlineArea(rect.x, rect.y, rect.width, rect.height);
+	}
+
+	@:allow(fried.graphics.DrawQueue)
+	function fillArea(x:Float, y:Float, width:Float, height:Float):Void {
+		RendererNative.fillRect(id, x, y, width, height);
+	}
+
+	@:allow(fried.graphics.DrawQueue)
+	function outlineArea(x:Float, y:Float, width:Float, height:Float):Void {
+		RendererNative.drawRect(id, x, y, width, height);
 	}
 
 	function get_width():Int {
@@ -238,15 +249,15 @@ private extern class RendererNative {
 	static function present(id:Int):Void;
 
 	@:native("fried_renderer_draw_texture")
-	static function drawTexture(id:Int, textureId:Int, x:Int, y:Int, width:Int, height:Int):Void;
+	static function drawTexture(id:Int, textureId:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
 
 	@:native("fried_renderer_draw_texture_ex")
-	static function drawTextureEx(id:Int, textureId:Int, srcX:Int, srcY:Int, srcWidth:Int, srcHeight:Int, x:Int, y:Int, width:Int, height:Int, angle:Float,
-		flipMode:Int):Void;
+	static function drawTextureEx(id:Int, textureId:Int, srcX:Int, srcY:Int, srcWidth:Int, srcHeight:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32,
+		height:cpp.Float32, angle:Float, flipMode:Int):Void;
 
 	@:native("fried_renderer_fill_rect")
-	static function fillRect(id:Int, x:Int, y:Int, width:Int, height:Int):Void;
+	static function fillRect(id:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
 
 	@:native("fried_renderer_draw_rect")
-	static function drawRect(id:Int, x:Int, y:Int, width:Int, height:Int):Void;
+	static function drawRect(id:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
 }

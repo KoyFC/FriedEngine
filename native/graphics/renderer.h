@@ -13,11 +13,11 @@ extern "C"
     void fried_renderer_clear(int rendererId);
     void fried_renderer_present(int rendererId);
 
-    void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, int width, int height);
-    void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, int x, int y, int width, int height, double angle, int flipMode);
+    void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height);
+    void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode);
 
-    void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int height);
-    void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int height);
+    void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height);
+    void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height);
 }
 
 // The pivot may lie outside the quad, so a line of glyphs turns as one.

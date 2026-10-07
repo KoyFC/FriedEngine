@@ -48,6 +48,14 @@ namespace
         return window ? SDL_GetRenderer(window) : nullptr;
     }
 
+    SDL_FRect snapped(SDL_Renderer *renderer, float x, float y, float width, float height)
+    {
+        float scaleX, scaleY;
+        SDL_RenderGetScale(renderer, &scaleX, &scaleY);
+        FriedRect rect = fried_display_snap(x, y, width, height, scaleX, scaleY);
+        return {rect.m_x, rect.m_y, rect.m_width, rect.m_height};
+    }
+
     int clampToPixelInside(int value, int size)
     {
         return std::clamp(value, 0, std::max(0, size - 1));
@@ -184,7 +192,7 @@ void fried_renderer_present(int rendererId)
     SDL_RenderPresent(renderer);
 }
 
-void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, int width, int height)
+void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     SDL_Texture *texture = fried_texture_get_sdl(textureId);
@@ -193,11 +201,11 @@ void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, in
         return;
     }
 
-    SDL_Rect destination = {x, y, width, height};
-    SDL_RenderCopy(renderer, texture, nullptr, &destination);
+    SDL_FRect destination = snapped(renderer, x, y, width, height);
+    SDL_RenderCopyF(renderer, texture, nullptr, &destination);
 }
 
-void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, int x, int y, int width, int height, double angle, int flipMode)
+void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     SDL_Texture *texture = fried_texture_get_sdl(textureId);
@@ -207,8 +215,8 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
     }
 
     SDL_Rect source = {srcX, srcY, srcWidth, srcHeight};
-    SDL_Rect destination = {x, y, width, height};
-    SDL_RenderCopyEx(renderer, texture, &source, &destination, angle, nullptr, (SDL_RendererFlip)flipMode);
+    SDL_FRect destination = snapped(renderer, x, y, width, height);
+    SDL_RenderCopyExF(renderer, texture, &source, &destination, angle, nullptr, (SDL_RendererFlip)flipMode);
 }
 
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
@@ -226,13 +234,13 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
     {
         const FriedQuad &quad = quads[index];
         SDL_Rect source = {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight};
-        SDL_FRect destination = {quad.m_x, quad.m_y, quad.m_width, quad.m_height};
-        SDL_FPoint pivot = {quad.m_pivotX - quad.m_x, quad.m_pivotY - quad.m_y};
+        SDL_FRect destination = snapped(renderer, quad.m_x, quad.m_y, quad.m_width, quad.m_height);
+        SDL_FPoint pivot = {quad.m_pivotX - destination.x, quad.m_pivotY - destination.y};
         SDL_RenderCopyExF(renderer, texture, &source, &destination, quad.m_angle, &pivot, SDL_FLIP_NONE);
     }
 }
 
-void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int height)
+void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
@@ -240,11 +248,11 @@ void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int heigh
         return;
     }
 
-    SDL_Rect rect = {x, y, width, height};
-    SDL_RenderFillRect(renderer, &rect);
+    SDL_FRect rect = snapped(renderer, x, y, width, height);
+    SDL_RenderFillRectF(renderer, &rect);
 }
 
-void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int height)
+void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
@@ -252,8 +260,8 @@ void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int heigh
         return;
     }
 
-    SDL_Rect rect = {x, y, width, height};
-    SDL_RenderDrawRect(renderer, &rect);
+    SDL_FRect rect = snapped(renderer, x, y, width, height);
+    SDL_RenderDrawRectF(renderer, &rect);
 }
 
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)

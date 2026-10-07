@@ -25,3 +25,15 @@ struct FriedDisplayLayout
 FriedDisplayLayout fried_display_layout(int outputWidth, int outputHeight);
 
 bool fried_display_filters_linearly();
+
+struct FriedRect
+{
+    float m_x;
+    float m_y;
+    float m_width;
+    float m_height;
+};
+
+// Moves each edge to the nearest output pixel, so images drawn side by side
+// still meet and a moving one steps by whole pixels along with the rest.
+FriedRect fried_display_snap(float x, float y, float width, float height, float scaleX, float scaleY);

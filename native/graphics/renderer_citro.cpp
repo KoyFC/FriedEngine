@@ -146,6 +146,11 @@ namespace
         };
     }
 
+    FriedRect snapped(const CitroRenderer *renderer, float x, float y, float width, float height)
+    {
+        return fried_display_snap(x, y, width, height, renderer->layout.m_scaleX, renderer->layout.m_scaleY);
+    }
+
     void fillRect(float x, float y, float width, float height, u32 color)
     {
         C2D_DrawRectSolid(x, y, s_depth, width, height, color);
@@ -300,40 +305,44 @@ void fried_renderer_present(int rendererId)
     s_sceneRenderer = nullptr;
 }
 
-void fried_renderer_draw_texture(int rendererId, int textureId, int x, int y, int width, int height)
+void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
     const C2D_Image *image = fried_texture_get_citro(textureId);
-    if (!image || !sceneRenderer(rendererId))
+    CitroRenderer *renderer = image ? sceneRenderer(rendererId) : nullptr;
+    if (!renderer)
     {
         return;
     }
 
+    FriedRect destination = snapped(renderer, x, y, width, height);
     C2D_DrawParams params = {};
-    params.pos = {(float)x, (float)y, (float)width, (float)height};
+    params.pos = {destination.m_x, destination.m_y, destination.m_width, destination.m_height};
     params.depth = s_depth;
     C2D_DrawImage(*image, &params, nullptr);
 }
 
-void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, int x, int y, int width, int height, double angle, int flipMode)
+void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
     const C2D_Image *image = fried_texture_get_citro(textureId);
-    if (!image || !sceneRenderer(rendererId))
+    CitroRenderer *renderer = image ? sceneRenderer(rendererId) : nullptr;
+    if (!renderer)
     {
         return;
     }
 
     Tex3DS_SubTexture region = regionOf(*image, srcX, srcY, srcWidth, srcHeight);
+    FriedRect destination = snapped(renderer, x, y, width, height);
 
     // Rotated about the centre of the destination, as SDL_RenderCopyEx() does.
     // A negative size is how citro2d flips an image.
-    float halfWidth = width / 2.0f;
-    float halfHeight = height / 2.0f;
+    float halfWidth = destination.m_width / 2.0f;
+    float halfHeight = destination.m_height / 2.0f;
     C2D_DrawParams params = {};
     params.pos = {
-        x + halfWidth,
-        y + halfHeight,
-        (flipMode & s_flipHorizontal) ? -(float)width : (float)width,
-        (flipMode & s_flipVertical) ? -(float)height : (float)height,
+        destination.m_x + halfWidth,
+        destination.m_y + halfHeight,
+        (flipMode & s_flipHorizontal) ? -destination.m_width : destination.m_width,
+        (flipMode & s_flipVertical) ? -destination.m_height : destination.m_height,
     };
     params.center = {halfWidth, halfHeight};
     params.depth = s_depth;
@@ -344,7 +353,8 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
     const C2D_Image *image = fried_texture_get_citro(textureId);
-    if (!image || !sceneRenderer(rendererId))
+    CitroRenderer *renderer = image ? sceneRenderer(rendererId) : nullptr;
+    if (!renderer)
     {
         return;
     }
@@ -356,38 +366,41 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
     {
         const FriedQuad &quad = quads[index];
         Tex3DS_SubTexture region = regionOf(*image, quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight);
+        FriedRect destination = snapped(renderer, quad.m_x, quad.m_y, quad.m_width, quad.m_height);
         C2D_DrawParams params = {};
-        params.pos = {quad.m_pivotX, quad.m_pivotY, quad.m_width, quad.m_height};
-        params.center = {quad.m_pivotX - quad.m_x, quad.m_pivotY - quad.m_y};
+        params.pos = {quad.m_pivotX, quad.m_pivotY, destination.m_width, destination.m_height};
+        params.center = {quad.m_pivotX - destination.m_x, quad.m_pivotY - destination.m_y};
         params.depth = s_depth;
         params.angle = quad.m_angle * s_degreesToRadians;
         C2D_DrawImage({image->tex, &region}, &params, &tint);
     }
 }
 
-void fried_renderer_fill_rect(int rendererId, int x, int y, int width, int height)
+void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height)
 {
     CitroRenderer *renderer = sceneRenderer(rendererId);
     if (!renderer)
     {
         return;
     }
-    fillRect(x, y, width, height, renderer->drawColor);
+    FriedRect rect = snapped(renderer, x, y, width, height);
+    fillRect(rect.m_x, rect.m_y, rect.m_width, rect.m_height, renderer->drawColor);
 }
 
 // One pixel wide and inside the rectangle, as SDL_RenderDrawRect() draws it.
-void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int height)
+void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height)
 {
     CitroRenderer *renderer = sceneRenderer(rendererId);
     if (!renderer || width <= 0 || height <= 0)
     {
         return;
     }
+    FriedRect rect = snapped(renderer, x, y, width, height);
     u32 color = renderer->drawColor;
-    fillRect(x, y, width, 1, color);
-    fillRect(x, y + height - 1, width, 1, color);
-    fillRect(x, y + 1, 1, height - 2, color);
-    fillRect(x + width - 1, y + 1, 1, height - 2, color);
+    fillRect(rect.m_x, rect.m_y, rect.m_width, 1, color);
+    fillRect(rect.m_x, rect.m_y + rect.m_height - 1, rect.m_width, 1, color);
+    fillRect(rect.m_x, rect.m_y + 1, 1, rect.m_height - 2, color);
+    fillRect(rect.m_x + rect.m_width - 1, rect.m_y + 1, 1, rect.m_height - 2, color);
 }
 
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
