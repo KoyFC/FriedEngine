@@ -1,4 +1,6 @@
 #include "platform/touch.h"
+
+#include "graphics/renderer.h"
 #include "platform/window.h"
 
 #include <SDL.h>
@@ -73,20 +75,6 @@ namespace
             return nullptr;
         }
         return &found->m_fingers[index];
-    }
-
-    int toPixelInside(float normalized, int size)
-    {
-        int pixel = (int)(normalized * size);
-        if (pixel < 0)
-        {
-            return 0;
-        }
-        if (pixel > size - 1)
-        {
-            return size - 1;
-        }
-        return pixel;
     }
 }
 
@@ -165,8 +153,7 @@ bool fried_touch_report(const SDL_TouchFingerEvent &event, FriedTouchPoint &poin
 
     if (windowId >= 0)
     {
-        finger->m_x = toPixelInside(event.x, fried_window_get_width(windowId));
-        finger->m_y = toPixelInside(event.y, fried_window_get_height(windowId));
+        fried_renderer_touch_to_logical(windowId, event.x, event.y, finger->m_x, finger->m_y);
     }
     point = {indexOfDevice(event.touchId), (int)event.fingerId, windowId, finger->m_x, finger->m_y};
 

@@ -1,4 +1,6 @@
 #include "platform/events.h"
+
+#include "graphics/renderer.h"
 #include "platform/gamepad.h"
 #include "platform/mouse.h"
 #include "platform/touch.h"
@@ -113,15 +115,13 @@ namespace
     {
         InputEvent &queued = queueInputEvent(type, event.windowID);
         queued.m_code = event.button;
-        queued.m_x = event.x;
-        queued.m_y = event.y;
+        fried_renderer_window_to_logical(queued.m_windowId, event.x, event.y, queued.m_x, queued.m_y);
     }
 
     void queueMouseMotionEvent(const SDL_MouseMotionEvent &event)
     {
         InputEvent &queued = queueInputEvent(FRIED_INPUT_EVENT_MOUSE_MOVED, event.windowID);
-        queued.m_x = event.x;
-        queued.m_y = event.y;
+        fried_renderer_window_to_logical(queued.m_windowId, event.x, event.y, queued.m_x, queued.m_y);
     }
 
     void queueMouseWheelEvent(const SDL_MouseWheelEvent &event, int x, int y)

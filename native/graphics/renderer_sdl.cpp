@@ -2,15 +2,56 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/display.h"
 #include "graphics/font.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
 #include <SDL.h>
 
+#include <algorithm>
+#include <cmath>
+
 namespace
 {
     HandlePool<SDL_Renderer> s_renderers;
+
+    FriedDisplayLayout layoutOf(SDL_Renderer *renderer)
+    {
+        int width = 0, height = 0;
+        SDL_GetRendererOutputSize(renderer, &width, &height);
+        return fried_display_layout(width, height);
+    }
+
+    // Runs every frame because SDL resets the viewport on any window resize.
+    // SDL multiplies a new viewport by the current scale, hence the reset to 1.
+    FriedDisplayLayout applyLayout(SDL_Renderer *renderer)
+    {
+        FriedDisplayLayout layout = layoutOf(renderer);
+        SDL_Rect viewport = {layout.m_viewportX, layout.m_viewportY, layout.m_viewportWidth, layout.m_viewportHeight};
+        SDL_RenderSetScale(renderer, 1.0f, 1.0f);
+        SDL_RenderSetViewport(renderer, &viewport);
+        SDL_RenderSetScale(renderer, layout.m_scaleX, layout.m_scaleY);
+        return layout;
+    }
+
+    bool isLetterboxed(SDL_Renderer *renderer, const FriedDisplayLayout &layout)
+    {
+        int width = 0, height = 0;
+        SDL_GetRendererOutputSize(renderer, &width, &height);
+        return layout.m_viewportWidth < width || layout.m_viewportHeight < height;
+    }
+
+    SDL_Renderer *rendererOfWindow(int windowId)
+    {
+        SDL_Window *window = fried_window_get_sdl(windowId);
+        return window ? SDL_GetRenderer(window) : nullptr;
+    }
+
+    int clampToPixelInside(int value, int size)
+    {
+        return std::clamp(value, 0, std::max(0, size - 1));
+    }
 }
 
 SDL_Renderer *fried_renderer_get_sdl(int rendererId)
@@ -45,6 +86,7 @@ int fried_renderer_create(int windowId, bool vsync)
     }
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    applyLayout(renderer);
     return s_renderers.store(renderer);
 }
 
@@ -83,9 +125,7 @@ int fried_renderer_get_width(int rendererId)
     {
         return 0;
     }
-    int width = 0, height = 0;
-    SDL_GetRendererOutputSize(renderer, &width, &height);
-    return width;
+    return layoutOf(renderer).m_width;
 }
 
 int fried_renderer_get_height(int rendererId)
@@ -95,9 +135,7 @@ int fried_renderer_get_height(int rendererId)
     {
         return 0;
     }
-    int width = 0, height = 0;
-    SDL_GetRendererOutputSize(renderer, &width, &height);
-    return height;
+    return layoutOf(renderer).m_height;
 }
 
 void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
@@ -117,7 +155,23 @@ void fried_renderer_clear(int rendererId)
     {
         return;
     }
+
+    FriedDisplayLayout layout = applyLayout(renderer);
+    if (!isLetterboxed(renderer, layout))
+    {
+        SDL_RenderClear(renderer);
+        return;
+    }
+
+    // SDL_RenderClear ignores the viewport, so it would paint the bars too.
+    Uint8 r, g, b, a;
+    SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    SDL_RenderFillRect(renderer, nullptr);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 }
 
 void fried_renderer_present(int rendererId)
@@ -200,4 +254,39 @@ void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int heigh
 
     SDL_Rect rect = {x, y, width, height};
     SDL_RenderDrawRect(renderer, &rect);
+}
+
+void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
+{
+    SDL_Renderer *renderer = rendererOfWindow(windowId);
+    if (!renderer)
+    {
+        logicalX = x;
+        logicalY = y;
+        return;
+    }
+
+    float convertedX, convertedY;
+    SDL_RenderWindowToLogical(renderer, x, y, &convertedX, &convertedY);
+    logicalX = (int)std::floor(convertedX);
+    logicalY = (int)std::floor(convertedY);
+}
+
+// SDL's renderer has already made the touch relative to its viewport.
+void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logicalX, int &logicalY)
+{
+    SDL_Renderer *renderer = rendererOfWindow(windowId);
+    int width = 0, height = 0;
+    if (renderer)
+    {
+        FriedDisplayLayout layout = layoutOf(renderer);
+        width = layout.m_width;
+        height = layout.m_height;
+    }
+    else
+    {
+        SDL_GetWindowSize(fried_window_get_sdl(windowId), &width, &height);
+    }
+    logicalX = clampToPixelInside((int)(x * width), width);
+    logicalY = clampToPixelInside((int)(y * height), height);
 }

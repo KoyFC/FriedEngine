@@ -9,6 +9,7 @@
 #include <SDL.h>
 #include <citro2d.h>
 
+#include <algorithm>
 #include <cstring>
 
 namespace
@@ -328,4 +329,19 @@ void fried_renderer_draw_rect(int rendererId, int x, int y, int width, int heigh
     fillRect(x, y + height - 1, width, 1, color);
     fillRect(x, y + 1, 1, height - 2, color);
     fillRect(x + width - 1, y + 1, 1, height - 2, color);
+}
+
+void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
+{
+    (void)windowId;
+    logicalX = x;
+    logicalY = y;
+}
+
+void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logicalX, int &logicalY)
+{
+    int width = fried_window_get_width(windowId);
+    int height = fried_window_get_height(windowId);
+    logicalX = std::clamp((int)(x * width), 0, std::max(0, width - 1));
+    logicalY = std::clamp((int)(y * height), 0, std::max(0, height - 1));
 }

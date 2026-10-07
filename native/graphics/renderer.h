@@ -39,6 +39,11 @@ struct FriedQuad
 // Only a white texture tints the same on every backend.
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a);
 
+void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY);
+
+// Takes the touch as SDL reports it, normalized from 0 to 1.
+void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logicalX, int &logicalY);
+
 #ifndef __3DS__
 struct SDL_Renderer;
 

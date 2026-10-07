@@ -67,6 +67,7 @@ if(NOT TARGET fried_engine)
         ${FRIED_ENGINE_DIR}/native/platform/window.cpp
         ${FRIED_ENGINE_DIR}/native/graphics/renderer_${_fried_graphics_backend}.cpp
         ${FRIED_ENGINE_DIR}/native/graphics/texture_${_fried_graphics_backend}.cpp
+        ${FRIED_ENGINE_DIR}/native/graphics/display.cpp
         ${FRIED_ENGINE_DIR}/native/graphics/font.cpp
         ${FRIED_ENGINE_DIR}/native/audio/sound.cpp
         ${FRIED_ENGINE_DIR}/native/audio/music.cpp
