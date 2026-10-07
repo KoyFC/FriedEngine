@@ -56,7 +56,7 @@ namespace
             return rawAxis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT) >= s_triggerPressThreshold;
         }
 
-        return SDL_GameControllerGetButton(s_controller, (SDL_GameControllerButton)button);
+        return SDL_GameControllerGetButton(s_controller, (SDL_GameControllerButton)fried_gamepad_convert_button_layout(button));
     }
 
     void openFirstConnected()
@@ -70,6 +70,28 @@ namespace
             }
         }
     }
+}
+
+int fried_gamepad_convert_button_layout(int button)
+{
+#ifdef __3DS__
+    // SDL maps the 3DS face buttons by label, not position
+    switch (button)
+    {
+    case SDL_CONTROLLER_BUTTON_A:
+        return SDL_CONTROLLER_BUTTON_B;
+    case SDL_CONTROLLER_BUTTON_B:
+        return SDL_CONTROLLER_BUTTON_A;
+    case SDL_CONTROLLER_BUTTON_X:
+        return SDL_CONTROLLER_BUTTON_Y;
+    case SDL_CONTROLLER_BUTTON_Y:
+        return SDL_CONTROLLER_BUTTON_X;
+    default:
+        return button;
+    }
+#else
+    return button;
+#endif
 }
 
 void fried_gamepad_init()

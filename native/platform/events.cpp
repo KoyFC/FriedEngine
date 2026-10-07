@@ -151,7 +151,7 @@ namespace
         {
             return;
         }
-        queueInputEvent(type, 0).m_code = event.button;
+        queueInputEvent(type, 0).m_code = fried_gamepad_convert_button_layout(event.button);
     }
 
     void queueGamepadAxisEvent(const SDL_ControllerAxisEvent &event)
