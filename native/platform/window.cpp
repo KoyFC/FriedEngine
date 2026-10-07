@@ -68,6 +68,17 @@ int fried_window_create(const char *title, int width, int height)
     int displayIndex = 0;
 #endif
 
+#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__)
+    SDL_DisplayMode screen;
+    if (SDL_GetDesktopDisplayMode(displayIndex, &screen) != 0)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+    width = screen.w;
+    height = screen.h;
+#endif
+
     SDL_Window *window = SDL_CreateWindow(
         title,
         SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex), SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex),
