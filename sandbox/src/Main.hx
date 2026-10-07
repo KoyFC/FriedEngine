@@ -41,10 +41,7 @@ class Main {
 		UserData.write("saves/runs.txt", Std.string(runs));
 		Log.success('User data path: ${UserData.path} (run $runs)');
 
-		var designWidth = 640;
-		var designHeight = 480;
-
-		var window = new Window(Project.windowTitle(), designWidth, designHeight);
+		var window = new Window(Project.windowTitle(), 640, 480);
 		Log.success('Window created: ${window.width}x${window.height}');
 
 		window.setIcon(Assets.game("icon.png"));
@@ -115,7 +112,7 @@ class Main {
 		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
 
 		var cameraObject = scene.add(new GameObject("Camera"));
-		var camera = cameraObject.addComponent(new Camera(renderer.height / designHeight));
+		var camera = cameraObject.addComponent(new Camera());
 		cameraObject.addComponent(new CameraFollow(playerObject, sprite.width * spriteScale / 2, sprite.height * spriteScale / 2));
 		scene.camera = camera;
 

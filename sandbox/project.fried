@@ -5,7 +5,17 @@
 	"window": {
 		"title": "Fried Engine sandbox !!!"
 	},
+	"display": {
+		"mode": "expand",
+		"width": 640,
+		"height": 480
+	},
 	"vita": {
 		"titleId": "FRIE00001"
+	},
+	"3ds": {
+		"display": {
+			"mode": "default"
+		}
 	}
 }
