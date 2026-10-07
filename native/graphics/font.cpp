@@ -9,6 +9,7 @@
 #include <SDL_ttf.h>
 
 #include <algorithm>
+#include <cmath>
 #include <unordered_map>
 #include <vector>
 
@@ -24,6 +25,15 @@ namespace
         int m_advance;
     };
 
+    struct GlyphSource
+    {
+        TTF_Font *m_font;
+        int m_ascent;
+        std::unordered_map<Uint32, GlyphMetrics> m_metrics;
+    };
+
+    // Rasterized at the size the font covers on screen, which differs from
+    // the size the text is laid out at whenever the display scales.
     // A glyph that did not fit keeps an empty region, so it is not retried every frame.
     struct GlyphAtlas
     {
@@ -33,16 +43,18 @@ namespace
         int m_cursorX;
         int m_cursorY;
         int m_rowHeight;
+        int m_rasterSize;
+        GlyphSource m_rasterSource;
         std::unordered_map<Uint32, SDL_Rect> m_regions;
     };
 
     struct LoadedFont
     {
-        TTF_Font *m_font;
         void *m_fileData;
-        int m_ascent;
+        size_t m_fileSize;
+        int m_size;
         int m_lineHeight;
-        std::unordered_map<Uint32, GlyphMetrics> m_metrics;
+        GlyphSource m_layoutSource;
         std::unordered_map<Uint64, int> m_kerning;
         std::vector<GlyphAtlas> m_atlases;
     };
@@ -94,10 +106,10 @@ namespace
         return codepoint;
     }
 
-    const GlyphMetrics &metricsOf(LoadedFont &font, Uint32 codepoint)
+    const GlyphMetrics &metricsOf(GlyphSource &source, Uint32 codepoint)
     {
-        auto found = font.m_metrics.find(codepoint);
-        if (found != font.m_metrics.end())
+        auto found = source.m_metrics.find(codepoint);
+        if (found != source.m_metrics.end())
         {
             return found->second;
         }
@@ -108,11 +120,11 @@ namespace
         int minY = 0;
         int maxY = 0;
         int advance = 0;
-        if (TTF_GlyphMetrics32(font.m_font, codepoint, &minX, &maxX, &minY, &maxY, &advance) == 0)
+        if (TTF_GlyphMetrics32(source.m_font, codepoint, &minX, &maxX, &minY, &maxY, &advance) == 0)
         {
-            metrics = {minX, font.m_ascent - maxY, maxX - minX, maxY - minY, advance};
+            metrics = {minX, source.m_ascent - maxY, maxX - minX, maxY - minY, advance};
         }
-        return font.m_metrics.emplace(codepoint, metrics).first->second;
+        return source.m_metrics.emplace(codepoint, metrics).first->second;
     }
 
     // SDL_ttf caches 256 glyphs by index modulo 256, so asking it every frame
@@ -125,7 +137,7 @@ namespace
         {
             return found->second;
         }
-        int kerning = TTF_GetFontKerningSizeGlyphs32(font.m_font, previous, codepoint);
+        int kerning = TTF_GetFontKerningSizeGlyphs32(font.m_layoutSource.m_font, previous, codepoint);
         return font.m_kerning.emplace(pair, kerning).first->second;
     }
 
@@ -140,7 +152,7 @@ namespace
         while (*text)
         {
             Uint32 codepoint = nextCodepoint(text);
-            const GlyphMetrics &metrics = metricsOf(font, codepoint);
+            const GlyphMetrics &metrics = metricsOf(font.m_layoutSource, codepoint);
             if (previous != 0)
             {
                 penX += kerningBetween(font, previous, codepoint);
@@ -184,9 +196,9 @@ namespace
         return true;
     }
 
-    bool rasterize(LoadedFont &font, GlyphAtlas &atlas, Uint32 codepoint, const GlyphMetrics &metrics, const SDL_Rect &region)
+    bool rasterize(GlyphAtlas &atlas, Uint32 codepoint, const GlyphMetrics &metrics, const SDL_Rect &region)
     {
-        SDL_Surface *surface = TTF_RenderGlyph32_Blended(font.m_font, codepoint, s_white);
+        SDL_Surface *surface = TTF_RenderGlyph32_Blended(atlas.m_rasterSource.m_font, codepoint, s_white);
         if (!surface)
         {
             fried_capture_sdl_error();
@@ -203,7 +215,7 @@ namespace
         return isWritten;
     }
 
-    const SDL_Rect *atlasRegionOf(LoadedFont &font, GlyphAtlas &atlas, Uint32 codepoint, const GlyphMetrics &metrics)
+    const SDL_Rect *atlasRegionOf(GlyphAtlas &atlas, Uint32 codepoint, const GlyphMetrics &metrics)
     {
         auto found = atlas.m_regions.find(codepoint);
         if (found == atlas.m_regions.end())
@@ -211,7 +223,7 @@ namespace
             SDL_Rect region = {};
             bool hasBitmap = metrics.m_width > 0 && metrics.m_height > 0;
             if (!hasBitmap || !reserve(atlas, metrics.m_width, metrics.m_height, region) ||
-                !rasterize(font, atlas, codepoint, metrics, region))
+                !rasterize(atlas, codepoint, metrics, region))
             {
                 region = {};
             }
@@ -220,28 +232,73 @@ namespace
         return found->second.w > 0 ? &found->second : nullptr;
     }
 
+    void destroyAtlas(const LoadedFont &font, const GlyphAtlas &atlas)
+    {
+        fried_texture_destroy(atlas.m_textureId);
+        if (atlas.m_rasterSource.m_font != font.m_layoutSource.m_font)
+        {
+            TTF_CloseFont(atlas.m_rasterSource.m_font);
+        }
+    }
+
+    int rasterSizeOn(const LoadedFont &font, int rendererId)
+    {
+        return std::max(1, (int)std::lround(font.m_size * fried_renderer_get_pixel_scale(rendererId)));
+    }
+
+    TTF_Font *openAtSize(const LoadedFont &font, int size)
+    {
+        if (size == font.m_size)
+        {
+            return font.m_layoutSource.m_font;
+        }
+        TTF_Font *opened = TTF_OpenFontRW(SDL_RWFromConstMem(font.m_fileData, (int)font.m_fileSize), 1, size);
+        if (!opened)
+        {
+            fried_capture_sdl_error();
+        }
+        return opened;
+    }
+
     // ASCII goes in up front so a changing number never rasterizes mid-game.
     GlyphAtlas *atlasFor(LoadedFont &font, int rendererId)
     {
-        for (GlyphAtlas &atlas : font.m_atlases)
+        int rasterSize = rasterSizeOn(font, rendererId);
+        for (auto atlas = font.m_atlases.begin(); atlas != font.m_atlases.end(); ++atlas)
         {
-            if (atlas.m_rendererId == rendererId)
+            if (atlas->m_rendererId != rendererId)
             {
-                return &atlas;
+                continue;
             }
+            if (atlas->m_rasterSize == rasterSize)
+            {
+                return &*atlas;
+            }
+            destroyAtlas(font, *atlas);
+            font.m_atlases.erase(atlas);
+            break;
         }
 
-        int side = atlasSideFor(font.m_lineHeight);
-        int textureId = fried_texture_create_blank(rendererId, side, side);
-        if (textureId < 0)
+        TTF_Font *rasterFont = openAtSize(font, rasterSize);
+        if (!rasterFont)
         {
             return nullptr;
         }
-        font.m_atlases.push_back({rendererId, textureId, side, 0, 0, 0, {}});
+        int side = atlasSideFor(TTF_FontHeight(rasterFont));
+        int textureId = fried_texture_create_blank(rendererId, side, side);
+        if (textureId < 0)
+        {
+            if (rasterFont != font.m_layoutSource.m_font)
+            {
+                TTF_CloseFont(rasterFont);
+            }
+            return nullptr;
+        }
+        font.m_atlases.push_back({rendererId, textureId, side, 0, 0, 0, rasterSize, {rasterFont, TTF_FontAscent(rasterFont), {}}, {}});
         GlyphAtlas &atlas = font.m_atlases.back();
         for (Uint32 codepoint = s_firstPreloadedCharacter; codepoint <= s_lastPreloadedCharacter; ++codepoint)
         {
-            atlasRegionOf(font, atlas, codepoint, metricsOf(font, codepoint));
+            atlasRegionOf(atlas, codepoint, metricsOf(atlas.m_rasterSource, codepoint));
         }
         return &atlas;
     }
@@ -273,10 +330,11 @@ int fried_font_load(const char *path, int size)
     }
 
     LoadedFont *font = new LoadedFont();
-    font->m_font = ttfFont;
     font->m_fileData = fileData;
-    font->m_ascent = TTF_FontAscent(ttfFont);
+    font->m_fileSize = fileSize;
+    font->m_size = size;
     font->m_lineHeight = TTF_FontHeight(ttfFont);
+    font->m_layoutSource = {ttfFont, TTF_FontAscent(ttfFont), {}};
     return s_fonts.store(font);
 }
 
@@ -290,9 +348,9 @@ void fried_font_destroy(int fontId)
 
     for (const GlyphAtlas &atlas : font->m_atlases)
     {
-        fried_texture_destroy(atlas.m_textureId);
+        destroyAtlas(*font, atlas);
     }
-    TTF_CloseFont(font->m_font);
+    TTF_CloseFont(font->m_layoutSource.m_font);
     SDL_free(font->m_fileData);
     delete font;
 }
@@ -312,7 +370,7 @@ void fried_font_release_renderer(int rendererId)
         {
             if (atlas->m_rendererId == rendererId)
             {
-                fried_texture_destroy(atlas->m_textureId);
+                destroyAtlas(*font, *atlas);
                 atlases.erase(atlas);
                 break;
             }
@@ -349,7 +407,7 @@ int fried_font_render_text(int fontId, int rendererId, const char *text, int r, 
     }
 
     SDL_Color color = {(Uint8)r, (Uint8)g, (Uint8)b, (Uint8)a};
-    SDL_Surface *surface = TTF_RenderUTF8_Blended(font->m_font, text, color);
+    SDL_Surface *surface = TTF_RenderUTF8_Blended(font->m_layoutSource.m_font, text, color);
     if (!surface)
     {
         fried_capture_sdl_error();
@@ -383,26 +441,28 @@ void fried_font_draw_text(int fontId, int rendererId, const char *text, int x, i
 
     float scaleX = width / (float)lineWidth;
     float scaleY = height / (float)font->m_lineHeight;
+    float rasterToLayout = (float)font->m_size / atlas->m_rasterSize;
     float pivotX = x + width / 2.0f;
     float pivotY = y + height / 2.0f;
     s_quads.clear();
     for (const PlacedGlyph &glyph : s_placedGlyphs)
     {
-        const SDL_Rect *region = atlasRegionOf(*font, *atlas, glyph.m_codepoint, *glyph.m_metrics);
+        const GlyphMetrics &raster = metricsOf(atlas->m_rasterSource, glyph.m_codepoint);
+        const SDL_Rect *region = atlasRegionOf(*atlas, glyph.m_codepoint, raster);
         if (!region)
         {
             continue;
         }
-        int glyphX = originX + glyph.m_penX + glyph.m_metrics->m_offsetX;
+        float glyphX = originX + glyph.m_penX + raster.m_offsetX * rasterToLayout;
         s_quads.push_back({
             region->x,
             region->y,
             region->w,
             region->h,
             x + glyphX * scaleX,
-            y + glyph.m_metrics->m_offsetY * scaleY,
-            region->w * scaleX,
-            region->h * scaleY,
+            y + raster.m_offsetY * rasterToLayout * scaleY,
+            region->w * rasterToLayout * scaleX,
+            region->h * rasterToLayout * scaleY,
             (float)angle,
             pivotX,
             pivotY,

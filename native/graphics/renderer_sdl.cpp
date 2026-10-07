@@ -290,3 +290,14 @@ void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logica
     logicalX = clampToPixelInside((int)(x * width), width);
     logicalY = clampToPixelInside((int)(y * height), height);
 }
+
+float fried_renderer_get_pixel_scale(int rendererId)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer)
+    {
+        return 1.0f;
+    }
+    FriedDisplayLayout layout = layoutOf(renderer);
+    return std::min(layout.m_scaleX, layout.m_scaleY);
+}

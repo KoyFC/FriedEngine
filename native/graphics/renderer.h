@@ -39,6 +39,9 @@ struct FriedQuad
 // Only a white texture tints the same on every backend.
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a);
 
+// How many output pixels one logical pixel covers, the smaller axis when they differ.
+float fried_renderer_get_pixel_scale(int rendererId);
+
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY);
 
 // Takes the touch as SDL reports it, normalized from 0 to 1.

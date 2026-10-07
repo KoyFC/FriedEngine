@@ -415,3 +415,13 @@ void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logica
     logicalX = std::clamp(pixelX, 0, std::max(0, layout.m_width - 1));
     logicalY = std::clamp(pixelY, 0, std::max(0, layout.m_height - 1));
 }
+
+float fried_renderer_get_pixel_scale(int rendererId)
+{
+    CitroRenderer *renderer = s_renderers.get(rendererId);
+    if (!renderer)
+    {
+        return 1.0f;
+    }
+    return std::min(renderer->layout.m_scaleX, renderer->layout.m_scaleY);
+}
