@@ -10,6 +10,9 @@ extern "C"
     int fried_gamepad_is_button_down(int button);
     int fried_gamepad_is_button_released(int button);
 
+    int fried_gamepad_get_accept_button();
+    int fried_gamepad_get_cancel_button();
+
     double fried_gamepad_get_axis(int axis);
     double fried_gamepad_get_deadzone();
     void fried_gamepad_set_deadzone(double deadzone);

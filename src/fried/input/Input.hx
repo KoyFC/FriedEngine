@@ -19,6 +19,9 @@ class Input {
 	public static var isGamepadConnected(get, never):Bool;
 	public static var gamepadDeadzone(get, set):Float;
 
+	public static var gamepadAcceptButton(get, never):GamepadButton;
+	public static var gamepadCancelButton(get, never):GamepadButton;
+
 	public static function isKeyPressed(key:Key):Bool {
 		return InputNative.isKeyPressed(key) != 0;
 	}
@@ -160,6 +163,14 @@ class Input {
 		return GamepadNative.isConnected() != 0;
 	}
 
+	static function get_gamepadAcceptButton():GamepadButton {
+		return cast GamepadNative.getAcceptButton();
+	}
+
+	static function get_gamepadCancelButton():GamepadButton {
+		return cast GamepadNative.getCancelButton();
+	}
+
 	static function get_gamepadDeadzone():Float {
 		return GamepadNative.getDeadzone();
 	}
@@ -257,6 +268,12 @@ private extern class GamepadNative {
 
 	@:native("fried_gamepad_is_button_released")
 	static function isButtonReleased(button:Int):Int;
+
+	@:native("fried_gamepad_get_accept_button")
+	static function getAcceptButton():Int;
+
+	@:native("fried_gamepad_get_cancel_button")
+	static function getCancelButton():Int;
 
 	@:native("fried_gamepad_get_axis")
 	static function getAxis(axis:Int):Float;

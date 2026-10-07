@@ -3,6 +3,11 @@
 #include <SDL.h>
 #include <cstring>
 
+#ifdef __vita__
+#include <psp2/apputil.h>
+#include <psp2/system_param.h>
+#endif
+
 namespace
 {
     // SDL has no controller button for either trigger, only an axis, so the
@@ -17,6 +22,7 @@ namespace
     SDL_JoystickID s_instanceId = -1;
     Uint8 s_previousButtons[s_buttonCount] = {};
     double s_deadzone = 0.25;
+    bool s_acceptIsEast = false;
 
     double clampAxis(int rawValue)
     {
@@ -59,6 +65,24 @@ namespace
         return SDL_GameControllerGetButton(s_controller, (SDL_GameControllerButton)fried_gamepad_convert_button_layout(button));
     }
 
+    bool readAcceptIsEast()
+    {
+#if defined(__SWITCH__) || defined(__3DS__)
+        return true;
+#elif defined(__vita__)
+        // PS Vita can use either the X or O button as "accept"
+        SceAppUtilInitParam initParam = {};
+        SceAppUtilBootParam bootParam = {};
+        sceAppUtilInit(&initParam, &bootParam);
+
+        int enterButton = SCE_SYSTEM_PARAM_ENTER_BUTTON_CROSS;
+        sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_ENTER_BUTTON, &enterButton);
+        return enterButton == SCE_SYSTEM_PARAM_ENTER_BUTTON_CIRCLE;
+#else
+        return false;
+#endif
+    }
+
     void openFirstConnected()
     {
         for (int i = 0; i < SDL_NumJoysticks(); i++)
@@ -96,6 +120,7 @@ int fried_gamepad_convert_button_layout(int button)
 
 void fried_gamepad_init()
 {
+    s_acceptIsEast = readAcceptIsEast();
     openFirstConnected();
 }
 
@@ -136,6 +161,16 @@ int fried_gamepad_is_button_released(int button)
         return 0;
     }
     return buttonState(button) == 0 && s_previousButtons[button] != 0;
+}
+
+int fried_gamepad_get_accept_button()
+{
+    return s_acceptIsEast ? SDL_CONTROLLER_BUTTON_B : SDL_CONTROLLER_BUTTON_A;
+}
+
+int fried_gamepad_get_cancel_button()
+{
+    return s_acceptIsEast ? SDL_CONTROLLER_BUTTON_A : SDL_CONTROLLER_BUTTON_B;
 }
 
 double fried_gamepad_get_axis(int axis)
