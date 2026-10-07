@@ -26,6 +26,8 @@ import fried.scene.Sprite;
 import fried.scene.Text;
 
 class Main {
+	static inline var WORLD_VIEW_HEIGHT = 480;
+
 	public static function main():Void {
 		Application.init();
 		Log.success('${Project.name()} ${Project.version()} initialized. Base path: ${Filesystem.basePath}');
@@ -112,7 +114,7 @@ class Main {
 		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
 
 		var cameraObject = scene.add(new GameObject("Camera"));
-		var camera = cameraObject.addComponent(new Camera());
+		var camera = cameraObject.addComponent(new Camera(renderer.height / WORLD_VIEW_HEIGHT));
 		cameraObject.addComponent(new CameraFollow(playerObject, sprite.width * spriteScale / 2, sprite.height * spriteScale / 2));
 		scene.camera = camera;
 
