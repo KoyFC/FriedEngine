@@ -353,6 +353,48 @@ namespace
             rowV += stepVDown;
         }
     }
+
+    // A glyph's texels land one to one on output pixels, so each is a
+    // coverage looked up and, where it is not empty, the tint written or
+    // blended over what is there.
+    void drawGlyph(const FriedGintTexture &texture, const FriedGlyphBlit &glyph, int left, int top, const FriedDisplayLayout &current, uint16_t color, int a)
+    {
+        int x = left + glyph.m_offsetX;
+        int y = top + glyph.m_offsetY;
+        int startX = std::max(x, current.m_viewportX);
+        int startY = std::max(y, current.m_viewportY);
+        int endX = std::min({x + glyph.m_width, current.m_viewportX + current.m_viewportWidth, x + texture.m_width - glyph.m_srcX});
+        int endY = std::min({y + glyph.m_height, current.m_viewportY + current.m_viewportHeight, y + texture.m_height - glyph.m_srcY});
+        if (startX >= endX || startY >= endY)
+        {
+            return;
+        }
+
+        uint32_t source = spread(color);
+        int width = endX - startX;
+        for (int row = startY; row < endY; ++row)
+        {
+            const uint8_t *coverage = texture.m_alpha + (glyph.m_srcY + row - y) * texture.m_width + glyph.m_srcX + startX - x;
+            uint16_t *pixel = gint_vram + row * DWIDTH + startX;
+            for (int column = 0; column < width; ++column)
+            {
+                int alpha = coverage[column];
+                if (alpha == 0)
+                {
+                    continue;
+                }
+                int blendAlpha = toBlendAlpha(a == 255 ? alpha : divideBy255(alpha * a));
+                if (blendAlpha == 32)
+                {
+                    pixel[column] = color;
+                }
+                else if (blendAlpha > 0)
+                {
+                    blendPixel(pixel[column], source, blendAlpha);
+                }
+            }
+        }
+    }
 }
 
 int fried_renderer_create(int windowId, bool)
@@ -478,6 +520,30 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
             {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight, quad.m_x, quad.m_y, quad.m_width, quad.m_height, quad.m_angle, true, quad.m_pivotX, quad.m_pivotY, 0},
             std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255), std::clamp(a, 0, 255));
     }
+}
+
+bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y, const FriedGlyphBlit *glyphs, int count, int r, int g, int b, int a)
+{
+    FriedDisplayLayout current = layout();
+    if (current.m_scaleX != 1.0f || current.m_scaleY != 1.0f)
+    {
+        return false;
+    }
+    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
+    if (!s_renderers.get(rendererId) || !texture || !texture->m_alpha || a <= 0)
+    {
+        return true;
+    }
+
+    int left = current.m_viewportX + (int)std::lround(x);
+    int top = current.m_viewportY + (int)std::lround(y);
+    uint16_t color = toRgb565(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
+    int alpha = std::min(a, 255);
+    for (int index = 0; index < count; ++index)
+    {
+        drawGlyph(*texture, glyphs[index], left, top, current, color, alpha);
+    }
+    return true;
 }
 
 void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height)

@@ -39,6 +39,25 @@ struct FriedQuad
 // Only a white texture tints the same on every backend.
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a);
 
+#ifdef TARGET_FXCG50
+// A glyph drawn at the size it was rasterized at, placed in output pixels
+// from the start of its line.
+struct FriedGlyphBlit
+{
+    int m_srcX;
+    int m_srcY;
+    int m_width;
+    int m_height;
+    int m_offsetX;
+    int m_offsetY;
+};
+
+// Draws a line of glyphs from a blank texture with no transform on any of
+// them, starting at a logical position. Where logical pixels are not output
+// ones it draws nothing and returns false, for the caller to draw quads.
+bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y, const FriedGlyphBlit *glyphs, int count, int r, int g, int b, int a);
+#endif
+
 // How many output pixels one logical pixel covers, the smaller axis when they differ.
 float fried_renderer_get_pixel_scale(int rendererId);
 

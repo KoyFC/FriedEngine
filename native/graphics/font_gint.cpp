@@ -98,6 +98,7 @@ namespace
 
     std::vector<PlacedGlyph> s_placedGlyphs;
     std::vector<FriedQuad> s_quads;
+    std::vector<FriedGlyphBlit> s_blits;
     std::vector<uint8_t> s_coverage;
 
     constexpr uint32_t s_replacementCharacter = 0xFFFD;
@@ -526,6 +527,26 @@ void fried_font_draw_text(int fontId, int rendererId, const char *text, float x,
     if (!atlas)
     {
         return;
+    }
+
+    // A line drawn unturned at the size it was laid out and rasterized at
+    // needs no transform: its glyphs go to the screen as the atlas holds them.
+    if (angle == 0.0 && width == (float)lineWidth && height == (float)font->m_lineHeight && atlas->m_rasterSize == font->m_size)
+    {
+        s_blits.clear();
+        for (const PlacedGlyph &glyph : s_placedGlyphs)
+        {
+            const AtlasRegion *region = atlasRegionOf(*atlas, glyph.m_codepoint, *glyph.m_metrics);
+            if (region)
+            {
+                s_blits.push_back({region->m_x, region->m_y, region->m_width, region->m_height,
+                                   originX + glyph.m_penX + glyph.m_metrics->m_offsetX, glyph.m_metrics->m_offsetY});
+            }
+        }
+        if (fried_renderer_draw_glyphs(rendererId, atlas->m_textureId, x, y, s_blits.data(), (int)s_blits.size(), r, g, b, a))
+        {
+            return;
+        }
     }
 
     float scaleX = width / (float)lineWidth;
