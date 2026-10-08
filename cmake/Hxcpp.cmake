@@ -64,10 +64,10 @@ set(_hxcpp_std_sources
     src/hx/libs/std/Sys.cpp
 )
 
-# Neither compiles, or works, on a console: none has subprocesses, the Vita's
-# sockets are a Sony API rather than the BSD one hxcpp is written against, and
-# libnx's and libctru's do not open until a socket service initialization the
-# engine never calls.
+# Neither compiles, or works, on a console or the calculator: none has
+# subprocesses, the Vita's sockets are a Sony API rather than the BSD one hxcpp
+# is written against, libnx's and libctru's do not open until a socket service
+# initialization the engine never calls, and the calculator has no network.
 set(_hxcpp_std_sources_without_console
     src/hx/libs/std/Socket.cpp
     src/hx/libs/std/Process.cpp
@@ -119,12 +119,17 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50)
         list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_console})
     endif()
 
     list(TRANSFORM _std_source_names PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _std_sources)
     set(_no_files_source "${HXCPP_ROOT}/${_hxcpp_no_files_source}")
+
+    set(_include_dir "${HXCPP_INCLUDE_DIR}")
+    if(FRIED_CG50)
+        fried_cg50_patch_hxcpp(_runtime_sources _include_dir)
+    endif()
 
     add_executable(${target_name}
         ${_generated_sources}
@@ -134,7 +139,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     )
 
     target_include_directories(${target_name} PRIVATE "${generated_dir}/include")
-    target_include_directories(${target_name} SYSTEM PRIVATE "${HXCPP_INCLUDE_DIR}")
+    target_include_directories(${target_name} SYSTEM PRIVATE "${_include_dir}")
 
     target_compile_definitions(${target_name} PRIVATE
         HXCPP_API_LEVEL=${_hxcpp_api_level}
@@ -146,17 +151,22 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_definitions(${target_name} PRIVATE HXCPP_M64)
     endif()
 
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
-        # hxcpp has no target of its own for any of the consoles: HX_LINUX and
-        # NEKO_LINUX pick its generic POSIX paths, and none of them loads a
-        # shared library.
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50)
+        # hxcpp has no target of its own for any of the consoles or the
+        # calculator: HX_LINUX and NEKO_LINUX pick its generic POSIX paths, and
+        # none of them loads a shared library.
         target_compile_definitions(${target_name} PRIVATE
             HX_LINUX
             NEKO_LINUX
             HXCPP_NO_DYNAMIC_LOADING
         )
-        fried_apply_newlib_compat("${_std_sources}")
-        target_sources(${target_name} PRIVATE "${_hxcpp_newlib_dir}/posix_extras.cpp")
+
+        if(FRIED_CG50)
+            fried_cg50_configure_hxcpp_target(${target_name})
+        else()
+            fried_apply_newlib_compat("${_std_sources}")
+            target_sources(${target_name} PRIVATE "${_hxcpp_newlib_dir}/posix_extras.cpp")
+        endif()
 
         if(NINTENDO_3DS)
             target_compile_definitions(${target_name} PRIVATE
@@ -183,15 +193,19 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
     )
 
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
-        # newlib's struct tm has no tm_gmtoff. __SNC__ is one of the defines
-        # Date.cpp keys its mktime() fallback off, and uses for nothing else.
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50)
+        # Neither newlib's struct tm nor fxlibc's has tm_gmtoff. __SNC__ is one
+        # of the defines Date.cpp keys its mktime() fallback off, and uses for
+        # nothing else.
         set_property(SOURCE "${HXCPP_ROOT}/src/hx/Date.cpp"
             APPEND PROPERTY COMPILE_DEFINITIONS __SNC__
         )
+    endif()
 
+    # gint has no threads to link at all; cmake/gint/pthread.h stands in.
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         target_link_libraries(${target_name} PRIVATE pthread)
-    else()
+    elseif(NOT FRIED_CG50)
         find_package(Threads REQUIRED)
         target_link_libraries(${target_name} PRIVATE Threads::Threads)
     endif()
@@ -204,8 +218,9 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         CXX_STANDARD_REQUIRED ON
     )
 
-    # A .3dsx is relocated by its loader from -mword-relocations, not as a PIE.
-    if(NOT VITA AND NOT NINTENDO_3DS)
+    # A .3dsx is relocated by its loader from -mword-relocations, not as a PIE,
+    # and a .g3a is linked to the fixed address the calculator maps it at.
+    if(NOT VITA AND NOT NINTENDO_3DS AND NOT FRIED_CG50)
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     endif()
 endfunction()

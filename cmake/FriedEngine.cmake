@@ -8,6 +8,12 @@
 
 get_filename_component(FRIED_ENGINE_DIR "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
+# The fxSDK's toolchain file names its platform rather than setting a variable
+# of the kind the consoles' toolchains set.
+if(FXSDK_PLATFORM_LONG STREQUAL "fxCG50")
+    set(FRIED_CG50 TRUE)
+endif()
+
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 
@@ -17,17 +23,22 @@ elseif(NINTENDO_SWITCH)
     include("${CMAKE_CURRENT_LIST_DIR}/Switch.cmake")
 elseif(NINTENDO_3DS)
     include("${CMAKE_CURRENT_LIST_DIR}/3DS.cmake")
+elseif(FRIED_CG50)
+    include("${CMAKE_CURRENT_LIST_DIR}/CG50.cmake")
 endif()
 
-find_package(SDL2 REQUIRED CONFIG)
-find_package(SDL2_ttf REQUIRED CONFIG)
+# gint is the whole platform on the calculator, with no SDL2 on top of it.
+if(NOT FRIED_CG50)
+    find_package(SDL2 REQUIRED CONFIG)
+    find_package(SDL2_ttf REQUIRED CONFIG)
 
-if(NINTENDO_SWITCH)
-    fried_find_switch_sdl2_module(SDL2_image fried::sdl2_image)
-    fried_find_switch_sdl2_module(SDL2_mixer fried::sdl2_mixer)
-else()
-    find_package(SDL2_image REQUIRED CONFIG)
-    find_package(SDL2_mixer REQUIRED CONFIG)
+    if(NINTENDO_SWITCH)
+        fried_find_switch_sdl2_module(SDL2_image fried::sdl2_image)
+        fried_find_switch_sdl2_module(SDL2_mixer fried::sdl2_mixer)
+    else()
+        find_package(SDL2_image REQUIRED CONFIG)
+        find_package(SDL2_mixer REQUIRED CONFIG)
+    endif()
 endif()
 
 # VitaSDK's and devkitPro's 3DS freetype packages leave these dependencies
@@ -52,26 +63,51 @@ else()
     set(_fried_graphics_backend sdl)
 endif()
 
+# The calculator has no SDL2 under any of it, so every file that calls SDL has
+# a gint sibling there.
+if(FRIED_CG50)
+    set(_fried_native_sources
+        native/platform/application_gint.cpp
+        native/platform/events_gint.cpp
+        native/platform/filesystem_gint.cpp
+        native/platform/gamepad_gint.cpp
+        native/platform/input_gint.cpp
+        native/platform/mouse_gint.cpp
+        native/platform/touch_gint.cpp
+        native/platform/window_gint.cpp
+        native/graphics/renderer_gint.cpp
+        native/graphics/texture_gint.cpp
+        native/graphics/font_gint.cpp
+        native/audio/sound_gint.cpp
+        native/audio/music_gint.cpp
+    )
+else()
+    set(_fried_native_sources
+        native/platform/application.cpp
+        native/platform/events.cpp
+        native/platform/filesystem.cpp
+        native/platform/gamepad.cpp
+        native/platform/input.cpp
+        native/platform/mouse.cpp
+        native/platform/touch.cpp
+        native/platform/window.cpp
+        native/graphics/renderer_${_fried_graphics_backend}.cpp
+        native/graphics/texture_${_fried_graphics_backend}.cpp
+        native/graphics/font.cpp
+        native/audio/sound.cpp
+        native/audio/music.cpp
+    )
+endif()
+list(APPEND _fried_native_sources
+    native/last_error.cpp
+    native/graphics/display.cpp
+)
+list(TRANSFORM _fried_native_sources PREPEND "${FRIED_ENGINE_DIR}/")
+
 # The engine's C++ needs nothing from hxcpp, so it is its own library rather
 # than sources folded into every game's executable.
 if(NOT TARGET fried_engine)
-    add_library(fried_engine STATIC
-        ${FRIED_ENGINE_DIR}/native/last_error.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/application.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/events.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/filesystem.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/gamepad.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/input.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/mouse.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/touch.cpp
-        ${FRIED_ENGINE_DIR}/native/platform/window.cpp
-        ${FRIED_ENGINE_DIR}/native/graphics/renderer_${_fried_graphics_backend}.cpp
-        ${FRIED_ENGINE_DIR}/native/graphics/texture_${_fried_graphics_backend}.cpp
-        ${FRIED_ENGINE_DIR}/native/graphics/display.cpp
-        ${FRIED_ENGINE_DIR}/native/graphics/font.cpp
-        ${FRIED_ENGINE_DIR}/native/audio/sound.cpp
-        ${FRIED_ENGINE_DIR}/native/audio/music.cpp
-    )
+    add_library(fried_engine STATIC ${_fried_native_sources})
 
     target_include_directories(fried_engine PUBLIC ${FRIED_ENGINE_DIR}/native)
     target_compile_features(fried_engine PUBLIC cxx_std_17)
@@ -80,7 +116,9 @@ if(NOT TARGET fried_engine)
         CXX_STANDARD_REQUIRED ON
     )
 
-    if(VITA OR NINTENDO_3DS)
+    if(FRIED_CG50)
+        target_link_libraries(fried_engine PUBLIC Gint::Gint)
+    elseif(VITA OR NINTENDO_3DS)
         target_link_libraries(fried_engine PUBLIC
             SDL2_image::SDL2_image-static
             SDL2_mixer::SDL2_mixer-static
@@ -142,6 +180,8 @@ function(fried_add_game target_name)
         set(_platform switch)
     elseif(NINTENDO_3DS)
         set(_platform 3ds)
+    elseif(FRIED_CG50)
+        set(_platform cg50)
     else()
         set(_platform pc)
     endif()
@@ -202,6 +242,19 @@ function(fried_add_game target_name)
             DESCRIPTION "Version ${_version}"
             AUTHOR "${_organization}"
             ICON ${CMAKE_CURRENT_SOURCE_DIR}/3ds/icon.png
+            ENGINE_ASSETS ${_engine_assets}
+            GAME_ASSETS ${_game_assets}
+        )
+    elseif(FRIED_CG50)
+        # The game's folder on the calculator is named after it, and the
+        # engine resolves its assets and user data inside that folder.
+        string(JSON _name GET "${_project_json}" name)
+        target_compile_definitions(fried_engine PRIVATE "FRIED_CG50_DIRECTORY=\"${_name}\"")
+
+        fried_add_cg50_g3a(${target_name}
+            NAME "${_name}"
+            ICON_UNSELECTED ${CMAKE_CURRENT_SOURCE_DIR}/cg50/icon-uns.png
+            ICON_SELECTED ${CMAKE_CURRENT_SOURCE_DIR}/cg50/icon-sel.png
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
