@@ -32,6 +32,9 @@ class DebugOverlay extends SceneLayer {
 	var buttons:Array<Button>;
 	var buttonLabels:Array<Void->String>;
 	var nextRefresh:Float;
+	var framesPerSecond:Int;
+	var lastRefreshFrame:Int;
+	var lastRefreshTime:Float;
 
 	static inline var PADDING:Int = 6;
 	static inline var MARGIN:Int = 12;
@@ -56,6 +59,9 @@ class DebugOverlay extends SceneLayer {
 		buttons = [];
 		buttonLabels = [];
 		nextRefresh = 0.0;
+		framesPerSecond = 0;
+		lastRefreshFrame = 0;
+		lastRefreshTime = 0.0;
 		addButton(() -> 'Interface ${togglesInterface.renderer != null ? "on" : "off"}', toggleInterface);
 	}
 
@@ -77,6 +83,13 @@ class DebugOverlay extends SceneLayer {
 			return;
 		}
 		nextRefresh = Time.elapsedSeconds + refreshInterval;
+		// Averaged over the refresh interval, since one frame's rate jumps around.
+		var interval = Time.unscaledElapsedSeconds - lastRefreshTime;
+		if (interval > 0) {
+			framesPerSecond = Math.round((Time.frameCount - lastRefreshFrame) / interval);
+		}
+		lastRefreshFrame = Time.frameCount;
+		lastRefreshTime = Time.unscaledElapsedSeconds;
 		for (index in 0...buttons.length) {
 			buttons[index].label = buttonLabels[index]();
 		}
@@ -126,7 +139,7 @@ class DebugOverlay extends SceneLayer {
 		var cameraY = Std.int(camera.transform.y);
 		var contact = playerController.blockedBy == null ? "none" : playerController.blockedBy;
 		var description = [
-			'frame ${Time.frameCount}', 'queue ${DrawQueue.capacity}', 'camera $cameraX, $cameraY', 'zoom $zoom',
+			'frame ${Time.frameCount}', 'fps $framesPerSecond', 'queue ${DrawQueue.capacity}', 'camera $cameraX, $cameraY', 'zoom $zoom',
 			'player priority ${player.priority}', 'blocked by $contact'
 		];
 		for (device in 0...Input.touchDeviceCount) {

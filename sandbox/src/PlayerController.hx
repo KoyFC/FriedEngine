@@ -36,8 +36,8 @@ class PlayerController extends Component {
 	}
 
 	override function update():Void {
-		var moveX = clamp(Input.getGamepadAxis(GamepadAxis.LeftX) + keyAxis(Key.A, Key.D));
-		var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S));
+		var moveX = clamp(Input.getGamepadAxis(GamepadAxis.LeftX) + keyAxis(Key.A, Key.D) + keyAxis(Key.Left, Key.Right));
+		var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S) + keyAxis(Key.Up, Key.Down));
 
 		blockedBy = null;
 		stepAxis(moveX * speed * Time.deltaSeconds, 0.0);

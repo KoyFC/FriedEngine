@@ -65,12 +65,13 @@ class Main {
 		Log.info('Same path twice on one renderer: ${sprite == Texture.from(renderer, Assets.game("sprite.png"))}');
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
-		var font = Font.from(Assets.engine("NunitoSans.ttf"), 16);
+		// Below the 3DS's 240 lines, a smaller size is what keeps the hints and the overlay on screen together.
+		var font = Font.from(Assets.engine("NunitoSans.ttf"), renderer.height < 240 ? 10 : 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hints = [
-			'Run $runs', "Space/A: sound", "M/B: music", "WASD/stick: move", "Q/E/L/R: zoom",
-			"F3/Select: overlay", "F4: interface", "F5: collider bounds", "Start: quit"
+			'Run $runs', "Space/Enter/A: sound", "M/F6/B: music", "WASD/arrows/stick: move", "Q/E/F1/F2/L/R: zoom",
+			"F3/Select: overlay", "F4: interface", "F5: collider bounds", "Esc/Start: quit"
 		];
 		var labelColor = Color.rgb(220, 220, 230);
 
@@ -242,8 +243,8 @@ class Main {
 				}
 			}
 
-			if (Input.isGamepadButtonDown(GamepadButton.Start)) {
-				Log.info("Start pressed, so the program quits without a window to close");
+			if (Input.isKeyDown(Key.Escape) || Input.isGamepadButtonDown(GamepadButton.Start)) {
+				Log.info("Escape or Start pressed, so the program quits without a window to close");
 				Application.quit();
 			}
 
@@ -256,10 +257,10 @@ class Main {
 				Log.info('Debug overlay ${overlay.isEnabled ? "enabled" : "disabled"}, still on the stack either way');
 			}
 
-			if (Input.isKeyPressed(Key.Q) || Input.isGamepadButtonPressed(GamepadButton.L1)) {
+			if (Input.isKeyPressed(Key.Q) || Input.isKeyPressed(Key.F1) || Input.isGamepadButtonPressed(GamepadButton.L1)) {
 				camera.zoom -= Time.deltaSeconds;
 			}
-			if (Input.isKeyPressed(Key.E) || Input.isGamepadButtonPressed(GamepadButton.R1)) {
+			if (Input.isKeyPressed(Key.E) || Input.isKeyPressed(Key.F2) || Input.isGamepadButtonPressed(GamepadButton.R1)) {
 				camera.zoom += Time.deltaSeconds;
 			}
 
@@ -267,11 +268,11 @@ class Main {
 				Log.info("Gamepad South pressed");
 			}
 
-			if (Input.isKeyDown(Key.Space) || Input.isGamepadButtonDown(GamepadButton.South)) {
+			if (Input.isKeyDown(Key.Space) || Input.isKeyDown(Key.Enter) || Input.isGamepadButtonDown(GamepadButton.South)) {
 				playSound();
 			}
 
-			if (Input.isKeyDown(Key.M) || Input.isGamepadButtonDown(GamepadButton.East)) {
+			if (Input.isKeyDown(Key.M) || Input.isKeyDown(Key.F6) || Input.isGamepadButtonDown(GamepadButton.East)) {
 				toggleMusic();
 			}
 		});

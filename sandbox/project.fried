@@ -4,6 +4,11 @@
 			"mode": "default"
 		}
 	},
+	"cg50": {
+		"display": {
+			"mode": "default"
+		}
+	},
 	"display": {
 		"height": 480,
 		"mode": "expand",
