@@ -20,6 +20,14 @@ function(fried_add_vita_vpk target_name)
     vita_create_self(${target_name}.self ${target_name})
 
     set(_vpk_files "")
+
+    # The splash shown while the game boots is optional. A glob rather than
+    # if(EXISTS) so adding or removing it later reconfigures on its own.
+    file(GLOB _pic0 CONFIGURE_DEPENDS "${VPK_SCE_SYS}/pic0.png")
+    if(_pic0)
+        list(APPEND _vpk_files FILE "${_pic0}" sce_sys/pic0.png)
+    endif()
+
     fried_collect_vita_assets("${VPK_ENGINE_ASSETS}" "assets/engine" _vpk_files)
     fried_collect_vita_assets("${VPK_GAME_ASSETS}" "assets/game" _vpk_files)
 
