@@ -16,6 +16,12 @@
 // gint draws into a 396x224 RGB565 frame in memory, which dupdate() sends to
 // the screen. Everything here is drawn into that frame by the CPU, through
 // the same display layout the other backends hand their GPU.
+//
+// gint reaches the frame through an address that skips the CPU's cache, so
+// the DMA that sends it and the one that clears it never find a stale copy.
+// Blending reads every pixel it draws over, and each of those reads went out
+// to memory, so the frame is reached through the cache here instead, and the
+// cache is kept in step by hand on either side of the two transfers.
 
 namespace
 {
@@ -39,6 +45,47 @@ namespace
         int m_right;
         int m_bottom;
     };
+
+    constexpr uintptr_t s_physicalMask = 0x1fffffff;
+    constexpr uintptr_t s_cachedArea = 0x80000000;
+    constexpr uintptr_t s_uncachedArea = 0xa0000000;
+    constexpr uintptr_t s_cacheLine = 32;
+
+    uint16_t *inArea(uint16_t *frame, uintptr_t area)
+    {
+        return (uint16_t *)(((uintptr_t)frame & s_physicalMask) | area);
+    }
+
+    void useFrameThrough(uintptr_t area)
+    {
+        uint16_t *frame = inArea(gint_vram, area);
+        dsetvram(frame, frame);
+    }
+
+    // gint aligns the frame to cache lines, so no other data shares one.
+    template <typename Operation>
+    void forEachFrameLine(Operation operation)
+    {
+        uintptr_t end = (uintptr_t)(gint_vram + DWIDTH * DHEIGHT);
+        for (uintptr_t line = (uintptr_t)gint_vram; line < end; line += s_cacheLine)
+        {
+            operation(line);
+        }
+    }
+
+    // What is drawn and still only in the cache goes out to memory, where the
+    // DMA reads it from.
+    void writeBackFrame()
+    {
+        forEachFrameLine([](uintptr_t line) { __asm__ volatile("ocbwb @%0" : : "r"(line) : "memory"); });
+    }
+
+    // The cached copy is dropped unwritten, ahead of a DMA that overwrites
+    // all of the frame.
+    void discardCachedFrame()
+    {
+        forEachFrameLine([](uintptr_t line) { __asm__ volatile("ocbi @%0" : : "r"(line) : "memory"); });
+    }
 
     FriedDisplayLayout layout()
     {
@@ -315,6 +362,7 @@ int fried_renderer_create(int windowId, bool)
         fried_set_last_error("No such window");
         return -1;
     }
+    useFrameThrough(s_cachedArea);
     return s_renderers.store(new Renderer{windowId, 0, 0, 0, 255});
 }
 
@@ -326,6 +374,8 @@ void fried_renderer_destroy(int rendererId)
     }
     fried_font_release_renderer(rendererId);
     delete s_renderers.release(rendererId);
+    writeBackFrame();
+    useFrameThrough(s_uncachedArea);
 }
 
 // dupdate() sends the frame as soon as it is called; nothing waits for the
@@ -370,6 +420,7 @@ void fried_renderer_clear(int rendererId)
 
     uint16_t color = toRgb565(renderer->m_r, renderer->m_g, renderer->m_b);
     FriedDisplayLayout current = layout();
+    discardCachedFrame();
     if (current.m_viewportWidth == DWIDTH && current.m_viewportHeight == DHEIGHT)
     {
         dclear(color);
@@ -387,6 +438,7 @@ void fried_renderer_present(int rendererId)
 {
     if (s_renderers.get(rendererId))
     {
+        writeBackFrame();
         dupdate();
     }
 }
