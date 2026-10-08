@@ -1,12 +1,12 @@
 # Fried Engine
 
-A game engine written primarily in [Haxe](https://haxe.org/), compiled to native C++ via [hxcpp](https://github.com/HaxeFoundation/hxcpp), on top of [SDL2](https://www.libsdl.org/), with [CMake](https://cmake.org/) as the common build system across every target platform.
+A game engine written primarily in [Haxe](https://haxe.org/), compiled to native C++ via [hxcpp](https://github.com/HaxeFoundation/hxcpp), on top of [SDL2](https://www.libsdl.org/) (or [gint](https://git.planet-casio.com/Lephenixnoir/gint) on the Casio fx-CG50), with [CMake](https://cmake.org/) as the common build system across every target platform.
 
 ```
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux/GCC), PlayStation Vita, Nintendo Switch and Nintendo 3DS are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux/GCC), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -28,6 +28,7 @@ This repository is the engine alone, and it is not the starting point for a game
 - [x] 14. Layer stack (ordered update and draw per renderer, with input events walking the stack from the top down)
 - [x] 15. AABB collisions (`Collider` as a component, overlap and raycast queries over a scene, in `fried.physics`)
 - [x] 16. Port the runtime to Nintendo 3DS (devkitPro toolchain, `romfs:` asset root, both screens, drawn through citro2d)
+- [x] 17. Port the runtime to the Casio fx-CG50 (fxSDK toolchain, gint instead of SDL2, assets in a folder next to the `.g3a`, drawn in software)
 
 ## Requirements
 
@@ -41,6 +42,8 @@ For a Vita build, [VitaSDK](https://vitasdk.org/) with `$VITASDK` set and its `b
 For a Switch build, [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, and the same four libraries from its own (`dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`). `switch-pkg-config` is not optional there: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
 
 For a 3DS build, the same devkitPro install with `3ds-dev`, and the four libraries built from [`packaging/3ds/`](packaging/3ds/README.md), since devkitPro ships no SDL2 for the 3DS.
+
+For an fx-CG50 build, the [fxSDK](https://git.planet-casio.com/Lephenixnoir/fxsdk) with gint and its `sh-elf-gcc` and libstdc++, and that libstdc++ rebuilt with exceptions by [`packaging/cg50/`](packaging/cg50/README.md), since the fxSDK builds it without them. No SDL2 is involved: gint is the whole platform there.
 
 The Haxe side of the build is identical on every platform.
 
@@ -57,9 +60,9 @@ cmake --build build
 ./build/sandbox/fried_sandbox
 ```
 
-A window opens on a small scene of game objects. WASD or the left stick moves a sprite through a world larger than the window, and a camera follows it: the wall and the row of posts scroll past, and the sprite passes behind or in front of the wall depending on which side of it it stands on, without anything being added to or removed from the scene. The posts carry colliders and the player cannot walk through them, sliding along one instead of stopping dead against it, while the wall carries none and stays the draw order demo. F5 draws every collider's bounds over the scene. Q and E, or the L and R shoulder buttons, zoom out and in, and zooming all the way out stops at the smallest zoom the camera allows rather than collapsing the view. A left click in it, or a touch on the front screen, logs where it landed in both screen and world coordinates, which collider the point is inside, and what a ray from the player to that point hits first, how far away and on which face. Its `project.fried` sets an `expand` display designed at 640x480, so a wider screen or a resized window shows more of the world rather than black bars, and the 3DS overrides it to `default`, since text laid out for 480 lines is not legible at half that. The camera's zoom keeps the world 480 units tall on every screen, so the 3DS still shows as much of it as the others while its interface stays at native size.
+A window opens on a small scene of game objects. WASD, the arrow keys or the left stick move a sprite through a world larger than the window, and a camera follows it: the wall and the row of posts scroll past, and the sprite passes behind or in front of the wall depending on which side of it it stands on, without anything being added to or removed from the scene. The posts carry colliders and the player cannot walk through them, sliding along one instead of stopping dead against it, while the wall carries none and stays the draw order demo. F5 draws every collider's bounds over the scene. Q and E, F1 and F2, or the L and R shoulder buttons, zoom out and in, and zooming all the way out stops at the smallest zoom the camera allows rather than collapsing the view. A left click in it, or a touch on the front screen, logs where it landed in both screen and world coordinates, which collider the point is inside, and what a ray from the player to that point hits first, how far away and on which face. Its `project.fried` sets an `expand` display designed at 640x480, so a wider screen or a resized window shows more of the world rather than black bars, and the 3DS overrides it to `default`, since text laid out for 480 lines is not legible at half that. The camera's zoom keeps the world 480 units tall on every screen, so the 3DS still shows as much of it as the others while its interface stays at native size.
 
-The interface is a second scene with no camera of its own, so it draws in screen coordinates and stays put while the world moves, and it is pushed as a layer above the world, which is what keeps it on top rather than a hand-picked draw priority: two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with two lines of text over it listing the controls. Those lines are `Text` components, and a third one under the right hand icons follows the scrolling region, changing as often as the number it shows does. A click or touch inside that panel is taken by the interface layer, so the world layer below it never logs that one, which is the same stack walked from the top down. Between the two sits a debug overlay in the bottom left corner, which takes the whole bottom screen on a 3DS: it reads out the frame count, the camera, the player's draw priority, the collider the player is being held by and, for each touch device, how many fingers are down and where the first one is. Every finger landing and lifting is logged with its id and its device, which on the Vita tells the front screen (0) from the rear pad (1). Under the readout, `Button`s do what the keys below do, by touch or by mouse, each showing whether what it toggles is on. F3, or Select on a gamepad, turns it off and on without taking it off the stack, and F4, which the overlay itself handles, takes the interface off the stack and puts it back. The sandbox also loops its music, plays a sound on space or the south face button and pauses the music on M or the east one. Start quits, which is how the program ends on a console, where there is no window to close. The `vsyncEnabled` flag at the top of `main()` governs the renderer.
+The interface is a second scene with no camera of its own, so it draws in screen coordinates and stays put while the world moves, and it is pushed as a layer above the world, which is what keeps it on top rather than a hand-picked draw priority: two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with two lines of text over it listing the controls. Those lines are `Text` components, and a third one under the right hand icons follows the scrolling region, changing as often as the number it shows does. A click or touch inside that panel is taken by the interface layer, so the world layer below it never logs that one, which is the same stack walked from the top down. Between the two sits a debug overlay in the bottom left corner, which takes the whole bottom screen on a 3DS: it reads out the frame count, the camera, the player's draw priority, the collider the player is being held by and, for each touch device, how many fingers are down and where the first one is. Every finger landing and lifting is logged with its id and its device, which on the Vita tells the front screen (0) from the rear pad (1). Under the readout, `Button`s do what the keys below do, by touch or by mouse, each showing whether what it toggles is on. F3, or Select on a gamepad, turns it off and on without taking it off the stack, and F4, which the overlay itself handles, takes the interface off the stack and puts it back. The sandbox also loops its music, plays a sound on space, Enter or the south face button and pauses the music on M, F6 or the east one. Escape or Start quits, which is how the program ends on a console or the calculator, where there is no window to close. Each action has a key the calculator's keypad has too, which is what the arrows, the function keys, Enter and Escape are there for. On a screen under 240 lines tall the interface uses a smaller font, and the debug overlay reads out the frame rate on every platform. The `vsyncEnabled` flag at the top of `main()` governs the renderer.
 
 For a Vita build the generated C++ is the same, so only the CMake step changes:
 
@@ -87,6 +90,15 @@ cmake --build build/3ds
 ```
 
 That produces `build/3ds/sandbox/fried_sandbox.3dsx`, which runs from the Homebrew Launcher once copied anywhere under `sdmc:/3ds/`, with its assets inside it as on the Switch. The scene draws on the top screen at 400x240, and the debug overlay moves to the bottom one, which the sandbox opens as a second window wherever `Window.maxCount` allows one. Touching the bottom screen therefore shows up in the overlay and the log rather than in the world, which is on the other screen. Sound needs the console's DSP firmware dumped to `sdmc:/3ds/dspfirm.cdc` (by DSP1 on a console; any file of that name satisfies Azahar), and without it the program runs silent. In Azahar, use its OpenGL renderer: on Vulkan the right half of the top screen flashes black.
+
+An fx-CG50 build is the same with the fxSDK's toolchain file, which sits under the fxSDK's install prefix (`~/.local` by default):
+
+```sh
+cmake -S . -B build/cg50 -DCMAKE_TOOLCHAIN_FILE=$HOME/.local/lib/cmake/fxsdk/FXCG50.cmake
+cmake --build build/cg50
+```
+
+That produces `build/cg50/sandbox/fried_sandbox.g3a` and, next to it, a `Fried Sandbox/` folder holding the assets. With the calculator connected over USB in its storage mode, both go at the root of its storage memory, and the add-in then appears in the main menu. The assets stay outside the `.g3a`, which holds at most 2 MB, and audio is left out of them, since the calculator cannot play it; the game still loads and plays its sounds, silently. The screen is 396x224 and the keypad is the keyboard: the digits, the arrows, EXE as Enter, EXIT as Escape, DEL as Backspace, F1 to F6, SHIFT and ALPHA are those keys, the twelve keys above the digits are the letters A to L that ALPHA types with them, and the point key is Space. MENU always leaves for the calculator's main menu, as it does in every add-in, and the game sees its window lose and regain focus around it. Text set in a font too large for the calculator's memory, as the sandbox's is, falls back to the calculator's own pixel font. Everything is drawn by the CPU, so the sandbox runs at around 40 frames a second with neither of its overlays and much slower with them, and writing user data pauses the game for a moment, since the calculator's storage is slow to write.
 
 ## Using the engine in a game
 
@@ -119,7 +131,7 @@ and its `build.hxml` points at the submodule's source:
 -D no-compilation
 ```
 
-`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried` declaring the game's identity, an `assets/` for the game's own assets, a `sce_sys/` for a Vita build, a `switch/icon.jpg` for a Switch one and a `3ds/icon.png` for a 3DS one. It then builds with the same commands the sandbox does.
+`fried_add_game()` expects the layout those two files imply, relative to the project root: `build/cpp` for the generated C++, a `project.fried` declaring the game's identity, an `assets/` for the game's own assets, a `sce_sys/` for a Vita build, a `switch/icon.jpg` for a Switch one, a `3ds/icon.png` for a 3DS one and, optionally, a `cg50/icon-uns.png` and `cg50/icon-sel.png` (92x64, the menu icon unselected and selected) for an fx-CG50 one. It then builds with the same commands the sandbox does.
 
 ## VS Code
 
