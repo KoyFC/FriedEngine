@@ -243,7 +243,7 @@ namespace
                     continue;
                 }
 
-                uint16_t color = texture.m_pixels[index];
+                uint16_t color = texture.m_pixels ? texture.m_pixels[index] : 0xffff;
                 if (!tinted && alpha == 255)
                 {
                     row[x] = color;

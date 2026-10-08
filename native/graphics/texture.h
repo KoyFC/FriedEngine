@@ -25,7 +25,9 @@ const C2D_Image *fried_texture_get_citro(int textureId);
 #include <cstdint>
 
 // RGB565, the screen's own format, with an alpha channel only when the image
-// has a pixel that is not fully opaque.
+// has a pixel that is not fully opaque. A texture made blank has no colours at
+// all, only alpha, and draws white: what a glyph atlas needs, at a third of
+// the memory.
 struct FriedGintTexture
 {
     int m_width;
@@ -35,6 +37,10 @@ struct FriedGintTexture
 };
 
 const FriedGintTexture *fried_texture_get_gint(int textureId);
+
+// Copies coverage into a blank texture's alpha, as fried_texture_write() does
+// a surface elsewhere.
+bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha, int width, int height);
 #else
 struct SDL_Texture;
 

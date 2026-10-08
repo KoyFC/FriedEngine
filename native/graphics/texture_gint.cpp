@@ -9,6 +9,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <new>
 
 // gint has no image decoder, so PNGs are decoded with stb_image, the same
@@ -98,6 +99,42 @@ namespace
 const FriedGintTexture *fried_texture_get_gint(int textureId)
 {
     return s_textures.get(textureId);
+}
+
+int fried_texture_create_blank(int rendererId, int width, int height)
+{
+    if (fried_renderer_get_width(rendererId) <= 0)
+    {
+        fried_set_last_error("No such renderer");
+        return -1;
+    }
+
+    FriedGintTexture *texture = new (std::nothrow) FriedGintTexture{width, height, nullptr, nullptr};
+    if (texture)
+    {
+        texture->m_alpha = new (std::nothrow) uint8_t[width * height]();
+    }
+    if (!texture || !texture->m_alpha)
+    {
+        destroy(texture);
+        fried_set_last_error("Not enough memory for a blank texture");
+        return -1;
+    }
+    return s_textures.store(texture);
+}
+
+bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha, int width, int height)
+{
+    FriedGintTexture *texture = s_textures.get(textureId);
+    if (!texture || !texture->m_alpha || x < 0 || y < 0 || x + width > texture->m_width || y + height > texture->m_height)
+    {
+        return false;
+    }
+    for (int row = 0; row < height; ++row)
+    {
+        std::memcpy(texture->m_alpha + (y + row) * texture->m_width + x, alpha + row * width, width);
+    }
+    return true;
 }
 
 int fried_texture_load(int rendererId, const char *path)
