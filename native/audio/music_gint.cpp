@@ -3,11 +3,10 @@
 #include "handle_pool.h"
 #include "last_error.h"
 
-#include <sys/stat.h>
-
-// The calculator has no audio output. Music is loaded and played the same as
-// anywhere else, one track at a time, only silently, and with no length to
-// reach the end of, so a track plays until it is stopped.
+// The calculator has no audio output, and its build leaves audio files out of
+// the assets copied to it, so a track is never read. It is played the same as
+// anywhere else, one at a time, only silently, and with no length to reach
+// the end of, so it plays until it is stopped.
 
 namespace
 {
@@ -31,13 +30,6 @@ int fried_music_load(const char *path)
     if (!path)
     {
         fried_set_last_error("No path given");
-        return -1;
-    }
-
-    struct stat status;
-    if (stat(path, &status) != 0)
-    {
-        fried_set_last_error("No such file");
         return -1;
     }
 

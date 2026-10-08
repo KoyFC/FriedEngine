@@ -74,15 +74,34 @@ namespace
         return (x + 1 + (x >> 8)) >> 8;
     }
 
-    void blendPixel(uint16_t &pixel, int r, int g, int b, int a)
+    // Blending spreads a colour's three fields apart in 32 bits, green high and
+    // red and blue low, so one multiplication by a 5-bit alpha blends all three
+    // with room for each to carry: an SH4 multiplication takes several cycles
+    // to come back, and three of them per pixel made a translucent rectangle
+    // the size of the screen cost around 90 ms. Against blending each channel
+    // exactly, no channel is ever off by more than one step.
+    constexpr uint32_t s_spreadMask = 0x07E0F81F;
+
+    __attribute__((always_inline)) inline uint32_t spread(uint16_t color)
     {
-        int destinationR = (pixel >> 8) & 0xf8;
-        int destinationG = (pixel >> 3) & 0xfc;
-        int destinationB = (pixel << 3) & 0xf8;
-        pixel = toRgb565(
-            divideBy255(r * a + destinationR * (255 - a)),
-            divideBy255(g * a + destinationG * (255 - a)),
-            divideBy255(b * a + destinationB * (255 - a)));
+        return (color | ((uint32_t)color << 16)) & s_spreadMask;
+    }
+
+    __attribute__((always_inline)) inline uint16_t pack(uint32_t spreadColor)
+    {
+        return (uint16_t)((spreadColor & 0xF81F) | (spreadColor >> 16));
+    }
+
+    // From 0..255 to the 0..32 the blend takes.
+    __attribute__((always_inline)) inline int toBlendAlpha(int alpha)
+    {
+        return (alpha + 4) >> 3;
+    }
+
+    __attribute__((always_inline)) inline void blendPixel(uint16_t &pixel, uint32_t source, int blendAlpha)
+    {
+        uint32_t destination = spread(pixel);
+        pixel = pack(((((source - destination) * blendAlpha) >> 5) + destination) & s_spreadMask);
     }
 
     void fillPixels(const PixelRect &rect, const Renderer &renderer)
@@ -92,18 +111,21 @@ namespace
             return;
         }
 
-        if (renderer.m_a == 255)
+        uint16_t color = toRgb565(renderer.m_r, renderer.m_g, renderer.m_b);
+        int blendAlpha = toBlendAlpha(renderer.m_a);
+        if (blendAlpha == 32)
         {
-            drect(rect.m_left, rect.m_top, rect.m_right - 1, rect.m_bottom - 1, toRgb565(renderer.m_r, renderer.m_g, renderer.m_b));
+            drect(rect.m_left, rect.m_top, rect.m_right - 1, rect.m_bottom - 1, color);
             return;
         }
 
+        uint32_t source = spread(color);
         for (int y = rect.m_top; y < rect.m_bottom; ++y)
         {
             uint16_t *row = gint_vram + y * DWIDTH;
             for (int x = rect.m_left; x < rect.m_right; ++x)
             {
-                blendPixel(row[x], renderer.m_r, renderer.m_g, renderer.m_b, renderer.m_a);
+                blendPixel(row[x], source, blendAlpha);
             }
         }
     }
@@ -162,9 +184,15 @@ namespace
 
         float pivotX = quad.m_hasPivot ? current.m_viewportX + quad.m_pivotX * current.m_scaleX : (left + right) / 2.0f;
         float pivotY = quad.m_hasPivot ? current.m_viewportY + quad.m_pivotY * current.m_scaleY : (top + bottom) / 2.0f;
-        double radians = quad.m_angle * 3.14159265358979323846 / 180.0;
-        float cosine = (float)std::cos(radians);
-        float sine = (float)std::sin(radians);
+        // Most quads are not turned, and the trigonometry is emulated in software.
+        float cosine = 1.0f;
+        float sine = 0.0f;
+        if (quad.m_angle != 0.0)
+        {
+            double radians = quad.m_angle * 3.14159265358979323846 / 180.0;
+            cosine = (float)std::cos(radians);
+            sine = (float)std::sin(radians);
+        }
 
         // The bounds of the turned quad, cut to the viewport.
         float cornersX[4] = {left, right, left, right};
@@ -209,7 +237,10 @@ namespace
         uint32_t limitU = (uint32_t)srcWidth << 16;
         uint32_t limitV = (uint32_t)srcHeight << 16;
 
+        // A blank texture is white, so tinted it is one colour throughout.
         bool tinted = r != 255 || g != 255 || b != 255;
+        uint16_t tint = toRgb565(r, g, b);
+        uint32_t spreadTint = spread(tint);
         bool flipX = quad.m_flip & s_flipHorizontal;
         bool flipY = quad.m_flip & s_flipVertical;
 
@@ -243,29 +274,32 @@ namespace
                     continue;
                 }
 
-                uint16_t color = texture.m_pixels ? texture.m_pixels[index] : 0xffff;
-                if (!tinted && alpha == 255)
+                uint16_t color;
+                if (!texture.m_pixels)
                 {
-                    row[x] = color;
-                    continue;
+                    color = tint;
                 }
-
-                int colorR = (color >> 8) & 0xf8;
-                int colorG = (color >> 3) & 0xfc;
-                int colorB = (color << 3) & 0xf8;
-                if (tinted)
+                else if (tinted)
                 {
-                    colorR = divideBy255(colorR * r);
-                    colorG = divideBy255(colorG * g);
-                    colorB = divideBy255(colorB * b);
-                }
-                if (alpha == 255)
-                {
-                    row[x] = toRgb565(colorR, colorG, colorB);
+                    uint16_t texel = texture.m_pixels[index];
+                    color = toRgb565(
+                        divideBy255(((texel >> 8) & 0xf8) * r),
+                        divideBy255(((texel >> 3) & 0xfc) * g),
+                        divideBy255(((texel << 3) & 0xf8) * b));
                 }
                 else
                 {
-                    blendPixel(row[x], colorR, colorG, colorB, alpha);
+                    color = texture.m_pixels[index];
+                }
+
+                int blendAlpha = toBlendAlpha(alpha);
+                if (blendAlpha == 32)
+                {
+                    row[x] = color;
+                }
+                else if (blendAlpha > 0)
+                {
+                    blendPixel(row[x], texture.m_pixels ? spread(color) : spreadTint, blendAlpha);
                 }
             }
             rowU += stepUDown;

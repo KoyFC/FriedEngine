@@ -189,7 +189,8 @@ endfunction()
 #
 # The assets do not go in the .g3a: they are staged next to it as the folder
 # to copy to the root of the calculator's storage, named after the game,
-# which is where native/platform/filesystem_gint.cpp looks for them.
+# which is where native/platform/filesystem_gint.cpp looks for them. Audio is
+# left out, since the calculator has nothing to play it on.
 function(fried_add_cg50_g3a target_name)
     cmake_parse_arguments(G3A
         ""
@@ -210,10 +211,12 @@ function(fried_add_cg50_g3a target_name)
         ${_icon_arguments}
     )
 
-    set(_staged "${CMAKE_CURRENT_BINARY_DIR}/${G3A_NAME}/assets")
     add_custom_target(${target_name}_assets ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${G3A_ENGINE_ASSETS}" "${_staged}/engine"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${G3A_GAME_ASSETS}" "${_staged}/game"
+        COMMAND ${CMAKE_COMMAND}
+            "-DENGINE_ASSETS=${G3A_ENGINE_ASSETS}"
+            "-DGAME_ASSETS=${G3A_GAME_ASSETS}"
+            "-DDESTINATION=${CMAKE_CURRENT_BINARY_DIR}/${G3A_NAME}/assets"
+            -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/CG50StageAssets.cmake"
         COMMENT "Staging the engine and game asset roots to copy next to the .g3a"
     )
 endfunction()

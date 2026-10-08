@@ -3,11 +3,9 @@
 #include "handle_pool.h"
 #include "last_error.h"
 
-#include <sys/stat.h>
-
-// The calculator has no audio output. A sound still has to exist where a game
-// loaded it, so a missing file fails the same as anywhere else, and keeps the
-// volume it is given, but playing it finishes at once without a sound.
+// The calculator has no audio output, and its build leaves audio files out of
+// the assets copied to it, so a sound is never read: it only keeps the volume
+// it is given, and playing it finishes at once without a sound.
 
 namespace
 {
@@ -24,13 +22,6 @@ int fried_sound_load(const char *path)
     if (!path)
     {
         fried_set_last_error("No path given");
-        return -1;
-    }
-
-    struct stat status;
-    if (stat(path, &status) != 0)
-    {
-        fried_set_last_error("No such file");
         return -1;
     }
 
