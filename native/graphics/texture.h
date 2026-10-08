@@ -21,6 +21,20 @@ bool fried_texture_write(int textureId, int x, int y, struct SDL_Surface *surfac
 #include <citro2d.h>
 
 const C2D_Image *fried_texture_get_citro(int textureId);
+#elif defined(TARGET_FXCG50)
+#include <cstdint>
+
+// RGB565, the screen's own format, with an alpha channel only when the image
+// has a pixel that is not fully opaque.
+struct FriedGintTexture
+{
+    int m_width;
+    int m_height;
+    uint16_t *m_pixels;
+    uint8_t *m_alpha;
+};
+
+const FriedGintTexture *fried_texture_get_gint(int textureId);
 #else
 struct SDL_Texture;
 

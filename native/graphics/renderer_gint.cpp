@@ -4,6 +4,7 @@
 #include "last_error.h"
 #include "graphics/display.h"
 #include "graphics/font.h"
+#include "graphics/texture.h"
 #include "platform/window.h"
 
 #include <gint/display.h>
@@ -66,15 +67,22 @@ namespace
         return rect;
     }
 
+    // x / 255 for x up to 255 * 255, exactly, without the division the SH4
+    // can only do in software.
+    int divideBy255(int x)
+    {
+        return (x + 1 + (x >> 8)) >> 8;
+    }
+
     void blendPixel(uint16_t &pixel, int r, int g, int b, int a)
     {
         int destinationR = (pixel >> 8) & 0xf8;
         int destinationG = (pixel >> 3) & 0xfc;
         int destinationB = (pixel << 3) & 0xf8;
         pixel = toRgb565(
-            (r * a + destinationR * (255 - a)) / 255,
-            (g * a + destinationG * (255 - a)) / 255,
-            (b * a + destinationB * (255 - a)) / 255);
+            divideBy255(r * a + destinationR * (255 - a)),
+            divideBy255(g * a + destinationG * (255 - a)),
+            divideBy255(b * a + destinationB * (255 - a)));
     }
 
     void fillPixels(const PixelRect &rect, const Renderer &renderer)
@@ -103,6 +111,166 @@ namespace
     int clampToPixelInside(int value, int size)
     {
         return std::clamp(value, 0, std::max(0, size - 1));
+    }
+
+    constexpr int s_flipHorizontal = 1;
+    constexpr int s_flipVertical = 2;
+
+    struct TexturedQuad
+    {
+        int m_srcX;
+        int m_srcY;
+        int m_srcWidth;
+        int m_srcHeight;
+        float m_x;
+        float m_y;
+        float m_width;
+        float m_height;
+        double m_angle;
+        bool m_hasPivot;
+        float m_pivotX;
+        float m_pivotY;
+        int m_flip;
+    };
+
+    // Each screen pixel in the quad's bounds is mapped back through the
+    // rotation and the scale to the texel it shows, nearest first. The steps
+    // from one pixel to the next are in 16.16 fixed point, since the SH4 has
+    // no floating point unit.
+    void drawQuad(const FriedGintTexture &texture, const TexturedQuad &quad, int r, int g, int b, int a)
+    {
+        int srcX = std::max(quad.m_srcX, 0);
+        int srcY = std::max(quad.m_srcY, 0);
+        int srcWidth = std::min(quad.m_srcX + quad.m_srcWidth, texture.m_width) - srcX;
+        int srcHeight = std::min(quad.m_srcY + quad.m_srcHeight, texture.m_height) - srcY;
+        if (srcWidth <= 0 || srcHeight <= 0 || a == 0)
+        {
+            return;
+        }
+
+        FriedDisplayLayout current = layout();
+        float left = current.m_viewportX + std::round(quad.m_x * current.m_scaleX);
+        float top = current.m_viewportY + std::round(quad.m_y * current.m_scaleY);
+        float right = current.m_viewportX + std::round((quad.m_x + quad.m_width) * current.m_scaleX);
+        float bottom = current.m_viewportY + std::round((quad.m_y + quad.m_height) * current.m_scaleY);
+        float width = right - left;
+        float height = bottom - top;
+        if (width <= 0.0f || height <= 0.0f)
+        {
+            return;
+        }
+
+        float pivotX = quad.m_hasPivot ? current.m_viewportX + quad.m_pivotX * current.m_scaleX : (left + right) / 2.0f;
+        float pivotY = quad.m_hasPivot ? current.m_viewportY + quad.m_pivotY * current.m_scaleY : (top + bottom) / 2.0f;
+        double radians = quad.m_angle * 3.14159265358979323846 / 180.0;
+        float cosine = (float)std::cos(radians);
+        float sine = (float)std::sin(radians);
+
+        // The bounds of the turned quad, cut to the viewport.
+        float cornersX[4] = {left, right, left, right};
+        float cornersY[4] = {top, top, bottom, bottom};
+        float minX = 1e9f, minY = 1e9f, maxX = -1e9f, maxY = -1e9f;
+        for (int corner = 0; corner < 4; ++corner)
+        {
+            float offsetX = cornersX[corner] - pivotX;
+            float offsetY = cornersY[corner] - pivotY;
+            float turnedX = pivotX + cosine * offsetX - sine * offsetY;
+            float turnedY = pivotY + sine * offsetX + cosine * offsetY;
+            minX = std::min(minX, turnedX);
+            maxX = std::max(maxX, turnedX);
+            minY = std::min(minY, turnedY);
+            maxY = std::max(maxY, turnedY);
+        }
+        int startX = std::max((int)std::floor(minX), current.m_viewportX);
+        int startY = std::max((int)std::floor(minY), current.m_viewportY);
+        int endX = std::min((int)std::ceil(maxX), current.m_viewportX + current.m_viewportWidth);
+        int endY = std::min((int)std::ceil(maxY), current.m_viewportY + current.m_viewportHeight);
+        if (startX >= endX || startY >= endY)
+        {
+            return;
+        }
+
+        // The texel under a pixel's centre, turned back by the angle and
+        // scaled from the quad to the source region.
+        float scaleU = srcWidth / width;
+        float scaleV = srcHeight / height;
+        float centreX = startX + 0.5f - pivotX;
+        float centreY = startY + 0.5f - pivotY;
+        float u = (cosine * centreX + sine * centreY + pivotX - left) * scaleU;
+        float v = (-sine * centreX + cosine * centreY + pivotY - top) * scaleV;
+
+        constexpr float s_one = 65536.0f;
+        int32_t rowU = (int32_t)(u * s_one);
+        int32_t rowV = (int32_t)(v * s_one);
+        int32_t stepUAcross = (int32_t)(cosine * scaleU * s_one);
+        int32_t stepVAcross = (int32_t)(-sine * scaleV * s_one);
+        int32_t stepUDown = (int32_t)(sine * scaleU * s_one);
+        int32_t stepVDown = (int32_t)(cosine * scaleV * s_one);
+        uint32_t limitU = (uint32_t)srcWidth << 16;
+        uint32_t limitV = (uint32_t)srcHeight << 16;
+
+        bool tinted = r != 255 || g != 255 || b != 255;
+        bool flipX = quad.m_flip & s_flipHorizontal;
+        bool flipY = quad.m_flip & s_flipVertical;
+
+        for (int y = startY; y < endY; ++y)
+        {
+            uint16_t *row = gint_vram + y * DWIDTH;
+            int32_t texelU = rowU;
+            int32_t texelV = rowV;
+            for (int x = startX; x < endX; ++x, texelU += stepUAcross, texelV += stepVAcross)
+            {
+                if ((uint32_t)texelU >= limitU || (uint32_t)texelV >= limitV)
+                {
+                    continue;
+                }
+
+                int column = texelU >> 16;
+                int line = texelV >> 16;
+                if (flipX)
+                {
+                    column = srcWidth - 1 - column;
+                }
+                if (flipY)
+                {
+                    line = srcHeight - 1 - line;
+                }
+                int index = (srcY + line) * texture.m_width + srcX + column;
+
+                int alpha = texture.m_alpha ? divideBy255(texture.m_alpha[index] * a) : a;
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                uint16_t color = texture.m_pixels[index];
+                if (!tinted && alpha == 255)
+                {
+                    row[x] = color;
+                    continue;
+                }
+
+                int colorR = (color >> 8) & 0xf8;
+                int colorG = (color >> 3) & 0xfc;
+                int colorB = (color << 3) & 0xf8;
+                if (tinted)
+                {
+                    colorR = divideBy255(colorR * r);
+                    colorG = divideBy255(colorG * g);
+                    colorB = divideBy255(colorB * b);
+                }
+                if (alpha == 255)
+                {
+                    row[x] = toRgb565(colorR, colorG, colorB);
+                }
+                else
+                {
+                    blendPixel(row[x], colorR, colorG, colorB, alpha);
+                }
+            }
+            rowU += stepUDown;
+            rowV += stepVDown;
+        }
     }
 }
 
@@ -189,17 +357,41 @@ void fried_renderer_present(int rendererId)
     }
 }
 
-// texture_gint.cpp loads no images, so there is never a texture to draw.
-void fried_renderer_draw_texture(int, int, float, float, float, float)
+void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
+    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
+    if (!s_renderers.get(rendererId) || !texture)
+    {
+        return;
+    }
+    drawQuad(*texture, {0, 0, texture->m_width, texture->m_height, x, y, width, height, 0.0, false, 0.0f, 0.0f, 0}, 255, 255, 255, 255);
 }
 
-void fried_renderer_draw_texture_ex(int, int, int, int, int, int, float, float, float, float, double, int)
+// Turned about the quad's centre, as SDL does with no centre given.
+void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
+    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
+    if (!s_renderers.get(rendererId) || !texture)
+    {
+        return;
+    }
+    drawQuad(*texture, {srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, false, 0.0f, 0.0f, flipMode}, 255, 255, 255, 255);
 }
 
-void fried_renderer_draw_tinted(int, int, const FriedQuad *, int, int, int, int, int)
+void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
+    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
+    if (!s_renderers.get(rendererId) || !texture)
+    {
+        return;
+    }
+    for (int index = 0; index < count; ++index)
+    {
+        const FriedQuad &quad = quads[index];
+        drawQuad(*texture,
+            {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight, quad.m_x, quad.m_y, quad.m_width, quad.m_height, quad.m_angle, true, quad.m_pivotX, quad.m_pivotY, 0},
+            std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255), std::clamp(a, 0, 255));
+    }
 }
 
 void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height)
