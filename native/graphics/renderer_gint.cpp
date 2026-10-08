@@ -151,6 +151,51 @@ namespace
         pixel = pack(((((source - destination) * blendAlpha) >> 5) + destination) & s_spreadMask);
     }
 
+    // A fill blends one colour at one alpha throughout, so the colour's share
+    // of every pixel is worked out once, and what is left per pixel is the
+    // share it keeps of the one below: as exact as blendPixel(), with no
+    // field able to carry into the next, since neither share is over 31 * 32.
+    class SpanBlend
+    {
+    public:
+        SpanBlend(uint16_t color, int blendAlpha) : m_sourceShare(spread(color) * blendAlpha), m_kept(32 - blendAlpha)
+        {
+        }
+
+        __attribute__((always_inline)) inline uint32_t operator()(uint32_t pixel) const
+        {
+            return pack(((spread(pixel) * m_kept + m_sourceShare) >> 5) & s_spreadMask);
+        }
+
+    private:
+        uint32_t m_sourceShare;
+        uint32_t m_kept;
+    };
+
+    typedef uint32_t __attribute__((may_alias)) PixelPair;
+
+    // Rows of the frame start on four bytes, so two pixels from an even
+    // column on are one 32-bit access, the first in the high half.
+    void blendRow(uint16_t *row, int left, int right, const SpanBlend &blend)
+    {
+        if (left & 1)
+        {
+            row[left] = blend(row[left]);
+            ++left;
+        }
+        PixelPair *pairs = (PixelPair *)(row + left);
+        int pairCount = (right - left) >> 1;
+        for (int index = 0; index < pairCount; ++index)
+        {
+            uint32_t pair = pairs[index];
+            pairs[index] = ((uint32_t)blend(pair >> 16) << 16) | blend(pair & 0xffff);
+        }
+        if ((right - left) & 1)
+        {
+            row[right - 1] = blend(row[right - 1]);
+        }
+    }
+
     void fillPixels(const PixelRect &rect, const Renderer &renderer)
     {
         if (rect.m_left >= rect.m_right || rect.m_top >= rect.m_bottom || renderer.m_a == 0)
@@ -166,14 +211,10 @@ namespace
             return;
         }
 
-        uint32_t source = spread(color);
+        SpanBlend blend(color, blendAlpha);
         for (int y = rect.m_top; y < rect.m_bottom; ++y)
         {
-            uint16_t *row = gint_vram + y * DWIDTH;
-            for (int x = rect.m_left; x < rect.m_right; ++x)
-            {
-                blendPixel(row[x], source, blendAlpha);
-            }
+            blendRow(gint_vram + y * DWIDTH, rect.m_left, rect.m_right, blend);
         }
     }
 
