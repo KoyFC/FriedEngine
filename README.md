@@ -35,7 +35,8 @@ This repository is the engine alone, and it is not the starting point for a game
 - [Haxe](https://haxe.org/) 4.3+ and [hxcpp](https://lib.haxe.org/p/hxcpp/) (`haxelib install hxcpp`)
 - CMake 3.20+
 - A C++17 compiler: GCC, Clang or MSVC
-- SDL2 2.0+, plus SDL2_image, SDL2_mixer and SDL2_ttf, each with its CMake package config available to `find_package(... CONFIG)`
+
+SDL2 and its companion libraries do not need to be installed for a PC build. The first configure of a build tree downloads SDL2, SDL2_image, SDL2_mixer and SDL2_ttf and builds them into it, so it needs an internet connection and takes noticeably longer than later ones. On Linux, SDL2 is built against the display and audio systems it finds, so the development headers for X11, Wayland and PulseAudio need to be installed (on Fedora: `libX11-devel libXext-devel wayland-devel libxkbcommon-devel pulseaudio-libs-devel`). PulseAudio's are enough on a PipeWire system, which serves PulseAudio clients. To link SDL2 2.0+, SDL2_image, SDL2_mixer and SDL2_ttf already installed instead, each with its CMake package config, configure with `-DFRIED_SYSTEM_SDL2=ON`.
 
 For a Vita build, [VitaSDK](https://vitasdk.org/) with `$VITASDK` set and its `bin/` on `PATH`, and the same four libraries from its package manager (`vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`).
 

@@ -30,7 +30,13 @@ Because that layout is fixed and small, it can be generated: [Fried Project Mana
 
 ## SDL2 and the native layer
 
-SDL2 and its three companion libraries (SDL2_image, SDL2_mixer, SDL2_ttf) are found as packages rather than as paths, and initialized together in `native/platform/application.cpp`, so failing to bring one up fails `fried.Application.init()` rather than surfacing later at the first load.
+SDL2 and its three companion libraries (SDL2_image, SDL2_mixer, SDL2_ttf) are initialized together in `native/platform/application.cpp`, so failing to bring one up fails `fried.Application.init()` rather than surfacing later at the first load.
+
+On a console they are found as packages from its SDK. On PC, `cmake/PcDependencies.cmake` downloads pinned release tarballs and builds all four from source as part of the build tree, so building for PC needs nothing installed beyond Haxe, CMake and a compiler, and every machine builds against the same versions. That matters more than it looks: on a distribution that ships SDL2 as sdl2-compat, as Fedora does, the installed "SDL2" is SDL3 underneath and does not behave like SDL2. `FRIED_SYSTEM_SDL2` links the installed packages instead. Building from source is all or nothing, because an installed SDL2 next to a companion library built from source would define the same targets twice.
+
+All four are linked statically, so the executable needs no SDL2 library next to it, and each is built with only the formats the engine loads. SDL2_image reads PNG and JPEG through stb_image and SDL2_mixer reads WAV, OGG and MP3 through decoders it carries, so neither needs a library under it. That leaves FreeType as the only one, and it comes inside SDL2_ttf's own release tarball, which is why the tarballs are fetched rather than the repositories, where it is a submodule. On Linux, SDL2 still loads X11, Wayland and the audio server at run time, so building it needs their development headers, and a backend whose headers are missing is left out of the build.
+
+A window on PC is created hidden and shown by `fried_renderer_create()`, because SDL2's OpenGL renderers recreate the window they are given, and a window shown before that flashes on screen before its replacement appears.
 
 `native/` is hand-written C++ glue wrapping only the SDL2 calls the engine actually makes, bound to Haxe through a small `extern class` per file. The one exception is drawing on the 3DS, which goes through citro2d instead (see [Nintendo 3DS](#nintendo-3ds)). No SDL pointer type crosses into Haxe: windows, renderers and textures are tracked by integer handle (`native/handle_pool.h`). Game code never sees SDL2, only the `fried.*` types.
 
