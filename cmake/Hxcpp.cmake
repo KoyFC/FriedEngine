@@ -88,6 +88,8 @@ function(fried_apply_newlib_compat sources)
     )
 endfunction()
 
+set(_hxcpp_mingw_dir "${CMAKE_CURRENT_LIST_DIR}/mingw")
+
 # Replaces hxcpp's pthread-key thread local storage on libctru, which has no
 # working pthread keys.
 set(_hxcpp_libctru_tls_header "${CMAKE_CURRENT_LIST_DIR}/libctru/hx_tls.h")
@@ -177,6 +179,20 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)
         target_compile_definitions(${target_name} PRIVATE HX_WINDOWS)
+        target_link_libraries(${target_name} PRIVATE ws2_32)
+
+        if(MINGW)
+            # hxcpp keys its Dynamic(long) overloads off __WORDSIZE, which only
+            # glibc defines, and a Windows long is 32 bits.
+            target_compile_definitions(${target_name} PRIVATE __WORDSIZE=32)
+            set_property(SOURCE "${HXCPP_ROOT}/src/hx/libs/std/Socket.cpp"
+                APPEND PROPERTY INCLUDE_DIRECTORIES "${_hxcpp_mingw_dir}"
+            )
+            target_link_options(${target_name} PRIVATE
+                -static
+                $<$<NOT:$<CONFIG:Debug>>:-mwindows>
+            )
+        endif()
     else()
         target_compile_definitions(${target_name} PRIVATE HX_LINUX)
     endif()
