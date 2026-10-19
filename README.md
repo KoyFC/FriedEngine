@@ -63,7 +63,7 @@ The engine's toolchain file finds MinGW-w64's libraries where all three distribu
    haxelib install hxcpp
    ```
 
-4. A compiler, CMake and a build tool, in one of two ways:
+4. A compiler, CMake and a build tool, in one of two ways. Building only through Fried Project Manager skips this step: without Visual Studio, it offers to download w64devkit for itself the first time it builds.
    - **Visual Studio**, the usual choice, and the one VS Code debugs with. Install [CMake](https://cmake.org/download/) 3.20 or later from its Windows installer, choosing to add it to `PATH`, then [Build Tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 2022 or later, ticking the **Desktop development with C++** workload, which brings the MSVC compiler and the Windows SDK. Visual Studio Community with the same workload works too.
    - **w64devkit**, a single download of under 100 MB with no installer, where Visual Studio takes several gigabytes. Download `w64devkit-x64-<version>.7z.exe` from its [releases](https://github.com/skeeto/w64devkit/releases) and run it: it unpacks a `w64devkit` folder into a location you choose, such as `C:\w64devkit`, and installs nothing else. It brings GCC, CMake, Ninja and gdb, so it replaces the CMake install as well. None of them is on the system `PATH`, so nothing outside that folder finds them on its own, VS Code included: every build has to be run from the terminal that `w64devkit.exe`, inside the folder, opens, which has them on its `PATH` for as long as it stays open.
 
