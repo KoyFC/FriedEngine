@@ -6,6 +6,10 @@
             "mergeConfigurations": true,
             "compilerPath": "/usr/bin/g++",
             "includePath": [
+                "${workspaceFolder}/build/_deps/sdl2-build/**",
+                "${workspaceFolder}/build/_deps/sdl2_image-src/include",
+                "${workspaceFolder}/build/_deps/sdl2_mixer-src/include",
+                "${workspaceFolder}/build/_deps/sdl2_ttf-src",
                 "/run/host/usr/include/SDL2",
                 "/usr/include/SDL2",
                 "${workspaceFolder}/native",
@@ -27,8 +31,7 @@
             "includePath": [
                 "${workspaceFolder}/native",
                 "${workspaceFolder}/sandbox/build/cpp/include",
-                "${workspaceFolder}/build/_deps/sdl2-build/include/SDL2",
-                "${workspaceFolder}/build/_deps/sdl2-build/include-config-debug/SDL2",
+                "${workspaceFolder}/build/_deps/sdl2-build/**",
                 "${workspaceFolder}/build/_deps/sdl2_image-src/include",
                 "${workspaceFolder}/build/_deps/sdl2_mixer-src/include",
                 "${workspaceFolder}/build/_deps/sdl2_ttf-src",
