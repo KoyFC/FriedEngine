@@ -204,6 +204,14 @@ Positions stay fractional from the transform to the backend, and are rounded onc
 
 Nothing under the asset root is writable, and that is not a rule the engine chose: the Vita mounts `app0:` read-only and the Switch mounts `romfs:` read-only, so an asset API with a write side could not be implemented there anyway. Anything that has to survive a run goes through `fried.io.UserData`, whose root is resolved per platform from that identity, by SDL wherever it can answer and by the engine on the Switch, where it cannot. It throws rather than falling back to another directory if SDL cannot resolve one, because a game silently saving somewhere nobody asked for is worse than one that does not start.
 
+## Windows
+
+A Windows build from Linux is configured with `cmake/toolchains/mingw-w64.cmake`, the one toolchain file the engine ships itself, since no SDK brings one. `native/` needed no change: SDL2 is built from source for Windows as it is for Linux, and `SDL_GetBasePath()` and `SDL_GetPrefPath()` answer the executable's folder and `AppData\Roaming`.
+
+hxcpp's runtime needed three things in `cmake/Hxcpp.cmake`, none of which its own build tool runs into, because it builds Windows with MSVC on Windows. Its `Dynamic(long)` overloads are keyed off `__WORDSIZE`, which only glibc defines, so MinGW-w64 gets `__WORDSIZE=32`, the size of a Windows `long`; without them a `DWORD` converts ambiguously. `Socket.cpp` includes `Ws2tcpip.h` as the Windows SDK spells it, which a case-sensitive host cannot find among MinGW-w64's lower case headers, so `cmake/mingw/` holds a header of that name forwarding to the real one. And it links `ws2_32`, which `Build.xml` names and the source list in `cmake/Hxcpp.cmake` does not carry.
+
+The executable is linked with `-static`, so it carries libstdc++, libgcc and winpthread instead of depending on MinGW-w64's DLLs, and needs nothing beyond what Windows ships. Every configuration but Debug is linked for the GUI subsystem, which is what keeps Windows from opening a console window next to the game.
+
 ## PlayStation Vita
 
 A Vita build is a second CMake build tree configured with VitaSDK's toolchain file. That toolchain sets `VITA` and every Vita branch keys off it, so there is no platform flag of our own and no second entry point: the same `CMakeLists.txt` files build every platform.

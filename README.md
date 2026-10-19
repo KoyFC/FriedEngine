@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux/GCC), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux/GCC, and on Windows built from Linux with MinGW-w64), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -38,6 +38,8 @@ This repository is the engine alone, and it is not the starting point for a game
 
 SDL2 and its companion libraries do not need to be installed for a PC build. The first configure of a build tree downloads SDL2, SDL2_image, SDL2_mixer and SDL2_ttf and builds them into it, so it needs an internet connection and takes noticeably longer than later ones. On Linux, SDL2 is built against the display and audio systems it finds, so the development headers for X11, Wayland and PulseAudio need to be installed (on Fedora: `libX11-devel libXext-devel wayland-devel libxkbcommon-devel pulseaudio-libs-devel`). PulseAudio's are enough on a PipeWire system, which serves PulseAudio clients. To link SDL2 2.0+, SDL2_image, SDL2_mixer and SDL2_ttf already installed instead, each with its CMake package config, configure with `-DFRIED_SYSTEM_SDL2=ON`.
 
+For a Windows build from Linux, [MinGW-w64](https://www.mingw-w64.org/)'s GCC (`mingw64-gcc-c++` on Fedora), and [Wine](https://www.winehq.org/) to run the result there. SDL2 is built for Windows from source just as it is for Linux. The toolchain file looks for the MinGW-w64 libraries where Fedora, Debian and Arch put them, and `-DFRIED_MINGW_SYSROOT=<path>` points it anywhere else.
+
 For a Vita build, [VitaSDK](https://vitasdk.org/) with `$VITASDK` set and its `bin/` on `PATH`, and the same four libraries from its package manager (`vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`).
 
 For a Switch build, [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, and the same four libraries from its own (`dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`). `switch-pkg-config` is not optional there: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
@@ -48,7 +50,7 @@ For an fx-CG50 build, the [fxSDK](https://git.planet-casio.com/Lephenixnoir/fxsd
 
 The Haxe side of the build is identical on every platform.
 
-Windows is a planned target but is not yet supported. Nothing has been tested there, and VitaSDK has no native Windows install of its own, so building on Windows is likely going to need changes of your own.
+Building on Windows itself is not supported yet. Nothing has been tested there, and VitaSDK has no native Windows install of its own, so building on Windows is likely going to need changes of your own.
 
 ## Building the sandbox
 
@@ -64,6 +66,16 @@ cmake --build build
 A window opens on a small scene of game objects. WASD, the arrow keys or the left stick move a sprite through a world larger than the window, and a camera follows it: the wall and the row of posts scroll past, and the sprite passes behind or in front of the wall depending on which side of it it stands on, without anything being added to or removed from the scene. The posts carry colliders and the player cannot walk through them, sliding along one instead of stopping dead against it, while the wall carries none and stays the draw order demo. F5 draws every collider's bounds over the scene. Q and E, F1 and F2, or the L and R shoulder buttons, zoom out and in, and zooming all the way out stops at the smallest zoom the camera allows rather than collapsing the view. A left click in it, or a touch on the front screen, logs where it landed in both screen and world coordinates, which collider the point is inside, and what a ray from the player to that point hits first, how far away and on which face. Its `project.fried` sets an `expand` display designed at 640x480, so a wider screen or a resized window shows more of the world rather than black bars, and the 3DS overrides it to `default`, since text laid out for 480 lines is not legible at half that. The camera's zoom keeps the world 480 units tall on every screen, so the 3DS still shows as much of it as the others while its interface stays at native size.
 
 The interface is a second scene with no camera of its own, so it draws in screen coordinates and stays put while the world moves, and it is pushed as a layer above the world, which is what keeps it on top rather than a hand-picked draw priority: two icons on the right show a component rotating its transform and another scrolling the region it draws from its texture, and a panel with two lines of text over it listing the controls. Those lines are `Text` components, and a third one under the right hand icons follows the scrolling region, changing as often as the number it shows does. A click or touch inside that panel is taken by the interface layer, so the world layer below it never logs that one, which is the same stack walked from the top down. Between the two sits a debug overlay in the bottom left corner, which takes the whole bottom screen on a 3DS: it reads out the frame count, the camera, the player's draw priority, the collider the player is being held by and, for each touch device, how many fingers are down and where the first one is. Every finger landing and lifting is logged with its id and its device, which on the Vita tells the front screen (0) from the rear pad (1). Under the readout, `Button`s do what the keys below do, by touch or by mouse, each showing whether what it toggles is on. F3, or Select on a gamepad, turns it off and on without taking it off the stack, and F4, which the overlay itself handles, takes the interface off the stack and puts it back. The sandbox also loops its music, plays a sound on space, Enter or the south face button and pauses the music on M, F6 or the east one. Escape or Start quits, which is how the program ends on a console or the calculator, where there is no window to close. Each action has a key the calculator's keypad has too, which is what the arrows, the function keys, Enter and Escape are there for. On a screen under 240 lines tall the interface uses a smaller font, and the debug overlay reads out the frame rate on every platform. The `vsyncEnabled` flag at the top of `main()` governs the renderer.
+
+A Windows build from Linux uses the engine's own MinGW-w64 toolchain file:
+
+```sh
+cmake -S . -B build/windows -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw-w64.cmake
+cmake --build build/windows
+wine build/windows/sandbox/fried_sandbox.exe
+```
+
+That produces `build/windows/sandbox/fried_sandbox.exe` with an `assets/` folder next to it, and the two are the whole game: the executable is linked statically, so it needs no DLL beyond the ones Windows itself ships. A Release build opens no console window, so its log is only visible from a Debug one (`-DCMAKE_BUILD_TYPE=Debug`) or under Wine, which prints it to the terminal either way.
 
 For a Vita build the generated C++ is the same, so only the CMake step changes:
 
