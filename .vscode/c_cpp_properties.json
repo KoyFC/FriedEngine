@@ -7,9 +7,7 @@
             "compilerPath": "/usr/bin/g++",
             "includePath": [
                 "${workspaceFolder}/build/_deps/sdl2-build/**",
-                "${workspaceFolder}/build/_deps/sdl2_image-src/include",
-                "${workspaceFolder}/build/_deps/sdl2_mixer-src/include",
-                "${workspaceFolder}/build/_deps/sdl2_ttf-src",
+                "${workspaceFolder}/build/_deps/sdl2-companion-headers",
                 "/run/host/usr/include/SDL2",
                 "/usr/include/SDL2",
                 "${workspaceFolder}/native",
@@ -32,9 +30,7 @@
                 "${workspaceFolder}/native",
                 "${workspaceFolder}/sandbox/build/cpp/include",
                 "${workspaceFolder}/build/_deps/sdl2-build/**",
-                "${workspaceFolder}/build/_deps/sdl2_image-src/include",
-                "${workspaceFolder}/build/_deps/sdl2_mixer-src/include",
-                "${workspaceFolder}/build/_deps/sdl2_ttf-src",
+                "${workspaceFolder}/build/_deps/sdl2-companion-headers",
                 "${env:HAXEPATH}/lib/hxcpp/**"
             ],
             "defines": [
