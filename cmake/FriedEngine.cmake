@@ -28,7 +28,7 @@ elseif(FRIED_CG50)
 endif()
 
 # gint is the whole platform on the calculator, with no SDL2 on top of it.
-if(NOT FRIED_CG50)
+if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
     find_package(SDL2 REQUIRED CONFIG)
     find_package(SDL2_ttf REQUIRED CONFIG)
 
@@ -39,6 +39,9 @@ if(NOT FRIED_CG50)
         find_package(SDL2_image REQUIRED CONFIG)
         find_package(SDL2_mixer REQUIRED CONFIG)
     endif()
+elseif(NOT FRIED_CG50)
+    include("${CMAKE_CURRENT_LIST_DIR}/PcDependencies.cmake")
+    fried_add_pc_sdl2(_fried_pc_sdl2_link_targets)
 endif()
 
 # VitaSDK's and devkitPro's 3DS freetype packages leave these dependencies
@@ -133,12 +136,7 @@ if(NOT TARGET fried_engine)
             SDL2::SDL2
         )
     else()
-        target_link_libraries(fried_engine PUBLIC
-            SDL2::SDL2
-            SDL2_image::SDL2_image
-            SDL2_mixer::SDL2_mixer
-            SDL2_ttf::SDL2_ttf
-        )
+        target_link_libraries(fried_engine PUBLIC ${_fried_pc_sdl2_link_targets})
 
         # The executable this archive links into is a PIE.
         set_target_properties(fried_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
