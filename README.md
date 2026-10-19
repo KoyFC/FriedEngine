@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux with GCC, and on Windows built with MSVC on Windows or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -115,6 +115,16 @@ build/sandbox/Release/fried_sandbox.exe
 ```
 
 CMake finds Visual Studio by itself, so there is no developer prompt to open first. Its generator builds every configuration into its own folder and takes the configuration at build time rather than at configure time, which is why the build passes `--config` and the executable lands under `Release/`. That folder and the `assets/` folder in it are the whole game: the C++ runtime is linked statically like SDL2, so it needs no Visual C++ redistributable. A Release build opens no console window, and `--config Debug` builds one that does, under `build/sandbox/Debug/`, for reading the log.
+
+MinGW-w64 can stand in for Visual Studio, which spares its installer and its several gigabytes. [w64devkit](https://github.com/skeeto/w64devkit/releases) is one download that brings GCC, CMake, Ninja and gdb together, so it replaces steps 3 and 4: run its `w64devkit-x64-<version>.7z.exe` to unpack it anywhere, then open `w64devkit.exe` inside, a terminal with all of them on `PATH` that still sees `haxe` from the Windows one. From the engine's folder in it:
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+cmake --build build
+./build/sandbox/fried_sandbox.exe
+```
+
+Ninja builds one configuration per build tree, Release unless `-DCMAKE_BUILD_TYPE=Debug` says otherwise, so the executable lands directly in `build/sandbox/`. Naming the compilers keeps CMake from picking up Visual Studio's instead where both are installed.
 
 ## Using the engine in a game
 

@@ -206,7 +206,7 @@ Nothing under the asset root is writable, and that is not a rule the engine chos
 
 ## Windows
 
-Windows is built two ways: with MSVC on Windows, where CMake finds Visual Studio on its own, and with MinGW-w64 from Linux, configured with `cmake/toolchains/mingw-w64.cmake`, the one toolchain file the engine ships itself, since no SDK brings one. `native/` needed no change for either: SDL2 is built from source for Windows as it is for Linux, and `SDL_GetBasePath()` and `SDL_GetPrefPath()` answer the executable's folder and `AppData\Roaming`.
+Windows is built with MSVC on Windows, where CMake finds Visual Studio on its own, and with MinGW-w64 either on Windows or from Linux. A build from Linux is configured with `cmake/toolchains/mingw-w64.cmake`, the one toolchain file the engine ships itself, since no SDK brings one. `native/` needed no change for any of them: SDL2 is built from source for Windows as it is for Linux, and `SDL_GetBasePath()` and `SDL_GetPrefPath()` answer the executable's folder and `AppData\Roaming`.
 
 Under MSVC, hxcpp's runtime compiles with `/bigobj`, which its own build passes for Debug, in place of the GCC flags every other platform takes. `haxelib` answers with Windows line endings and backslashes there, so `cmake/Hxcpp.cmake` strips the one and converts the other before using the path.
 
