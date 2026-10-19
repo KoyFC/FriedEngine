@@ -12,6 +12,13 @@ namespace
 {
     HandlePool<SDL_Window> s_windows;
 
+#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__)
+    constexpr Uint32 s_visibilityUntilRendererExists = SDL_WINDOW_SHOWN;
+#else
+    // SDL2's OpenGL renderers recreate the window they are given, which flashes a shown one.
+    constexpr Uint32 s_visibilityUntilRendererExists = SDL_WINDOW_HIDDEN;
+#endif
+
     bool displayHasWindow(int displayIndex)
     {
         for (int i = 0; i < s_windows.capacity(); ++i)
@@ -83,7 +90,7 @@ int fried_window_create(const char *title, int width, int height)
         title,
         SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex), SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex),
         width, height,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        s_visibilityUntilRendererExists | SDL_WINDOW_RESIZABLE);
     if (!window)
     {
         fried_capture_sdl_error();

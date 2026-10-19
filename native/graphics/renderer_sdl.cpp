@@ -93,6 +93,7 @@ int fried_renderer_create(int windowId, bool vsync)
         return -1;
     }
 
+    SDL_ShowWindow(window);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     applyLayout(renderer);
     return s_renderers.store(renderer);
