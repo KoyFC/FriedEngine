@@ -43,6 +43,8 @@ class Time {
 		var m = Std.int(totalSec / 60) % 60;
 		var h = Std.int(totalSec / 3600);
 
-		return h > 0 ? '${h}h ${m}m ${s}s' : m > 0 ? '${m}m ${s}s ${ms}ms' : '${s}.${ms}s';
+		var paddedMs = StringTools.lpad(Std.string(ms), "0", 3);
+
+		return h > 0 ? '${h}h ${m}m ${s}s' : m > 0 ? '${m}m ${s}s ${paddedMs}ms' : '${s}.${paddedMs}s';
 	}
 }

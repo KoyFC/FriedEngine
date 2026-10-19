@@ -187,8 +187,11 @@ function(fried_add_hxcpp_executable target_name generated_dir)
             # hxcpp keys its Dynamic(long) overloads off __WORDSIZE, which only
             # glibc defines, and a Windows long is 32 bits.
             target_compile_definitions(${target_name} PRIVATE __WORDSIZE=32)
-            set_property(SOURCE "${HXCPP_ROOT}/src/hx/libs/std/Socket.cpp"
-                APPEND PROPERTY INCLUDE_DIRECTORIES "${_hxcpp_mingw_dir}"
+            # Socket.cpp redefines _WIN32_WINNT to this after MinGW's headers have set their own.
+            set_source_files_properties("${HXCPP_ROOT}/src/hx/libs/std/Socket.cpp" PROPERTIES
+                INCLUDE_DIRECTORIES "${_hxcpp_mingw_dir}"
+                COMPILE_DEFINITIONS _WIN32_WINNT=0x0501
+                COMPILE_OPTIONS -Wno-attributes
             )
             target_link_options(${target_name} PRIVATE
                 -static
