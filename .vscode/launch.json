@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug sandbox",
+            "name": "Debug sandbox (Linux)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/sandbox/fried_sandbox",
@@ -18,6 +18,16 @@
                 "pipeCwd": "${workspaceFolder}",
                 "quoteArgs": false
             }
+        },
+        {
+            "name": "Debug sandbox (Windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/sandbox/Debug/fried_sandbox.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Build sandbox"
         }
     ]
 }

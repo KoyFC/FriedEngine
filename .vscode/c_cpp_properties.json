@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Fried Engine",
+            "name": "Linux",
             "configurationProvider": "ms-vscode.cmake-tools",
             "mergeConfigurations": true,
             "compilerPath": "/usr/bin/g++",
@@ -19,6 +19,29 @@
                 "HX_LINUX",
                 "HX_SMART_STRINGS"
             ],
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/native",
+                "${workspaceFolder}/sandbox/build/cpp/include",
+                "${workspaceFolder}/build/_deps/sdl2-build/include/SDL2",
+                "${workspaceFolder}/build/_deps/sdl2-build/include-config-debug/SDL2",
+                "${workspaceFolder}/build/_deps/sdl2_image-src/include",
+                "${workspaceFolder}/build/_deps/sdl2_mixer-src/include",
+                "${workspaceFolder}/build/_deps/sdl2_ttf-src",
+                "${env:HAXEPATH}/lib/hxcpp/**"
+            ],
+            "defines": [
+                "HXCPP_API_LEVEL=430",
+                "HXCPP_M64",
+                "HXCPP_VISIT_ALLOCS",
+                "HX_WINDOWS",
+                "HX_SMART_STRINGS"
+            ],
+            "intelliSenseMode": "windows-msvc-x64",
             "cStandard": "c17",
             "cppStandard": "c++17"
         },
