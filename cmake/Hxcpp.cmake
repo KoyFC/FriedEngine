@@ -24,8 +24,10 @@ if(NOT HXCPP_ROOT)
 
     # `haxelib path hxcpp` prints the include path on the first line and a
     # `-D hxcpp=<version>` compiler flag comment on the second; keep the first.
+    string(REPLACE "\r" "" _hxcpp_path_output "${_hxcpp_path_output}")
     string(REPLACE "\n" ";" _hxcpp_path_lines "${_hxcpp_path_output}")
     list(GET _hxcpp_path_lines 0 _hxcpp_root)
+    file(TO_CMAKE_PATH "${_hxcpp_root}" _hxcpp_root)
     set(HXCPP_ROOT "${_hxcpp_root}" CACHE PATH "Path to the hxcpp haxelib")
 endif()
 
@@ -192,14 +194,24 @@ function(fried_add_hxcpp_executable target_name generated_dir)
                 -static
                 $<$<NOT:$<CONFIG:Debug>>:-mwindows>
             )
+        elseif(MSVC)
+            # hxcpp declares main(), not the WinMain() the GUI subsystem enters through by default.
+            target_link_options(${target_name} PRIVATE
+                $<$<NOT:$<CONFIG:Debug>>:/SUBSYSTEM:WINDOWS>
+                $<$<NOT:$<CONFIG:Debug>>:/ENTRY:mainCRTStartup>
+            )
         endif()
     else()
         target_compile_definitions(${target_name} PRIVATE HX_LINUX)
     endif()
 
-    target_compile_options(${target_name} PRIVATE
-        -fvisibility=hidden -Wno-overflow
-    )
+    if(MSVC)
+        target_compile_options(${target_name} PRIVATE /bigobj)
+    else()
+        target_compile_options(${target_name} PRIVATE
+            -fvisibility=hidden -Wno-overflow
+        )
+    endif()
 
     set_source_files_properties(${_runtime_sources} PROPERTIES
         COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"

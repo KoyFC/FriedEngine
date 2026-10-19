@@ -6,29 +6,9 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux/GCC, and on Windows built from Linux with MinGW-w64), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux with GCC, and on Windows built with MSVC on Windows or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
-
-## Project status
-
-- [x] 1. Test Haxe -> C++ -> CMake -> executable on PC (`sandbox/`)
-- [x] 2. Integrate SDL2 (`sandbox/` opens and closes a real window)
-- [x] 3. Minimal runtime (Application, Game Loop, Time, Window, Input, Events, Logging, Filesystem, Assets)
-- [x] 4. Engine and game asset roots, read-only, verified at compile time
-- [x] 5. Renderer and resources (`Renderer`, `Texture`, `Font`, `Sound`, `Music`)
-- [x] 6. Port the runtime to PlayStation Vita (VitaSDK toolchain, `app0:` asset root)
-- [x] 7. Define `project.fried`, and the writable user data path, which needs the game identity it declares
-- [x] 8. Fried Project Manager: create the basic structure of a new game project
-- [x] 9. Game objects and components (`Scene`, `GameObject`, `Component`, `Transform`, `Sprite`, `Text`), drawn through a queue ordered by draw priority
-- [ ] 10. Test Fried Engine as a submodule in an external project
-- [ ] 11. Real test game
-- [x] 12. Port the runtime to Nintendo Switch (devkitPro toolchain, `romfs:` asset root)
-- [x] 13. Cameras (`Camera` as a component, one per scene, with screen space for anything a scene draws without one)
-- [x] 14. Layer stack (ordered update and draw per renderer, with input events walking the stack from the top down)
-- [x] 15. AABB collisions (`Collider` as a component, overlap and raycast queries over a scene, in `fried.physics`)
-- [x] 16. Port the runtime to Nintendo 3DS (devkitPro toolchain, `romfs:` asset root, both screens, drawn through citro2d)
-- [x] 17. Port the runtime to the Casio fx-CG50 (fxSDK toolchain, gint instead of SDL2, assets in a folder next to the `.g3a`, drawn in software)
 
 ## Requirements
 
@@ -50,7 +30,7 @@ For an fx-CG50 build, the [fxSDK](https://git.planet-casio.com/Lephenixnoir/fxsd
 
 The Haxe side of the build is identical on every platform.
 
-Building on Windows itself is not supported yet. Nothing has been tested there, and VitaSDK has no native Windows install of its own, so building on Windows is likely going to need changes of your own.
+Building for PC on Windows itself is covered in [Building on Windows](#building-on-windows). Console builds have only been tested from Linux, and VitaSDK has no native Windows install of its own, so building one on Windows is likely going to need changes of your own.
 
 ## Building the sandbox
 
@@ -112,6 +92,29 @@ cmake --build build/cg50
 ```
 
 That produces `build/cg50/sandbox/fried_sandbox.g3a` and, next to it, a `Fried Sandbox/` folder holding the assets. With the calculator connected over USB in its storage mode, both go at the root of its storage memory, and the add-in then appears in the main menu. The assets stay outside the `.g3a`, which holds at most 2 MB, and audio is left out of them, since the calculator cannot play it; the game still loads and plays its sounds, silently. The screen is 396x224 and the keypad is the keyboard: the digits, the arrows, EXE as Enter, EXIT as Escape, DEL as Backspace, F1 to F6, SHIFT and ALPHA are those keys, the twelve keys above the digits are the letters A to L that ALPHA types with them, and the point key is Space. MENU always leaves for the calculator's main menu, as it does in every add-in, and the game sees its window lose and regain focus around it. Text set in a font too large for the calculator's memory, as the sandbox's is, falls back to the calculator's own pixel font. Everything is drawn by the CPU, so the sandbox runs at around 43 frames a second with neither of its overlays, 25 with one of them and 19 with both, and writing user data pauses the game for a moment, since the calculator's storage is slow to write.
+
+## Building on Windows
+
+Everything a PC build needs on Windows, from a machine with nothing installed:
+
+1. [Git for Windows](https://git-scm.com/download/win), to clone the engine and, in a game, its submodule.
+2. [Haxe](https://haxe.org/download/) 4.3 or later, from its Windows installer, which puts `haxe` and `haxelib` on `PATH` and sets up the haxelib repository. Then, in a new terminal, `haxelib install hxcpp`.
+3. [CMake](https://cmake.org/download/) 3.20 or later, from its Windows installer, choosing to add it to `PATH` for the current user or all users.
+4. [Build Tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 2022 or later, with the **Desktop development with C++** workload, which brings MSVC and the Windows SDK. Visual Studio Community with the same workload works too.
+
+SDL2 needs no installing, as on Linux: the first configure downloads and builds it, so it needs an internet connection and takes a few minutes. From a regular terminal, PowerShell or `cmd`:
+
+```sh
+git clone https://github.com/KoyFC/FriedEngine.git
+cd FriedEngine/sandbox
+haxe build.hxml
+cd ..
+cmake -S . -B build
+cmake --build build --config Release
+build/sandbox/Release/fried_sandbox.exe
+```
+
+CMake finds Visual Studio by itself, so there is no developer prompt to open first. Its generator builds every configuration into its own folder and takes the configuration at build time rather than at configure time, which is why the build passes `--config` and the executable lands under `Release/`. That folder and the `assets/` folder in it are the whole game: the C++ runtime is linked statically like SDL2, so it needs no Visual C++ redistributable. A Release build opens no console window, and `--config Debug` builds one that does, under `build/sandbox/Debug/`, for reading the log.
 
 ## Using the engine in a game
 

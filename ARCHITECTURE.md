@@ -1,6 +1,6 @@
 # Fried Engine Architecture
 
-This document describes the decisions behind what is currently implemented, and why each one was made. It is not an API reference: the API is `src/fried/`. See `README.md` for the roadmap.
+This document describes the decisions behind what is currently implemented, and why each one was made. It is not an API reference: the API is `src/fried/`.
 
 ## Build pipeline
 
@@ -206,11 +206,13 @@ Nothing under the asset root is writable, and that is not a rule the engine chos
 
 ## Windows
 
-A Windows build from Linux is configured with `cmake/toolchains/mingw-w64.cmake`, the one toolchain file the engine ships itself, since no SDK brings one. `native/` needed no change: SDL2 is built from source for Windows as it is for Linux, and `SDL_GetBasePath()` and `SDL_GetPrefPath()` answer the executable's folder and `AppData\Roaming`.
+Windows is built two ways: with MSVC on Windows, where CMake finds Visual Studio on its own, and with MinGW-w64 from Linux, configured with `cmake/toolchains/mingw-w64.cmake`, the one toolchain file the engine ships itself, since no SDK brings one. `native/` needed no change for either: SDL2 is built from source for Windows as it is for Linux, and `SDL_GetBasePath()` and `SDL_GetPrefPath()` answer the executable's folder and `AppData\Roaming`.
 
-hxcpp's runtime needed three things in `cmake/Hxcpp.cmake`, none of which its own build tool runs into, because it builds Windows with MSVC on Windows. Its `Dynamic(long)` overloads are keyed off `__WORDSIZE`, which only glibc defines, so MinGW-w64 gets `__WORDSIZE=32`, the size of a Windows `long`; without them a `DWORD` converts ambiguously. `Socket.cpp` includes `Ws2tcpip.h` as the Windows SDK spells it, which a case-sensitive host cannot find among MinGW-w64's lower case headers, so `cmake/mingw/` holds a header of that name forwarding to the real one. And it links `ws2_32`, which `Build.xml` names and the source list in `cmake/Hxcpp.cmake` does not carry.
+Under MSVC, hxcpp's runtime compiles with `/bigobj`, which its own build passes for Debug, in place of the GCC flags every other platform takes. `haxelib` answers with Windows line endings and backslashes there, so `cmake/Hxcpp.cmake` strips the one and converts the other before using the path.
 
-The executable is linked with `-static`, so it carries libstdc++, libgcc and winpthread instead of depending on MinGW-w64's DLLs, and needs nothing beyond what Windows ships. Every configuration but Debug is linked for the GUI subsystem, which is what keeps Windows from opening a console window next to the game.
+MinGW-w64 needed three things in `cmake/Hxcpp.cmake` that hxcpp's own build tool never runs into, because it builds Windows with MSVC on Windows. Its `Dynamic(long)` overloads are keyed off `__WORDSIZE`, which only glibc defines, so MinGW-w64 gets `__WORDSIZE=32`, the size of a Windows `long`; without them a `DWORD` converts ambiguously. `Socket.cpp` includes `Ws2tcpip.h` as the Windows SDK spells it, which a case-sensitive host cannot find among MinGW-w64's lower case headers, so `cmake/mingw/` holds a header of that name forwarding to the real one. And both compilers link `ws2_32`, which `Build.xml` names and the source list in `cmake/Hxcpp.cmake` does not carry.
+
+Either way the executable needs nothing beyond what Windows ships. MinGW-w64 links with `-static`, so it carries libstdc++, libgcc and winpthread instead of depending on MinGW-w64's DLLs, and MSVC links its C++ runtime statically, which every library in the executable has to agree on, so `cmake/FriedEngine.cmake` sets it before SDL2 is built. Every configuration but Debug is linked for the GUI subsystem, which keeps Windows from opening a console window next to the game. MSVC enters that subsystem through `WinMain()` by default, and hxcpp declares `main()`, so its entry point is set back to the console one.
 
 ## PlayStation Vita
 

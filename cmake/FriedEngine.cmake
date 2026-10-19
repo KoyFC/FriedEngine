@@ -40,6 +40,11 @@ if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         find_package(SDL2_mixer REQUIRED CONFIG)
     endif()
 elseif(NOT FRIED_CG50)
+    if(MSVC)
+        # Every library in the executable has to agree on it, and static needs no Visual C++ redistributable.
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+
     include("${CMAKE_CURRENT_LIST_DIR}/PcDependencies.cmake")
     fried_add_pc_sdl2(_fried_pc_sdl2_link_targets)
 endif()

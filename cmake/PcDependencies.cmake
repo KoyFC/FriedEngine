@@ -41,8 +41,9 @@ function(fried_add_pc_sdl2 out_link_targets)
         URL_HASH SHA256=0b2bf1e7b6568adbdbc9bb924643f79d9dedafe061fa1ed687d1d9ac4e453bfd
     )
 
-    # SDL2's and FreeType's declared CMake versions predate both policies.
+    # SDL2's and FreeType's declared CMake versions predate these policies.
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
     set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
 
     set(BUILD_SHARED_LIBS OFF)
