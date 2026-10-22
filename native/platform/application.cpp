@@ -9,6 +9,8 @@
 
 #ifdef __3DS__
 #include <3ds.h>
+#elif defined(__EMSCRIPTEN__)
+#include <emscripten.h>
 #endif
 
 namespace
@@ -93,3 +95,22 @@ void fried_application_shutdown()
     IMG_Quit();
     SDL_Quit();
 }
+
+#ifdef __EMSCRIPTEN__
+// The browser draws only between the callbacks it runs, so the loop has to hand
+// control back for every frame. Asyncify suspends the Haxe stack until then.
+EM_ASYNC_JS(void, fried_web_next_frame, (), {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+});
+
+int fried_application_wait_for_host_frame()
+{
+    fried_web_next_frame();
+    return 1;
+}
+#else
+int fried_application_wait_for_host_frame()
+{
+    return 0;
+}
+#endif

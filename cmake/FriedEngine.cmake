@@ -14,6 +14,10 @@ if(FXSDK_PLATFORM_LONG STREQUAL "fxCG50")
     set(FRIED_CG50 TRUE)
 endif()
 
+if(EMSCRIPTEN)
+    set(FRIED_WEB TRUE)
+endif()
+
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 
@@ -25,6 +29,8 @@ elseif(NINTENDO_3DS)
     include("${CMAKE_CURRENT_LIST_DIR}/3DS.cmake")
 elseif(FRIED_CG50)
     include("${CMAKE_CURRENT_LIST_DIR}/CG50.cmake")
+elseif(FRIED_WEB)
+    include("${CMAKE_CURRENT_LIST_DIR}/Web.cmake")
 endif()
 
 # gint is the whole platform on the calculator, with no SDL2 on top of it.
@@ -39,7 +45,7 @@ if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         find_package(SDL2_image REQUIRED CONFIG)
         find_package(SDL2_mixer REQUIRED CONFIG)
     endif()
-elseif(NOT FRIED_CG50)
+elseif(NOT FRIED_CG50 AND NOT FRIED_WEB)
     if(MSVC)
         # Every library in the executable has to agree on it, and static needs no Visual C++ redistributable.
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -126,6 +132,8 @@ if(NOT TARGET fried_engine)
 
     if(FRIED_CG50)
         target_link_libraries(fried_engine PUBLIC Gint::Gint)
+    elseif(FRIED_WEB)
+        target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
     elseif(VITA OR NINTENDO_3DS)
         target_link_libraries(fried_engine PUBLIC
             SDL2_image::SDL2_image-static
@@ -185,6 +193,8 @@ function(fried_add_game target_name)
         set(_platform 3ds)
     elseif(FRIED_CG50)
         set(_platform cg50)
+    elseif(FRIED_WEB)
+        set(_platform web)
     else()
         set(_platform pc)
     endif()
@@ -258,6 +268,14 @@ function(fried_add_game target_name)
             NAME "${_name}"
             ICON_UNSELECTED ${CMAKE_CURRENT_SOURCE_DIR}/cg50/icon-uns.png
             ICON_SELECTED ${CMAKE_CURRENT_SOURCE_DIR}/cg50/icon-sel.png
+            ENGINE_ASSETS ${_engine_assets}
+            GAME_ASSETS ${_game_assets}
+        )
+    elseif(FRIED_WEB)
+        string(JSON _name GET "${_project_json}" name)
+
+        fried_add_web_page(${target_name}
+            NAME "${_name}"
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )

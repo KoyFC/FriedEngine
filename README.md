@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS and the Casio fx-CG50 graphing calculator are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and, as a proof of concept, the web browser are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -75,6 +75,8 @@ Each needs its SDK and SDL2 built for it, and these have only been verified from
 - **Nintendo Switch:** [devkitPro](https://devkitpro.org/wiki/Getting_Started), with `$DEVKITPRO` set, then `dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`. `switch-pkg-config` is not optional: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
 - **Nintendo 3DS:** the same devkitPro install with `dkp-pacman -S 3ds-dev`, and SDL2 and its companions built from [`packaging/3ds/`](packaging/3ds/README.md), since devkitPro ships no SDL2 for the 3DS.
 - **Casio fx-CG50:** the [fxSDK](https://git.planet-casio.com/Lephenixnoir/fxsdk) with gint, its `sh-elf-gcc` and its libstdc++, and that libstdc++ rebuilt with exceptions by [`packaging/cg50/`](packaging/cg50/README.md), since the fxSDK builds it without them. No SDL2 is involved: gint is the whole platform there.
+
+- **Web (proof of concept):** the [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html), activated in the shell (`source emsdk_env.sh`). SDL2 and its companions are Emscripten ports that emcc fetches itself.
 
 ### Using installed SDL2 on PC
 
@@ -171,6 +173,16 @@ cmake --build build/cg50
 ```
 
 That produces `build/cg50/sandbox/fried_sandbox.g3a` and, next to it, a `Fried Sandbox/` folder holding the assets. With the calculator connected over USB in its storage mode, both go at the root of its storage memory, and the add-in then appears in the main menu. The assets stay outside the `.g3a`, which holds at most 2 MB, and audio is left out of them, since the calculator cannot play it; the game still loads and plays its sounds, silently. The screen is 396x224 and the keypad is the keyboard: the digits, the arrows, EXE as Enter, EXIT as Escape, DEL as Backspace, F1 to F6, SHIFT and ALPHA are those keys, the twelve keys above the digits are the letters A to L that ALPHA types with them, and the point key is Space. MENU always leaves for the calculator's main menu, as it does in every add-in, and the game sees its window lose and regain focus around it. Text set in a font too large for the calculator's memory, as the sandbox's is, falls back to the calculator's own pixel font. Everything is drawn by the CPU, so the sandbox runs at around 43 frames a second with neither of its overlays, 25 with one of them and 19 with both, and writing user data pauses the game for a moment, since the calculator's storage is slow to write.
+
+### Web
+
+```sh
+source ~/emsdk/emsdk_env.sh
+emcmake cmake -S . -B build/web
+cmake --build build/web
+```
+
+That produces `build/web/sandbox/fried_sandbox.html` with its `.js`, `.wasm` and `.data` (the assets) next to it. A browser will not load those from a `file://` address, so serve the folder, for example with `python3 -m http.server` from it. The page keeps the engine's loop as it is and hands control back to the browser once per frame, so it runs at the display's refresh rate and ignores `Application.targetFps`. User data lives in memory and is gone when the page closes.
 
 ## Using the engine in a game
 

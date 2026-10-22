@@ -26,3 +26,8 @@ int fried_application_open_silent_audio()
 void fried_application_shutdown()
 {
 }
+
+int fried_application_wait_for_host_frame()
+{
+    return 0;
+}

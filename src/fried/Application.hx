@@ -146,6 +146,9 @@ class Application {
 	}
 
 	static function waitForFrameBudget(frameStart:Float):Void {
+		if (ApplicationNative.waitForHostFrame() != 0) {
+			return;
+		}
 		if (targetFps <= 0 || everyRendererHasVsync()) {
 			return;
 		}
@@ -170,4 +173,7 @@ private extern class ApplicationNative {
 
 	@:native("fried_application_shutdown")
 	static function shutdown():Void;
+
+	@:native("fried_application_wait_for_host_frame")
+	static function waitForHostFrame():Int;
 }

@@ -123,7 +123,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50 OR FRIED_WEB)
         list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_console})
     endif()
 
@@ -177,6 +177,9 @@ function(fried_add_hxcpp_executable target_name generated_dir)
                 "HX_TLS_H_OVERRIDE=\"${_hxcpp_libctru_tls_header}\""
             )
         endif()
+    elseif(FRIED_WEB)
+        # hxcpp's own emscripten toolchain passes -DEMSCRIPTEN; emcc only defines __EMSCRIPTEN__.
+        target_compile_definitions(${target_name} PRIVATE EMSCRIPTEN HX_LINUX NEKO_LINUX HXCPP_NO_DYNAMIC_LOADING)
     elseif(APPLE)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)
@@ -236,7 +239,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     # gint has no threads to link at all; cmake/gint/pthread.h stands in.
     if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         target_link_libraries(${target_name} PRIVATE pthread)
-    elseif(NOT FRIED_CG50)
+    elseif(NOT FRIED_CG50 AND NOT FRIED_WEB)
         find_package(Threads REQUIRED)
         target_link_libraries(${target_name} PRIVATE Threads::Threads)
     endif()
@@ -251,7 +254,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     # A .3dsx is relocated by its loader from -mword-relocations, not as a PIE,
     # and a .g3a is linked to the fixed address the calculator maps it at.
-    if(NOT VITA AND NOT NINTENDO_3DS AND NOT FRIED_CG50)
+    if(NOT VITA AND NOT NINTENDO_3DS AND NOT FRIED_CG50 AND NOT FRIED_WEB)
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     endif()
 endfunction()

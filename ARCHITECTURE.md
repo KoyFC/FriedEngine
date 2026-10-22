@@ -282,6 +282,14 @@ hxcpp needed more here than on any console, all of it in `cmake/gint/` and in co
 
 A Haxe `throw` is a C++ `throw`, and three things stood between gint and one that lands in its `catch`: the fxSDK's libstdc++ is built without exceptions, so `__cxa_throw` has no unwind tables, which `packaging/cg50/` fixes by rebuilding it; gint's linker script discards the unwind tables of everything else, so `cmake/CG50.cmake` writes a copy of it that keeps them; and gint links no `crtbegin.o`, which would have registered them with the unwinder, so `runtime.cpp` does.
 
+## Web
+
+A web build is configured with Emscripten's toolchain (`emcmake`), which sets `EMSCRIPTEN`; `cmake/FriedEngine.cmake` turns it into `FRIED_WEB` and `cmake/Web.cmake` holds what is the browser's alone. It is a proof of concept, and it needed little: the SDL2 backend compiles unchanged against Emscripten's SDL2 port and its three companions, which `-sUSE_SDL*` flags make emcc build on first use, so the PC dependency recipe is skipped.
+
+The loop in `Application.run()` is a plain `while`, and a browser draws only between the callbacks it runs. Rather than invert the loop, the link uses Asyncify, and `fried_application_wait_for_host_frame()` awaits `requestAnimationFrame`. It answers 1 on the web, where it replaces the frame budget's sleep, and 0 elsewhere, so the Haxe side still never learns the platform. The cost is a larger and slower wasm, which a proof of concept can pay.
+
+hxcpp has an Emscripten toolchain file of its own that the CMake pipeline does not use, so `cmake/Hxcpp.cmake` supplies what it would: `EMSCRIPTEN` (emcc only defines `__EMSCRIPTEN__`), the Linux defines for the std sources, no sockets or processes, and no pthread library, since the build is single-threaded. The assets are embedded with `--preload-file` under the same `assets/engine` and `assets/game` the PC build uses, so `filesystem.cpp` needs no branch. User data goes to SDL's default path inside Emscripten's in-memory filesystem and is lost on reload; persisting it would take IDBFS.
+
 ## Source layout
 
 The two source trees are split by different domains, because they are read by different people asking different questions.
