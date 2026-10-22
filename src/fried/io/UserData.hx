@@ -22,6 +22,10 @@ class UserData {
 		return sys.io.File.getContent(getPath(relativePath));
 	}
 
+	public static function readJson(relativePath:String):Dynamic {
+		return haxe.Json.parse(read(relativePath));
+	}
+
 	public static function write(relativePath:String, contents:String):Void {
 		var fullPath = getPath(relativePath);
 		var directory = haxe.io.Path.directory(fullPath);
@@ -29,6 +33,10 @@ class UserData {
 			sys.FileSystem.createDirectory(directory);
 		}
 		sys.io.File.saveContent(fullPath, contents);
+	}
+
+	public static function writeJson(relativePath:String, value:Dynamic, ?space:String):Void {
+		write(relativePath, haxe.Json.stringify(value, null, space));
 	}
 
 	@:allow(fried.Application)

@@ -47,6 +47,10 @@ class Main {
 		UserData.write("saves/runs.txt", Std.string(runs));
 		Log.success('User data path: ${UserData.path} (run $runs)');
 
+		UserData.writeJson("saves/profile.json", {runs: runs, name: "sandbox"}, "\t");
+		var profile = UserData.readJson("saves/profile.json");
+		Log.info('Saved profile: ${profile.name}, ${profile.runs} runs');
+
 		var window = new Window(Project.windowTitle(), 640, 480);
 		Log.success('Window created: ${window.width}x${window.height} at ${window.x}, ${window.y}');
 
