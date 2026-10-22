@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and, as a proof of concept, the web browser are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and the web browser are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -76,7 +76,7 @@ Each needs its SDK and SDL2 built for it, and these have only been verified from
 - **Nintendo 3DS:** the same devkitPro install with `dkp-pacman -S 3ds-dev`, and SDL2 and its companions built from [`packaging/3ds/`](packaging/3ds/README.md), since devkitPro ships no SDL2 for the 3DS.
 - **Casio fx-CG50:** the [fxSDK](https://git.planet-casio.com/Lephenixnoir/fxsdk) with gint, its `sh-elf-gcc` and its libstdc++, and that libstdc++ rebuilt with exceptions by [`packaging/cg50/`](packaging/cg50/README.md), since the fxSDK builds it without them. No SDL2 is involved: gint is the whole platform there.
 
-- **Web (proof of concept):** the [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html), activated in the shell (`source emsdk_env.sh`). SDL2 and its companions are Emscripten ports that emcc fetches itself.
+- **Web:** the [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html), activated in the shell (`source emsdk_env.sh`), and Python 3 to serve the result locally. SDL2 and its companions are Emscripten ports that emcc fetches itself.
 
 ### Using installed SDL2 on PC
 
@@ -182,7 +182,16 @@ emcmake cmake -S . -B build/web
 cmake --build build/web
 ```
 
-That produces `build/web/sandbox/fried_sandbox.html` with its `.js`, `.wasm` and `.data` (the assets) next to it. A browser will not load those from a `file://` address, so serve the folder, for example with `python3 -m http.server` from it. The page keeps the engine's loop as it is and hands control back to the browser once per frame, so it runs at the display's refresh rate and ignores `Application.targetFps`. User data lives in memory and is gone when the page closes.
+That produces `build/web/sandbox/fried_sandbox.html` with its `.js`, `.wasm` and `.data` (the assets) next to it. A browser will not load those from a `file://` address, so opening the page with a double click leaves it stuck on loading. Serve the folder over HTTP instead, with the Python that is already on most machines:
+
+```sh
+cd build/web/sandbox
+python3 -m http.server 8000
+```
+
+Then open <http://localhost:8000/fried_sandbox.html>. After a rebuild, reload with Ctrl+Shift+R, or the browser keeps the old files. The page is the game's canvas on a black background, and the engine's log goes to the browser's console (F12), where a failure also shows up.
+
+The page keeps the engine's loop as it is and hands control back to the browser once per frame, so it runs at the display's refresh rate and ignores `Application.targetFps`. User data lives in memory and is gone when the page closes.
 
 ## Using the engine in a game
 
