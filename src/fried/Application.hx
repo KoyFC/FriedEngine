@@ -5,6 +5,7 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 import fried.graphics.Renderer;
 import fried.input.Input;
+import fried.input.InputAction;
 import fried.io.Filesystem;
 import fried.io.UserData;
 
@@ -89,6 +90,7 @@ class Application {
 				break;
 			}
 			propagateInputEvents();
+			InputAction.updateAll();
 			Time.tick();
 
 			for (renderer in renderers) {

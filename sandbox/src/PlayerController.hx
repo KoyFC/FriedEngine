@@ -1,7 +1,9 @@
 import fried.Time;
 import fried.graphics.FlipMode;
 import fried.input.GamepadAxis;
-import fried.input.Input;
+import fried.input.InputAction;
+import fried.input.InputBinding;
+import fried.input.InputSource;
 import fried.input.Key;
 import fried.physics.Collider;
 import fried.physics.Physics;
@@ -17,11 +19,17 @@ class PlayerController extends Component {
 	var wall:GameObject;
 	var sprite:Sprite;
 	var collider:Collider;
+	var movementAction:InputAction;
 
 	public function new(speed:Float, wall:GameObject) {
 		super();
 		this.speed = speed;
 		this.wall = wall;
+		movementAction = new InputAction("Move", Vector2);
+		movementAction.addBinding(Stick(PadAxis(GamepadAxis.LeftX), PadAxis(GamepadAxis.LeftY)));
+		movementAction.addBinding(Vector(Keyboard(Key.W), Keyboard(Key.S), Keyboard(Key.A), Keyboard(Key.D)));
+		movementAction.addBinding(Vector(Keyboard(Key.Up), Keyboard(Key.Down), Keyboard(Key.Left), Keyboard(Key.Right)));
+		movementAction.enable();
 	}
 
 	override function start():Void {
@@ -36,8 +44,8 @@ class PlayerController extends Component {
 	}
 
 	override function update():Void {
-		var moveX = clamp(Input.getGamepadAxis(GamepadAxis.LeftX) + keyAxis(Key.A, Key.D) + keyAxis(Key.Left, Key.Right));
-		var moveY = clamp(Input.getGamepadAxis(GamepadAxis.LeftY) + keyAxis(Key.W, Key.S) + keyAxis(Key.Up, Key.Down));
+		var moveX = movementAction.x;
+		var moveY = movementAction.y;
 
 		blockedBy = null;
 		stepAxis(moveX * speed * Time.deltaSeconds, 0.0);
@@ -74,20 +82,5 @@ class PlayerController extends Component {
 		} else if (dy < 0.0) {
 			transform.y += blocker.bottom - collider.top;
 		}
-	}
-
-	static function keyAxis(negative:Key, positive:Key):Float {
-		var value = 0.0;
-		if (Input.isKeyPressed(negative)) {
-			value -= 1.0;
-		}
-		if (Input.isKeyPressed(positive)) {
-			value += 1.0;
-		}
-		return value;
-	}
-
-	static function clamp(value:Float):Float {
-		return Math.max(-1.0, Math.min(1.0, value));
 	}
 }
