@@ -78,3 +78,17 @@ int fried_window_get_height(int windowId)
 {
     return isOpen(windowId) ? DHEIGHT : 0;
 }
+
+int fried_window_get_x(int)
+{
+    return 0;
+}
+
+int fried_window_get_y(int)
+{
+    return 0;
+}
+
+void fried_window_set_position(int, int, int)
+{
+}

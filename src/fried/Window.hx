@@ -11,6 +11,11 @@ class Window {
 	public var width(get, never):Int;
 	public var height(get, never):Int;
 
+	/** Where the window's top left corner sits on the desktop. A console's window is its screen, so there it stays at 0, 0. **/
+	public var x(get, set):Int;
+
+	public var y(get, set):Int;
+
 	public var onClose:Void->Void;
 	public var onResize:Int->Int->Void;
 	public var onFocusChanged:Bool->Void;
@@ -21,6 +26,11 @@ class Window {
 			throw NativeError.describe("Failed to create window");
 		}
 		instances.set(id, this);
+	}
+
+	/** Moves both coordinates in one call, which assigning x and then y does not: the second assignment reads the first one back before the window manager has applied it. **/
+	public function setPosition(x:Int, y:Int):Void {
+		WindowNative.setPosition(id, x, y);
 	}
 
 	public function setIcon(path:String):Void {
@@ -43,6 +53,24 @@ class Window {
 
 	static function get_maxCount():Int {
 		return WindowNative.getMaxCount();
+	}
+
+	function get_x():Int {
+		return WindowNative.getX(id);
+	}
+
+	function set_x(value:Int):Int {
+		WindowNative.setPosition(id, value, y);
+		return value;
+	}
+
+	function get_y():Int {
+		return WindowNative.getY(id);
+	}
+
+	function set_y(value:Int):Int {
+		WindowNative.setPosition(id, x, value);
+		return value;
 	}
 
 	function get_width():Int {
@@ -73,4 +101,13 @@ private extern class WindowNative {
 
 	@:native("fried_window_get_height")
 	static function getHeight(id:Int):Int;
+
+	@:native("fried_window_get_x")
+	static function getX(id:Int):Int;
+
+	@:native("fried_window_get_y")
+	static function getY(id:Int):Int;
+
+	@:native("fried_window_set_position")
+	static function setPosition(id:Int, x:Int, y:Int):Void;
 }

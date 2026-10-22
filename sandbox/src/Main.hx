@@ -44,7 +44,7 @@ class Main {
 		Log.success('User data path: ${UserData.path} (run $runs)');
 
 		var window = new Window(Project.windowTitle(), 640, 480);
-		Log.success('Window created: ${window.width}x${window.height}');
+		Log.success('Window created: ${window.width}x${window.height} at ${window.x}, ${window.y}');
 
 		window.setIcon(Assets.game("icon.png"));
 
@@ -70,8 +70,16 @@ class Main {
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var hints = [
-			'Run $runs', "Space/Enter/A: sound", "M/F6/B: music", "WASD/arrows/stick: move", "Q/E/F1/F2/L/R: zoom",
-			"F3/Select: overlay", "F4: interface", "F5: collider bounds", "Esc/Start: quit"
+			'Run $runs',
+			"Space/Enter/A: sound",
+			"M/F6/B: music",
+			"WASD/arrows/stick: move",
+			"Q/E/F1/F2/L/R: zoom",
+			"Shift+arrows: move window",
+			"F3/Select: overlay",
+			"F4: interface",
+			"F5: collider bounds",
+			"Esc/Start: quit"
 		];
 		var labelColor = Color.rgb(220, 220, 230);
 
@@ -84,6 +92,10 @@ class Main {
 
 		var spriteScale = 8.0;
 		var playerSpeed = 240.0;
+		var windowSpeed = 400.0;
+		var windowMoving = false;
+		var windowX = 0.0;
+		var windowY = 0.0;
 		var iconSize = 64;
 
 		var wallWidth = 900;
@@ -248,6 +260,22 @@ class Main {
 				Application.quit();
 			}
 
+			var shiftHeld = Input.isKeyPressed(Key.LShift) || Input.isKeyPressed(Key.RShift);
+			var windowDirX = (Input.isKeyPressed(Key.Right) ? 1 : 0) - (Input.isKeyPressed(Key.Left) ? 1 : 0);
+			var windowDirY = (Input.isKeyPressed(Key.Down) ? 1 : 0) - (Input.isKeyPressed(Key.Up) ? 1 : 0);
+			if (shiftHeld && (windowDirX != 0 || windowDirY != 0)) {
+				if (!windowMoving) {
+					windowX = window.x;
+					windowY = window.y;
+					windowMoving = true;
+				}
+				windowX += windowDirX * windowSpeed * Time.deltaSeconds;
+				windowY += windowDirY * windowSpeed * Time.deltaSeconds;
+				window.setPosition(Math.round(windowX), Math.round(windowY));
+			} else {
+				windowMoving = false;
+			}
+
 			if (Input.isKeyDown(Key.F5)) {
 				toggleColliders();
 			}
@@ -262,10 +290,6 @@ class Main {
 			}
 			if (Input.isKeyPressed(Key.E) || Input.isKeyPressed(Key.F2) || Input.isGamepadButtonPressed(GamepadButton.R1)) {
 				camera.zoom += Time.deltaSeconds;
-			}
-
-			if (Input.isGamepadButtonDown(GamepadButton.South)) {
-				Log.info("Gamepad South pressed");
 			}
 
 			if (Input.isKeyDown(Key.Space) || Input.isKeyDown(Key.Enter) || Input.isGamepadButtonDown(GamepadButton.South)) {

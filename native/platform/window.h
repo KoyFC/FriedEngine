@@ -22,6 +22,10 @@ extern "C"
 
     int fried_window_get_width(int windowId);
     int fried_window_get_height(int windowId);
+
+    int fried_window_get_x(int windowId);
+    int fried_window_get_y(int windowId);
+    void fried_window_set_position(int windowId, int x, int y);
 }
 
 int fried_window_find_by_sdl_id(unsigned int sdlWindowId);

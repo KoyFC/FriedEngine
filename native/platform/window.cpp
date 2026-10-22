@@ -156,6 +156,56 @@ int fried_window_get_height(int windowId)
     return height;
 }
 
+// A console's window is its screen, so it has no position to report or change.
+#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__)
+int fried_window_get_x(int)
+{
+    return 0;
+}
+
+int fried_window_get_y(int)
+{
+    return 0;
+}
+
+void fried_window_set_position(int, int, int)
+{
+}
+#else
+int fried_window_get_x(int windowId)
+{
+    SDL_Window *window = fried_window_get_sdl(windowId);
+    if (!window)
+    {
+        return 0;
+    }
+    int x, y;
+    SDL_GetWindowPosition(window, &x, &y);
+    return x;
+}
+
+int fried_window_get_y(int windowId)
+{
+    SDL_Window *window = fried_window_get_sdl(windowId);
+    if (!window)
+    {
+        return 0;
+    }
+    int x, y;
+    SDL_GetWindowPosition(window, &x, &y);
+    return y;
+}
+
+void fried_window_set_position(int windowId, int x, int y)
+{
+    SDL_Window *window = fried_window_get_sdl(windowId);
+    if (window)
+    {
+        SDL_SetWindowPosition(window, x, y);
+    }
+}
+#endif
+
 int fried_window_find_by_sdl_id(unsigned int sdlWindowId)
 {
     for (int i = 0; i < s_windows.capacity(); ++i)
