@@ -1,10 +1,18 @@
 package fried;
 
+import fried.io.UserData;
 import haxe.PosInfos;
 
 class Log {
 	private static inline var logToConsole:Bool = true;
-	private static inline var logToFile:Bool = false;
+
+	#if fried_log_file
+	private static inline var FILE_NAME:String = "Player.log";
+
+	private static var file:sys.io.FileOutput;
+	private static var pending:Array<String> = [];
+	private static var isFileOpened:Bool = false;
+	#end
 
 	private static inline var RESET:String = "\x1b[0m";
 	private static inline var RED:String = "\x1b[31m";
@@ -17,30 +25,79 @@ class Log {
 	private static inline var BOLD:String = "\x1b[1m";
 	private static inline var DIM:String = "\x1b[2m";
 
-	private static function formatMessage(message:String, colorCode:String, pos:PosInfos):String {
-		var timestamp = Time.formatDuration(Time.unscaledElapsedSeconds);
-		var frame = Time.frameCount;
-		var origin = "  at " + pos.className + "." + pos.methodName + " (" + pos.fileName + ":" + pos.lineNumber + ")";
-		return colorCode + "[" + frame + " | " + timestamp + "] " + message + RESET + "\n" + DIM + origin + RESET;
+	private static function emit(tag:String, message:String, colorCode:String, pos:PosInfos):String {
+		var head = "[" + Time.frameCount + " | " + Time.formatDuration(Time.unscaledElapsedSeconds) + "] [" + tag + "] " + message;
+		var origin = "";
+		#if debug
+		origin = "  at " + pos.className + "." + pos.methodName + " (" + pos.fileName + ":" + pos.lineNumber + ")";
+		#end
+
+		var line = colorCode + head + RESET;
+		if (origin != "") {
+			line += "\n" + DIM + origin + RESET;
+		}
+		#if fried_log_file
+		writeToFile(origin == "" ? head : head + "\n" + origin);
+		#end
+		return line;
 	}
 
 	public static function info(message:String, ?pos:PosInfos):Void {
-		var fm = formatMessage("[INFO] " + message, WHITE, pos);
-		Sys.println(fm);
+		Sys.println(emit("INFO", message, WHITE, pos));
 	}
 
 	public static function success(message:String, ?pos:PosInfos):Void {
-		var fm = formatMessage("[SUCCESS] " + message, GREEN, pos);
-		Sys.println(fm);
+		Sys.println(emit("SUCCESS", message, GREEN, pos));
 	}
 
 	public static function warn(message:String, ?pos:PosInfos):Void {
-		var fm = formatMessage("[WARN] " + message, YELLOW, pos);
-		Sys.println(fm);
+		Sys.println(emit("WARN", message, YELLOW, pos));
 	}
 
 	public static function error(message:String, ?pos:PosInfos):Void {
-		var fm = formatMessage("[ERROR] " + message, RED, pos);
-		Sys.stderr().writeString(fm + "\n");
+		Sys.stderr().writeString(emit("ERROR", message, RED, pos) + "\n");
 	}
+
+	#if fried_log_file
+	private static function writeToFile(text:String):Void {
+		if (file == null) {
+			if (!isFileOpened) {
+				pending.push(text);
+			}
+			return;
+		}
+		file.writeString(text + "\n");
+		file.flush();
+	}
+
+	@:allow(fried.Application)
+	static function openFile():Void {
+		isFileOpened = true;
+		try {
+			file = sys.io.File.write(UserData.getPath(FILE_NAME));
+		} catch (e:Dynamic) {
+			Sys.println(YELLOW + "[WARN] The log file could not be opened, so logs stay on the console: " + e + RESET);
+			pending = [];
+			return;
+		}
+		for (text in pending) {
+			writeToFile(text);
+		}
+		pending = [];
+	}
+
+	@:allow(fried.Application)
+	static function closeFile():Void {
+		if (file != null) {
+			file.close();
+			file = null;
+		}
+	}
+	#else
+	@:allow(fried.Application)
+	static inline function openFile():Void {}
+
+	@:allow(fried.Application)
+	static inline function closeFile():Void {}
+	#end
 }

@@ -23,6 +23,7 @@ class Application {
 		openAudio();
 		Filesystem.init();
 		UserData.init();
+		Log.openFile();
 		Time.start();
 		isRunning = true;
 	}
@@ -43,6 +44,7 @@ class Application {
 		Sound.destroyAll();
 		ApplicationNative.shutdown();
 		Filesystem.shutdown();
+		Log.closeFile();
 		isRunning = false;
 	}
 
