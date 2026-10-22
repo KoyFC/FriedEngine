@@ -18,6 +18,7 @@ class Window {
 
 	public var onClose:Void->Void;
 	public var onResize:Int->Int->Void;
+	public var onMove:Int->Int->Void;
 	public var onFocusChanged:Bool->Void;
 
 	public function new(title:String, width:Int, height:Int) {

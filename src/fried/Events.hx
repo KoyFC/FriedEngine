@@ -26,6 +26,10 @@ class Events {
 						if (window.onResize != null) {
 							window.onResize(EventsNative.getData1(), EventsNative.getData2());
 						}
+					case Moved:
+						if (window.onMove != null) {
+							window.onMove(EventsNative.getData1(), EventsNative.getData2());
+						}
 					case FocusGained:
 						if (window.onFocusChanged != null) {
 							window.onFocusChanged(true);
@@ -48,6 +52,7 @@ private enum abstract WindowEventType(Int) {
 	var Resized = 2;
 	var FocusGained = 3;
 	var FocusLost = 4;
+	var Moved = 5;
 }
 
 @:include("platform/events.h")

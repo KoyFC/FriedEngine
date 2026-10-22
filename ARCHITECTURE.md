@@ -58,7 +58,7 @@ How many windows a program may open is the platform's answer and not the game's.
 
 The size of a window is the platform's answer on a console for the same reason. `fried_window_create` takes it from the screen the window lands on and ignores the size the game asked for, which only sizes the window on desktop. Without that, each SDL port did something different with a smaller window: the Vita drew it unscaled in a corner of the screen, the Switch stretched it over the whole screen, and on the 3DS the window kept a size its screen does not have, which is what touch positions are scaled by.
 
-The position follows the same rule. `Window.x` and `Window.y` read and move the window on desktop, and on a console, where the window is the screen, they stay 0 and setting them does nothing. The sandbox moves its window with Shift and the arrow keys.
+The position follows the same rule. `Window.x` and `Window.y` read and move the window on desktop, and on a console, where the window is the screen, they stay 0 and setting them does nothing. `Window.onMove` reports a move however it came about, the game's own `setPosition` included. The sandbox moves its window with Shift and the arrow keys.
 
 Textures are owned by the renderer rather than by the game, and the cache that holds them lives on the `Renderer` instance. `Texture.from(renderer, path)` returns the same instance for the same file on the same renderer, so a texture used by ten sprites is one `SDL_Texture`, and destroying a renderer destroys every texture that belongs to it. A game therefore loads what it needs and writes no teardown list for it.
 

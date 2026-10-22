@@ -7,6 +7,7 @@ enum FriedWindowEventType
     FRIED_WINDOW_EVENT_RESIZED = 2,
     FRIED_WINDOW_EVENT_FOCUS_GAINED = 3,
     FRIED_WINDOW_EVENT_FOCUS_LOST = 4,
+    FRIED_WINDOW_EVENT_MOVED = 5,
 };
 
 enum FriedInputEventType

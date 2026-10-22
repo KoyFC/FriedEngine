@@ -75,6 +75,11 @@ namespace
             data1 = event.data1;
             data2 = event.data2;
             break;
+        case SDL_WINDOWEVENT_MOVED:
+            type = FRIED_WINDOW_EVENT_MOVED;
+            data1 = event.data1;
+            data2 = event.data2;
+            break;
         case SDL_WINDOWEVENT_FOCUS_GAINED:
             type = FRIED_WINDOW_EVENT_FOCUS_GAINED;
             break;

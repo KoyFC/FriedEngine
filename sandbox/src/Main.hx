@@ -51,6 +51,9 @@ class Main {
 		window.onResize = function(width, height) {
 			Log.info('Window resized: ${width}x${height}');
 		};
+		window.onMove = function(x, y) {
+			Log.info('Window moved: ${x}, ${y}');
+		};
 		window.onFocusChanged = function(focused) {
 			Log.info(focused ? "Window focused" : "Window unfocused");
 		};
