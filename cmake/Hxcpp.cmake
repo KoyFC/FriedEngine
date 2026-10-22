@@ -179,7 +179,16 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         endif()
     elseif(FRIED_WEB)
         # hxcpp's own emscripten toolchain passes -DEMSCRIPTEN; emcc only defines __EMSCRIPTEN__.
-        target_compile_definitions(${target_name} PRIVATE EMSCRIPTEN HX_LINUX NEKO_LINUX HXCPP_NO_DYNAMIC_LOADING)
+        target_compile_definitions(${target_name} PRIVATE EMSCRIPTEN HX_LINUX NEKO_LINUX)
+
+        # Clang is stricter than the GCC hxcpp is written against, about code that is hxcpp's or generated, and
+        # EMSCRIPTEN itself is the macro it deprecates.
+        target_compile_options(${target_name} PRIVATE
+            -Wno-parentheses-equality
+            -Wno-deprecated-pragma
+            -Wno-nontrivial-memcall
+            -Wno-return-type-c-linkage
+        )
     elseif(APPLE)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)

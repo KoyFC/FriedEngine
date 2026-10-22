@@ -26,10 +26,12 @@ function(fried_add_web_page target_name)
     set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
 
     # The loop in Application.run() hands control back to the browser for every
-    # frame, which the Haxe stack cannot do without Asyncify unwinding it.
+    # frame, which the Haxe stack cannot do without Asyncify unwinding it. It saves
+    # that stack in a buffer of its own, and a Debug build's is too deep for the 4 KB default.
     target_link_options(${target_name} PRIVATE
         ${FRIED_WEB_SDL_FLAGS}
         -sASYNCIFY
+        -sASYNCIFY_STACK_SIZE=1048576
         -sALLOW_MEMORY_GROWTH
         -sEXIT_RUNTIME
         "SHELL:--shell-file ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/web/shell.html"
