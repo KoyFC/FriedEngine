@@ -6,5 +6,5 @@ enum InputBinding {
 	Axis(negative:InputSource, positive:InputSource);
 	// A diagonal is scaled back to length 1.
 	Vector(up:InputSource, down:InputSource, left:InputSource, right:InputSource);
-	Stick(x:InputSource, y:InputSource);
+	Stick(x:GamepadAxis, y:GamepadAxis);
 }

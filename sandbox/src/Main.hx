@@ -13,8 +13,12 @@ import fried.graphics.Renderer;
 import fried.graphics.Texture;
 import fried.input.GamepadButton;
 import fried.input.Input;
+import fried.input.InputActionMap;
+import fried.input.InputBinding;
 import fried.input.InputEventType;
+import fried.input.InputSource;
 import fried.input.Key;
+import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
@@ -74,14 +78,15 @@ class Main {
 
 		var hints = [
 			'Run $runs',
-			"Space/Enter/A: sound",
+			"Space/Enter/A/click: sound",
 			"M/F6/B: music",
 			"WASD/arrows/stick: move",
-			"Q/E/F1/F2/L/R: zoom",
+			"Q/E/L/R: zoom",
 			"Shift+arrows: move window",
 			"F3/Select: overlay",
 			"F4: interface",
 			"F5: collider bounds",
+			"F7: gameplay actions",
 			"Esc/Start: quit"
 		];
 		var labelColor = Color.rgb(220, 220, 230);
@@ -215,6 +220,20 @@ class Main {
 		overlay.addButton(() -> 'Music ${music.paused ? "off" : "on"}', toggleMusic);
 		overlay.addButton(() -> "Sound", playSound);
 
+		var gameplay = new InputActionMap("Gameplay");
+		var zoom = gameplay.addAction("Zoom", Value);
+		zoom.addBinding(Axis(Keyboard(Key.Q), Keyboard(Key.E)));
+		zoom.addBinding(Axis(PadButton(GamepadButton.L1), PadButton(GamepadButton.R1)));
+		var playSoundAction = gameplay.addAction("PlaySound", Button);
+		// The overlay's Sound button handles the click it receives, so it sounds once, not twice.
+		playSoundAction.addKey(Key.Space).addKey(Key.Enter).addGamepadButton(GamepadButton.South).addMouseButton(MouseButton.Left);
+		playSoundAction.onPressed = playSound;
+		var toggleMusicAction = gameplay.addAction("ToggleMusic", Button);
+		toggleMusicAction.addKey(Key.M).addKey(Key.F6).addGamepadButton(GamepadButton.East);
+		toggleMusicAction.onPressed = toggleMusic;
+
+		gameplay.enable();
+
 		renderer.pushLayer(new WorldLayer(scene, playerCollider));
 		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
 		overlayRenderer.pushLayer(overlay);
@@ -288,19 +307,15 @@ class Main {
 				Log.info('Debug overlay ${overlay.isEnabled ? "enabled" : "disabled"}, still on the stack either way');
 			}
 
-			if (Input.isKeyPressed(Key.Q) || Input.isKeyPressed(Key.F1) || Input.isGamepadButtonPressed(GamepadButton.L1)) {
-				camera.zoom -= Time.deltaSeconds;
-			}
-			if (Input.isKeyPressed(Key.E) || Input.isKeyPressed(Key.F2) || Input.isGamepadButtonPressed(GamepadButton.R1)) {
-				camera.zoom += Time.deltaSeconds;
-			}
+			camera.zoom += zoom.value * Time.deltaSeconds;
 
-			if (Input.isKeyDown(Key.Space) || Input.isKeyDown(Key.Enter) || Input.isGamepadButtonDown(GamepadButton.South)) {
-				playSound();
-			}
-
-			if (Input.isKeyDown(Key.M) || Input.isKeyDown(Key.F6) || Input.isGamepadButtonDown(GamepadButton.East)) {
-				toggleMusic();
+			if (Input.isKeyDown(Key.F7)) {
+				if (zoom.isEnabled) {
+					gameplay.disable();
+				} else {
+					gameplay.enable();
+				}
+				Log.info('Gameplay actions ${zoom.isEnabled ? "enabled" : "disabled"}');
 			}
 		});
 

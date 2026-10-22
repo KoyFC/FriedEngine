@@ -26,7 +26,7 @@ class PlayerController extends Component {
 		this.speed = speed;
 		this.wall = wall;
 		movementAction = new InputAction("Move", Vector2);
-		movementAction.addBinding(Stick(PadAxis(GamepadAxis.LeftX), PadAxis(GamepadAxis.LeftY)));
+		movementAction.addBinding(Stick(GamepadAxis.LeftX, GamepadAxis.LeftY));
 		movementAction.addBinding(Vector(Keyboard(Key.W), Keyboard(Key.S), Keyboard(Key.A), Keyboard(Key.D)));
 		movementAction.addBinding(Vector(Keyboard(Key.Up), Keyboard(Key.Down), Keyboard(Key.Left), Keyboard(Key.Right)));
 		movementAction.enable();

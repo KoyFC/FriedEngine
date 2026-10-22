@@ -9,6 +9,16 @@ class InputAction {
 	static var enabledActions:Array<InputAction> = [];
 	static var snapshot:Array<InputAction> = [];
 
+	// A source's id is its type's base plus its own code.
+	static inline var KEY_ID_BASE:Int = 0;
+	static inline var MOUSE_ID_BASE:Int = 1024;
+	static inline var PAD_ID_BASE:Int = 2048;
+	static inline var TOUCH_ID_BASE:Int = 3072;
+
+	// Sources whose press a layer handled, silent until they are let go.
+	static var consumedSources:Map<Int, Bool> = [];
+	static var consumedCount:Int = 0;
+
 	// Binding results, kept static so a frame allocates nothing.
 	static var readX:Float = 0.0;
 	static var readY:Float = 0.0;
@@ -18,6 +28,9 @@ class InputAction {
 
 	// The value from which the action counts as pressed.
 	public var pressThreshold:Float;
+
+	// Reads sources a layer already handled instead of skipping them.
+	public var ignoresHandled:Bool;
 
 	public var onPressed:Void->Void;
 	public var onReleased:Void->Void;
@@ -93,6 +106,7 @@ class InputAction {
 
 	@:allow(fried.Application)
 	static function updateAll():Void {
+		consumeHandledEvents();
 		snapshot.resize(0);
 		for (action in enabledActions) {
 			snapshot.push(action);
@@ -109,6 +123,54 @@ class InputAction {
 				action.onReleased();
 			}
 		}
+	}
+
+	static function consumeHandledEvents():Void {
+		for (event in Input.events) {
+			switch (event.type) {
+				case KeyDown if (event.handled):
+					consume(KEY_ID_BASE, event.key);
+				case MouseButtonDown if (event.handled):
+					consume(MOUSE_ID_BASE, event.mouseButton);
+				case GamepadButtonDown if (event.handled):
+					consume(PAD_ID_BASE, event.gamepadButton);
+				case TouchDown if (event.handled):
+					consume(TOUCH_ID_BASE, event.touchDevice);
+				case KeyUp:
+					release(KEY_ID_BASE, event.key);
+				case MouseButtonUp:
+					release(MOUSE_ID_BASE, event.mouseButton);
+				case GamepadButtonUp:
+					release(PAD_ID_BASE, event.gamepadButton);
+				default:
+			}
+		}
+	}
+
+	static function consume(idBase:Int, code:Int):Void {
+		var id = idBase + code;
+		if (!consumedSources.exists(id)) {
+			consumedSources.set(id, true);
+			consumedCount++;
+		}
+	}
+
+	static function release(idBase:Int, code:Int):Void {
+		if (consumedCount > 0 && consumedSources.remove(idBase + code)) {
+			consumedCount--;
+		}
+	}
+
+	// A source let go without its Up event reaching us, such as on losing focus, is released here.
+	function readDigital(idBase:Int, code:Int, isHeld:Bool):Float {
+		if (!isHeld) {
+			release(idBase, code);
+			return 0.0;
+		}
+		if (consumedCount > 0 && !ignoresHandled && consumedSources.exists(idBase + code)) {
+			return 0.0;
+		}
+		return 1.0;
 	}
 
 	function evaluate():Void {
@@ -143,7 +205,7 @@ class InputAction {
 		isReleased = !isPressed && wasPressed;
 	}
 
-	static function readBinding(binding:InputBinding):Void {
+	function readBinding(binding:InputBinding):Void {
 		readY = 0.0;
 		switch (binding) {
 			case Single(source):
@@ -168,15 +230,15 @@ class InputAction {
 		readY = vy;
 	}
 
-	static function readSource(source:InputSource):Float {
+	function readSource(source:InputSource):Float {
 		return switch (source) {
-			case Keyboard(key): Input.isKeyPressed(key) ? 1.0 : 0.0;
-			case Mouse(button): Input.isButtonPressed(button) ? 1.0 : 0.0;
+			case Keyboard(key): readDigital(KEY_ID_BASE, key, Input.isKeyPressed(key));
+			case Mouse(button): readDigital(MOUSE_ID_BASE, button, Input.isButtonPressed(button));
 			case MouseScrollX: Input.scrollX;
 			case MouseScrollY: Input.scrollY;
-			case PadButton(button): Input.isGamepadButtonPressed(button) ? 1.0 : 0.0;
+			case PadButton(button): readDigital(PAD_ID_BASE, button, Input.isGamepadButtonPressed(button));
 			case PadAxis(axis): Input.getGamepadAxis(axis);
-			case Touch(device): Input.isTouchPressed(device) ? 1.0 : 0.0;
+			case Touch(device): readDigital(TOUCH_ID_BASE, device, Input.isTouchPressed(device));
 		}
 	}
 }
