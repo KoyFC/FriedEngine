@@ -1,9 +1,3 @@
-include(FetchContent)
-
-if(POLICY CMP0135)
-    cmake_policy(SET CMP0135 NEW)
-endif()
-
 option(FRIED_SYSTEM_SDL2 "Link the installed SDL2 libraries on PC instead of building them from source" OFF)
 
 if(CMAKE_HOST_WIN32)
@@ -15,24 +9,94 @@ else()
 endif()
 file(TO_CMAKE_PATH "${_fried_default_deps_cache}" _fried_default_deps_cache)
 set(FRIED_DEPS_CACHE "${_fried_default_deps_cache}" CACHE PATH
-    "Where the PC dependencies' sources are unpacked once for every build tree; empty keeps them in each build tree")
+    "Where the PC dependencies are unpacked and installed once for every build tree; empty keeps them in each build tree")
 
-set(_fried_unpacked_marker ".fried-unpacked")
+set(_fried_pc_sdl2_dir "${CMAKE_CURRENT_LIST_DIR}/pc_sdl2")
 
-# A source unpacked by an earlier build tree is used as it is, with nothing downloaded.
-function(_fried_declare_pc_dependency name release url sha256)
-    if(NOT FRIED_DEPS_CACHE)
-        FetchContent_Declare(${name} URL ${url} URL_HASH SHA256=${sha256})
-        return()
+# Where the installed libraries go: one folder per compiler and configuration, named after everything that changes what gets built, so a folder is never reused for a build it does not match.
+function(_fried_pc_sdl2_prefix out_prefix)
+    file(SHA256 "${_fried_pc_sdl2_dir}/CMakeLists.txt" _recipe_hash)
+    set(_identity
+        "${_recipe_hash}"
+        "${CMAKE_SYSTEM_NAME}" "${CMAKE_SYSTEM_PROCESSOR}"
+        "${CMAKE_C_COMPILER_ID}" "${CMAKE_C_COMPILER_VERSION}"
+        "${CMAKE_CXX_COMPILER_ID}" "${CMAKE_CXX_COMPILER_VERSION}"
+        "${CMAKE_C_FLAGS}" "${CMAKE_CXX_FLAGS}"
+        "${CMAKE_MSVC_RUNTIME_LIBRARY}"
+        "${CMAKE_GENERATOR_PLATFORM}" "${CMAKE_GENERATOR_TOOLSET}"
+    )
+    if(NOT CMAKE_CONFIGURATION_TYPES)
+        list(APPEND _identity "${CMAKE_BUILD_TYPE}")
+    endif()
+    string(SHA256 _identity_hash "${_identity}")
+    string(SUBSTRING "${_identity_hash}" 0 16 _short_hash)
+
+    string(TOLOWER "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}" _platform)
+    if(FRIED_DEPS_CACHE)
+        set(_root "${FRIED_DEPS_CACHE}/installed")
+    else()
+        set(_root "${CMAKE_BINARY_DIR}/_deps/installed")
+    endif()
+    set(${out_prefix} "${_root}/${_platform}-${_short_hash}" PARENT_SCOPE)
+endfunction()
+
+# Compiles the four libraries as a build of their own, and installs them into the prefix.
+function(_fried_install_pc_sdl2 prefix)
+    set(_build_dir "${prefix}.build")
+    file(REMOVE_RECURSE "${prefix}" "${_build_dir}")
+
+    set(_configure_args
+        -S "${_fried_pc_sdl2_dir}" -B "${_build_dir}"
+        -G "${CMAKE_GENERATOR}"
+        -DCMAKE_INSTALL_PREFIX=${prefix}
+        -DFRIED_SOURCES_CACHE=${FRIED_DEPS_CACHE}
+    )
+    foreach(_inherited
+        CMAKE_TOOLCHAIN_FILE CMAKE_C_COMPILER CMAKE_CXX_COMPILER CMAKE_RC_COMPILER
+        CMAKE_C_FLAGS CMAKE_CXX_FLAGS CMAKE_MSVC_RUNTIME_LIBRARY FRIED_MINGW_SYSROOT
+        CMAKE_GENERATOR_PLATFORM CMAKE_GENERATOR_TOOLSET CMAKE_MAKE_PROGRAM
+    )
+        if(DEFINED ${_inherited} AND NOT "${${_inherited}}" STREQUAL "")
+            list(APPEND _configure_args "-D${_inherited}=${${_inherited}}")
+        endif()
+    endforeach()
+
+    if(CMAKE_CONFIGURATION_TYPES)
+        set(_configs Debug Release)
+    else()
+        set(_configs ${CMAKE_BUILD_TYPE})
+        list(APPEND _configure_args -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
     endif()
 
-    set(_source_dir "${FRIED_DEPS_CACHE}/${release}")
-    set(_fried_cached_sources ${_fried_cached_sources} "${_source_dir}" PARENT_SCOPE)
-    if(EXISTS "${_source_dir}/${_fried_unpacked_marker}")
-        string(TOUPPER ${name} _upper_name)
-        set(FETCHCONTENT_SOURCE_DIR_${_upper_name} "${_source_dir}" PARENT_SCOPE)
+    message(STATUS "Building SDL2 and its companions once into ${prefix}")
+    execute_process(COMMAND ${CMAKE_COMMAND} ${_configure_args} RESULT_VARIABLE _result)
+    if(NOT _result EQUAL 0)
+        message(FATAL_ERROR "Configuring SDL2 failed")
     endif()
-    FetchContent_Declare(${name} URL ${url} URL_HASH SHA256=${sha256} SOURCE_DIR "${_source_dir}")
+    foreach(_config IN LISTS _configs)
+        execute_process(COMMAND ${CMAKE_COMMAND} --build "${_build_dir}" --config ${_config} --parallel
+            RESULT_VARIABLE _result)
+        if(NOT _result EQUAL 0)
+            message(FATAL_ERROR "Building SDL2 failed")
+        endif()
+        execute_process(COMMAND ${CMAKE_COMMAND} --install "${_build_dir}" --config ${_config}
+            RESULT_VARIABLE _result)
+        if(NOT _result EQUAL 0)
+            message(FATAL_ERROR "Installing SDL2 failed")
+        endif()
+    endforeach()
+
+    file(REMOVE_RECURSE "${_build_dir}")
+    file(TOUCH "${prefix}/.fried-installed")
+endfunction()
+
+# The prefix lays its package configs out under lib, lib64 or the root, depending on the system, so each is looked up by name.
+function(_fried_use_installed_package prefix name)
+    file(GLOB_RECURSE _config "${prefix}/${name}Config.cmake")
+    list(GET _config 0 _config)
+    get_filename_component(_dir "${_config}" DIRECTORY)
+    set(${name}_DIR "${_dir}" CACHE PATH "" FORCE)
+    find_package(${name} REQUIRED CONFIG NO_DEFAULT_PATH PATHS "${_dir}")
 endfunction()
 
 function(fried_add_pc_sdl2 out_link_targets)
@@ -52,77 +116,20 @@ function(fried_add_pc_sdl2 out_link_targets)
         return()
     endif()
 
-    # Release tarballs, since SDL2_ttf's is the one that bundles FreeType.
-    _fried_declare_pc_dependency(sdl2 SDL2-2.32.10
-        https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz
-        5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165
-    )
-    _fried_declare_pc_dependency(sdl2_image SDL2_image-2.8.12
-        https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.12/SDL2_image-2.8.12.tar.gz
-        393f5efb50536ec13ca4f4affb69cc9966d3c3f969e6c5e701faddf9f9785381
-    )
-    _fried_declare_pc_dependency(sdl2_mixer SDL2_mixer-2.8.2
-        https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.2/SDL2_mixer-2.8.2.tar.gz
-        938dff531d00ace2296557a6599abe6f34599e2f34f0a4a08a397e2ccac8b8f7
-    )
-    _fried_declare_pc_dependency(sdl2_ttf SDL2_ttf-2.24.0
-        https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.24.0/SDL2_ttf-2.24.0.tar.gz
-        0b2bf1e7b6568adbdbc9bb924643f79d9dedafe061fa1ed687d1d9ac4e453bfd
-    )
-
-    # SDL2's and FreeType's declared CMake versions predate these policies.
-    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
-    set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
-
-    set(BUILD_SHARED_LIBS OFF)
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-    set(SDL_SHARED OFF)
-    set(SDL_STATIC ON)
-    set(SDL_TEST OFF)
-    set(SDL2_DISABLE_SDL2MAIN ON)
-
-    set(SDL2IMAGE_VENDORED OFF)
-    set(SDL2IMAGE_SAMPLES OFF)
-    set(SDL2IMAGE_BACKEND_STB ON)
-    set(SDL2IMAGE_PNG ON)
-    set(SDL2IMAGE_JPG ON)
-    foreach(_unused_image_format AVIF BMP GIF JXL LBM PCX PNM QOI SVG TGA TIF WEBP XCF XPM XV)
-        set(SDL2IMAGE_${_unused_image_format} OFF)
-    endforeach()
-
-    set(SDL2MIXER_VENDORED OFF)
-    set(SDL2MIXER_SAMPLES OFF)
-    set(SDL2MIXER_WAVE ON)
-    set(SDL2MIXER_VORBIS STB)
-    set(SDL2MIXER_MP3 ON)
-    set(SDL2MIXER_MP3_MINIMP3 ON)
-    set(SDL2MIXER_MP3_MPG123 OFF)
-    foreach(_unused_mixer_feature CMD FLAC GME MOD MIDI OPUS WAVPACK)
-        set(SDL2MIXER_${_unused_mixer_feature} OFF)
-    endforeach()
-
-    set(SDL2TTF_VENDORED ON)
-    set(SDL2TTF_SAMPLES OFF)
-    set(SDL2TTF_HARFBUZZ OFF)
-
-    FetchContent_MakeAvailable(sdl2 sdl2_image sdl2_mixer sdl2_ttf)
-
-    # Only a source that unpacked completely is reused by the next build tree.
-    if(FRIED_DEPS_CACHE)
-        foreach(_source_dir IN LISTS _fried_cached_sources)
-            file(TOUCH "${_source_dir}/${_fried_unpacked_marker}")
-        endforeach()
+    _fried_pc_sdl2_prefix(_prefix)
+    file(MAKE_DIRECTORY "${_prefix}/..")
+    file(LOCK "${_prefix}.lock" GUARD FUNCTION TIMEOUT 3600)
+    if(NOT EXISTS "${_prefix}/.fried-installed")
+        _fried_install_pc_sdl2("${_prefix}")
     endif()
 
-    # A fixed place for editors, wherever the sources were unpacked. SDL2 already copies its own headers into its build tree.
-    file(COPY
-        "${sdl2_image_SOURCE_DIR}/include/SDL_image.h"
-        "${sdl2_mixer_SOURCE_DIR}/include/SDL_mixer.h"
-        "${sdl2_ttf_SOURCE_DIR}/SDL_ttf.h"
-        DESTINATION "${FETCHCONTENT_BASE_DIR}/sdl2-companion-headers"
-    )
+    foreach(_package SDL2 SDL2_image SDL2_mixer SDL2_ttf)
+        _fried_use_installed_package("${_prefix}" ${_package})
+    endforeach()
+
+    # A fixed place for editors, wherever the libraries were installed.
+    file(GLOB _installed_headers "${_prefix}/include/SDL2/*.h")
+    file(COPY ${_installed_headers} DESTINATION "${CMAKE_BINARY_DIR}/_deps/sdl2-companion-headers")
 
     set(${out_link_targets}
         SDL2_image::SDL2_image-static
