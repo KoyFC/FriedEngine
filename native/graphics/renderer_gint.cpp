@@ -223,8 +223,7 @@ namespace
         return std::clamp(value, 0, std::max(0, size - 1));
     }
 
-    // Output pixels in 16.16 fixed point, in 64 bits so that an edge's slope
-    // can be stepped without overflowing.
+    // 64 bits, so stepping an edge's slope cannot overflow.
     struct FixedPoint
     {
         int64_t m_x;
@@ -234,27 +233,23 @@ namespace
     constexpr int s_fixedShift = 16;
     constexpr int64_t s_fixedHalf = (int64_t)1 << (s_fixedShift - 1);
 
-    // Only a corner further than this from the screen is moved, to keep the
-    // fixed point arithmetic in range.
-    constexpr float s_cornerLimit = 1.0e6f;
+    // Keeps the fixed point arithmetic in range.
+    constexpr float s_maxCornerDistance = 1.0e6f;
 
     FixedPoint toFixedPixels(const FriedDisplayLayout &layout, double x, double y)
     {
-        float outputX = std::clamp((float)x * layout.m_scaleX, -s_cornerLimit, s_cornerLimit) + layout.m_viewportX;
-        float outputY = std::clamp((float)y * layout.m_scaleY, -s_cornerLimit, s_cornerLimit) + layout.m_viewportY;
+        float outputX = std::clamp((float)x * layout.m_scaleX, -s_maxCornerDistance, s_maxCornerDistance) + layout.m_viewportX;
+        float outputY = std::clamp((float)y * layout.m_scaleY, -s_maxCornerDistance, s_maxCornerDistance) + layout.m_viewportY;
         return {(int64_t)(outputX * (1 << s_fixedShift)), (int64_t)(outputY * (1 << s_fixedShift))};
     }
 
-    // The first pixel whose centre is at or past a coordinate. A pixel is
-    // covered when its centre is inside, so triangles sharing an edge never
-    // draw a pixel on it twice.
-    int firstCentreFrom(int64_t coordinate)
+    // Covering a pixel by its centre means triangles sharing an edge never
+    // both draw a pixel on it.
+    int firstPixelCentredFrom(int64_t coordinate)
     {
         return (int)((coordinate + s_fixedHalf - 1) >> s_fixedShift);
     }
 
-    // An edge's x at the centre of each row in turn, from a row within its
-    // height on.
     class EdgeWalk
     {
     public:
@@ -266,12 +261,12 @@ namespace
             m_x = top.m_x + (((firstCentre - top.m_y) * m_step) >> s_fixedShift);
         }
 
-        int64_t x() const
+        int64_t xAtRowCentre() const
         {
             return m_x;
         }
 
-        void next()
+        void nextRow()
         {
             m_x += m_step;
         }
@@ -281,8 +276,6 @@ namespace
         int64_t m_step;
     };
 
-    // Filled a row at a time between the edge from the top corner to the
-    // bottom one and the two that meet at the middle corner.
     void fillTriangle(const FriedDisplayLayout &layout, FixedPoint top, FixedPoint middle, FixedPoint bottom, uint16_t color, int blendAlpha)
     {
         if (middle.m_y < top.m_y)
@@ -298,13 +291,13 @@ namespace
             std::swap(middle, bottom);
         }
 
-        int firstRow = std::max(firstCentreFrom(top.m_y), layout.m_viewportY);
-        int endRow = std::min(firstCentreFrom(bottom.m_y), layout.m_viewportY + layout.m_viewportHeight);
+        int firstRow = std::max(firstPixelCentredFrom(top.m_y), layout.m_viewportY);
+        int endRow = std::min(firstPixelCentredFrom(bottom.m_y), layout.m_viewportY + layout.m_viewportHeight);
         if (firstRow >= endRow)
         {
             return;
         }
-        int splitRow = std::clamp(firstCentreFrom(middle.m_y), firstRow, endRow);
+        int splitRow = std::clamp(firstPixelCentredFrom(middle.m_y), firstRow, endRow);
 
         int viewportLeft = layout.m_viewportX;
         int viewportRight = layout.m_viewportX + layout.m_viewportWidth;
@@ -313,8 +306,8 @@ namespace
         auto fillRows = [&](EdgeWalk &shortEdge, int fromRow, int toRow) {
             for (int row = fromRow; row < toRow; ++row)
             {
-                int left = std::max(firstCentreFrom(std::min(longEdge.x(), shortEdge.x())), viewportLeft);
-                int right = std::min(firstCentreFrom(std::max(longEdge.x(), shortEdge.x())), viewportRight);
+                int left = std::max(firstPixelCentredFrom(std::min(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), viewportLeft);
+                int right = std::min(firstPixelCentredFrom(std::max(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), viewportRight);
                 if (left < right)
                 {
                     uint16_t *pixels = gint_vram + row * DWIDTH;
@@ -327,8 +320,8 @@ namespace
                         blendRow(pixels, left, right, blend);
                     }
                 }
-                longEdge.next();
-                shortEdge.next();
+                longEdge.nextRow();
+                shortEdge.nextRow();
             }
         };
 
@@ -738,7 +731,7 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     fillPixels({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom}, *renderer);
 }
 
-void fried_renderer_fill_triangles(int rendererId, const double *points, const int *colors, int triangleCount)
+void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
 {
     if (!s_renderers.get(rendererId))
     {
@@ -748,7 +741,7 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
     FriedDisplayLayout current = layout();
     for (int index = 0; index < triangleCount; ++index)
     {
-        uint32_t argb = (uint32_t)colors[index];
+        uint32_t argb = (uint32_t)argbColors[index];
         int blendAlpha = toBlendAlpha((int)(argb >> 24));
         if (blendAlpha == 0)
         {

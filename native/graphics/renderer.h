@@ -19,9 +19,7 @@ extern "C"
     void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height);
     void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height);
 
-    // Six coordinates per triangle, x then y for each corner, and one colour
-    // per triangle, packed as 0xAARRGGBB.
-    void fried_renderer_fill_triangles(int rendererId, const double *points, const int *colors, int triangleCount);
+    void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount);
 }
 
 // The pivot may lie outside the quad, so a line of glyphs turns as one.

@@ -8,6 +8,7 @@ import fried.input.Input;
 import fried.input.InputAction;
 import fried.io.Filesystem;
 import fried.io.UserData;
+import fried.scene.SceneManager;
 
 class Application {
 	public static var isRunning(default, null):Bool = false;
@@ -39,6 +40,7 @@ class Application {
 	}
 
 	public static function shutdown():Void {
+		SceneManager.unloadActive();
 		destroyRenderers();
 		Font.destroyAll();
 		Sound.destroyAll();
@@ -86,6 +88,7 @@ class Application {
 	public static function run(update:Void->Void):Void {
 		while (isRunning) {
 			var frameStart = Sys.time();
+			SceneManager.applyPendingLoad();
 
 			if (Events.pump()) {
 				isRunning = false;

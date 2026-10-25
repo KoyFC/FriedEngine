@@ -1,6 +1,6 @@
 package fried.graphics3d;
 
-// Scaled, then turned about x, y and z in that order, in degrees, then moved.
+// Rotation is in degrees, applied about x, then y, then z.
 class Transform3D {
 	public var position:Vec3;
 	public var rotation:Vec3;

@@ -8,7 +8,6 @@ import fried.graphics3d.Transform3D;
 import fried.graphics3d.Vec3;
 import fried.scene.Component;
 
-// Drawn into a square of the given size whose top left corner follows the game object.
 class SpinningCube extends Component {
 	static inline var DISTANCE = 4.0;
 
@@ -18,11 +17,11 @@ class SpinningCube extends Component {
 	var light:DirectionalLight;
 	var degreesPerSecond:Vec3;
 
-	public function new(size:Int, degreesPerSecond:Vec3) {
+	public function new(viewportSize:Int, degreesPerSecond:Vec3) {
 		super();
 		mesh = cubeMesh();
 		model = new Transform3D(0.0, 0.0, DISTANCE);
-		camera = new Camera3D(new Rect(0, 0, size, size));
+		camera = new Camera3D(new Rect(0, 0, viewportSize, viewportSize));
 		light = new DirectionalLight(new Vec3(-0.4, -0.7, 1.0));
 		this.degreesPerSecond = degreesPerSecond;
 	}
@@ -39,8 +38,7 @@ class SpinningCube extends Component {
 		camera.submitMesh(gameObject.priority, mesh, model, light);
 	}
 
-	// Corner i is at -1 or +1 on x, y and z by its bits 0, 1 and 2, and each
-	// face is two triangles in one colour.
+	// Vertex i sits at -1 or +1 on x, y and z by its bits 0, 1 and 2.
 	static function cubeMesh():Mesh {
 		var vertices = [];
 		for (corner in 0...8) {
@@ -64,11 +62,11 @@ class SpinningCube extends Component {
 			Color.rgb(240, 220, 90),
 			Color.rgb(170, 110, 230)
 		];
-		var colors = [];
+		var triangleColors = [];
 		for (color in faceColors) {
-			colors.push(color);
-			colors.push(color);
+			triangleColors.push(color);
+			triangleColors.push(color);
 		}
-		return new Mesh(vertices, indices, colors);
+		return new Mesh(vertices, indices, triangleColors);
 	}
 }

@@ -1,5 +1,3 @@
-import fried.Layer;
-import fried.Log;
 import fried.Time;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
@@ -7,30 +5,25 @@ import fried.graphics.Font;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.input.Input;
-import fried.input.InputEvent;
-import fried.input.InputEventType;
-import fried.input.Key;
 import fried.scene.Button;
-import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.Scene;
+import fried.scene.SceneContext;
 import fried.scene.SceneLayer;
+import fried.scene.SceneManager;
 
 class DebugOverlay extends SceneLayer {
 	public var refreshInterval:Float;
 
 	var font:Font;
-	var camera:Camera;
-	var player:GameObject;
-	var togglesInterface:Layer;
-	var interfaceRenderer:Renderer;
-	var playerController:PlayerController;
+	var mainRenderer:Renderer;
 
 	var background:Rect;
 	var lines:Array<String>;
 	var lineWidths:Array<Int>;
 	var buttons:Array<Button>;
 	var buttonLabels:Array<Void->String>;
+	var sceneDetails:Void->Array<String>;
 	var nextRefresh:Float;
 	var framesPerSecond:Int;
 	var lastRefreshFrame:Int;
@@ -44,28 +37,24 @@ class DebugOverlay extends SceneLayer {
 	static inline var BUTTON_SPACING:Int = 6;
 	static var TEXT_COLOR:Color = Color.rgb(200, 215, 230);
 
-	public function new(scene:Scene, font:Font, camera:Camera, player:GameObject, togglesInterface:Layer, interfaceRenderer:Renderer) {
+	public function new(scene:Scene, font:Font, mainRenderer:Renderer) {
 		super(scene, "Debug overlay");
 		this.font = font;
-		this.camera = camera;
-		this.player = player;
-		this.togglesInterface = togglesInterface;
-		this.interfaceRenderer = interfaceRenderer;
-		playerController = player.getComponent(PlayerController);
+		this.mainRenderer = mainRenderer;
 		refreshInterval = 0.25;
 		background = new Rect(0, 0, 0, 0);
 		lines = [];
 		lineWidths = [];
 		buttons = [];
 		buttonLabels = [];
+		sceneDetails = null;
 		nextRefresh = 0.0;
 		framesPerSecond = 0;
 		lastRefreshFrame = 0;
 		lastRefreshTime = 0.0;
-		addButton(() -> 'Interface ${togglesInterface.renderer != null ? "on" : "off"}', toggleInterface);
 	}
 
-	public function addButton(label:Void->String, onClick:Void->Void):Void {
+	public function addButton(label:Void->String, onClick:Void->Void):Button {
 		var object = scene.add(new GameObject('Debug button ${buttons.length + 1}'));
 		object.priority = 1;
 		var button = object.addComponent(new Button(BUTTON_WIDTH, BUTTON_HEIGHT, font, label()));
@@ -75,6 +64,31 @@ class DebugOverlay extends SceneLayer {
 		};
 		buttons.push(button);
 		buttonLabels.push(label);
+		nextRefresh = 0.0;
+		return button;
+	}
+
+	public function addSceneButton(context:SceneContext, label:Void->String, onClick:Void->Void):Void {
+		var button = addButton(label, onClick);
+		context.onUnload(() -> removeButton(button));
+	}
+
+	public function setSceneDetails(context:SceneContext, details:Void->Array<String>):Void {
+		sceneDetails = details;
+		context.onUnload(() -> sceneDetails = null);
+	}
+
+	function removeButton(button:Button):Void {
+		var index = buttons.indexOf(button);
+		if (index < 0) {
+			return;
+		}
+		buttons.splice(index, 1);
+		buttonLabels.splice(index, 1);
+		if (button.gameObject != null) {
+			button.gameObject.destroy();
+		}
+		nextRefresh = 0.0;
 	}
 
 	override function update():Void {
@@ -109,39 +123,23 @@ class DebugOverlay extends SceneLayer {
 		}
 	}
 
-	override function onEvent(event:InputEvent):Void {
-		super.onEvent(event);
-		if (event.handled || event.type != InputEventType.KeyDown || event.key != Key.F4) {
-			return;
-		}
-		event.handled = true;
-		toggleInterface();
-	}
-
-	function toggleInterface():Void {
-		if (togglesInterface.renderer == null) {
-			interfaceRenderer.pushLayer(togglesInterface);
-			Log.info('Interface layer pushed back from inside the event walk, stack still reads ${interfaceRenderer.layers.length} layers');
-		} else {
-			interfaceRenderer.removeLayer(togglesInterface);
-			Log.info('Interface layer taken off from inside the event walk, stack still reads ${interfaceRenderer.layers.length} layers');
-		}
-	}
-
 	// On a screen of its own, the overlay takes all of it.
 	function hasOwnScreen():Bool {
-		return renderer != interfaceRenderer;
+		return renderer != mainRenderer;
 	}
 
 	function describe():Array<String> {
-		var zoom = Math.round(camera.zoom * 100) / 100;
-		var cameraX = Std.int(camera.transform.x);
-		var cameraY = Std.int(camera.transform.y);
-		var contact = playerController.blockedBy == null ? "none" : playerController.blockedBy;
 		var description = [
-			'frame ${Time.frameCount}', 'fps $framesPerSecond', 'queue ${DrawQueue.capacity}', 'camera $cameraX, $cameraY', 'zoom $zoom',
-			'player priority ${player.priority}', 'blocked by $contact'
+			'frame ${Time.frameCount}',
+			'fps $framesPerSecond',
+			'queue ${DrawQueue.capacity}',
+			'scene ${SceneManager.activeName}'
 		];
+		if (sceneDetails != null) {
+			for (detail in sceneDetails()) {
+				description.push(detail);
+			}
+		}
 		for (device in 0...Input.touchDeviceCount) {
 			description.push(describeTouch(device));
 		}

@@ -59,7 +59,6 @@ class DrawQueue {
 		submitShape(DrawRect, priority, rect, color);
 	}
 
-	// Six coordinates per triangle, x then y for each corner, and one colour per triangle.
 	public static function submitTriangles(priority:Int, points:Array<Float>, colors:Array<Color>):Void {
 		Renderer.checkTriangles(points, colors);
 		var command = next(priority);

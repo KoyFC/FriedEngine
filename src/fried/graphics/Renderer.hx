@@ -24,6 +24,7 @@ class Renderer {
 	var texturesByPath:Map<String, Texture>;
 	var activeTextures:Array<Texture>;
 	var pendingLayerAdds:Array<Layer>;
+	var pendingLayerAddIndices:Array<Int>;
 	var pendingLayerRemovals:Array<Layer>;
 	var isIteratingLayers:Bool;
 
@@ -41,21 +42,42 @@ class Renderer {
 		activeTextures = [];
 		layers = [];
 		pendingLayerAdds = [];
+		pendingLayerAddIndices = [];
 		pendingLayerRemovals = [];
 		isIteratingLayers = false;
 	}
 
 	public function pushLayer<T:Layer>(layer:T):T {
+		addLayer(layer, TOP);
+		return layer;
+	}
+
+	@:allow(fried.scene.SceneContext)
+	function insertLayer(index:Int, layer:Layer):Void {
+		addLayer(layer, index);
+	}
+
+	static inline var TOP:Int = -1;
+
+	function addLayer(layer:Layer, index:Int):Void {
 		if (layer.renderer != null) {
 			throw 'The layer ${layer.name} is already on a renderer.';
 		}
 		layer.setRenderer(this);
 		if (isIteratingLayers) {
 			pendingLayerAdds.push(layer);
+			pendingLayerAddIndices.push(index);
 		} else {
-			layers.push(layer);
+			placeLayer(layer, index);
 		}
-		return layer;
+	}
+
+	function placeLayer(layer:Layer, index:Int):Void {
+		if (index == TOP || index >= layers.length) {
+			layers.push(layer);
+		} else {
+			layers.insert(index, layer);
+		}
 	}
 
 	public function removeLayer(layer:Layer):Void {
@@ -63,7 +85,10 @@ class Renderer {
 			return;
 		}
 		layer.setRenderer(null);
-		if (pendingLayerAdds.remove(layer)) {
+		var pendingIndex = pendingLayerAdds.indexOf(layer);
+		if (pendingIndex >= 0) {
+			pendingLayerAdds.splice(pendingIndex, 1);
+			pendingLayerAddIndices.splice(pendingIndex, 1);
 			return;
 		}
 		if (isIteratingLayers) {
@@ -142,10 +167,11 @@ class Renderer {
 		}
 		pendingLayerRemovals.resize(0);
 
-		for (layer in pendingLayerAdds) {
-			layers.push(layer);
+		for (index in 0...pendingLayerAdds.length) {
+			placeLayer(pendingLayerAdds[index], pendingLayerAddIndices[index]);
 		}
 		pendingLayerAdds.resize(0);
+		pendingLayerAddIndices.resize(0);
 	}
 
 	@:allow(fried.graphics.Texture)
@@ -204,13 +230,13 @@ class Renderer {
 		outlineArea(rect.x, rect.y, rect.width, rect.height);
 	}
 
-	// Six coordinates per triangle, x then y for each corner, and one colour per triangle.
 	public function fillTriangles(points:Array<Float>, colors:Array<Color>):Void {
 		checkTriangles(points, colors);
 		if (colors.length == 0) {
 			return;
 		}
-		RendererNative.fillTriangles(id, cpp.Pointer.ofArray(points).constRaw, cpp.Pointer.ofArray((cast colors : Array<Int>)).constRaw, colors.length);
+		RendererNative.fillTriangles(id, cpp.Pointer.ofArray(points).constRaw, cpp.Pointer.ofArray((cast colors : Array<Int>)).constRaw,
+			colors.length);
 	}
 
 	@:allow(fried.graphics.DrawQueue)
@@ -277,5 +303,5 @@ private extern class RendererNative {
 	static function drawRect(id:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
 
 	@:native("fried_renderer_fill_triangles")
-	static function fillTriangles(id:Int, points:cpp.RawConstPointer<Float>, colors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;
+	static function fillTriangles(id:Int, points:cpp.RawConstPointer<Float>, argbColors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;
 }

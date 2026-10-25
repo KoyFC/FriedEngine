@@ -8,10 +8,8 @@ import fried.audio.Sound;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Font;
-import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
-import fried.graphics3d.Vec3;
 import fried.input.GamepadButton;
 import fried.input.Input;
 import fried.input.InputActionMap;
@@ -23,16 +21,10 @@ import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
-import fried.physics.Collider;
-import fried.scene.Camera;
-import fried.scene.GameObject;
 import fried.scene.Scene;
-import fried.scene.Sprite;
-import fried.scene.Text;
+import fried.scene.SceneManager;
 
 class Main {
-	static inline var WORLD_VIEW_HEIGHT = 480;
-
 	public static function main():Void {
 		Application.init();
 		Log.success('${Project.name()} ${Project.version()} initialized. Base path: ${Filesystem.basePath}');
@@ -81,21 +73,6 @@ class Main {
 		var font = Font.from(Assets.engine("NunitoSans.ttf"), renderer.height < 240 ? 10 : 16);
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
-		var hints = [
-			'Run $runs',
-			"Space/Enter/A/click: sound",
-			"M/F6/B: music",
-			"WASD/arrows/stick: move",
-			"Q/E/L/R: zoom",
-			"Shift+arrows: move window",
-			"F3/Select: overlay",
-			"F4: interface",
-			"F5: collider bounds",
-			"F7: gameplay actions",
-			"Esc/Start: quit"
-		];
-		var labelColor = Color.rgb(220, 220, 230);
-
 		var beep = Sound.from(Assets.game("beep.wav"));
 		beep.volume = 0.6;
 		Log.success('Sound loaded at volume ${beep.volume}');
@@ -103,93 +80,10 @@ class Main {
 		var music = new Music(Assets.game("music.wav"));
 		Music.volume = 0.2;
 
-		var spriteScale = 8.0;
-		var playerSpeed = 240.0;
 		var windowSpeed = 400.0;
 		var windowMoving = false;
 		var windowX = 0.0;
 		var windowY = 0.0;
-		var iconSize = 64;
-
-		var wallWidth = 900;
-		var wallHeight = 48;
-
-		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
-
-		var scene = new Scene("Sandbox");
-
-		var wallObject = scene.add(new GameObject("Wall", -wallWidth / 2, 160));
-		wallObject.addComponent(new Box(wallWidth, wallHeight, Color.rgb(70, 70, 90), Color.rgb(150, 150, 190)));
-
-		var postWidth = 32;
-		var postHeight = 96;
-		var colliders = [];
-
-		for (index in 0...5) {
-			var postObject = scene.add(new GameObject('Post $index', -600 + index * 300, -220));
-			postObject.priority = -2;
-			postObject.addComponent(new Box(postWidth, postHeight, Color.rgb(58, 48, 44), Color.rgb(120, 100, 80)));
-			colliders.push(postObject.addComponent(new Collider(postWidth, postHeight)));
-		}
-
-		var cubeSize = 160;
-		var cubeObject = scene.add(new GameObject("Spinning cube", 120, -cubeSize / 2));
-		cubeObject.priority = -2;
-		cubeObject.addComponent(new SpinningCube(cubeSize, new Vec3(35.0, 50.0, 0.0)));
-
-		var playerObject = scene.add(new GameObject("Player", -sprite.width * spriteScale / 2, -sprite.height * spriteScale / 2));
-		playerObject.transform.setScale(spriteScale);
-		playerObject.addComponent(new Sprite(sprite));
-		var playerCollider = playerObject.addComponent(new Collider(sprite.width, sprite.height));
-		colliders.push(playerCollider);
-		playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
-
-		var cameraObject = scene.add(new GameObject("Camera"));
-		var camera = cameraObject.addComponent(new Camera(renderer.height / WORLD_VIEW_HEIGHT));
-		cameraObject.addComponent(new CameraFollow(playerObject, sprite.width * spriteScale / 2, sprite.height * spriteScale / 2));
-		scene.camera = camera;
-
-		var uiScene = new Scene("Sandbox UI");
-
-		// The hints stop short of the icons down the right edge, so a narrow screen stacks more lines.
-		var hintMaxWidth = renderer.width - iconSize - 16 * 3;
-		var hintLines = LinePacker.pack(font, hints, hintMaxWidth);
-		var hintTextWidth = 0;
-		var hintTextHeight = 0;
-		for (index in 0...hintLines.length) {
-			var labelObject = uiScene.add(new GameObject('Hint label, line ${index + 1}', 16, 16 + hintTextHeight));
-			labelObject.priority = 1;
-			var label = labelObject.addComponent(new Text(font, hintLines[index], labelColor));
-			hintTextWidth = label.width > hintTextWidth ? label.width : hintTextWidth;
-			hintTextHeight += label.height;
-		}
-
-		Log.info('The hints take ${hintLines.length} lines, ${hintTextWidth}x${hintTextHeight}, before a frame has drawn them');
-
-		var panelWidth = hintTextWidth + 8;
-		var panelHeight = hintTextHeight + 8;
-
-		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
-		panelObject.addComponent(new Box(panelWidth, panelHeight, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
-
-		var regionObject = uiScene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
-		regionObject.transform.scaleX = iconSize / scrollRegion.width;
-		regionObject.transform.scaleY = iconSize / scrollRegion.height;
-		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
-		regionObject.addComponent(new RegionScroller(8.0));
-
-		var regionLabelText = 'region x ${scrollRegion.x}';
-		var regionLabelX = renderer.width - font.measureWidth(regionLabelText) - 16;
-		var regionLabelObject = uiScene.add(new GameObject("Region label", regionLabelX, 16 + iconSize + 16 + iconSize + 4));
-		regionLabelObject.priority = 1;
-		regionLabelObject.addComponent(new Text(font, regionLabelText, labelColor));
-		regionLabelObject.addComponent(new RegionLabel(regionSprite));
-
-		var spinnerObject = uiScene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
-		spinnerObject.transform.scaleX = iconSize / sprite.width;
-		spinnerObject.transform.scaleY = iconSize / sprite.height;
-		spinnerObject.addComponent(new Sprite(sprite));
-		spinnerObject.addComponent(new Spinner(90.0));
 
 		var secondWindow:Window = null;
 		var secondRenderer:Renderer = null;
@@ -200,16 +94,8 @@ class Main {
 			Log.success('Second window created: ${secondRenderer.width}x${secondRenderer.height}, so the debug overlay moves to it');
 		}
 
-		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
 		var debugScene = new Scene("Sandbox debug");
-		var overlay = new DebugOverlay(debugScene, font, camera, playerObject, interfaceLayer, renderer);
-
-		function toggleColliders():Void {
-			for (collider in colliders) {
-				collider.isDebugVisible = !collider.isDebugVisible;
-			}
-			Log.info('Collider bounds ${colliders[0].isDebugVisible ? "shown" : "hidden"} for ${colliders.length} colliders');
-		}
+		var overlay = new DebugOverlay(debugScene, font, renderer);
 
 		function toggleMusic():Void {
 			if (music.paused) {
@@ -226,7 +112,14 @@ class Main {
 			Log.info("Sound played");
 		}
 
-		overlay.addButton(() -> 'Colliders ${colliders[0].isDebugVisible ? "on" : "off"}', toggleColliders);
+		function loadNextScene():Void {
+			var names = SceneManager.names();
+			var next = names[(names.indexOf(SceneManager.activeName) + 1) % names.length];
+			Log.info('Loading scene $next');
+			SceneManager.load(next);
+		}
+
+		overlay.addButton(() -> "Next scene", loadNextScene);
 		overlay.addButton(() -> 'Music ${music.paused ? "off" : "on"}', toggleMusic);
 		overlay.addButton(() -> "Sound", playSound);
 
@@ -244,10 +137,12 @@ class Main {
 
 		gameplay.enable();
 
-		renderer.pushLayer(new WorldLayer(scene, playerCollider));
 		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
 		overlayRenderer.pushLayer(overlay);
-		renderer.pushLayer(interfaceLayer);
+
+		SceneManager.register("2D", new Scene2D(renderer, font, overlay, zoom, runs).load);
+		SceneManager.register("3D", new Scene3D(renderer).load);
+		SceneManager.load("2D");
 
 		function closeWindow():Void {
 			if (renderer == null) {
@@ -266,12 +161,6 @@ class Main {
 		}
 
 		window.onClose = closeWindow;
-
-		Log.success('Scene "${scene.name}" holds ${scene.objectCount} world objects, "${uiScene.name}" holds ${uiScene.objectCount} screen-space ones');
-		Log.info('Region icon scrolls a ${scrollRegion.width}x${scrollRegion.height} region across a ${sprite.width}x${sprite.height} texture');
-		Log.info('The player starts at world ${playerObject.transform.x}, ${playerObject.transform.y} and the wall sits at world y ${wallObject.transform.y}');
-		Log.info('The player collider measures ${playerCollider.right - playerCollider.left}x${playerCollider.bottom - playerCollider.top} once the transform scale of $spriteScale is applied to a ${sprite.width}x${sprite.height} sprite');
-		Log.info('The wall carries no collider, so it stays the draw order demo and the ${colliders.length - 1} posts are what the player cannot walk through');
 
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
@@ -308,16 +197,14 @@ class Main {
 				windowMoving = false;
 			}
 
-			if (Input.isKeyDown(Key.F5)) {
-				toggleColliders();
+			if (Input.isKeyDown(Key.F2) || Input.isGamepadButtonDown(GamepadButton.North)) {
+				loadNextScene();
 			}
 
 			if (Input.isKeyDown(Key.F3) || Input.isGamepadButtonDown(GamepadButton.Select)) {
 				overlay.isEnabled = !overlay.isEnabled;
 				Log.info('Debug overlay ${overlay.isEnabled ? "enabled" : "disabled"}, still on the stack either way');
 			}
-
-			camera.zoom += zoom.value * Time.deltaSeconds;
 
 			if (Input.isKeyDown(Key.F7)) {
 				if (zoom.isEnabled) {
@@ -329,13 +216,9 @@ class Main {
 			}
 		});
 
-		Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees over ${Time.elapsedSeconds} seconds');
-		Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
-		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands for ${scene.objectCount + uiScene.objectCount} objects');
+		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands');
 
 		closeWindow();
-		scene.destroy();
-		uiScene.destroy();
 		debugScene.destroy();
 		music.destroy();
 

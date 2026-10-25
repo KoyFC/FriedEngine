@@ -267,7 +267,7 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     SDL_RenderDrawRectF(renderer, &rect);
 }
 
-void fried_renderer_fill_triangles(int rendererId, const double *points, const int *colors, int triangleCount)
+void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer || triangleCount <= 0)
@@ -279,7 +279,7 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
     s_triangleVertices.resize(vertexCount);
     for (int index = 0; index < vertexCount; ++index)
     {
-        Uint32 color = (Uint32)colors[index / 3];
+        Uint32 color = (Uint32)argbColors[index / 3];
         SDL_Vertex &vertex = s_triangleVertices[index];
         vertex.position = {(float)points[index * 2], (float)points[index * 2 + 1]};
         vertex.color = {(Uint8)(color >> 16), (Uint8)(color >> 8), (Uint8)color, (Uint8)(color >> 24)};

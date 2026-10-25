@@ -4,8 +4,7 @@ import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
 
-// Looks along +z, with x to the right and y up, and does not turn. The field
-// of view is vertical, in degrees, and spans the height of the viewport.
+// Looks along +z with y up, and does not turn.
 class Camera3D {
 	public var position:Vec3;
 	public var fieldOfView:Float;
@@ -26,13 +25,9 @@ class Camera3D {
 		this.viewport = viewport;
 	}
 
-	// The viewport is in the space the queue is drawing in, so a scene with a
-	// 2D camera moves and zooms the picture with it, and nothing is clipped to
-	// it. A triangle with a corner nearer than `near` is left out rather than
-	// clipped, and triangles are sorted back to front within the mesh only.
 	public function submitMesh(priority:Int, mesh:Mesh, transform:Transform3D, light:DirectionalLight):Void {
 		toView(mesh, transform);
-		collectFacing(mesh, light);
+		collectVisibleTriangles(mesh, light);
 		if (drawOrder.length == 0) {
 			return;
 		}
@@ -77,11 +72,9 @@ class Camera3D {
 		}
 	}
 
-	// Keeps the triangles in front of the near plane that face the camera, and
-	// shades each by how squarely it faces into the light.
-	function collectFacing(mesh:Mesh, light:DirectionalLight):Void {
+	function collectVisibleTriangles(mesh:Mesh, light:DirectionalLight):Void {
 		var indices = mesh.indices;
-		var triangleCount = mesh.colors.length;
+		var triangleCount = mesh.triangleColors.length;
 		depths.resize(triangleCount);
 		shades.resize(triangleCount);
 		drawOrder.resize(0);
@@ -123,7 +116,7 @@ class Camera3D {
 				facing = -(normalX * lightX + normalY * lightY + normalZ * lightZ) / (normalLength * lightLength);
 			}
 			var brightness = light.ambient + (1.0 - light.ambient) * Math.max(facing, 0.0);
-			var color = mesh.colors[triangle];
+			var color = mesh.triangleColors[triangle];
 			shades[triangle] = Color.rgba(Std.int(color.red * brightness), Std.int(color.green * brightness), Std.int(color.blue * brightness),
 				color.alpha);
 

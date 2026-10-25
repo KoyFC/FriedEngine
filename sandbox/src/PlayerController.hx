@@ -43,6 +43,10 @@ class PlayerController extends Component {
 		}
 	}
 
+	override function destroy():Void {
+		movementAction.disable();
+	}
+
 	override function update():Void {
 		var moveX = movementAction.x;
 		var moveY = movementAction.y;

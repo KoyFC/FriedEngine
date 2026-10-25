@@ -16,6 +16,10 @@ class WorldLayer extends SceneLayer {
 	}
 
 	override function onEvent(event:InputEvent):Void {
+		super.onEvent(event);
+		if (event.handled) {
+			return;
+		}
 		var isClick = event.type == InputEventType.MouseButtonDown && event.mouseButton == MouseButton.Left;
 		var isFrontTouch = event.type == InputEventType.TouchDown && event.touchDevice == 0;
 		if (!isClick && !isFrontTouch) {
