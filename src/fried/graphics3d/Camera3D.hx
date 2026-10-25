@@ -25,15 +25,16 @@ class Camera3D {
 		this.viewport = viewport;
 	}
 
-	public function submitMesh(priority:Int, mesh:Mesh, transform:Transform3D, light:DirectionalLight):Void {
+	public function submitMesh(priority:Int, mesh:Mesh, transform:Transform3D, light:DirectionalLight):Int {
 		toView(mesh, transform);
 		collectVisibleTriangles(mesh, light);
 		if (drawOrder.length == 0) {
-			return;
+			return 0;
 		}
 		drawOrder.sort(compareFarthestFirst);
 		project(mesh);
 		DrawQueue.submitTriangles(priority, points, colors);
+		return drawOrder.length;
 	}
 
 	function toView(mesh:Mesh, transform:Transform3D):Void {

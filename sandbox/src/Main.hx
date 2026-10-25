@@ -141,7 +141,7 @@ class Main {
 		overlayRenderer.pushLayer(overlay);
 
 		SceneManager.register("2D", new Scene2D(renderer, font, overlay, zoom, runs).load);
-		SceneManager.register("3D", new Scene3D(renderer).load);
+		SceneManager.register("3D", new Scene3D(renderer, font, overlay).load);
 		SceneManager.load("2D");
 
 		function closeWindow():Void {

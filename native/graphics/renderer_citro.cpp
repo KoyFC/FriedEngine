@@ -29,6 +29,14 @@ namespace
     bool s_isFrameOpen = false;
     CitroRenderer *s_sceneRenderer = nullptr;
 
+    // The most citro2d takes, since its vertex indices are 16 bits.
+    constexpr size_t s_maxObjects = 16384;
+    constexpr size_t s_vertexCapacity = 4 * s_maxObjects;
+    // Half the frame's vertices, so however many triangles a game sends, the
+    // rest of the frame and the other screen still have room to draw.
+    constexpr size_t s_triangleVertexBudget = s_vertexCapacity / 2;
+    size_t s_triangleVerticesThisFrame = 0;
+
     constexpr float s_depth = 0.0f;
     constexpr float s_degreesToRadians = 3.14159265358979f / 180.0f;
     constexpr int s_flipHorizontal = 1;
@@ -40,7 +48,7 @@ namespace
         {
             return false;
         }
-        if (!C2D_Init(C2D_DEFAULT_MAX_OBJECTS))
+        if (!C2D_Init(s_maxObjects))
         {
             C3D_Fini();
             return false;
@@ -107,6 +115,7 @@ namespace
         {
             C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
             s_isFrameOpen = true;
+            s_triangleVerticesThisFrame = 0;
             s_sceneRenderer = nullptr;
         }
         if (s_sceneRenderer != renderer)
@@ -410,8 +419,9 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
     {
         return;
     }
-    for (int index = 0; index < triangleCount; ++index)
+    for (int index = 0; index < triangleCount && s_triangleVerticesThisFrame + 3 <= s_triangleVertexBudget; ++index)
     {
+        s_triangleVerticesThisFrame += 3;
         const double *corners = points + index * 6;
         u32 argb = (u32)argbColors[index];
         u32 color = C2D_Color32((u8)(argb >> 16), (u8)(argb >> 8), (u8)argb, (u8)(argb >> 24));
