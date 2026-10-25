@@ -62,6 +62,13 @@ namespace
     {
         return std::clamp(value, 0, std::max(0, size - 1));
     }
+
+    bool isUnderXWayland()
+    {
+        const char *driver = SDL_GetCurrentVideoDriver();
+        const char *waylandDisplay = SDL_getenv("WAYLAND_DISPLAY");
+        return driver && SDL_strcmp(driver, "x11") == 0 && waylandDisplay && *waylandDisplay;
+    }
 }
 
 SDL_Renderer *fried_renderer_get_sdl(int rendererId)
@@ -78,14 +85,17 @@ int fried_renderer_create(int windowId, bool vsync)
         return -1;
     }
 
+    // The compositor already syncs XWayland to the display, and a vsynced
+    // present there stalls while the cursor moves.
+    bool requestsVsync = vsync && !isUnderXWayland();
     Uint32 flags = SDL_RENDERER_ACCELERATED;
-    if (vsync)
+    if (requestsVsync)
     {
         flags |= SDL_RENDERER_PRESENTVSYNC;
     }
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, flags);
-    if (!renderer && vsync)
+    if (!renderer && requestsVsync)
     {
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     }
