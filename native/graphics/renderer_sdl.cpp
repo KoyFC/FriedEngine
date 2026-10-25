@@ -11,10 +11,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace
 {
     HandlePool<SDL_Renderer> s_renderers;
+    std::vector<SDL_Vertex> s_triangleVertices;
 
     FriedDisplayLayout layoutOf(SDL_Renderer *renderer)
     {
@@ -263,6 +265,27 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
 
     SDL_FRect rect = snapped(renderer, x, y, width, height);
     SDL_RenderDrawRectF(renderer, &rect);
+}
+
+void fried_renderer_fill_triangles(int rendererId, const double *points, const int *colors, int triangleCount)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer || triangleCount <= 0)
+    {
+        return;
+    }
+
+    int vertexCount = triangleCount * 3;
+    s_triangleVertices.resize(vertexCount);
+    for (int index = 0; index < vertexCount; ++index)
+    {
+        Uint32 color = (Uint32)colors[index / 3];
+        SDL_Vertex &vertex = s_triangleVertices[index];
+        vertex.position = {(float)points[index * 2], (float)points[index * 2 + 1]};
+        vertex.color = {(Uint8)(color >> 16), (Uint8)(color >> 8), (Uint8)color, (Uint8)(color >> 24)};
+        vertex.tex_coord = {0.0f, 0.0f};
+    }
+    SDL_RenderGeometry(renderer, nullptr, s_triangleVertices.data(), vertexCount, nullptr, 0);
 }
 
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)

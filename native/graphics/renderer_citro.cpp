@@ -403,6 +403,22 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     fillRect(rect.m_x + rect.m_width - 1, rect.m_y + 1, 1, rect.m_height - 2, color);
 }
 
+void fried_renderer_fill_triangles(int rendererId, const double *points, const int *colors, int triangleCount)
+{
+    CitroRenderer *renderer = sceneRenderer(rendererId);
+    if (!renderer)
+    {
+        return;
+    }
+    for (int index = 0; index < triangleCount; ++index)
+    {
+        const double *corners = points + index * 6;
+        u32 argb = (u32)colors[index];
+        u32 color = C2D_Color32((u8)(argb >> 16), (u8)(argb >> 8), (u8)argb, (u8)(argb >> 24));
+        C2D_DrawTriangle((float)corners[0], (float)corners[1], color, (float)corners[2], (float)corners[3], color, (float)corners[4], (float)corners[5], color, s_depth);
+    }
+}
+
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
 {
     (void)windowId;

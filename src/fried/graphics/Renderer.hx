@@ -204,6 +204,22 @@ class Renderer {
 		outlineArea(rect.x, rect.y, rect.width, rect.height);
 	}
 
+	// Six coordinates per triangle, x then y for each corner, and one colour per triangle.
+	public function fillTriangles(points:Array<Float>, colors:Array<Color>):Void {
+		checkTriangles(points, colors);
+		if (colors.length == 0) {
+			return;
+		}
+		RendererNative.fillTriangles(id, cpp.Pointer.ofArray(points).constRaw, cpp.Pointer.ofArray((cast colors : Array<Int>)).constRaw, colors.length);
+	}
+
+	@:allow(fried.graphics.DrawQueue)
+	static function checkTriangles(points:Array<Float>, colors:Array<Color>):Void {
+		if (points.length != colors.length * 6) {
+			throw 'Triangles take six coordinates per colour, but ${points.length} came with ${colors.length} colours.';
+		}
+	}
+
 	@:allow(fried.graphics.DrawQueue)
 	function fillArea(x:Float, y:Float, width:Float, height:Float):Void {
 		RendererNative.fillRect(id, x, y, width, height);
@@ -259,4 +275,7 @@ private extern class RendererNative {
 
 	@:native("fried_renderer_draw_rect")
 	static function drawRect(id:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
+
+	@:native("fried_renderer_fill_triangles")
+	static function fillTriangles(id:Int, points:cpp.RawConstPointer<Float>, colors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;
 }

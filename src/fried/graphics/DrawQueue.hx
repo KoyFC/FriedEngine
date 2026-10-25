@@ -15,6 +15,7 @@ class DrawQueue {
 	static var viewY:Float = 0.0;
 	static var viewWidth:Float = 0.0;
 	static var viewHeight:Float = 0.0;
+	static var viewPoints:Array<Float> = [];
 
 	public static function submitTexture(priority:Int, texture:Texture, x:Float, y:Float, width:Float, height:Float, angle:Float = 0.0,
 			flip:FlipMode = None, ?source:Rect):Void {
@@ -56,6 +57,15 @@ class DrawQueue {
 
 	public static function submitRect(priority:Int, rect:Rect, color:Color):Void {
 		submitShape(DrawRect, priority, rect, color);
+	}
+
+	// Six coordinates per triangle, x then y for each corner, and one colour per triangle.
+	public static function submitTriangles(priority:Int, points:Array<Float>, colors:Array<Color>):Void {
+		Renderer.checkTriangles(points, colors);
+		var command = next(priority);
+		command.type = FillTriangles;
+		copyInto(points, command.points);
+		copyInto(colors, command.colors);
 	}
 
 	@:allow(fried.Application)
@@ -101,6 +111,8 @@ class DrawQueue {
 					renderer.drawColor = command.color;
 					colorChanged = true;
 					renderer.outlineArea(viewX, viewY, viewWidth, viewHeight);
+				case FillTriangles:
+					renderer.fillTriangles(computeViewPoints(command, renderer), command.colors);
 			}
 		}
 
@@ -123,6 +135,29 @@ class DrawQueue {
 		viewY = camera.worldToScreenY(command.y, renderer);
 		viewWidth = command.width * camera.zoom;
 		viewHeight = command.height * camera.zoom;
+	}
+
+	static function computeViewPoints(command:DrawCommand, renderer:Renderer):Array<Float> {
+		var camera = command.camera;
+		if (camera == null) {
+			return command.points;
+		}
+		var points = command.points;
+		viewPoints.resize(points.length);
+		var index = 0;
+		while (index < points.length) {
+			viewPoints[index] = camera.worldToScreenX(points[index], renderer);
+			viewPoints[index + 1] = camera.worldToScreenY(points[index + 1], renderer);
+			index += 2;
+		}
+		return viewPoints;
+	}
+
+	static function copyInto<T>(source:Array<T>, destination:Array<T>):Void {
+		destination.resize(source.length);
+		for (index in 0...source.length) {
+			destination[index] = source[index];
+		}
 	}
 
 	static function submitShape(type:DrawCommandType, priority:Int, rect:Rect, color:Color):Void {
@@ -170,6 +205,7 @@ private enum abstract DrawCommandType(Int) {
 	var FillRect = 1;
 	var DrawRect = 2;
 	var Text = 3;
+	var FillTriangles = 4;
 }
 
 private class DrawCommand {
@@ -191,10 +227,14 @@ private class DrawCommand {
 	public var flip:FlipMode;
 	public var hasSource:Bool;
 	public var source:Rect;
+	public var points:Array<Float>;
 
 	public var color:Color;
+	public var colors:Array<Color>;
 
 	public function new() {
 		source = new Rect(0, 0, 0, 0);
+		points = [];
+		colors = [];
 	}
 }
