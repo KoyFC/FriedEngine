@@ -11,6 +11,7 @@ import fried.graphics.Font;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.graphics.Texture;
+import fried.graphics3d.Vec3;
 import fried.input.GamepadButton;
 import fried.input.Input;
 import fried.input.InputActionMap;
@@ -130,6 +131,11 @@ class Main {
 			postObject.addComponent(new Box(postWidth, postHeight, Color.rgb(58, 48, 44), Color.rgb(120, 100, 80)));
 			colliders.push(postObject.addComponent(new Collider(postWidth, postHeight)));
 		}
+
+		var cubeSize = 160;
+		var cubeObject = scene.add(new GameObject("Spinning cube", 120, -cubeSize / 2));
+		cubeObject.priority = -2;
+		cubeObject.addComponent(new SpinningCube(cubeSize, new Vec3(35.0, 50.0, 0.0)));
 
 		var playerObject = scene.add(new GameObject("Player", -sprite.width * spriteScale / 2, -sprite.height * spriteScale / 2));
 		playerObject.transform.setScale(spriteScale);
