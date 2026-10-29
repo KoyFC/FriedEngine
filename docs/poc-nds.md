@@ -1,6 +1,6 @@
 # Nintendo DS proof of concept
 
-This is a feasibility study for a Nintendo DS port, not the port itself. It lives on the `poc/nds` branch, and each phase below records what was built, what was measured and what went wrong.
+This began as a feasibility study for a Nintendo DS port and went on, from Phase 2, into the port itself, as far as running the engine's sandbox on both screens. It lives on the `poc/nds` branch, and each phase below records what was built, what was measured and what went wrong. Phase 3 has the measurements of the result, the recommendation and what is left to do.
 
 All timings come from melonDS 1.1 (Flatpak, interpreter, JIT off). melonDS does not emulate the ARM9's caches and main RAM wait states exactly, so every number here is an emulator number and has to be confirmed on hardware before it is relied on.
 
@@ -103,7 +103,7 @@ A frame at 60 Hz is 16.7 ms. A `Float` multiply-add costs about 3.9 us, eight ti
 
 **The Thumb build loses live objects in a major GC.** Run as above, it ends in a data abort reading `numbers[999]`, whose array has a garbage data pointer (`0x7F5E`) once `Gc.run(true)` has run. Built with `-D skip_major_gc`, the same program prints every check correctly, and the ARM build passes the same collection. So the collector frees something still reachable when the code is Thumb. The working hypothesis is that hxcpp's conservative scan of the stack and registers, which goes through `setjmp` on ARM, misses a root in Thumb code; that has not been verified. Thumb is 28% smaller and no slower in melonDS, so it is worth fixing for a real port, but nothing below depends on it, and the ARM build is the one used from here on.
 
-**Emulator output.** melonDS prints none of the no$gba debug port messages to its log, so results are read off the screen with a screenshot of the window (`spectacle -b -n -a -o <file>` on KDE).
+**Emulator output.** melonDS prints none of the no$gba debug port messages to its log, so these results were read off the screen with a screenshot of the window (`spectacle -b -n -a -o <file>` on KDE). Phase 3 writes them to the SD card image instead.
 
 ### Decision point
 
@@ -165,3 +165,60 @@ The native calls placed each edge through `fried_display_snap()` and `lround()`,
 Left for later: the 3D engine can draw both screens by turning to the other one every frame, with the display capture keeping each one's last image on the screen the 2D engine shows it on, which is libnds's `3D_Both_Screens` example. Both screens would then be drawn the same way, share their textures and show at 30 frames a second each, at the cost of VRAM banks C and D. It could sit next to the software renderer as a choice the project makes; it was left out of this step because doing both at once was about half as much work again as the software one alone.
 
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.
+
+## Phase 3: measurements and recommendation
+
+### How it was measured
+
+Every number comes from melonDS 1.1 with the JIT off, from a `MinSizeRel` build of the sandbox at commit `22cf0dc`, with its debug overlay on the bottom screen. Times come from calico's system tick counter, started by a constructor that runs before hxcpp's, and memory from newlib's `mallinfo()` and hxcpp's `__hxcpp_gc_mem_info()`, with temporary code that is not on the branch. The results are written to the SD card image the emulator's DLDI uses, and read on the host with mtools, rather than read off screenshots. melonDS keeps writes to that image in memory until it shuts down, and killing it loses the FAT's update, so a file's data has to be read from its first cluster directly; reading frames back the same way showed the screens' contents match what was drawn.
+
+### Results
+
+| | Measured |
+|---|---|
+| Frame rate | 60 frames a second, 16.72 ms a frame over frames 300 to 900, both screens drawn |
+| Work in a frame | 7.7 ms of the 16.7, the rest waiting for the vertical blank |
+| Boot, program start to first frame | 965 ms, about 0.6 s of it loading and rasterizing the TrueType font |
+| Heap in use | 2,123 KB of a 2,874 KB ceiling, its peak the same |
+| GC reservation | 984 KB, of which 32 KB holds objects |
+| ARM9 `.text`, `.data`, `.bss` | 1,052,680 B, 22,476 B, 125,332 B |
+| `.nds` | 1,921,024 B, with 747 KB of assets in NitroFS |
+
+The load image is 1.2 MB of the 2.48 MB calico's `ds9.ld` allows. Of the heap, the GC's first reservation and the TrueType file take 1.5 MB together, and 751 KB is left for a game. A frame's 7.7 ms of work break down as:
+
+| Part of the frame | ms |
+|---|---|
+| Text, 20 lines on two screens | 2.2 |
+| Rectangles, textures and outlines | 1.7 |
+| Bottom screen, drawing what changed and copying it | 0.9 |
+| Sorting the draw queue | 0.7 |
+| Rest of the draw queue, in Haxe | 0.8 |
+| Layers, events and the scene's update | 1.4 |
+
+### Recommendation: viable with changes
+
+The engine runs on the DS as it is, Haxe and all, with its API unchanged: the sandbox draws both screens at 60 frames a second with 9 ms of every frame free, and fits in memory with 750 KB to spare. Getting there took changes on the platform side only, the ones Phase 2 records:
+
+- **The top screen has to be drawn by the 3D engine.** The CPU renderer the calculator uses cannot fill a 256x192 screen at 60 frames a second here, held back by how slowly main RAM takes writes, and `renderer_nds.cpp` replaces it.
+- **The CPU renderer has to draw only what changes,** for the bottom screen, which `renderer_software.cpp` now does for the calculator too.
+- **Nothing per frame can go through floats when integers do,** since every float operation is a call into software, and no division or library call can sit on a per-glyph or per-edge path.
+
+The risk that is left is a game's own logic. Haxe's `Float` is a software `double` at about 3.9 µs an operation, so a frame's 9 free ms hold about 2,300 of them: enough for a menu-driven or tile-based game with tens of moving objects, not for physics over hundreds. Moving the engine's transforms to fixed point would change its public API, and is not recommended unless a game needs it. The numbers are an emulator's, and need a DS behind them before they are relied on.
+
+### What is left, and how much
+
+Estimated in days of work at the pace of Phases 1 and 2, the larger ones the least certain:
+
+| Work | Days | Why |
+|---|---|---|
+| Run it on a DS from a flashcart and measure again | 1 | melonDS does not time caches and main RAM exactly |
+| Audio, through maxmod on the ARM7 | 3 to 5 | there is none; `sound_gint.cpp` and `music_gint.cpp` stand in silently |
+| The GC's reservation, as on the calculator | 1 | 984 KB reserved for 32 KB of objects |
+| Fonts converted at build time | 3 to 5 | half of the boot and 569 KB of RAM; three decisions above first |
+| Textures with more than one bit of alpha | 1 to 2 | a partly transparent PNG is cut out at half opacity today |
+| The Thumb build's GC fault | 2 to 4 | Thumb is 28 % smaller; the cause is not known yet |
+| 3D on both screens at 30 Hz, as a choice | 2 to 3 | for a game that wants the 3D engine on the bottom screen too |
+| Running without a FAT volume | 0.5 | a DS with no flashcart's DLDI stops at boot today |
+
+About 14 to 21 days. What a first game needs is the run on a DS, audio, the GC's reservation and running without a FAT volume, about 6 to 8 days; the rest can wait for a game that asks for it.
+
