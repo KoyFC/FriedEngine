@@ -107,7 +107,37 @@ namespace
 
     int toVertexUnits(float coordinate)
     {
-        return (int)std::lround(std::clamp(coordinate, -s_maxCoordinate, s_maxCoordinate));
+        return fried_display_round(std::clamp(coordinate, -s_maxCoordinate, s_maxCoordinate));
+    }
+
+    // Output pixels, right and bottom excluded.
+    struct Edges
+    {
+        int m_left;
+        int m_top;
+        int m_right;
+        int m_bottom;
+    };
+
+    // The output pixel a logical edge lands on, as fried_display_snap() puts it.
+    int outputEdge(float logical, float scale, int offset)
+    {
+        return offset + toVertexUnits(scale == 1.0f ? logical : logical * scale);
+    }
+
+    Edges outputEdges(const FriedDisplayLayout &layout, float x, float y, float width, float height)
+    {
+        return {
+            outputEdge(x, layout.m_scaleX, layout.m_viewportX),
+            outputEdge(y, layout.m_scaleY, layout.m_viewportY),
+            outputEdge(x + width, layout.m_scaleX, layout.m_viewportX),
+            outputEdge(y + height, layout.m_scaleY, layout.m_viewportY),
+        };
+    }
+
+    bool isEmpty(const Edges &edges)
+    {
+        return edges.m_right <= edges.m_left || edges.m_bottom <= edges.m_top;
     }
 
     // From 0..255 to the five bits a polygon's alpha has.
@@ -170,6 +200,13 @@ namespace
         vertex(toVertexUnits(corner.m_x), toVertexUnits(corner.m_y), u, v, depth);
     }
 
+    // One write instead of two, for a vertex at the depth of the one before.
+    __attribute__((always_inline)) inline void vertexAtSameDepth(int x, int y, int u, int v)
+    {
+        glTexCoord2t16((t16)u, (t16)v);
+        GFX_VERTEX_XY = ((uint32_t)y << 16) | ((uint32_t)x & 0xffff);
+    }
+
     // Corners go round from the top left, and so do the texels they show.
     void quad(const Corner corners[4], int u0, int v0, int u1, int v1)
     {
@@ -202,34 +239,23 @@ namespace
         }
     }
 
-    // A logical rectangle on the screen, with each edge on the nearest pixel.
-    void outputRect(const FriedDisplayLayout &layout, float x, float y, float width, float height, float &left, float &top, float &right, float &bottom)
+    void quad(const Edges &edges, int u0, int v0, int u1, int v1)
     {
-        FriedRect rect = fried_display_snap(x, y, width, height, layout.m_scaleX, layout.m_scaleY);
-        left = layout.m_viewportX + rect.m_x * layout.m_scaleX;
-        top = layout.m_viewportY + rect.m_y * layout.m_scaleY;
-        right = left + rect.m_width * layout.m_scaleX;
-        bottom = top + rect.m_height * layout.m_scaleY;
+        vertex(edges.m_left, edges.m_top, u0, v0, nextDepth());
+        vertexAtSameDepth(edges.m_right, edges.m_top, u1, v0);
+        vertexAtSameDepth(edges.m_right, edges.m_bottom, u1, v1);
+        vertexAtSameDepth(edges.m_left, edges.m_bottom, u0, v1);
     }
 
-    void fillOutputRect(float left, float top, float right, float bottom, int r, int g, int b, int a)
+    void fillEdges(const Edges &edges, int r, int g, int b, int a)
     {
-        if (right <= left || bottom <= top || !beginPolygons(GL_QUADS, a, nullptr))
+        if (isEmpty(edges) || !beginPolygons(GL_QUADS, a, nullptr))
         {
             return;
         }
         glColor(toVertexColor(r, g, b));
-        Corner corners[4];
-        cornersOf(left, top, right, bottom, 0.0f, 0.0f, 0.0f, corners);
-        quad(corners, 0, 0, 0, 0);
+        quad(edges, 0, 0, 0, 0);
         glEnd();
-    }
-
-    void fillLogicalRect(const Renderer &renderer, float x, float y, float width, float height)
-    {
-        float left, top, right, bottom;
-        outputRect(renderer.m_layout, x, y, width, height, left, top, right, bottom);
-        fillOutputRect(left, top, right, bottom, renderer.m_r, renderer.m_g, renderer.m_b, renderer.m_a);
     }
 
     // The source region in the stored texture's texels, as 12.4 fixed point.
@@ -259,8 +285,16 @@ namespace
     void drawTexturedQuad(const Renderer &renderer, const FriedNdsTexture &texture, const TexelRegion &region, float x, float y, float width, float height, float angle, bool hasPivot, float pivotX, float pivotY)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
-        float left, top, right, bottom;
-        outputRect(layout, x, y, width, height, left, top, right, bottom);
+        Edges edges = outputEdges(layout, x, y, width, height);
+        if (angle == 0.0f)
+        {
+            quad(edges, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
+            return;
+        }
+        float left = (float)edges.m_left;
+        float top = (float)edges.m_top;
+        float right = (float)edges.m_right;
+        float bottom = (float)edges.m_bottom;
         float outputPivotX = hasPivot ? layout.m_viewportX + pivotX * layout.m_scaleX : (left + right) / 2.0f;
         float outputPivotY = hasPivot ? layout.m_viewportY + pivotY * layout.m_scaleY : (top + bottom) / 2.0f;
         Corner corners[4];
@@ -272,14 +306,14 @@ namespace
     // the viewport is hidden too.
     void drawLetterboxBars(const FriedDisplayLayout &layout)
     {
-        float viewportRight = (float)(layout.m_viewportX + layout.m_viewportWidth);
-        float viewportBottom = (float)(layout.m_viewportY + layout.m_viewportHeight);
-        float viewportLeft = (float)layout.m_viewportX;
-        float viewportTop = (float)layout.m_viewportY;
-        fillOutputRect(0.0f, 0.0f, s_screenWidth, viewportTop, 0, 0, 0, 255);
-        fillOutputRect(0.0f, viewportBottom, s_screenWidth, s_screenHeight, 0, 0, 0, 255);
-        fillOutputRect(0.0f, viewportTop, viewportLeft, viewportBottom, 0, 0, 0, 255);
-        fillOutputRect(viewportRight, viewportTop, s_screenWidth, viewportBottom, 0, 0, 0, 255);
+        int viewportRight = layout.m_viewportX + layout.m_viewportWidth;
+        int viewportBottom = layout.m_viewportY + layout.m_viewportHeight;
+        int viewportLeft = layout.m_viewportX;
+        int viewportTop = layout.m_viewportY;
+        fillEdges({0, 0, s_screenWidth, viewportTop}, 0, 0, 0, 255);
+        fillEdges({0, viewportBottom, s_screenWidth, s_screenHeight}, 0, 0, 0, 255);
+        fillEdges({0, viewportTop, viewportLeft, viewportBottom}, 0, 0, 0, 255);
+        fillEdges({viewportRight, viewportTop, s_screenWidth, viewportBottom}, 0, 0, 0, 255);
     }
 }
 
@@ -502,11 +536,10 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
         int v0 = glyph.m_srcY << 4;
         int u1 = (glyph.m_srcX + glyph.m_width) << 4;
         int v1 = (glyph.m_srcY + glyph.m_height) << 4;
-        int depth = nextDepth();
-        vertex(glyphLeft, glyphTop, u0, v0, depth);
-        vertex(glyphRight, glyphTop, u1, v0, depth);
-        vertex(glyphRight, glyphBottom, u1, v1, depth);
-        vertex(glyphLeft, glyphBottom, u0, v1, depth);
+        vertex(glyphLeft, glyphTop, u0, v0, nextDepth());
+        vertexAtSameDepth(glyphRight, glyphTop, u1, v0);
+        vertexAtSameDepth(glyphRight, glyphBottom, u1, v1);
+        vertexAtSameDepth(glyphLeft, glyphBottom, u0, v1);
     }
     glEnd();
     return true;
@@ -522,7 +555,7 @@ void fried_renderer_fill_rect(int rendererId, float x, float y, float width, flo
     Renderer *renderer = s_renderers.get(rendererId);
     if (renderer)
     {
-        fillLogicalRect(*renderer, x, y, width, height);
+        fillEdges(outputEdges(renderer->m_layout, x, y, width, height), renderer->m_r, renderer->m_g, renderer->m_b, renderer->m_a);
     }
 }
 
@@ -539,10 +572,18 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     {
         return;
     }
-    fillLogicalRect(*renderer, x, y, width, 1.0f);
-    fillLogicalRect(*renderer, x, y + height - 1.0f, width, 1.0f);
-    fillLogicalRect(*renderer, x, y + 1.0f, 1.0f, height - 2.0f);
-    fillLogicalRect(*renderer, x + width - 1.0f, y + 1.0f, 1.0f, height - 2.0f);
+    Edges outer = outputEdges(renderer->m_layout, x, y, width, height);
+    Edges inner = outputEdges(renderer->m_layout, x + 1.0f, y + 1.0f, width - 2.0f, height - 2.0f);
+    if (isEmpty(outer) || !beginPolygons(GL_QUADS, renderer->m_a, nullptr))
+    {
+        return;
+    }
+    glColor(toVertexColor(renderer->m_r, renderer->m_g, renderer->m_b));
+    quad({outer.m_left, outer.m_top, outer.m_right, inner.m_top}, 0, 0, 0, 0);
+    quad({outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom}, 0, 0, 0, 0);
+    quad({outer.m_left, inner.m_top, inner.m_left, inner.m_bottom}, 0, 0, 0, 0);
+    quad({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom}, 0, 0, 0, 0);
+    glEnd();
 }
 
 void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)

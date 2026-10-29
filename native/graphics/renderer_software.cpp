@@ -67,11 +67,14 @@ namespace
     // for the other backends, and the result is cut to the viewport.
     PixelRect toPixels(const FriedDisplayLayout &layout, float x, float y, float width, float height)
     {
+        auto edge = [](float logical, float scale, int offset) {
+            return offset + fried_display_round(scale == 1.0f ? logical : logical * scale);
+        };
         PixelRect rect = {
-            layout.m_viewportX + (int)std::lround(x * layout.m_scaleX),
-            layout.m_viewportY + (int)std::lround(y * layout.m_scaleY),
-            layout.m_viewportX + (int)std::lround((x + width) * layout.m_scaleX),
-            layout.m_viewportY + (int)std::lround((y + height) * layout.m_scaleY),
+            edge(x, layout.m_scaleX, layout.m_viewportX),
+            edge(y, layout.m_scaleY, layout.m_viewportY),
+            edge(x + width, layout.m_scaleX, layout.m_viewportX),
+            edge(y + height, layout.m_scaleY, layout.m_viewportY),
         };
         rect.m_left = std::max(rect.m_left, layout.m_viewportX);
         rect.m_top = std::max(rect.m_top, layout.m_viewportY);
@@ -1057,8 +1060,8 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
     Glyphs command;
     std::memset(&command, 0, sizeof(command));
     command.m_textureId = textureId;
-    command.m_left = current.m_viewportX + (int)std::lround(x);
-    command.m_top = current.m_viewportY + (int)std::lround(y);
+    command.m_left = current.m_viewportX + fried_display_round(x);
+    command.m_top = current.m_viewportY + fried_display_round(y);
     command.m_color = fried_software_pack(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
     command.m_alpha = std::min(a, 255);
     command.m_count = count;

@@ -37,3 +37,11 @@ struct FriedRect
 // Moves each edge to the nearest output pixel, so images drawn side by side
 // still meet and a moving one steps by whole pixels along with the rest.
 FriedRect fried_display_snap(float x, float y, float width, float height, float scaleX, float scaleY);
+
+// Rounds half away from zero, as std::lround() does, without the call into
+// the maths library, which the targets with no floating point unit pay for in
+// software on every edge they place. The value has to fit in an int.
+inline int fried_display_round(float value)
+{
+    return (int)(value >= 0.0f ? value + 0.5f : value - 0.5f);
+}
