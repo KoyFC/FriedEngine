@@ -1,7 +1,7 @@
 #include "platform/application.h"
 
 #include "last_error.h"
-#include "audio/sound_nds.h"
+#include "audio/audio_nds.h"
 #include "platform/console_nds.h"
 
 #include <nds.h>

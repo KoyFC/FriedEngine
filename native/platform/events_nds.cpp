@@ -1,6 +1,6 @@
 #include "platform/events.h"
 
-#include "audio/sound_nds.h"
+#include "audio/audio_nds.h"
 #include "platform/gamepad.h"
 #include "platform/touch.h"
 
@@ -50,6 +50,7 @@ int fried_events_pump()
     s_inputEvents.clear();
     s_currentInputEvent = -1;
     fried_sound_update();
+    fried_music_update();
     fried_gamepad_poll(queueButton);
     fried_touch_poll(queueTouch);
     return 0;

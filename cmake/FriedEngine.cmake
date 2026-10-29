@@ -105,8 +105,7 @@ elseif(NINTENDO_DS)
     # The DS draws its top screen with its 3D engine and its bottom one with
     # the calculator's software renderer, rasterizes fonts the way the
     # calculator does, and shares the calculator's files for the input it has
-    # nothing of its own for, no keyboard or mouse, and for the music, which
-    # stays silent.
+    # nothing of its own for: no keyboard or mouse.
     set(_fried_native_sources
         native/platform/application_nds.cpp
         native/platform/console_nds.cpp
@@ -125,7 +124,8 @@ elseif(NINTENDO_DS)
         native/graphics/font_software.cpp
         native/graphics/pixel_font_nds.cpp
         native/audio/sound_nds.cpp
-        native/audio/music_gint.cpp
+        native/audio/music_nds.cpp
+        native/audio/wave_nds.cpp
     )
 else()
     set(_fried_native_sources
