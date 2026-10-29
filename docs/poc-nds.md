@@ -207,7 +207,7 @@ Estimated in days of work at the pace of Phases 1 and 2, the larger ones the lea
 | Work | Days | Why |
 |---|---|---|
 | Run it on a DS from a flashcart and measure again | 1 | melonDS does not time caches and main RAM exactly |
-| Audio, through maxmod on the ARM7 | 3 to 5 | there is none; `sound_gint.cpp` and `music_gint.cpp` stand in silently |
+| Music, streamed from NitroFS | 2 | sounds play on the hardware channels (`sound_nds.cpp`), but `music_gint.cpp` still stands in silently, and a game's music is too large to hold in RAM |
 | The GC's reservation, as on the calculator | 1 | 984 KB reserved for 32 KB of objects |
 | Fonts converted at build time | 3 to 5 | half of the boot and 569 KB of RAM; three decisions above first |
 | Textures with more than one bit of alpha | 1 to 2 | a partly transparent PNG is cut out at half opacity today |
@@ -215,5 +215,5 @@ Estimated in days of work at the pace of Phases 1 and 2, the larger ones the lea
 | 3D on both screens at 30 Hz, as a choice | 2 to 3 | for a game that wants the 3D engine on the bottom screen too |
 | Running without a FAT volume | 0.5 | a DS with no flashcart's DLDI stops at boot today |
 
-About 14 to 21 days. What a first game needs is the run on a DS, audio, the GC's reservation and running without a FAT volume, about 6 to 8 days; the rest can wait for a game that asks for it.
+About 14 to 21 days. What a first game needs is the run on a DS, music, the GC's reservation and running without a FAT volume, about 6 to 8 days; the rest can wait for a game that asks for it.
 

@@ -1,6 +1,7 @@
 #include "platform/application.h"
 
 #include "last_error.h"
+#include "audio/sound_nds.h"
 #include "platform/console_nds.h"
 
 #include <nds.h>
@@ -10,8 +11,7 @@
 
 // The bottom screen is the text console that standard output prints to, so
 // the log and a crash report are read there, unless a game opens a window on
-// it (platform/console_nds.h). There is no audio output to open: the silent
-// device is the only one, and the engine opens it when the real one fails.
+// it (platform/console_nds.h).
 
 namespace
 {
@@ -37,14 +37,18 @@ int fried_application_init()
     return 0;
 }
 
+// The ARM7 drives the sound hardware, and the ARM9 asks it to through calico.
 int fried_application_open_audio_device()
 {
-    fried_set_last_error("The engine has no audio output on the DS");
-    return -1;
+    soundInit();
+    soundPowerOn();
+    fried_sound_init();
+    return 0;
 }
 
 int fried_application_open_silent_audio()
 {
+    fried_sound_init();
     return 0;
 }
 
