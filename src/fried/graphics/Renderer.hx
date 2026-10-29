@@ -246,6 +246,19 @@ class Renderer {
 		}
 	}
 
+	// What the draw queue calls, with no optional arguments: hxcpp passes an
+	// optional Float boxed, which allocates on every call.
+	@:allow(fried.graphics.DrawQueue)
+	function textureArea(texture:Texture, srcX:Int, srcY:Int, srcWidth:Int, srcHeight:Int, x:Float, y:Float, width:Float, height:Float,
+			angle:Float, flip:FlipMode):Void {
+		RendererNative.drawTextureEx(id, texture.id, srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, cast flip);
+	}
+
+	@:allow(fried.graphics.DrawQueue)
+	function textArea(font:Font, text:String, x:Float, y:Float, width:Float, height:Float, angle:Float, color:Color):Void {
+		font.drawText(this, text, x, y, width, height, angle, color);
+	}
+
 	@:allow(fried.graphics.DrawQueue)
 	function fillArea(x:Float, y:Float, width:Float, height:Float):Void {
 		RendererNative.fillRect(id, x, y, width, height);

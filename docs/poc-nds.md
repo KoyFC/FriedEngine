@@ -136,4 +136,10 @@ The top screen is now drawn by the 3D engine instead (`ARCHITECTURE.md` describe
 
 Laying out the text was mostly hash table lookups: `font_software.cpp` found each glyph's metrics, the kerning against the glyph before it and its place in the atlas in an `unordered_map`, every frame, and a lookup's modulo is a division the ARM9 has no instruction for. ASCII now sits in arrays, metrics and atlas places indexed by character and kerning by pair of printable characters, which took laying out the sandbox's text from 4.1 ms to 1.1 ms and finding the glyphs in the atlas from 1.5 ms to 0.7 ms.
 
+On the Haxe side, the draw queue passed each texture's and each line of text's size to `Renderer.drawTextureRegion()` and `Renderer.drawText()` as optional arguments, which hxcpp boxes, so every one of those calls allocated; it now calls versions of them with none. It sorted its commands with `Array.sort()`, whose comparison is a function value hxcpp calls dynamically, and the sandbox's 48 commands took 1.1 ms; a merge sort with the comparison inlined, which only walks a queue already in order, takes 0.7 ms. What is left of a frame's work there is mostly double precision arithmetic, which Haxe's `Float` is and the ARM9 emulates: the camera's transform of every command, and the conversion of every coordinate to the single precision the native calls take.
+
+With all of it, a frame of the sandbox's work is down from 14.5 ms to 9.7 ms, which leaves 7 ms of every 16.7 ms frame free.
+
+Loading the 569 KB TrueType font from NitroFS takes 312 ms, and rasterizing its 95 printable ASCII glyphs into the atlas, the first time text is drawn, another 265 ms. The file stays in memory as long as the font is loaded.
+
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.

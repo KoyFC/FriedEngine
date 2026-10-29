@@ -16,6 +16,7 @@ class DrawQueue {
 	static var viewWidth:Float = 0.0;
 	static var viewHeight:Float = 0.0;
 	static var viewPoints:Array<Float> = [];
+	static var sortScratch:Array<DrawCommand> = [];
 
 	public static function submitTexture(priority:Int, texture:Texture, x:Float, y:Float, width:Float, height:Float, angle:Float = 0.0,
 			flip:FlipMode = None, ?source:Rect):Void {
@@ -69,9 +70,7 @@ class DrawQueue {
 
 	@:allow(fried.Application)
 	static function flush(renderers:Array<Renderer>):Void {
-		if (pendingDrawCommands.length > 1) {
-			pendingDrawCommands.sort(compare);
-		}
+		sortPending();
 
 		for (renderer in renderers) {
 			draw(renderer);
@@ -98,10 +97,17 @@ class DrawQueue {
 			computeView(command, renderer);
 			switch (command.type) {
 				case TextureRegion:
-					renderer.drawTextureRegion(command.texture, viewX, viewY, command.hasSource ? command.source : null, viewWidth, viewHeight,
-						command.angle, command.flip);
+					var texture = command.texture;
+					var source = command.source;
+					if (command.hasSource) {
+						renderer.textureArea(texture, source.x, source.y, source.width, source.height, viewX, viewY, viewWidth, viewHeight,
+							command.angle, command.flip);
+					} else {
+						renderer.textureArea(texture, 0, 0, texture.width, texture.height, viewX, viewY, viewWidth, viewHeight, command.angle,
+							command.flip);
+					}
 				case Text:
-					renderer.drawText(command.font, command.text, viewX, viewY, command.color, viewWidth, viewHeight, command.angle);
+					renderer.textArea(command.font, command.text, viewX, viewY, viewWidth, viewHeight, command.angle, command.color);
 				case FillRect:
 					renderer.drawColor = command.color;
 					colorChanged = true;
@@ -184,14 +190,71 @@ class DrawQueue {
 		return command;
 	}
 
-	static function compare(a:DrawCommand, b:DrawCommand):Int {
+	static inline function precedes(a:DrawCommand, b:DrawCommand):Bool {
 		if (a.layerIndex != b.layerIndex) {
-			return a.layerIndex < b.layerIndex ? -1 : 1;
+			return a.layerIndex < b.layerIndex;
 		}
 		if (a.priority != b.priority) {
-			return a.priority < b.priority ? -1 : 1;
+			return a.priority < b.priority;
 		}
-		return a.sequence < b.sequence ? -1 : 1;
+		return a.sequence < b.sequence;
+	}
+
+	// A merge sort with the comparison inlined. Array.sort() calls a function
+	// value for every comparison, which goes through hxcpp's dynamic calls; a
+	// frame's 48 commands took a millisecond to sort that way on the DS. A queue
+	// that is in order already, as most are, is only walked once.
+	static function sortPending():Void {
+		var commands = pendingDrawCommands;
+		var count = commands.length;
+		var index = 1;
+		while (index < count && precedes(commands[index - 1], commands[index])) {
+			index++;
+		}
+		if (index >= count) {
+			return;
+		}
+
+		sortScratch.resize(count);
+		var from = commands;
+		var to = sortScratch;
+		var width = 1;
+		while (width < count) {
+			var left = 0;
+			while (left < count) {
+				var middle = left + width < count ? left + width : count;
+				var right = middle + width < count ? middle + width : count;
+				var a = left;
+				var b = middle;
+				var out = left;
+				while (a < middle && b < right) {
+					if (precedes(from[b], from[a])) {
+						to[out++] = from[b++];
+					} else {
+						to[out++] = from[a++];
+					}
+				}
+				while (a < middle) {
+					to[out++] = from[a++];
+				}
+				while (b < right) {
+					to[out++] = from[b++];
+				}
+				left = right;
+			}
+			var swap = from;
+			from = to;
+			to = swap;
+			width *= 2;
+		}
+		if (from != commands) {
+			for (position in 0...count) {
+				commands[position] = from[position];
+			}
+		}
+		for (position in 0...count) {
+			sortScratch[position] = null;
+		}
 	}
 
 	static function get_capacity():Int {
