@@ -134,4 +134,6 @@ The top screen is now drawn by the 3D engine instead (`ARCHITECTURE.md` describe
 | Text (20 lines) | 12.8 ms | 7.0 ms, 1.2 of it sending glyphs |
 | Waiting for the vertical blank | 11.0 ms | 3.4 ms |
 
+Laying out the text was mostly hash table lookups: `font_software.cpp` found each glyph's metrics, the kerning against the glyph before it and its place in the atlas in an `unordered_map`, every frame, and a lookup's modulo is a division the ARM9 has no instruction for. ASCII now sits in arrays, metrics and atlas places indexed by character and kerning by pair of printable characters, which took laying out the sandbox's text from 4.1 ms to 1.1 ms and finding the glyphs in the atlas from 1.5 ms to 0.7 ms.
+
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.

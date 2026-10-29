@@ -26,6 +26,18 @@
 
 namespace
 {
+    // ASCII is nearly all a game's text, and looked up glyph by glyph every
+    // frame, so it is kept in arrays: a hash table's modulo is a division,
+    // which neither the SH4 nor the DS's ARM9 has an instruction for.
+    constexpr uint32_t s_asciiCount = 128;
+
+    template <typename T>
+    struct AsciiTable
+    {
+        T m_entries[s_asciiCount];
+        bool m_known[s_asciiCount] = {};
+    };
+
     // Offsets are from the pen, at the top of the line.
     struct GlyphMetrics
     {
@@ -49,6 +61,7 @@ namespace
         int m_ascent;
         int m_lineHeight;
         std::unordered_map<uint32_t, GlyphMetrics> m_metrics;
+        AsciiTable<GlyphMetrics> m_asciiMetrics;
     };
 
     struct AtlasRegion
@@ -73,6 +86,7 @@ namespace
         int m_rasterSize;
         GlyphSource m_rasterSource;
         std::unordered_map<uint32_t, AtlasRegion> m_regions;
+        AsciiTable<AtlasRegion> m_asciiRegions;
     };
 
     struct LoadedFont
@@ -83,6 +97,9 @@ namespace
         int m_lineHeight;
         GlyphSource m_layoutSource;
         std::unordered_map<uint64_t, int> m_kerning;
+        // Between printable ASCII characters, with s_unknownKerning where it
+        // has not been looked up yet.
+        std::vector<int8_t> m_printableKerning;
         std::vector<GlyphAtlas> m_atlases;
     };
 
@@ -103,6 +120,8 @@ namespace
     constexpr uint32_t s_replacementCharacter = 0xFFFD;
     constexpr uint32_t s_firstPreloadedCharacter = 0x20;
     constexpr uint32_t s_lastPreloadedCharacter = 0x7E;
+    constexpr uint32_t s_printableCount = s_lastPreloadedCharacter - s_firstPreloadedCharacter + 1;
+    constexpr int8_t s_unknownKerning = INT8_MIN;
 
     constexpr int s_glyphSpacing = 1;
     constexpr int s_minAtlasSide = 64;
@@ -142,24 +161,18 @@ namespace
         stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
         int ascentPixels = (int)std::ceil(ascent * scale);
         int descentPixels = (int)std::floor(descent * scale);
-        return {&info, scale, nullptr, 0, (float)size, ascentPixels, ascentPixels - descentPixels, {}};
+        return {&info, scale, nullptr, 0, (float)size, ascentPixels, ascentPixels - descentPixels, {}, {}};
     }
 
     // A pixel font is drawn at whole scales only, so it stays sharp.
     GlyphSource bitmapSource(const FriedPixelFont *font, int size)
     {
         int scale = std::max(1, (int)std::lround((float)size / font->m_lineHeight));
-        return {nullptr, 0.0f, font, scale, (float)scale, 0, font->m_lineHeight * scale, {}};
+        return {nullptr, 0.0f, font, scale, (float)scale, 0, font->m_lineHeight * scale, {}, {}};
     }
 
-    const GlyphMetrics &metricsOf(GlyphSource &source, uint32_t codepoint)
+    GlyphMetrics measure(GlyphSource &source, uint32_t codepoint)
     {
-        auto found = source.m_metrics.find(codepoint);
-        if (found != source.m_metrics.end())
-        {
-            return found->second;
-        }
-
         GlyphMetrics metrics = {};
         if (source.m_trueType)
         {
@@ -181,7 +194,28 @@ namespace
                 metrics = {0, 0, width * scale, font->m_dataHeight * scale, (width + font->m_charSpacing) * scale};
             }
         }
-        return source.m_metrics.emplace(codepoint, metrics).first->second;
+        return metrics;
+    }
+
+    const GlyphMetrics &metricsOf(GlyphSource &source, uint32_t codepoint)
+    {
+        if (codepoint < s_asciiCount)
+        {
+            AsciiTable<GlyphMetrics> &table = source.m_asciiMetrics;
+            if (!table.m_known[codepoint])
+            {
+                table.m_entries[codepoint] = measure(source, codepoint);
+                table.m_known[codepoint] = true;
+            }
+            return table.m_entries[codepoint];
+        }
+
+        auto found = source.m_metrics.find(codepoint);
+        if (found != source.m_metrics.end())
+        {
+            return found->second;
+        }
+        return source.m_metrics.emplace(codepoint, measure(source, codepoint)).first->second;
     }
 
     int kerningBetween(LoadedFont &font, uint32_t previous, uint32_t codepoint)
@@ -192,14 +226,33 @@ namespace
             return 0;
         }
 
+        auto kerningFromFont = [&]() {
+            return (int)std::lround(stbtt_GetCodepointKernAdvance(source.m_trueType, (int)previous, (int)codepoint) * source.m_trueTypeScale);
+        };
+
+        uint32_t first = previous - s_firstPreloadedCharacter;
+        uint32_t second = codepoint - s_firstPreloadedCharacter;
+        if (first < s_printableCount && second < s_printableCount)
+        {
+            if (font.m_printableKerning.empty())
+            {
+                font.m_printableKerning.assign(s_printableCount * s_printableCount, s_unknownKerning);
+            }
+            int8_t &kerning = font.m_printableKerning[first * s_printableCount + second];
+            if (kerning == s_unknownKerning)
+            {
+                kerning = (int8_t)std::clamp(kerningFromFont(), INT8_MIN + 1, (int)INT8_MAX);
+            }
+            return kerning;
+        }
+
         uint64_t pair = ((uint64_t)previous << 32) | codepoint;
         auto found = font.m_kerning.find(pair);
         if (found != font.m_kerning.end())
         {
             return found->second;
         }
-        int kerning = (int)std::lround(stbtt_GetCodepointKernAdvance(source.m_trueType, (int)previous, (int)codepoint) * source.m_trueTypeScale);
-        return font.m_kerning.emplace(pair, kerning).first->second;
+        return font.m_kerning.emplace(pair, kerningFromFont()).first->second;
     }
 
     // A glyph reaching left of the pen shifts the line right, as SDL_ttf does.
@@ -288,21 +341,41 @@ namespace
         return fried_texture_write_alpha(atlas.m_textureId, region.m_x, region.m_y, s_coverage.data(), region.m_width, region.m_height);
     }
 
+    AtlasRegion place(GlyphAtlas &atlas, uint32_t codepoint, const GlyphMetrics &metrics)
+    {
+        AtlasRegion region = {};
+        bool hasBitmap = metrics.m_width > 0 && metrics.m_height > 0;
+        if (!hasBitmap || !reserve(atlas, metrics.m_width, metrics.m_height, region) ||
+            !rasterize(atlas, codepoint, metrics, region))
+        {
+            region = {};
+        }
+        return region;
+    }
+
     const AtlasRegion *atlasRegionOf(GlyphAtlas &atlas, uint32_t codepoint, const GlyphMetrics &metrics)
     {
-        auto found = atlas.m_regions.find(codepoint);
-        if (found == atlas.m_regions.end())
+        const AtlasRegion *region = nullptr;
+        if (codepoint < s_asciiCount)
         {
-            AtlasRegion region = {};
-            bool hasBitmap = metrics.m_width > 0 && metrics.m_height > 0;
-            if (!hasBitmap || !reserve(atlas, metrics.m_width, metrics.m_height, region) ||
-                !rasterize(atlas, codepoint, metrics, region))
+            AsciiTable<AtlasRegion> &table = atlas.m_asciiRegions;
+            if (!table.m_known[codepoint])
             {
-                region = {};
+                table.m_entries[codepoint] = place(atlas, codepoint, metrics);
+                table.m_known[codepoint] = true;
             }
-            found = atlas.m_regions.emplace(codepoint, region).first;
+            region = &table.m_entries[codepoint];
         }
-        return found->second.m_width > 0 ? &found->second : nullptr;
+        else
+        {
+            auto found = atlas.m_regions.find(codepoint);
+            if (found == atlas.m_regions.end())
+            {
+                found = atlas.m_regions.emplace(codepoint, place(atlas, codepoint, metrics)).first;
+            }
+            region = &found->second;
+        }
+        return region->m_width > 0 ? region : nullptr;
     }
 
     int rasterSizeOn(const LoadedFont &font, int rendererId)
