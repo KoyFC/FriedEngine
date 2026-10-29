@@ -34,9 +34,12 @@ FriedSoftwareFrame fried_software_frame_open(int windowId)
 {
     if (!s_screen)
     {
+        // The console's font and map are still in the bank, and would show as
+        // noise until the first frame is presented.
         videoSetModeSub(MODE_5_2D);
         vramSetBankC(VRAM_C_SUB_BG);
         setBackdropColorSub(0);
+        dmaFillWords(0, BG_BMP_RAM_SUB(0), s_width * s_height * 2);
         int background = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
         s_screen = bgGetGfxPtr(background);
     }
