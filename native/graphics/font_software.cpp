@@ -80,7 +80,8 @@ namespace
     {
         int m_rendererId;
         int m_textureId;
-        int m_side;
+        int m_width;
+        int m_height;
         int m_cursorX;
         int m_cursorY;
         int m_rowHeight;
@@ -148,7 +149,8 @@ namespace
     constexpr int s_glyphSpacing = 1;
     constexpr int s_minAtlasSide = 64;
     constexpr int s_maxAtlasSide = 512;
-    constexpr int s_squareGlyphsPerAtlas = 128;
+    // Room left below printable ASCII for the characters rasterized later.
+    constexpr int s_spareAtlasRowsDivisor = 3;
 
     uint32_t nextCodepoint(const char *&cursor)
     {
@@ -303,25 +305,72 @@ namespace
         return maxX - minX;
     }
 
-    int atlasSideFor(int lineHeight)
+    // How tall printable ASCII packs at a width, or -1 when a glyph is wider.
+    int asciiHeightAt(GlyphSource &source, int width)
     {
-        int side = s_minAtlasSide;
-        while (side < s_maxAtlasSide && side * side < lineHeight * lineHeight * s_squareGlyphsPerAtlas)
+        int cursorX = 0, cursorY = 0, rowHeight = 0;
+        for (uint32_t codepoint = s_firstPreloadedCharacter; codepoint <= s_lastPreloadedCharacter; ++codepoint)
         {
-            side *= 2;
+            const GlyphMetrics &metrics = metricsOf(source, codepoint);
+            if (metrics.m_width <= 0 || metrics.m_height <= 0)
+            {
+                continue;
+            }
+            if (metrics.m_width > width)
+            {
+                return -1;
+            }
+            if (cursorX + metrics.m_width > width)
+            {
+                cursorX = 0;
+                cursorY += rowHeight + s_glyphSpacing;
+                rowHeight = 0;
+            }
+            cursorX += metrics.m_width + s_glyphSpacing;
+            rowHeight = std::max(rowHeight, metrics.m_height);
         }
-        return side;
+        return cursorY + rowHeight;
+    }
+
+    // The smallest power of two each way, and the squarest of those, that
+    // printable ASCII fills to all but a third of its height, packed as
+    // reserve() packs it. The DS draws its atlases from 256 KB of VRAM, all of
+    // which a square sized from the line height alone took for one 18 pixel font.
+    void atlasSizeFor(GlyphSource &source, int &atlasWidth, int &atlasHeight)
+    {
+        atlasWidth = s_maxAtlasSide;
+        atlasHeight = s_maxAtlasSide;
+        for (int width = s_minAtlasSide; width <= s_maxAtlasSide; width *= 2)
+        {
+            int asciiHeight = asciiHeightAt(source, width);
+            if (asciiHeight < 0)
+            {
+                continue;
+            }
+            int height = s_minAtlasSide;
+            while (height < asciiHeight + asciiHeight / s_spareAtlasRowsDivisor)
+            {
+                height *= 2;
+            }
+            bool smaller = width * height < atlasWidth * atlasHeight;
+            bool squarer = width * height == atlasWidth * atlasHeight && std::max(width, height) < std::max(atlasWidth, atlasHeight);
+            if (height <= s_maxAtlasSide && (smaller || squarer))
+            {
+                atlasWidth = width;
+                atlasHeight = height;
+            }
+        }
     }
 
     bool reserve(GlyphAtlas &atlas, int width, int height, AtlasRegion &region)
     {
-        if (atlas.m_cursorX + width > atlas.m_side)
+        if (atlas.m_cursorX + width > atlas.m_width)
         {
             atlas.m_cursorX = 0;
             atlas.m_cursorY += atlas.m_rowHeight + s_glyphSpacing;
             atlas.m_rowHeight = 0;
         }
-        if (width > atlas.m_side || atlas.m_cursorY + height > atlas.m_side)
+        if (width > atlas.m_width || atlas.m_cursorY + height > atlas.m_height)
         {
             return false;
         }
@@ -431,13 +480,14 @@ namespace
         }
 
         GlyphSource rasterSource = sourceAtSize(font, rasterSize);
-        int side = atlasSideFor(rasterSource.m_lineHeight);
-        int textureId = fried_texture_create_blank(rendererId, side, side);
+        int width = 0, height = 0;
+        atlasSizeFor(rasterSource, width, height);
+        int textureId = fried_texture_create_blank(rendererId, width, height);
         if (textureId < 0)
         {
             return nullptr;
         }
-        font.m_atlases.push_back({rendererId, textureId, side, 0, 0, 0, rasterSize, rasterSource, {}});
+        font.m_atlases.push_back({rendererId, textureId, width, height, 0, 0, 0, rasterSize, rasterSource, {}});
         GlyphAtlas &atlas = font.m_atlases.back();
         for (uint32_t codepoint = s_firstPreloadedCharacter; codepoint <= s_lastPreloadedCharacter; ++codepoint)
         {
