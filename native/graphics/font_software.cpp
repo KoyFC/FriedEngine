@@ -2,10 +2,9 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/pixel_font.h"
 #include "graphics/renderer.h"
 #include "graphics/texture.h"
-
-#include <gint/display.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -20,8 +19,8 @@
 // TrueType fonts are rasterized with stb_truetype, laid out and drawn the way
 // font.cpp does with SDL_ttf. stb_truetype reads a font in place, so the whole
 // file has to fit in memory, which a large one does not on the calculator; it
-// then falls back to gint's own pixel font, scaled to a whole multiple of its
-// height near the size asked for.
+// then falls back to the platform's own pixel font (graphics/pixel_font.h),
+// scaled to a whole multiple of its height near the size asked for.
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "third_party/stb_truetype.h"
 
@@ -37,14 +36,14 @@ namespace
         int m_advance;
     };
 
-    // One size of one font: a TrueType face at a pixel size, or gint's font at
-    // a whole scale. Both report the size as m_unit, which is what layout and
+    // One size of one font: a TrueType face at a pixel size, or a pixel font
+    // at a whole scale. Both report the size as m_unit, which is what layout and
     // rasterization sizes are compared by.
     struct GlyphSource
     {
         const stbtt_fontinfo *m_trueType;
         float m_trueTypeScale;
-        const font_t *m_bitmap;
+        const FriedPixelFont *m_bitmap;
         int m_bitmapScale;
         float m_unit;
         int m_ascent;
@@ -146,18 +145,11 @@ namespace
         return {&info, scale, nullptr, 0, (float)size, ascentPixels, ascentPixels - descentPixels, {}};
     }
 
-    // gint's font is drawn at whole scales only, so it stays sharp.
-    GlyphSource bitmapSource(int size)
+    // A pixel font is drawn at whole scales only, so it stays sharp.
+    GlyphSource bitmapSource(const FriedPixelFont *font, int size)
     {
-        const font_t *font = dfont_default();
-        int scale = std::max(1, (int)std::lround((float)size / font->line_height));
-        return {nullptr, 0.0f, font, scale, (float)scale, 0, font->line_height * scale, {}};
-    }
-
-    int bitmapGlyphOf(const font_t *font, uint32_t codepoint)
-    {
-        int glyph = dfont_glyph_index(font, codepoint);
-        return glyph >= 0 ? glyph : dfont_glyph_index(font, '?');
+        int scale = std::max(1, (int)std::lround((float)size / font->m_lineHeight));
+        return {nullptr, 0.0f, font, scale, (float)scale, 0, font->m_lineHeight * scale, {}};
     }
 
     const GlyphMetrics &metricsOf(GlyphSource &source, uint32_t codepoint)
@@ -180,13 +172,13 @@ namespace
         }
         else
         {
-            const font_t *font = source.m_bitmap;
-            int glyph = bitmapGlyphOf(font, codepoint);
+            const FriedPixelFont *font = source.m_bitmap;
+            int glyph = fried_pixel_font_find_glyph(font, codepoint);
             if (glyph >= 0)
             {
-                int width = font->prop ? font->glyph_width[glyph] : font->width;
+                int width = fried_pixel_font_get_glyph_width(font, glyph);
                 int scale = source.m_bitmapScale;
-                metrics = {0, 0, width * scale, font->data_height * scale, (width + font->char_spacing) * scale};
+                metrics = {0, 0, width * scale, font->m_dataHeight * scale, (width + font->m_charSpacing) * scale};
             }
         }
         return source.m_metrics.emplace(codepoint, metrics).first->second;
@@ -265,22 +257,16 @@ namespace
         return true;
     }
 
-    // gint's glyphs are rows of bits run together, the first pixel in the
-    // highest bit, as its own text renderer reads them.
     void rasterizeBitmap(const GlyphSource &source, uint32_t codepoint, const GlyphMetrics &metrics, uint8_t *coverage)
     {
-        const font_t *font = source.m_bitmap;
-        int glyph = bitmapGlyphOf(font, codepoint);
-        const uint32_t *data = font->data + dfont_glyph_offset(font, glyph);
-        int dataWidth = font->prop ? font->glyph_width[glyph] : font->width;
+        const FriedPixelFont *font = source.m_bitmap;
+        int glyph = fried_pixel_font_find_glyph(font, codepoint);
         int scale = source.m_bitmapScale;
         for (int y = 0; y < metrics.m_height; ++y)
         {
             for (int x = 0; x < metrics.m_width; ++x)
             {
-                int bit = (y / scale) * dataWidth + x / scale;
-                bool set = (data[bit >> 5] << (bit & 31)) >> 31;
-                coverage[y * metrics.m_width + x] = set ? 255 : 0;
+                coverage[y * metrics.m_width + x] = fried_pixel_font_is_set(font, glyph, x / scale, y / scale) ? 255 : 0;
             }
         }
     }
@@ -326,7 +312,7 @@ namespace
 
     GlyphSource sourceAtSize(const LoadedFont &font, int size)
     {
-        return font.m_layoutSource.m_trueType ? trueTypeSource(font.m_trueType, size) : bitmapSource(size);
+        return font.m_layoutSource.m_trueType ? trueTypeSource(font.m_trueType, size) : bitmapSource(font.m_layoutSource.m_bitmap, size);
     }
 
     // ASCII goes in up front so a changing number never rasterizes mid-game.
@@ -364,8 +350,8 @@ namespace
         return &atlas;
     }
 
-    // One read for the whole file: each call into the filesystem is a world
-    // switch to the OS and back. A file too big to hold is not an error, only
+    // One read for the whole file: on the calculator each call into the
+    // filesystem is a world switch to the OS and back. A file too big to hold is not an error, only
     // a reason to fall back, so it reports that apart from failing to read.
     enum class ReadResult
     {
@@ -445,7 +431,14 @@ int fried_font_load(const char *path, int size)
     }
     else
     {
-        font->m_layoutSource = bitmapSource(size);
+        const FriedPixelFont *pixelFont = fried_pixel_font_get_default();
+        if (!pixelFont)
+        {
+            delete font;
+            fried_set_last_error("Not enough memory to read the font");
+            return -1;
+        }
+        font->m_layoutSource = bitmapSource(pixelFont, size);
     }
     font->m_lineHeight = font->m_layoutSource.m_lineHeight;
     return s_fonts.store(font);

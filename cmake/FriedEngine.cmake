@@ -78,8 +78,8 @@ else()
 endif()
 
 # The calculator has no SDL2 under any of it, so every file that calls SDL has
-# a gint sibling there, apart from the renderer and textures, which are drawn by
-# the CPU into a frame software_frame_gint.cpp hands them.
+# a gint sibling there, apart from the renderer, the textures and the fonts,
+# which are drawn by the CPU into a frame software_frame_gint.cpp hands them.
 if(FRIED_CG50)
     set(_fried_native_sources
         native/platform/application_gint.cpp
@@ -93,7 +93,8 @@ if(FRIED_CG50)
         native/graphics/software_frame_gint.cpp
         native/graphics/renderer_software.cpp
         native/graphics/texture_software.cpp
-        native/graphics/font_gint.cpp
+        native/graphics/font_software.cpp
+        native/graphics/pixel_font_gint.cpp
         native/audio/sound_gint.cpp
         native/audio/music_gint.cpp
     )
