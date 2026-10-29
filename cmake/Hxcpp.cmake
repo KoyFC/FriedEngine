@@ -123,7 +123,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50 OR FRIED_WEB)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS OR FRIED_CG50 OR FRIED_WEB)
         list(REMOVE_ITEM _std_source_names ${_hxcpp_std_sources_without_console})
     endif()
 
@@ -155,7 +155,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_definitions(${target_name} PRIVATE HXCPP_M64)
     endif()
 
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS OR FRIED_CG50)
         # hxcpp has no target of its own for any of the consoles or the
         # calculator: HX_LINUX and NEKO_LINUX pick its generic POSIX paths, and
         # none of them loads a shared library.
@@ -172,10 +172,14 @@ function(fried_add_hxcpp_executable target_name generated_dir)
             target_sources(${target_name} PRIVATE "${_hxcpp_newlib_dir}/posix_extras.cpp")
         endif()
 
-        if(NINTENDO_3DS)
+        if(NINTENDO_3DS OR NINTENDO_DS)
             target_compile_definitions(${target_name} PRIVATE
                 "HX_TLS_H_OVERRIDE=\"${_hxcpp_libctru_tls_header}\""
             )
+        endif()
+
+        if(NINTENDO_DS)
+            target_sources(${target_name} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/nds/atomics.cpp")
         endif()
     elseif(FRIED_WEB)
         # hxcpp's own emscripten toolchain passes -DEMSCRIPTEN; emcc only defines __EMSCRIPTEN__.
@@ -236,7 +240,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
     )
 
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_CG50)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS OR FRIED_CG50)
         # Neither newlib's struct tm nor fxlibc's has tm_gmtoff. __SNC__ is one
         # of the defines Date.cpp keys its mktime() fallback off, and uses for
         # nothing else.
@@ -246,7 +250,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     endif()
 
     # gint has no threads to link at all; cmake/gint/pthread.h stands in.
-    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
+    if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS)
         target_link_libraries(${target_name} PRIVATE pthread)
     elseif(NOT FRIED_CG50 AND NOT FRIED_WEB)
         find_package(Threads REQUIRED)
@@ -263,7 +267,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     # A .3dsx is relocated by its loader from -mword-relocations, not as a PIE,
     # and a .g3a is linked to the fixed address the calculator maps it at.
-    if(NOT VITA AND NOT NINTENDO_3DS AND NOT FRIED_CG50 AND NOT FRIED_WEB)
+    if(NOT VITA AND NOT NINTENDO_3DS AND NOT NINTENDO_DS AND NOT FRIED_CG50 AND NOT FRIED_WEB)
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     endif()
 endfunction()
