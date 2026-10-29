@@ -41,14 +41,7 @@ Yes, throughout. `Transform`, `Camera`, `DrawQueue`, `Collider`, `Physics`, `Inp
 
 ## Phase 1: the runtime on its own
 
-`poc/nds/hello/` is a Haxe program with no engine, built through the engine's own `cmake/Hxcpp.cmake` and devkitPro's `NDS.cmake`:
-
-```
-cd poc/nds/hello
-haxe build.hxml
-cmake -S . -B build/nds -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/NDS.cmake
-cmake --build build/nds
-```
+Phase 1 used a Haxe program with no engine, built through the engine's own `cmake/Hxcpp.cmake` and devkitPro's `NDS.cmake`. It was removed once the engine ran on the DS, and is in commit `e126ff3` under `poc/nds/hello/`.
 
 It prints to the bottom screen through libnds's console and runs a few string, array, object, map, integer, float and GC tests, timed with `cpuGetTiming()`. Memory comes from newlib's `mallinfo()`, against the heap ceiling between `fake_heap_start` and `fake_heap_end`, and from hxcpp's `Gc.memInfo()`.
 
