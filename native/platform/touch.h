@@ -24,3 +24,11 @@ struct FriedTouchPoint
 };
 
 bool fried_touch_report(const SDL_TouchFingerEvent &event, FriedTouchPoint &point);
+
+#ifdef __NDS__
+#include "platform/events.h"
+
+// Reads the touchscreen, once a frame, and hands report a touch event of
+// events.h for each change: down, moved or up.
+void fried_touch_poll(void (*report)(int type, int windowId, int x, int y));
+#endif
