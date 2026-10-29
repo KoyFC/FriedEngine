@@ -21,22 +21,6 @@ bool fried_texture_write(int textureId, int x, int y, struct SDL_Surface *surfac
 #include <citro2d.h>
 
 const C2D_Image *fried_texture_get_citro(int textureId);
-#elif defined(FRIED_SOFTWARE_RENDERER)
-#include <cstdint>
-
-// The screen's own pixel format, with an alpha channel only when the image
-// has a pixel that is not fully opaque. A texture made blank has no colours at
-// all, only alpha, and draws white: what a glyph atlas needs, at a third of
-// the memory.
-struct FriedSoftwareTexture
-{
-    int m_width;
-    int m_height;
-    uint16_t *m_pixels;
-    uint8_t *m_alpha;
-};
-
-const FriedSoftwareTexture *fried_texture_get_software(int textureId);
 #elif defined(__NDS__)
 // What the renderer needs to draw a texture: its videoGL name, its size in the
 // source's pixels, and the power of two sizes it is stored at. A translucent
@@ -57,10 +41,28 @@ const FriedNdsTexture *fried_texture_get_nds(int textureId);
 // Copies what fried_texture_write_alpha() changed into VRAM, waiting for the
 // vertical blank first when there is any.
 void fried_texture_write_pending();
-#else
+#elif !defined(FRIED_SOFTWARE_RENDERER)
 struct SDL_Texture;
 
 struct SDL_Texture *fried_texture_get_sdl(int textureId);
+#endif
+
+#ifdef FRIED_SOFTWARE_RENDERER
+#include <cstdint>
+
+// The screen's own pixel format, with an alpha channel only when the image
+// has a pixel that is not fully opaque. A texture made blank has no colours at
+// all, only alpha, and draws white: what a glyph atlas needs, at a third of
+// the memory.
+struct FriedSoftwareTexture
+{
+    int m_width;
+    int m_height;
+    uint16_t *m_pixels;
+    uint8_t *m_alpha;
+};
+
+const FriedSoftwareTexture *fried_texture_get_software(int textureId);
 #endif
 
 #ifdef FRIED_SOFTWARE_FONT

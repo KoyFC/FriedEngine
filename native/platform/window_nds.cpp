@@ -1,25 +1,28 @@
 #include "platform/window.h"
 
 #include "last_error.h"
+#include "platform/console_nds.h"
 
 #include <sys/stat.h>
 
 #include <cstdio>
 
-// The window is the top screen: there is one, it is always the whole screen,
-// and it has no title bar to put a title or an icon in.
+// Each screen is a window, the top one opened first: window 0 is the top
+// screen and window 1 the bottom one, which the text console gives up while
+// it is open. A window is always the whole screen, and has no title bar to
+// put a title or an icon in.
 
 namespace
 {
     constexpr int s_screenWidth = 256;
     constexpr int s_screenHeight = 192;
-    constexpr int s_windowId = 0;
+    constexpr int s_bottomWindowId = 1;
 
-    bool s_open = false;
+    bool s_open[FRIED_MAX_WINDOWS] = {};
 
     bool isOpen(int windowId)
     {
-        return s_open && windowId == s_windowId;
+        return windowId >= 0 && windowId < FRIED_MAX_WINDOWS && s_open[windowId];
     }
 }
 
@@ -30,7 +33,12 @@ int fried_window_get_max_count()
 
 int fried_window_create(const char *, int, int)
 {
-    if (s_open)
+    int windowId = 0;
+    while (windowId < FRIED_MAX_WINDOWS && s_open[windowId])
+    {
+        ++windowId;
+    }
+    if (windowId == FRIED_MAX_WINDOWS)
     {
         char message[128];
         std::snprintf(
@@ -40,15 +48,24 @@ int fried_window_create(const char *, int, int)
         fried_set_last_error(message);
         return -1;
     }
-    s_open = true;
-    return s_windowId;
+    s_open[windowId] = true;
+    if (windowId == s_bottomWindowId)
+    {
+        fried_console_release_screen();
+    }
+    return windowId;
 }
 
 void fried_window_destroy(int windowId)
 {
-    if (isOpen(windowId))
+    if (!isOpen(windowId))
     {
-        s_open = false;
+        return;
+    }
+    s_open[windowId] = false;
+    if (windowId == s_bottomWindowId)
+    {
+        fried_console_reclaim_screen();
     }
 }
 

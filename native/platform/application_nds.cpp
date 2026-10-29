@@ -1,16 +1,17 @@
 #include "platform/application.h"
 
 #include "last_error.h"
+#include "platform/console_nds.h"
 
 #include <nds.h>
 
 #include <cstdio>
 #include <cstdlib>
 
-// libnds brings the console up before main(). The bottom screen is the text
-// console that standard output prints to, so the log and a crash report are
-// read there. There is no audio output to open: the silent device is the only
-// one, and the engine opens it when the real one fails.
+// The bottom screen is the text console that standard output prints to, so
+// the log and a crash report are read there, unless a game opens a window on
+// it (platform/console_nds.h). There is no audio output to open: the silent
+// device is the only one, and the engine opens it when the real one fails.
 
 namespace
 {
@@ -18,6 +19,7 @@ namespace
     // reason a game stopped with it, such as an error nothing caught.
     void waitForButtonBeforePowerOff()
     {
+        fried_console_reclaim_screen();
         std::printf("\nPress any button to turn the DS off\n");
         do
         {
@@ -30,7 +32,7 @@ namespace
 int fried_application_init()
 {
     defaultExceptionHandler();
-    consoleDemoInit();
+    fried_console_start();
     std::atexit(waitForButtonBeforePowerOff);
     return 0;
 }

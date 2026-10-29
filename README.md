@@ -6,7 +6,7 @@ A game engine written primarily in [Haxe](https://haxe.org/), compiled to native
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and the web browser are implemented. The Nintendo DS runs the sandbox, with its buttons as a gamepad and no touchscreen or audio yet. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and the web browser are implemented. The Nintendo DS runs the sandbox on both screens, with its buttons as a gamepad and no touchscreen or audio yet. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -171,7 +171,7 @@ cmake -S . -B build/nds -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/NDS.cmake -DCMAK
 cmake --build build/nds
 ```
 
-That produces `build/nds/sandbox/fried_sandbox.nds`, with its assets inside it in NitroFS, which runs from a flashcart or in melonDS. The scene draws on the top screen at 256x192, and the bottom screen shows the log, where an error that stops the program stays until a button is pressed. User data goes to `/data/<name>/` on a FAT volume, the flashcart's or the DSi's SD card, and the program stops without one: in melonDS, enable DLDI under Config, Emu settings, DLDI, with an SD card image, such as one made by `mkfs.fat -C -F 32 dldi.img 131072`. The top screen is drawn by the DS's 3D engine, and the sandbox runs at 60 frames a second in melonDS.
+That produces `build/nds/sandbox/fried_sandbox.nds`, with its assets inside it in NitroFS, which runs from a flashcart or in melonDS. The scene draws on the top screen at 256x192 and the debug overlay moves to the bottom one, as on the 3DS; once the program ends, the bottom screen shows the end of the log, where an error that stopped it stays until a button is pressed. User data goes to `/data/<name>/` on a FAT volume, the flashcart's or the DSi's SD card, and the program stops without one: in melonDS, enable DLDI under Config, Emu settings, DLDI, with an SD card image, such as one made by `mkfs.fat -C -F 32 dldi.img 131072`. The top screen is drawn by the DS's 3D engine and the bottom one, when the game opens a second window there, on the CPU: the sandbox ran at 60 frames a second in melonDS with one window, and runs at 20 with its debug overlay on the second.
 
 ### Casio fx-CG50
 

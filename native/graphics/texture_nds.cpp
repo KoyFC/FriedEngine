@@ -3,6 +3,7 @@
 #include "handle_pool.h"
 #include "last_error.h"
 #include "graphics/renderer.h"
+#include "graphics/software_backend_nds.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -18,10 +19,11 @@
 // Textures live in VRAM banks A and B, which the 3D engine reads them from,
 // at sizes that are powers of two from 8 to 1024 texels a side. An image is
 // put in the top left corner of the smallest one that holds it, and one
-// larger than 1024 is halved until it fits.
+// larger than 1024 is halved until it fits. The bottom screen's textures are
+// the software renderer's, which this hands on, with public ids from
+// FRIED_SOFTWARE_ID_BASE on.
 
-// PNGs are decoded with stb_image, as on the calculator.
-#define STB_IMAGE_IMPLEMENTATION
+// PNGs are decoded with stb_image, which texture_software.cpp builds.
 #define STBI_ONLY_PNG
 #define STBI_NO_STDIO
 #define STBI_NO_LINEAR
@@ -44,6 +46,21 @@ namespace
     };
 
     HandlePool<Texture> s_textures;
+
+    bool isSoftware(int id)
+    {
+        return id >= FRIED_SOFTWARE_ID_BASE;
+    }
+
+    int softwareId(int id)
+    {
+        return id - FRIED_SOFTWARE_ID_BASE;
+    }
+
+    int publicSoftwareId(int id)
+    {
+        return id < 0 ? id : id + FRIED_SOFTWARE_ID_BASE;
+    }
 
     // Coverage in the top five bits, over a palette that is white throughout.
     const uint16_t s_whitePalette[8] = {0x7fff, 0x7fff, 0x7fff, 0x7fff, 0x7fff, 0x7fff, 0x7fff, 0x7fff};
@@ -162,6 +179,10 @@ namespace
 
 const FriedNdsTexture *fried_texture_get_nds(int textureId)
 {
+    if (isSoftware(textureId))
+    {
+        return nullptr;
+    }
     Texture *texture = s_textures.get(textureId);
     return texture ? &texture->m_public : nullptr;
 }
@@ -198,6 +219,10 @@ void fried_texture_write_pending()
 
 int fried_texture_create_blank(int rendererId, int width, int height)
 {
+    if (isSoftware(rendererId))
+    {
+        return publicSoftwareId(fried_software_texture_create_blank(softwareId(rendererId), width, height));
+    }
     if (fried_renderer_get_width(rendererId) <= 0)
     {
         fried_set_last_error("No such renderer");
@@ -226,6 +251,10 @@ int fried_texture_create_blank(int rendererId, int width, int height)
 
 bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha, int width, int height)
 {
+    if (isSoftware(textureId))
+    {
+        return fried_software_texture_write_alpha(softwareId(textureId), x, y, alpha, width, height);
+    }
     Texture *texture = s_textures.get(textureId);
     if (!texture || texture->m_texels.empty() || x < 0 || y < 0 || x + width > texture->m_public.m_width || y + height > texture->m_public.m_height)
     {
@@ -258,6 +287,10 @@ bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha
 
 int fried_texture_load(int rendererId, const char *path)
 {
+    if (isSoftware(rendererId))
+    {
+        return publicSoftwareId(fried_software_texture_load(softwareId(rendererId), path));
+    }
     if (fried_renderer_get_width(rendererId) <= 0 || !path)
     {
         fried_set_last_error("No such renderer, or no path given");
@@ -314,23 +347,40 @@ int fried_texture_load(int rendererId, const char *path)
 
 void fried_texture_destroy(int textureId)
 {
+    if (isSoftware(textureId))
+    {
+        fried_software_texture_destroy(softwareId(textureId));
+        return;
+    }
     destroy(s_textures.release(textureId));
 }
 
 int fried_texture_get_width(int textureId)
 {
+    if (isSoftware(textureId))
+    {
+        return fried_software_texture_get_width(softwareId(textureId));
+    }
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     return texture ? texture->m_width : 0;
 }
 
 int fried_texture_get_height(int textureId)
 {
+    if (isSoftware(textureId))
+    {
+        return fried_software_texture_get_height(softwareId(textureId));
+    }
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     return texture ? texture->m_height : 0;
 }
 
 int fried_texture_get_downscale(int textureId)
 {
+    if (isSoftware(textureId))
+    {
+        return fried_software_texture_get_downscale(softwareId(textureId));
+    }
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     return texture ? texture->m_downscale : 0;
 }

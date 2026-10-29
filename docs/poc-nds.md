@@ -152,4 +152,10 @@ Left for later, by decision. A font converted at build time, into its atlas, its
 
 Images could be converted the same way, into the 3D engine's texel format, which would save decoding PNGs at load; with the sandbox's one 16x16 sprite there is nothing to measure yet.
 
+### The bottom screen
+
+The 3D engine draws one screen at a time, so when a game opens a second window, the bottom screen's, it is drawn by the software renderer the calculator uses, behind `renderer_nds.cpp` (`ARCHITECTURE.md` describes how both are linked in). The sandbox puts its debug overlay there, translucent panels and twenty lines of text, which is what cost the most on the CPU, and it runs at 20 frames a second in melonDS with it, against 60 with one window.
+
+Left for later: the 3D engine can draw both screens by turning to the other one every frame, with the display capture keeping each one's last image on the screen the 2D engine shows it on, which is libnds's `3D_Both_Screens` example. Both screens would then be drawn the same way, share their textures and show at 30 frames a second each, at the cost of VRAM banks C and D. It could sit next to the software renderer as a choice the project makes; it was left out of this step because doing both at once was about half as much work again as the software one alone.
+
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.

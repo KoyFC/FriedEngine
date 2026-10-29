@@ -4,6 +4,7 @@
 #include "last_error.h"
 #include "graphics/display.h"
 #include "graphics/font.h"
+#include "graphics/software_backend_nds.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
@@ -13,7 +14,10 @@
 #include <cmath>
 
 // The top screen is drawn by the DS's 3D engine through videoGL, as quads and
-// triangles in screen pixels. The projection is orthographic over the screen,
+// triangles in screen pixels. The bottom one, when it is a window, is drawn by
+// the software renderer the calculator uses, whose calls this hands on with
+// its own ids: a public id from FRIED_SOFTWARE_ID_BASE on is one of its
+// renderers or textures. The projection is orthographic over the screen,
 // with one unit of a vertex a pixel.
 //
 // Draw order: every polygon is a step nearer than the one before, so a later
@@ -59,6 +63,25 @@ namespace
     constexpr float s_degreesToRadians = 3.14159265358979f / 180.0f;
 
     bool s_started = false;
+
+    constexpr int s_bottomWindowId = 1;
+
+    bool isSoftware(int id)
+    {
+        return id >= FRIED_SOFTWARE_ID_BASE;
+    }
+
+    int softwareId(int id)
+    {
+        return id - FRIED_SOFTWARE_ID_BASE;
+    }
+
+    // A texture of one side drawn by the other is not found there, so it is
+    // left out as a texture that is not loaded would be.
+    int softwareTextureId(int id)
+    {
+        return isSoftware(id) ? softwareId(id) : -1;
+    }
 
     void startEngine()
     {
@@ -262,6 +285,11 @@ namespace
 
 int fried_renderer_create(int windowId, bool)
 {
+    if (windowId == s_bottomWindowId)
+    {
+        int id = fried_software_renderer_create(windowId, true);
+        return id < 0 ? id : id + FRIED_SOFTWARE_ID_BASE;
+    }
     if (fried_window_get_width(windowId) <= 0)
     {
         fried_set_last_error("No such window");
@@ -277,6 +305,11 @@ int fried_renderer_create(int windowId, bool)
 
 void fried_renderer_destroy(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_destroy(softwareId(rendererId));
+        return;
+    }
     if (!s_renderers.get(rendererId))
     {
         return;
@@ -289,23 +322,40 @@ void fried_renderer_destroy(int rendererId)
 // takes no new polygons until then.
 bool fried_renderer_has_vsync(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        return fried_software_renderer_has_vsync(softwareId(rendererId));
+    }
     return s_renderers.get(rendererId) != nullptr;
 }
 
 int fried_renderer_get_width(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        return fried_software_renderer_get_width(softwareId(rendererId));
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     return renderer ? renderer->m_layout.m_width : 0;
 }
 
 int fried_renderer_get_height(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        return fried_software_renderer_get_height(softwareId(rendererId));
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     return renderer ? renderer->m_layout.m_height : 0;
 }
 
 void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_set_draw_color(softwareId(rendererId), r, g, b, a);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
@@ -320,6 +370,11 @@ void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
 // The clear plane is opaque, and the letterbox bars go over it at present.
 void fried_renderer_clear(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_clear(softwareId(rendererId));
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
@@ -330,6 +385,11 @@ void fried_renderer_clear(int rendererId)
 
 void fried_renderer_present(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_present(softwareId(rendererId));
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
@@ -343,6 +403,11 @@ void fried_renderer_present(int rendererId)
 
 void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_draw_texture(softwareId(rendererId), softwareTextureId(textureId), x, y, width, height);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     if (!renderer || !texture || !beginPolygons(GL_QUADS, 255, texture))
@@ -358,6 +423,11 @@ void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y
 // Turned about the quad's centre, as SDL does with no centre given.
 void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_draw_texture_ex(softwareId(rendererId), softwareTextureId(textureId), srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, flipMode);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     if (!renderer || !texture || !beginPolygons(GL_QUADS, 255, texture))
@@ -373,6 +443,11 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
 // The vertex colour multiplies the texture's, which for a blank one is white.
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_draw_tinted(softwareId(rendererId), softwareTextureId(textureId), quads, count, r, g, b, a);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     if (!renderer || !texture || count <= 0 || !beginPolygons(GL_QUADS, a, texture))
@@ -391,6 +466,10 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
 
 bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y, const FriedGlyphBlit *glyphs, int count, int r, int g, int b, int a)
 {
+    if (isSoftware(rendererId))
+    {
+        return fried_software_renderer_draw_glyphs(softwareId(rendererId), softwareTextureId(textureId), x, y, glyphs, count, r, g, b, a);
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
@@ -435,6 +514,11 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
 
 void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_fill_rect(softwareId(rendererId), x, y, width, height);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (renderer)
     {
@@ -445,6 +529,11 @@ void fried_renderer_fill_rect(int rendererId, float x, float y, float width, flo
 // One pixel wide and inside the rectangle, as SDL_RenderDrawRect() draws it.
 void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_draw_rect(softwareId(rendererId), x, y, width, height);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer || width <= 0.0f || height <= 0.0f)
     {
@@ -458,6 +547,11 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
 
 void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
 {
+    if (isSoftware(rendererId))
+    {
+        fried_software_renderer_fill_triangles(softwareId(rendererId), points, argbColors, triangleCount);
+        return;
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
@@ -485,7 +579,11 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
 
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
 {
-    (void)windowId;
+    if (windowId == s_bottomWindowId)
+    {
+        fried_software_renderer_window_to_logical(windowId, x, y, logicalX, logicalY);
+        return;
+    }
     FriedDisplayLayout layout = fried_display_layout(s_screenWidth, s_screenHeight);
     logicalX = (int)std::floor((x - layout.m_viewportX) / layout.m_scaleX);
     logicalY = (int)std::floor((y - layout.m_viewportY) / layout.m_scaleY);
@@ -493,7 +591,11 @@ void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX,
 
 void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logicalX, int &logicalY)
 {
-    (void)windowId;
+    if (windowId == s_bottomWindowId)
+    {
+        fried_software_renderer_touch_to_logical(windowId, x, y, logicalX, logicalY);
+        return;
+    }
     FriedDisplayLayout layout = fried_display_layout(s_screenWidth, s_screenHeight);
     logicalX = std::clamp((int)(x * layout.m_width), 0, std::max(0, layout.m_width - 1));
     logicalY = std::clamp((int)(y * layout.m_height), 0, std::max(0, layout.m_height - 1));
@@ -501,10 +603,20 @@ void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logica
 
 float fried_renderer_get_pixel_scale(int rendererId)
 {
+    if (isSoftware(rendererId))
+    {
+        return fried_software_renderer_get_pixel_scale(softwareId(rendererId));
+    }
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
         return 1.0f;
     }
     return std::min(renderer->m_layout.m_scaleX, renderer->m_layout.m_scaleY);
+}
+
+// The software renderer releases its fonts when it is destroyed, by its own id.
+void fried_software_font_release_renderer(int rendererId)
+{
+    fried_font_release_renderer(rendererId + FRIED_SOFTWARE_ID_BASE);
 }

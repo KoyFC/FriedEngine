@@ -2,8 +2,9 @@
 
 // How many windows the platform can show at once. A console's screens are
 // fixed hardware, so this is a property of the platform and not a choice the
-// game makes. On the 3DS each screen is a window, the top one opened first.
-#ifdef __3DS__
+// game makes. On the 3DS and the DS each screen is a window, the top one
+// opened first.
+#if defined(__3DS__) || defined(__NDS__)
 #define FRIED_MAX_WINDOWS 2
 #else
 #define FRIED_MAX_WINDOWS 1

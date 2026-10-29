@@ -102,11 +102,14 @@ if(FRIED_CG50)
         native/audio/music_gint.cpp
     )
 elseif(NINTENDO_DS)
-    # The DS draws with its 3D engine, rasterizes fonts the way the calculator
-    # does, and shares the calculator's files for the input and the audio it
-    # has nothing of its own for: no keyboard, mouse, touchscreen or sound yet.
+    # The DS draws its top screen with its 3D engine and its bottom one with
+    # the calculator's software renderer, rasterizes fonts the way the
+    # calculator does, and shares the calculator's files for the input and the
+    # audio it has nothing of its own for: no keyboard, mouse, touchscreen or
+    # sound yet.
     set(_fried_native_sources
         native/platform/application_nds.cpp
+        native/platform/console_nds.cpp
         native/platform/events_nds.cpp
         native/platform/filesystem_nds.cpp
         native/platform/gamepad_nds.cpp
@@ -116,6 +119,9 @@ elseif(NINTENDO_DS)
         native/platform/window_nds.cpp
         native/graphics/renderer_nds.cpp
         native/graphics/texture_nds.cpp
+        native/graphics/software_frame_nds.cpp
+        native/graphics/renderer_software.cpp
+        native/graphics/texture_software.cpp
         native/graphics/font_software.cpp
         native/graphics/pixel_font_nds.cpp
         native/audio/sound_gint.cpp
@@ -162,7 +168,15 @@ if(NOT TARGET fried_engine)
     elseif(NINTENDO_DS)
         # NitroFS and FAT, which libnds keeps out of its own library.
         target_link_libraries(fried_engine PUBLIC filesystem fat)
-        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_FONT)
+        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER FRIED_SOFTWARE_FONT)
+        # The software renderer sits behind renderer_nds.cpp here, under names
+        # of its own (graphics/software_names_nds.h).
+        set_source_files_properties(
+            ${FRIED_ENGINE_DIR}/native/graphics/renderer_software.cpp
+            ${FRIED_ENGINE_DIR}/native/graphics/texture_software.cpp
+            TARGET_DIRECTORY fried_engine
+            PROPERTIES COMPILE_OPTIONS "-include;${FRIED_ENGINE_DIR}/native/graphics/software_names_nds.h"
+        )
     elseif(FRIED_WEB)
         target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
     elseif(VITA OR NINTENDO_3DS)
