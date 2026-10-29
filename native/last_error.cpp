@@ -1,6 +1,6 @@
 #include "last_error.h"
 
-#ifndef TARGET_FXCG50
+#if !defined(TARGET_FXCG50) && !defined(__NDS__)
 #include <SDL.h>
 #endif
 
@@ -16,7 +16,7 @@ const char *fried_last_error()
     return s_lastError;
 }
 
-#ifndef TARGET_FXCG50
+#if !defined(TARGET_FXCG50) && !defined(__NDS__)
 void fried_capture_sdl_error()
 {
     fried_set_last_error(SDL_GetError());

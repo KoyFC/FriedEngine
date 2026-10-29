@@ -11,6 +11,7 @@
 // red and blue low, so one multiplication blends all three.
 constexpr uint32_t FRIED_SOFTWARE_LOW_FIELDS = 0xF81F;
 constexpr uint32_t FRIED_SOFTWARE_HIGH_FIELD = 0x07E0;
+constexpr uint16_t FRIED_SOFTWARE_OPAQUE_BIT = 0;
 
 inline uint16_t fried_software_pack(int r, int g, int b)
 {
@@ -30,6 +31,32 @@ inline int fried_software_green(uint16_t pixel)
 inline int fried_software_blue(uint16_t pixel)
 {
     return (pixel << 3) & 0xf8;
+}
+#elif defined(__NDS__)
+// BGR555, which a 16-bit bitmap background only shows where the top bit is
+// set. Spread apart the way RGB565 is, with green high and red and blue low.
+constexpr uint32_t FRIED_SOFTWARE_LOW_FIELDS = 0x7C1F;
+constexpr uint32_t FRIED_SOFTWARE_HIGH_FIELD = 0x03E0;
+constexpr uint16_t FRIED_SOFTWARE_OPAQUE_BIT = 0x8000;
+
+inline uint16_t fried_software_pack(int r, int g, int b)
+{
+    return (uint16_t)(FRIED_SOFTWARE_OPAQUE_BIT | ((b & 0xf8) << 7) | ((g & 0xf8) << 2) | (r >> 3));
+}
+
+inline int fried_software_red(uint16_t pixel)
+{
+    return (pixel << 3) & 0xf8;
+}
+
+inline int fried_software_green(uint16_t pixel)
+{
+    return (pixel >> 2) & 0xf8;
+}
+
+inline int fried_software_blue(uint16_t pixel)
+{
+    return (pixel >> 7) & 0xf8;
 }
 #endif
 

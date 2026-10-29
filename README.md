@@ -1,12 +1,12 @@
 # Fried Engine
 
-A game engine written primarily in [Haxe](https://haxe.org/), compiled to native C++ via [hxcpp](https://github.com/HaxeFoundation/hxcpp), on top of [SDL2](https://www.libsdl.org/) (or [gint](https://git.planet-casio.com/Lephenixnoir/gint) on the Casio fx-CG50), with [CMake](https://cmake.org/) as the common build system across every target platform.
+A game engine written primarily in [Haxe](https://haxe.org/), compiled to native C++ via [hxcpp](https://github.com/HaxeFoundation/hxcpp), on top of [SDL2](https://www.libsdl.org/) (or [gint](https://git.planet-casio.com/Lephenixnoir/gint) on the Casio fx-CG50 and [libnds](https://github.com/devkitPro/libnds) on the Nintendo DS), with [CMake](https://cmake.org/) as the common build system across every target platform.
 
 ```
 Haxe -> hxcpp -> generated C++ -> CMake -> toolchain/compiler -> executable
 ```
 
-PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and the web browser are implemented. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
+PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on Windows, or with MinGW-w64 from Linux), PlayStation Vita, Nintendo Switch, Nintendo 3DS, the Casio fx-CG50 graphing calculator and the web browser are implemented. The Nintendo DS runs the sandbox, with no input or audio yet. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how it is put together and why.
 
 This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](#using-the-engine-in-a-game) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
@@ -74,6 +74,7 @@ Each needs its SDK and SDL2 built for it, and these have only been verified from
 - **PlayStation Vita:** [VitaSDK](https://vitasdk.org/), following its install instructions, with `$VITASDK` set and its `bin/` on `PATH`. Then SDL2 and its companions from its package manager: `vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`. VitaSDK has no native Windows install of its own.
 - **Nintendo Switch:** [devkitPro](https://devkitpro.org/wiki/Getting_Started), with `$DEVKITPRO` set, then `dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`. `switch-pkg-config` is not optional: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
 - **Nintendo 3DS:** the same devkitPro install with `dkp-pacman -S 3ds-dev`, and SDL2 and its companions built from [`packaging/3ds/`](packaging/3ds/README.md), since devkitPro ships no SDL2 for the 3DS.
+- **Nintendo DS:** the same devkitPro install with `dkp-pacman -S nds-dev`. No SDL2 is involved: libnds is the whole platform there.
 - **Casio fx-CG50:** the [fxSDK](https://git.planet-casio.com/Lephenixnoir/fxsdk) with gint, its `sh-elf-gcc` and its libstdc++, and that libstdc++ rebuilt with exceptions by [`packaging/cg50/`](packaging/cg50/README.md), since the fxSDK builds it without them. No SDL2 is involved: gint is the whole platform there.
 
 - **Web:** the [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html), activated in the shell (`source emsdk_env.sh`), and Python 3 to serve the result locally. SDL2 and its companions are Emscripten ports that emcc fetches itself.
@@ -162,6 +163,15 @@ cmake --build build/3ds
 ```
 
 That produces `build/3ds/sandbox/fried_sandbox.3dsx`, which runs from the Homebrew Launcher once copied anywhere under `sdmc:/3ds/`, with its assets inside it as on the Switch. The scene draws on the top screen at 400x240, and the debug overlay moves to the bottom one, which the sandbox opens as a second window wherever `Window.maxCount` allows one. Touching the bottom screen therefore shows up in the overlay and the log rather than in the world, which is on the other screen. Sound needs the console's DSP firmware dumped to `sdmc:/3ds/dspfirm.cdc` (by DSP1 on a console; any file of that name satisfies Azahar), and without it the program runs silent. In Azahar, use its OpenGL renderer: on Vulkan the right half of the top screen flashes black.
+
+### Nintendo DS
+
+```sh
+cmake -S . -B build/nds -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/NDS.cmake -DCMAKE_BUILD_TYPE=MinSizeRel
+cmake --build build/nds
+```
+
+That produces `build/nds/sandbox/fried_sandbox.nds`, with its assets inside it in NitroFS, which runs from a flashcart or in melonDS. The scene draws on the top screen at 256x192, and the bottom screen shows the log, where an error that stops the program stays until a button is pressed. User data goes to `/data/<name>/` on a FAT volume, the flashcart's or the DSi's SD card, and the program stops without one: in melonDS, enable DLDI under Config, Emu settings, DLDI, with an SD card image, such as one made by `mkfs.fat -C -F 32 dldi.img 131072`. Everything is drawn by the CPU, and the sandbox runs at around 12 frames a second in melonDS.
 
 ### Casio fx-CG50
 

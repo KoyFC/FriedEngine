@@ -15,6 +15,11 @@
 		"width": 640
 	},
 	"name": "Fried Sandbox",
+	"nds": {
+		"display": {
+			"mode": "default"
+		}
+	},
 	"organization": "Fried Engine",
 	"switch": {
 		"display": {

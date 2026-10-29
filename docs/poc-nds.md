@@ -110,3 +110,11 @@ A frame at 60 Hz is 16.7 ms. A `Float` multiply-add costs about 3.9 us, eight ti
 The runtime fits and runs: the ARM9 load image is 0.57 MB of the 2.48 MB calico's `ds9.ld` allows, and the heap has 3.4 MB to give, 1.1 MB of which the GC takes before the game allocates anything. Nothing about hxcpp needed a new kind of fix, only the two already used on other ports.
 
 The risk that the next phases have to measure is CPU, not memory: software `double` at roughly 3.9 us per operation, in an engine whose transforms, camera and draw queue are all `Float`. Phase 3 measures it on the real engine path.
+
+## Phase 2: the sandbox on the DS
+
+The proof of concept went on into a port, with the goal of running the sandbox. The drawing the fx-CG50 does on the CPU was first taken out of its gint files into `renderer_software.cpp`, `texture_software.cpp` and `font_software.cpp`, so the DS shares it instead of copying it; `ARCHITECTURE.md` describes how the DS platform sits on top of them.
+
+The sandbox builds with `-DCMAKE_BUILD_TYPE=MinSizeRel` into 1,019,120 bytes of ARM9 `.text`, 22,316 of `.data` and 123,668 of `.bss`, the last being mostly the 96 KB frame, and a 1,888,256 byte `.nds` holding its 747 KB of assets in NitroFS. It boots, loads its PNG and the 569 KB TrueType font, which fits in memory here where it does not on the calculator, and draws its 2D scene and debug overlay on the top screen with the log on the bottom one. With nothing tuned yet, its overlay reads 12 frames a second in melonDS.
+
+melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.

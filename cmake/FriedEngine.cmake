@@ -27,13 +27,16 @@ elseif(NINTENDO_SWITCH)
     include("${CMAKE_CURRENT_LIST_DIR}/Switch.cmake")
 elseif(NINTENDO_3DS)
     include("${CMAKE_CURRENT_LIST_DIR}/3DS.cmake")
+elseif(NINTENDO_DS)
+    include("${CMAKE_CURRENT_LIST_DIR}/NDS.cmake")
 elseif(FRIED_CG50)
     include("${CMAKE_CURRENT_LIST_DIR}/CG50.cmake")
 elseif(FRIED_WEB)
     include("${CMAKE_CURRENT_LIST_DIR}/Web.cmake")
 endif()
 
-# gint is the whole platform on the calculator, with no SDL2 on top of it.
+# gint is the whole platform on the calculator, and libnds on the DS, with no
+# SDL2 on top of either.
 if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
     find_package(SDL2 REQUIRED CONFIG)
     find_package(SDL2_ttf REQUIRED CONFIG)
@@ -45,7 +48,7 @@ if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
         find_package(SDL2_image REQUIRED CONFIG)
         find_package(SDL2_mixer REQUIRED CONFIG)
     endif()
-elseif(NOT FRIED_CG50 AND NOT FRIED_WEB)
+elseif(NOT FRIED_CG50 AND NOT NINTENDO_DS AND NOT FRIED_WEB)
     if(MSVC)
         # Every library in the executable has to agree on it, and static needs no Visual C++ redistributable.
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -98,6 +101,26 @@ if(FRIED_CG50)
         native/audio/sound_gint.cpp
         native/audio/music_gint.cpp
     )
+elseif(NINTENDO_DS)
+    # The DS draws the way the calculator does, and shares the calculator's
+    # files for the input and the audio it has nothing of its own for.
+    set(_fried_native_sources
+        native/platform/application_nds.cpp
+        native/platform/events_nds.cpp
+        native/platform/filesystem_nds.cpp
+        native/platform/gamepad_gint.cpp
+        native/platform/input_gint.cpp
+        native/platform/mouse_gint.cpp
+        native/platform/touch_gint.cpp
+        native/platform/window_nds.cpp
+        native/graphics/software_frame_nds.cpp
+        native/graphics/renderer_software.cpp
+        native/graphics/texture_software.cpp
+        native/graphics/font_software.cpp
+        native/graphics/pixel_font_nds.cpp
+        native/audio/sound_gint.cpp
+        native/audio/music_gint.cpp
+    )
 else()
     set(_fried_native_sources
         native/platform/application.cpp
@@ -135,6 +158,10 @@ if(NOT TARGET fried_engine)
 
     if(FRIED_CG50)
         target_link_libraries(fried_engine PUBLIC Gint::Gint)
+        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER)
+    elseif(NINTENDO_DS)
+        # NitroFS and FAT, which libnds keeps out of its own library.
+        target_link_libraries(fried_engine PUBLIC filesystem fat)
         target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER)
     elseif(FRIED_WEB)
         target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
@@ -195,6 +222,8 @@ function(fried_add_game target_name)
         set(_platform switch)
     elseif(NINTENDO_3DS)
         set(_platform 3ds)
+    elseif(NINTENDO_DS)
+        set(_platform nds)
     elseif(FRIED_CG50)
         set(_platform cg50)
     elseif(FRIED_WEB)
@@ -259,6 +288,20 @@ function(fried_add_game target_name)
             DESCRIPTION "Version ${_version}"
             AUTHOR "${_organization}"
             ICON ${CMAKE_CURRENT_SOURCE_DIR}/3ds/icon.png
+            ENGINE_ASSETS ${_engine_assets}
+            GAME_ASSETS ${_game_assets}
+        )
+    elseif(NINTENDO_DS)
+        # The banner's three lines are the same identity the 3DS's SMDH shows.
+        string(JSON _name GET "${_project_json}" name)
+        string(JSON _organization GET "${_project_json}" organization)
+        string(JSON _version GET "${_project_json}" version)
+
+        fried_add_nds_rom(${target_name}
+            NAME "${_name}"
+            SUBTITLE1 "${_organization}"
+            SUBTITLE2 "Version ${_version}"
+            ICON ${CMAKE_CURRENT_SOURCE_DIR}/nds/icon.bmp
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
