@@ -208,7 +208,7 @@ Estimated in days of work at the pace of Phases 1 and 2, the larger ones the lea
 
 | Work | Days | Why |
 |---|---|---|
-| Run it on a DS from a flashcart and measure again | 1 | melonDS does not time caches and main RAM exactly |
+| Measure again on a DS | 1 | the game runs, draws and sounds right on a DS from a flashcart, but every number here is melonDS's, which does not time caches and main RAM exactly |
 | The GC's reservation, as on the calculator | 1 | 984 KB reserved for 32 KB of objects |
 | Fonts converted at build time | 3 to 5 | half of the boot and 569 KB of RAM; three decisions above first |
 | Textures with more than one bit of alpha | 1 to 2 | a partly transparent PNG is cut out at half opacity today |
@@ -216,5 +216,5 @@ Estimated in days of work at the pace of Phases 1 and 2, the larger ones the lea
 | 3D on both screens at 30 Hz, as a choice | 2 to 3 | for a game that wants the 3D engine on the bottom screen too |
 | Running without a FAT volume | 0.5 | a DS with no flashcart's DLDI stops at boot today |
 
-About 10 to 17 days. What a first game needs is the run on a DS, the GC's reservation and running without a FAT volume, about 2.5 days; the rest can wait for a game that asks for it.
+About 10 to 17 days. What a first game needs is the measurements on a DS, the GC's reservation and running without a FAT volume, about 2.5 days; the rest can wait for a game that asks for it.
 
