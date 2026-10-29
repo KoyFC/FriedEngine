@@ -66,8 +66,8 @@ namespace
         return rect;
     }
 
-    // x / 255 for x up to 255 * 255, exactly, without the division the SH4 and
-    // the DS's ARM9 can only do in software.
+    // x / 255 for x up to 255 * 255, exactly, without the division the SH4
+    // can only do in software.
     int divideBy255(int x)
     {
         return (x + 1 + (x >> 8)) >> 8;
@@ -88,7 +88,7 @@ namespace
 
     __attribute__((always_inline)) inline uint16_t pack(uint32_t spreadColor)
     {
-        return (uint16_t)(FRIED_SOFTWARE_OPAQUE_BIT | (spreadColor & FRIED_SOFTWARE_LOW_FIELDS) | (spreadColor >> 16));
+        return (uint16_t)((spreadColor & FRIED_SOFTWARE_LOW_FIELDS) | (spreadColor >> 16));
     }
 
     // From 0..255 to the 0..32 the blend takes.
@@ -311,8 +311,8 @@ namespace
 
     // Each screen pixel in the quad's bounds is mapped back through the
     // rotation and the scale to the texel it shows, nearest first. The steps
-    // from one pixel to the next are in 16.16 fixed point, since neither the
-    // SH4 nor the DS's ARM9 has a floating point unit.
+    // from one pixel to the next are in 16.16 fixed point, since the SH4 has
+    // no floating point unit.
     void drawQuad(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const TexturedQuad &quad, int r, int g, int b, int a)
     {
         int srcX = std::max(quad.m_srcX, 0);

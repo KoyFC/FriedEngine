@@ -119,4 +119,19 @@ The sandbox builds with `-DCMAKE_BUILD_TYPE=MinSizeRel` into 1,019,120 bytes of 
 
 The first build seemed slower still: the overlay's frame counter crept, and what rotates turned at a fraction of its speed. calico's `gettimeofday()`, which `Sys.time()` reads, fills in only the RTC's whole seconds, so every frame but one a second had a delta of zero and that one was clamped to `Time`'s 0.25 s. `cmake/nds/runtime.cpp` now answers `gettimeofday()` from calico's system tick counter, which counts at about 524 kHz, anchored to the RTC's time on the first read. The counter does not run until `tickInit()` is called, which calico leaves until something schedules a task on it. The 12 frames a second were counted from the frame number over ten seconds of screenshots, not from the overlay alone.
 
+### Drawing with the 3D engine
+
+Timed with the system tick counter over 64 frames in melonDS, a frame of the CPU renderer took 83.5 ms at `-Oz` and 66.8 ms at `-O2`, and Haxe was 2 to 3 ms of it. Clearing the screen alone took 7 to 9 ms: main RAM takes writes slowly, and the ARM946E-S's data cache does not allocate on a write, so the renderer the calculator uses has little left to gain here. Another 9 to 11 ms went to waiting for the vertical blank, since every frame was longer than one.
+
+The top screen is now drawn by the 3D engine instead (`ARCHITECTURE.md` describes how). Its first build ran at 30 frames a second: sending the sandbox's 318 glyphs a frame took 11.5 ms, 36 µs each, because their corners went through floats and `lround()`, all of it software floating point. In integers it takes 1.2 ms, and the sandbox runs at 60 frames a second. What remains of a frame is mostly laying out the text, about 6 ms in `font_software.cpp`, and the Haxe side of the draw queue, about 5 ms.
+
+| | CPU renderer, `-Oz` | 3D engine |
+|---|---|---|
+| Frame | 83.5 ms | 14.5 ms of work, shown at 60 Hz |
+| Clearing the screen | 8.8 ms | none |
+| Rectangles (13) | 26.3 ms | 0.7 ms |
+| Textures (3) | 15.5 ms | 0.3 ms |
+| Text (20 lines) | 12.8 ms | 7.0 ms, 1.2 of it sending glyphs |
+| Waiting for the vertical blank | 11.0 ms | 3.4 ms |
+
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.

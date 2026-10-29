@@ -171,7 +171,7 @@ cmake -S . -B build/nds -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/NDS.cmake -DCMAK
 cmake --build build/nds
 ```
 
-That produces `build/nds/sandbox/fried_sandbox.nds`, with its assets inside it in NitroFS, which runs from a flashcart or in melonDS. The scene draws on the top screen at 256x192, and the bottom screen shows the log, where an error that stops the program stays until a button is pressed. User data goes to `/data/<name>/` on a FAT volume, the flashcart's or the DSi's SD card, and the program stops without one: in melonDS, enable DLDI under Config, Emu settings, DLDI, with an SD card image, such as one made by `mkfs.fat -C -F 32 dldi.img 131072`. Everything is drawn by the CPU, and the sandbox runs at around 12 frames a second in melonDS.
+That produces `build/nds/sandbox/fried_sandbox.nds`, with its assets inside it in NitroFS, which runs from a flashcart or in melonDS. The scene draws on the top screen at 256x192, and the bottom screen shows the log, where an error that stops the program stays until a button is pressed. User data goes to `/data/<name>/` on a FAT volume, the flashcart's or the DSi's SD card, and the program stops without one: in melonDS, enable DLDI under Config, Emu settings, DLDI, with an SD card image, such as one made by `mkfs.fat -C -F 32 dldi.img 131072`. The top screen is drawn by the DS's 3D engine, and the sandbox runs at 60 frames a second in melonDS.
 
 ### Casio fx-CG50
 

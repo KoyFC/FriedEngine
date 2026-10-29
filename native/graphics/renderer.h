@@ -41,7 +41,7 @@ struct FriedQuad
 // Only a white texture tints the same on every backend.
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a);
 
-#ifdef FRIED_SOFTWARE_RENDERER
+#ifdef FRIED_SOFTWARE_FONT
 // A glyph drawn at the size it was rasterized at, placed in output pixels
 // from the start of its line.
 struct FriedGlyphBlit

@@ -37,12 +37,36 @@ struct FriedSoftwareTexture
 };
 
 const FriedSoftwareTexture *fried_texture_get_software(int textureId);
+#elif defined(__NDS__)
+// What the renderer needs to draw a texture: its videoGL name, its size in the
+// source's pixels, and the power of two sizes it is stored at. A translucent
+// one has coverage that blends, which a blank texture's always does.
+struct FriedNdsTexture
+{
+    int m_name;
+    int m_width;
+    int m_height;
+    int m_downscale;
+    int m_textureWidth;
+    int m_textureHeight;
+    bool m_translucent;
+};
 
-// Copies coverage into a blank texture's alpha, as fried_texture_write() does
-// a surface elsewhere.
-bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha, int width, int height);
+const FriedNdsTexture *fried_texture_get_nds(int textureId);
+
+// Copies what fried_texture_write_alpha() changed into VRAM, waiting for the
+// vertical blank first when there is any.
+void fried_texture_write_pending();
 #else
 struct SDL_Texture;
 
 struct SDL_Texture *fried_texture_get_sdl(int textureId);
+#endif
+
+#ifdef FRIED_SOFTWARE_FONT
+#include <cstdint>
+
+// Copies coverage into a blank texture's alpha, as fried_texture_write() does
+// a surface elsewhere.
+bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha, int width, int height);
 #endif

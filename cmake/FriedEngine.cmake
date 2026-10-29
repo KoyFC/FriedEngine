@@ -102,8 +102,9 @@ if(FRIED_CG50)
         native/audio/music_gint.cpp
     )
 elseif(NINTENDO_DS)
-    # The DS draws the way the calculator does, and shares the calculator's
-    # files for the input and the audio it has nothing of its own for.
+    # The DS draws with its 3D engine, rasterizes fonts the way the calculator
+    # does, and shares the calculator's files for the input and the audio it
+    # has nothing of its own for.
     set(_fried_native_sources
         native/platform/application_nds.cpp
         native/platform/events_nds.cpp
@@ -113,9 +114,8 @@ elseif(NINTENDO_DS)
         native/platform/mouse_gint.cpp
         native/platform/touch_gint.cpp
         native/platform/window_nds.cpp
-        native/graphics/software_frame_nds.cpp
-        native/graphics/renderer_software.cpp
-        native/graphics/texture_software.cpp
+        native/graphics/renderer_nds.cpp
+        native/graphics/texture_nds.cpp
         native/graphics/font_software.cpp
         native/graphics/pixel_font_nds.cpp
         native/audio/sound_gint.cpp
@@ -158,11 +158,11 @@ if(NOT TARGET fried_engine)
 
     if(FRIED_CG50)
         target_link_libraries(fried_engine PUBLIC Gint::Gint)
-        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER)
+        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER FRIED_SOFTWARE_FONT)
     elseif(NINTENDO_DS)
         # NitroFS and FAT, which libnds keeps out of its own library.
         target_link_libraries(fried_engine PUBLIC filesystem fat)
-        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER)
+        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_FONT)
     elseif(FRIED_WEB)
         target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
     elseif(VITA OR NINTENDO_3DS)
