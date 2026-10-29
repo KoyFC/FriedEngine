@@ -159,6 +159,8 @@ Left for later: the 3D engine can draw both screens by turning to the other one 
 
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.
 
+melonDS's Flatpak plays the sound broken up at regular intervals on the machine this was developed on, and with audio sync on it runs at 23 FPS, so its output to the host is what falls behind. The emulated DS makes it clean: its own capture unit, recording the mixer's output into RAM, wrote 4 seconds of the sandbox's music and sounds with no gap or clipping. On a real DS the sound plays cleanly.
+
 ## Phase 3: measurements and recommendation
 
 ### How it was measured
