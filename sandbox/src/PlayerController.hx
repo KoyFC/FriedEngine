@@ -1,6 +1,7 @@
 import fried.Time;
 import fried.graphics.FlipMode;
 import fried.input.GamepadAxis;
+import fried.input.GamepadButton;
 import fried.input.InputAction;
 import fried.input.InputBinding;
 import fried.input.InputSource;
@@ -27,6 +28,8 @@ class PlayerController extends Component {
 		this.wall = wall;
 		movementAction = new InputAction("Move", Vector2);
 		movementAction.addBinding(Stick(GamepadAxis.LeftX, GamepadAxis.LeftY));
+		movementAction.addBinding(Vector(PadButton(GamepadButton.DpadUp), PadButton(GamepadButton.DpadDown), PadButton(GamepadButton.DpadLeft),
+			PadButton(GamepadButton.DpadRight)));
 		movementAction.addBinding(Vector(Keyboard(Key.W), Keyboard(Key.S), Keyboard(Key.A), Keyboard(Key.D)));
 		movementAction.addBinding(Vector(Keyboard(Key.Up), Keyboard(Key.Down), Keyboard(Key.Left), Keyboard(Key.Right)));
 		movementAction.enable();

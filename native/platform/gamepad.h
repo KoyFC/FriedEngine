@@ -20,6 +20,12 @@ extern "C"
     void fried_gamepad_end_frame();
 }
 
+#ifdef __NDS__
+// Reads the buttons, once a frame, and hands each of the engine's buttons that
+// went down or up since the last read to report.
+void fried_gamepad_poll(void (*report)(int button, bool down));
+#endif
+
 void fried_gamepad_report_added(int joystickIndex);
 void fried_gamepad_report_removed(int instanceId);
 

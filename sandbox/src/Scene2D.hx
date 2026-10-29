@@ -39,7 +39,7 @@ class Scene2D {
 			'Run $runs',
 			"Space/Enter/A/click: sound",
 			"M/F6/B: music",
-			"WASD/arrows/stick: move",
+			"WASD/arrows/stick/d-pad: move",
 			"Q/E/L/R: zoom",
 			"Shift+arrows: move window",
 			"F2/North: next scene",

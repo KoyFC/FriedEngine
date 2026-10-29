@@ -104,12 +104,12 @@ if(FRIED_CG50)
 elseif(NINTENDO_DS)
     # The DS draws with its 3D engine, rasterizes fonts the way the calculator
     # does, and shares the calculator's files for the input and the audio it
-    # has nothing of its own for.
+    # has nothing of its own for: no keyboard, mouse, touchscreen or sound yet.
     set(_fried_native_sources
         native/platform/application_nds.cpp
         native/platform/events_nds.cpp
         native/platform/filesystem_nds.cpp
-        native/platform/gamepad_gint.cpp
+        native/platform/gamepad_nds.cpp
         native/platform/input_gint.cpp
         native/platform/mouse_gint.cpp
         native/platform/touch_gint.cpp

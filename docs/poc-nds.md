@@ -142,4 +142,14 @@ With all of it, a frame of the sandbox's work is down from 14.5 ms to 9.7 ms, wh
 
 Loading the 569 KB TrueType font from NitroFS takes 312 ms, and rasterizing its 95 printable ASCII glyphs into the atlas, the first time text is drawn, another 265 ms. The file stays in memory as long as the font is loaded.
 
+### Pending: fonts converted at build time
+
+Left for later, by decision. A font converted at build time, into its atlas, its metrics and a kerning table, would cut the boot by the half second above and free the 569 KB the TrueType file holds in RAM, 14 % of the DS's 4 MB. It would change nothing per frame, since glyphs are rasterized once already and the layout is what cost. On the fx-CG50 it would let the real font be drawn, where today the TrueType file does not fit in memory and the platform's pixel font is drawn instead. It would be the engine's first asset converted at build time, so it needs deciding first:
+
+- **Sizes.** `Font.load()` takes the size at run time, so the sizes to convert would have to be declared, in `project.fried` for example, or one fixed size kept per font.
+- **Characters.** ASCII alone, ASCII and Latin-1, or a set the project declares.
+- **Platforms.** Only the DS and the fx-CG50, where the TrueType file is the problem, or every platform.
+
+Images could be converted the same way, into the 3D engine's texel format, which would save decoding PNGs at load; with the sandbox's one 16x16 sprite there is nothing to measure yet.
+
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.
