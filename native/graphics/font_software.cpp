@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdint>
 #include <new>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -89,6 +90,33 @@ namespace
         AsciiTable<AtlasRegion> m_asciiRegions;
     };
 
+    struct PlacedGlyph
+    {
+        uint32_t m_codepoint;
+        const GlyphMetrics *m_metrics;
+        int m_penX;
+    };
+
+    // Most of a game's text is drawn again as it was the frame before, so a
+    // line keeps its layout, and its glyphs' places in the atlas once they
+    // have been looked up, for as long as it keeps being drawn. A font keeps
+    // the lines drawn last, and a new one takes the place of the one drawn
+    // longest ago.
+    struct CachedLine
+    {
+        uint32_t m_hash;
+        int m_atlasTextureId;
+        uint32_t m_lastUse;
+        std::string m_text;
+        int m_lineWidth;
+        int m_originX;
+        std::vector<PlacedGlyph> m_glyphs;
+        bool m_hasBlits;
+        std::vector<FriedGlyphBlit> m_blits;
+    };
+
+    constexpr size_t s_maxCachedLines = 64;
+
     struct LoadedFont
     {
         unsigned char *m_fileData;
@@ -101,20 +129,14 @@ namespace
         // has not been looked up yet.
         std::vector<int8_t> m_printableKerning;
         std::vector<GlyphAtlas> m_atlases;
-    };
-
-    struct PlacedGlyph
-    {
-        uint32_t m_codepoint;
-        const GlyphMetrics *m_metrics;
-        int m_penX;
+        std::vector<CachedLine> m_lines;
+        uint32_t m_lineClock;
     };
 
     HandlePool<LoadedFont> s_fonts;
 
     std::vector<PlacedGlyph> s_placedGlyphs;
     std::vector<FriedQuad> s_quads;
-    std::vector<FriedGlyphBlit> s_blits;
     std::vector<uint8_t> s_coverage;
 
     constexpr uint32_t s_replacementCharacter = 0xFFFD;
@@ -404,6 +426,7 @@ namespace
             }
             fried_texture_destroy(atlas->m_textureId);
             font.m_atlases.erase(atlas);
+            font.m_lines.clear();
             break;
         }
 
@@ -421,6 +444,52 @@ namespace
             atlasRegionOf(atlas, codepoint, metricsOf(atlas.m_rasterSource, codepoint));
         }
         return &atlas;
+    }
+
+    // FNV-1a, which finds a line among the cached ones without comparing
+    // every one of them byte by byte.
+    uint32_t hashOf(const char *text)
+    {
+        uint32_t hash = 2166136261u;
+        for (const unsigned char *at = (const unsigned char *)text; *at; ++at)
+        {
+            hash = (hash ^ *at) * 16777619u;
+        }
+        return hash;
+    }
+
+    CachedLine &lineFor(LoadedFont &font, const GlyphAtlas &atlas, const char *text)
+    {
+        uint32_t hash = hashOf(text);
+        uint32_t now = ++font.m_lineClock;
+        for (CachedLine &line : font.m_lines)
+        {
+            if (line.m_hash == hash && line.m_atlasTextureId == atlas.m_textureId && line.m_text == text)
+            {
+                line.m_lastUse = now;
+                return line;
+            }
+        }
+
+        CachedLine *line = nullptr;
+        if (font.m_lines.size() < s_maxCachedLines)
+        {
+            font.m_lines.emplace_back();
+            line = &font.m_lines.back();
+        }
+        else
+        {
+            line = &*std::min_element(font.m_lines.begin(), font.m_lines.end(),
+                                      [](const CachedLine &a, const CachedLine &b) { return a.m_lastUse < b.m_lastUse; });
+        }
+        line->m_hash = hash;
+        line->m_atlasTextureId = atlas.m_textureId;
+        line->m_lastUse = now;
+        line->m_text = text;
+        line->m_lineWidth = layOut(font, text, line->m_glyphs, line->m_originX);
+        line->m_hasBlits = false;
+        line->m_blits.clear();
+        return *line;
     }
 
     // One read for the whole file: on the calculator each call into the
@@ -550,6 +619,7 @@ void fried_font_release_renderer(int rendererId)
             {
                 fried_texture_destroy(atlas->m_textureId);
                 atlases.erase(atlas);
+                font->m_lines.clear();
                 break;
             }
         }
@@ -583,14 +653,15 @@ void fried_font_draw_text(int fontId, int rendererId, const char *text, float x,
         return;
     }
 
-    int originX = 0;
-    int lineWidth = layOut(*font, text, s_placedGlyphs, originX);
-    if (lineWidth <= 0)
+    GlyphAtlas *atlas = atlasFor(*font, rendererId);
+    if (!atlas)
     {
         return;
     }
-    GlyphAtlas *atlas = atlasFor(*font, rendererId);
-    if (!atlas)
+    CachedLine &line = lineFor(*font, *atlas, text);
+    int lineWidth = line.m_lineWidth;
+    int originX = line.m_originX;
+    if (lineWidth <= 0)
     {
         return;
     }
@@ -599,17 +670,20 @@ void fried_font_draw_text(int fontId, int rendererId, const char *text, float x,
     // needs no transform: its glyphs go to the screen as the atlas holds them.
     if (angle == 0.0 && width == (float)lineWidth && height == (float)font->m_lineHeight && atlas->m_rasterSize == font->m_size)
     {
-        s_blits.clear();
-        for (const PlacedGlyph &glyph : s_placedGlyphs)
+        if (!line.m_hasBlits)
         {
-            const AtlasRegion *region = atlasRegionOf(*atlas, glyph.m_codepoint, *glyph.m_metrics);
-            if (region)
+            for (const PlacedGlyph &glyph : line.m_glyphs)
             {
-                s_blits.push_back({region->m_x, region->m_y, region->m_width, region->m_height,
-                                   originX + glyph.m_penX + glyph.m_metrics->m_offsetX, glyph.m_metrics->m_offsetY});
+                const AtlasRegion *region = atlasRegionOf(*atlas, glyph.m_codepoint, *glyph.m_metrics);
+                if (region)
+                {
+                    line.m_blits.push_back({region->m_x, region->m_y, region->m_width, region->m_height,
+                                            originX + glyph.m_penX + glyph.m_metrics->m_offsetX, glyph.m_metrics->m_offsetY});
+                }
             }
+            line.m_hasBlits = true;
         }
-        if (fried_renderer_draw_glyphs(rendererId, atlas->m_textureId, x, y, s_blits.data(), (int)s_blits.size(), r, g, b, a))
+        if (fried_renderer_draw_glyphs(rendererId, atlas->m_textureId, x, y, line.m_blits.data(), (int)line.m_blits.size(), r, g, b, a))
         {
             return;
         }
@@ -621,7 +695,7 @@ void fried_font_draw_text(int fontId, int rendererId, const char *text, float x,
     float pivotX = x + width / 2.0f;
     float pivotY = y + height / 2.0f;
     s_quads.clear();
-    for (const PlacedGlyph &glyph : s_placedGlyphs)
+    for (const PlacedGlyph &glyph : line.m_glyphs)
     {
         const GlyphMetrics &raster = metricsOf(atlas->m_rasterSource, glyph.m_codepoint);
         const AtlasRegion *region = atlasRegionOf(*atlas, glyph.m_codepoint, raster);
