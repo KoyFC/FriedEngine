@@ -17,6 +17,9 @@ class DrawQueue {
 	static var viewHeight:Float = 0.0;
 	static var viewPoints:Array<Float> = [];
 	static var sortScratch:Array<DrawCommand> = [];
+	static var sortedLayers:Array<Int> = [];
+	static var sortedPriorities:Array<Int> = [];
+	static var sortedOrder:Array<Int> = [];
 
 	public static function submitTexture(priority:Int, texture:Texture, x:Float, y:Float, width:Float, height:Float, angle:Float = 0.0,
 			flip:FlipMode = None, ?source:Rect):Void {
@@ -200,11 +203,57 @@ class DrawQueue {
 		return a.sequence < b.sequence;
 	}
 
+	// A frame's commands mostly come in with the same layers and priorities as
+	// the last frame's, in the same order, and then they sort into the same
+	// order too, so that order is kept and used again rather than sorted for:
+	// each step of a sort is a few array accesses through hxcpp, which add up
+	// on the DS.
+	static function sortPending():Void {
+		var commands = pendingDrawCommands;
+		var count = commands.length;
+		if (hasSortedKeys(commands, count)) {
+			sortScratch.resize(count);
+			for (position in 0...count) {
+				sortScratch[position] = commands[sortedOrder[position]];
+			}
+			for (position in 0...count) {
+				commands[position] = sortScratch[position];
+				sortScratch[position] = null;
+			}
+			return;
+		}
+
+		sortedLayers.resize(count);
+		sortedPriorities.resize(count);
+		for (position in 0...count) {
+			sortedLayers[position] = commands[position].layerIndex;
+			sortedPriorities[position] = commands[position].priority;
+		}
+		sortCommands();
+		sortedOrder.resize(count);
+		for (position in 0...count) {
+			sortedOrder[position] = commands[position].sequence;
+		}
+	}
+
+	static function hasSortedKeys(commands:Array<DrawCommand>, count:Int):Bool {
+		if (count != sortedLayers.length) {
+			return false;
+		}
+		for (position in 0...count) {
+			var command = commands[position];
+			if (command.layerIndex != sortedLayers[position] || command.priority != sortedPriorities[position]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	// A merge sort with the comparison inlined. Array.sort() calls a function
 	// value for every comparison, which goes through hxcpp's dynamic calls; a
 	// frame's 48 commands took a millisecond to sort that way on the DS. A queue
-	// that is in order already, as most are, is only walked once.
-	static function sortPending():Void {
+	// that is in order already is only walked once.
+	static function sortCommands():Void {
 		var commands = pendingDrawCommands;
 		var count = commands.length;
 		var index = 1;

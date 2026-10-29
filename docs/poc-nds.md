@@ -195,6 +195,8 @@ The load image is 1.2 MB of the 2.48 MB calico's `ds9.ld` allows. Of the heap, t
 | Rest of the draw queue, in Haxe | 0.8 |
 | Layers, events and the scene's update | 1.4 |
 
+Two more tries since. The draw queue now keeps the order it sorted the last frame's commands into, and when this frame's come with the same layers and priorities in the same order, which is most frames, it uses that order again instead of sorting: 0.25 ms instead of 0.7, and a frame's work 7.0 ms. Sending the glyphs as a list of commands built once per line, by DMA, gained nothing, 0.88 ms against 0.94, even with the CPU let go while it was sent: the lines come one after another, and the geometry engine takes about 4 µs a glyph in melonDS whoever feeds it, so that was left out.
+
 ### Recommendation: viable with changes
 
 The engine runs on the DS as it is, Haxe and all, with its API unchanged: the sandbox draws both screens at 60 frames a second with 9 ms of every frame free, and fits in memory with 750 KB to spare. Getting there took changes on the platform side only, the ones Phase 2 records:
