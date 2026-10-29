@@ -1,5 +1,6 @@
 #include "platform/events.h"
 
+#include "graphics/software_frame.h"
 #include "platform/input.h"
 #include "platform/window.h"
 
@@ -118,6 +119,7 @@ namespace
     {
         queueWindowEvent(FRIED_WINDOW_EVENT_FOCUS_LOST);
         gint_osmenu();
+        fried_software_frame_lose();
         queueWindowEvent(FRIED_WINDOW_EVENT_FOCUS_GAINED);
     }
 }

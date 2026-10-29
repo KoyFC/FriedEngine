@@ -25,6 +25,7 @@
 namespace
 {
     HandlePool<FriedSoftwareTexture> s_textures;
+    int s_generation = 0;
 
     void destroy(FriedSoftwareTexture *texture)
     {
@@ -102,6 +103,11 @@ const FriedSoftwareTexture *fried_texture_get_software(int textureId)
     return s_textures.get(textureId);
 }
 
+int fried_texture_get_software_generation()
+{
+    return s_generation;
+}
+
 int fried_texture_create_blank(int rendererId, int width, int height)
 {
     if (fried_renderer_get_width(rendererId) <= 0)
@@ -121,6 +127,7 @@ int fried_texture_create_blank(int rendererId, int width, int height)
         fried_set_last_error("Not enough memory for a blank texture");
         return -1;
     }
+    ++s_generation;
     return s_textures.store(texture);
 }
 
@@ -135,6 +142,7 @@ bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha
     {
         std::memcpy(texture->m_alpha + (y + row) * texture->m_width + x, alpha + row * width, width);
     }
+    ++s_generation;
     return true;
 }
 
@@ -172,12 +180,14 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
+    ++s_generation;
     return s_textures.store(texture);
 }
 
 void fried_texture_destroy(int textureId)
 {
     destroy(s_textures.release(textureId));
+    ++s_generation;
 }
 
 int fried_texture_get_width(int textureId)

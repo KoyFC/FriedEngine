@@ -8,15 +8,14 @@
 // background of the sub 2D engine, out of VRAM bank C, which the text console
 // had until then. Drawing goes into a frame in main RAM instead, which the
 // ARM9 reaches through its data cache where VRAM is uncached, and at the
-// vertical blank the cache is written back and the DMA copies the frame
-// across, faster than the screen is drawn from it, so it never shows half a
-// frame.
+// vertical blank the rows drawn are written back from the cache and the DMA
+// copies them across, faster than the screen is drawn from them, so it never
+// shows half a frame.
 
 namespace
 {
     constexpr int s_width = 256;
     constexpr int s_height = 192;
-    constexpr int s_frameBytes = s_width * s_height * 2;
 
     // Cache lines are 32 bytes, so a write back covers the frame and nothing else.
     alignas(32) uint16_t s_frame[s_width * s_height];
@@ -64,15 +63,23 @@ void fried_software_frame_fill(int, int left, int top, int right, int bottom, ui
     fillRows(left, top, right, bottom, color);
 }
 
-void fried_software_frame_present(int)
+void fried_software_frame_present(int, int top, int bottom)
 {
-    if (!s_screen)
+    if (!s_screen || top >= bottom)
     {
         return;
     }
-    DC_FlushRange(s_frame, s_frameBytes);
+    const uint16_t *rows = s_frame + top * s_width;
+    int bytes = (bottom - top) * s_width * 2;
+    DC_FlushRange(rows, bytes);
     swiWaitForVBlank();
-    dmaCopyWords(3, s_frame, s_screen, s_frameBytes);
+    dmaCopyWords(3, rows, s_screen + top * s_width, bytes);
+}
+
+// Nothing else draws on the bottom screen while a window has it.
+bool fried_software_frame_take_lost(int)
+{
+    return false;
 }
 
 bool fried_software_frame_has_vsync(int)

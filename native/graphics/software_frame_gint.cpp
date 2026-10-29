@@ -29,12 +29,15 @@ namespace
         dsetvram(frame, frame);
     }
 
+    bool s_lost = false;
+
     // gint aligns the frame to cache lines, so no other data shares one.
     template <typename Operation>
-    void forEachFrameLine(Operation operation)
+    void forEachFrameLine(int top, int bottom, Operation operation)
     {
-        uintptr_t end = (uintptr_t)(gint_vram + DWIDTH * DHEIGHT);
-        for (uintptr_t line = (uintptr_t)gint_vram; line < end; line += s_cacheLine)
+        uintptr_t start = (uintptr_t)(gint_vram + top * DWIDTH) & ~(s_cacheLine - 1);
+        uintptr_t end = (uintptr_t)(gint_vram + bottom * DWIDTH);
+        for (uintptr_t line = start; line < end; line += s_cacheLine)
         {
             operation(line);
         }
@@ -42,16 +45,16 @@ namespace
 
     // What is drawn and still only in the cache goes out to memory, where the
     // DMA reads it from.
-    void writeBackFrame()
+    void writeBackRows(int top, int bottom)
     {
-        forEachFrameLine([](uintptr_t line) { __asm__ volatile("ocbwb @%0" : : "r"(line) : "memory"); });
+        forEachFrameLine(top, bottom, [](uintptr_t line) { __asm__ volatile("ocbwb @%0" : : "r"(line) : "memory"); });
     }
 
     // The cached copy is dropped unwritten, ahead of a DMA that overwrites
     // all of the frame.
     void discardCachedFrame()
     {
-        forEachFrameLine([](uintptr_t line) { __asm__ volatile("ocbi @%0" : : "r"(line) : "memory"); });
+        forEachFrameLine(0, DHEIGHT, [](uintptr_t line) { __asm__ volatile("ocbi @%0" : : "r"(line) : "memory"); });
     }
 }
 
@@ -63,7 +66,7 @@ FriedSoftwareFrame fried_software_frame_open(int windowId)
 
 void fried_software_frame_close(int)
 {
-    writeBackFrame();
+    writeBackRows(0, DHEIGHT);
     useFrameThrough(s_uncachedArea);
 }
 
@@ -83,10 +86,27 @@ void fried_software_frame_fill(int, int left, int top, int right, int bottom, ui
     drect(left, top, right - 1, bottom - 1, color);
 }
 
-void fried_software_frame_present(int)
+// The display takes the whole frame, so any row drawn sends all of it.
+void fried_software_frame_present(int, int top, int bottom)
 {
-    writeBackFrame();
+    if (top >= bottom)
+    {
+        return;
+    }
+    writeBackRows(top, bottom);
     dupdate();
+}
+
+void fried_software_frame_lose()
+{
+    s_lost = true;
+}
+
+bool fried_software_frame_take_lost(int)
+{
+    bool lost = s_lost;
+    s_lost = false;
+    return lost;
 }
 
 // dupdate() sends the frame as soon as it is called; nothing waits for the

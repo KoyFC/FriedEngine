@@ -11,10 +11,19 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <vector>
 
 // Everything here is drawn into the window's frame by the CPU, through the
 // same display layout the other backends hand their GPU. The platform owns
 // the frame and sends it to the screen (graphics/software_frame.h).
+//
+// A frame is not drawn as the calls come but recorded, as commands in output
+// pixels with the bounds each covers, and drawn at present. The frame still
+// holds what the last one's commands drew, so only where the two lists differ
+// is drawn again, each command clipped to it, and only those rows are sent to
+// the screen: a game's screen is mostly what it was a frame ago, and on the
+// CPU drawing it all again is what costs.
 
 namespace
 {
@@ -25,6 +34,11 @@ namespace
         int m_g;
         int m_b;
         int m_a;
+        std::vector<uint8_t> m_commands;
+        std::vector<uint8_t> m_shownCommands;
+        FriedDisplayLayout m_shownLayout;
+        int m_shownGeneration;
+        bool m_hasShown;
     };
 
     HandlePool<Renderer> s_renderers;
@@ -148,18 +162,45 @@ namespace
         }
     }
 
-    void fillPixels(const FriedSoftwareFrame &frame, const PixelRect &rect, const Renderer &renderer)
+    PixelRect intersect(const PixelRect &a, const PixelRect &b)
     {
-        if (rect.m_left >= rect.m_right || rect.m_top >= rect.m_bottom || renderer.m_a == 0)
+        return {std::max(a.m_left, b.m_left), std::max(a.m_top, b.m_top), std::min(a.m_right, b.m_right), std::min(a.m_bottom, b.m_bottom)};
+    }
+
+    PixelRect unite(const PixelRect &a, const PixelRect &b)
+    {
+        return {std::min(a.m_left, b.m_left), std::min(a.m_top, b.m_top), std::max(a.m_right, b.m_right), std::max(a.m_bottom, b.m_bottom)};
+    }
+
+    bool isEmpty(const PixelRect &rect)
+    {
+        return rect.m_left >= rect.m_right || rect.m_top >= rect.m_bottom;
+    }
+
+    bool isSame(const PixelRect &a, const PixelRect &b)
+    {
+        return a.m_left == b.m_left && a.m_top == b.m_top && a.m_right == b.m_right && a.m_bottom == b.m_bottom;
+    }
+
+    PixelRect viewportOf(const FriedDisplayLayout &layout)
+    {
+        return {layout.m_viewportX, layout.m_viewportY, layout.m_viewportX + layout.m_viewportWidth, layout.m_viewportY + layout.m_viewportHeight};
+    }
+
+    PixelRect wholeOf(const FriedSoftwareFrame &frame)
+    {
+        return {0, 0, frame.m_width, frame.m_height};
+    }
+
+    void fillPixels(int windowId, const FriedSoftwareFrame &frame, const PixelRect &rect, uint16_t color, int blendAlpha)
+    {
+        if (isEmpty(rect) || blendAlpha == 0)
         {
             return;
         }
-
-        uint16_t color = fried_software_pack(renderer.m_r, renderer.m_g, renderer.m_b);
-        int blendAlpha = toBlendAlpha(renderer.m_a);
         if (blendAlpha == 32)
         {
-            fried_software_frame_fill(renderer.m_windowId, rect.m_left, rect.m_top, rect.m_right, rect.m_bottom, color);
+            fried_software_frame_fill(windowId, rect.m_left, rect.m_top, rect.m_right, rect.m_bottom, color);
             return;
         }
 
@@ -228,7 +269,17 @@ namespace
         int64_t m_step;
     };
 
-    void fillTriangle(const FriedSoftwareFrame &frame, const FriedDisplayLayout &layout, FixedPoint top, FixedPoint middle, FixedPoint bottom, uint16_t color, int blendAlpha)
+    // Corners sorted from the top down.
+    struct Triangle
+    {
+        FixedPoint m_top;
+        FixedPoint m_middle;
+        FixedPoint m_bottom;
+        int32_t m_color;
+        int32_t m_blendAlpha;
+    };
+
+    Triangle sortedTriangle(FixedPoint top, FixedPoint middle, FixedPoint bottom, uint16_t color, int blendAlpha)
     {
         if (middle.m_y < top.m_y)
         {
@@ -242,24 +293,42 @@ namespace
         {
             std::swap(middle, bottom);
         }
+        Triangle triangle;
+        std::memset(&triangle, 0, sizeof(triangle));
+        triangle.m_top = top;
+        triangle.m_middle = middle;
+        triangle.m_bottom = bottom;
+        triangle.m_color = color;
+        triangle.m_blendAlpha = blendAlpha;
+        return triangle;
+    }
 
-        int firstRow = std::max(firstPixelCentredFrom(top.m_y), layout.m_viewportY);
-        int endRow = std::min(firstPixelCentredFrom(bottom.m_y), layout.m_viewportY + layout.m_viewportHeight);
+    PixelRect boundsOf(const Triangle &triangle)
+    {
+        int64_t left = std::min({triangle.m_top.m_x, triangle.m_middle.m_x, triangle.m_bottom.m_x});
+        int64_t right = std::max({triangle.m_top.m_x, triangle.m_middle.m_x, triangle.m_bottom.m_x});
+        return {firstPixelCentredFrom(left), firstPixelCentredFrom(triangle.m_top.m_y), firstPixelCentredFrom(right), firstPixelCentredFrom(triangle.m_bottom.m_y)};
+    }
+
+    void fillTriangle(const FriedSoftwareFrame &frame, const PixelRect &clip, const Triangle &triangle)
+    {
+        int firstRow = std::max(firstPixelCentredFrom(triangle.m_top.m_y), clip.m_top);
+        int endRow = std::min(firstPixelCentredFrom(triangle.m_bottom.m_y), clip.m_bottom);
         if (firstRow >= endRow)
         {
             return;
         }
-        int splitRow = std::clamp(firstPixelCentredFrom(middle.m_y), firstRow, endRow);
+        int splitRow = std::clamp(firstPixelCentredFrom(triangle.m_middle.m_y), firstRow, endRow);
 
-        int viewportLeft = layout.m_viewportX;
-        int viewportRight = layout.m_viewportX + layout.m_viewportWidth;
+        uint16_t color = (uint16_t)triangle.m_color;
+        int blendAlpha = triangle.m_blendAlpha;
         SpanBlend blend(color, blendAlpha);
-        EdgeWalk longEdge(top, bottom, firstRow);
+        EdgeWalk longEdge(triangle.m_top, triangle.m_bottom, firstRow);
         auto fillRows = [&](EdgeWalk &shortEdge, int fromRow, int toRow) {
             for (int row = fromRow; row < toRow; ++row)
             {
-                int left = std::max(firstPixelCentredFrom(std::min(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), viewportLeft);
-                int right = std::min(firstPixelCentredFrom(std::max(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), viewportRight);
+                int left = std::max(firstPixelCentredFrom(std::min(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), clip.m_left);
+                int right = std::min(firstPixelCentredFrom(std::max(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), clip.m_right);
                 if (left < right)
                 {
                     uint16_t *pixels = frame.m_pixels + row * frame.m_width;
@@ -279,12 +348,12 @@ namespace
 
         if (firstRow < splitRow)
         {
-            EdgeWalk upperEdge(top, middle, firstRow);
+            EdgeWalk upperEdge(triangle.m_top, triangle.m_middle, firstRow);
             fillRows(upperEdge, firstRow, splitRow);
         }
         if (splitRow < endRow)
         {
-            EdgeWalk lowerEdge(middle, bottom, splitRow);
+            EdgeWalk lowerEdge(triangle.m_middle, triangle.m_bottom, splitRow);
             fillRows(lowerEdge, splitRow, endRow);
         }
     }
@@ -309,11 +378,33 @@ namespace
         int m_flip;
     };
 
+    // A quad worked out in output pixels: the bounds it covers, and the texel
+    // under the centre of the first pixel with the steps from one pixel to
+    // the next, in 16.16 fixed point, since neither the SH4 nor the DS's ARM9
+    // has a floating point unit. Drawn again, it costs no float operation.
+    struct QuadSetup
+    {
+        int32_t m_textureId;
+        int32_t m_srcX;
+        int32_t m_srcY;
+        int32_t m_srcWidth;
+        int32_t m_srcHeight;
+        int32_t m_rowU;
+        int32_t m_rowV;
+        int32_t m_stepUAcross;
+        int32_t m_stepVAcross;
+        int32_t m_stepUDown;
+        int32_t m_stepVDown;
+        int32_t m_flip;
+        int32_t m_r;
+        int32_t m_g;
+        int32_t m_b;
+        int32_t m_a;
+    };
+
     // Each screen pixel in the quad's bounds is mapped back through the
-    // rotation and the scale to the texel it shows, nearest first. The steps
-    // from one pixel to the next are in 16.16 fixed point, since neither the
-    // SH4 nor the DS's ARM9 has a floating point unit.
-    void drawQuad(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const TexturedQuad &quad, int r, int g, int b, int a)
+    // rotation and the scale to the texel it shows, nearest first.
+    bool setUpQuad(const FriedDisplayLayout &current, int textureId, const FriedSoftwareTexture &texture, const TexturedQuad &quad, int r, int g, int b, int a, QuadSetup &setup, PixelRect &bounds)
     {
         int srcX = std::max(quad.m_srcX, 0);
         int srcY = std::max(quad.m_srcY, 0);
@@ -321,10 +412,9 @@ namespace
         int srcHeight = std::min(quad.m_srcY + quad.m_srcHeight, texture.m_height) - srcY;
         if (srcWidth <= 0 || srcHeight <= 0 || a == 0)
         {
-            return;
+            return false;
         }
 
-        FriedDisplayLayout current = layout(frame);
         float left = current.m_viewportX + std::round(quad.m_x * current.m_scaleX);
         float top = current.m_viewportY + std::round(quad.m_y * current.m_scaleY);
         float right = current.m_viewportX + std::round((quad.m_x + quad.m_width) * current.m_scaleX);
@@ -333,7 +423,7 @@ namespace
         float height = bottom - top;
         if (width <= 0.0f || height <= 0.0f)
         {
-            return;
+            return false;
         }
 
         float pivotX = quad.m_hasPivot ? current.m_viewportX + quad.m_pivotX * current.m_scaleX : (left + right) / 2.0f;
@@ -363,47 +453,78 @@ namespace
             minY = std::min(minY, turnedY);
             maxY = std::max(maxY, turnedY);
         }
-        int startX = std::max((int)std::floor(minX), current.m_viewportX);
-        int startY = std::max((int)std::floor(minY), current.m_viewportY);
-        int endX = std::min((int)std::ceil(maxX), current.m_viewportX + current.m_viewportWidth);
-        int endY = std::min((int)std::ceil(maxY), current.m_viewportY + current.m_viewportHeight);
-        if (startX >= endX || startY >= endY)
+        bounds = intersect({(int)std::floor(minX), (int)std::floor(minY), (int)std::ceil(maxX), (int)std::ceil(maxY)}, viewportOf(current));
+        if (isEmpty(bounds))
         {
-            return;
+            return false;
         }
 
         // The texel under a pixel's centre, turned back by the angle and
         // scaled from the quad to the source region.
         float scaleU = srcWidth / width;
         float scaleV = srcHeight / height;
-        float centreX = startX + 0.5f - pivotX;
-        float centreY = startY + 0.5f - pivotY;
+        float centreX = bounds.m_left + 0.5f - pivotX;
+        float centreY = bounds.m_top + 0.5f - pivotY;
         float u = (cosine * centreX + sine * centreY + pivotX - left) * scaleU;
         float v = (-sine * centreX + cosine * centreY + pivotY - top) * scaleV;
 
         constexpr float s_one = 65536.0f;
-        int32_t rowU = (int32_t)(u * s_one);
-        int32_t rowV = (int32_t)(v * s_one);
-        int32_t stepUAcross = (int32_t)(cosine * scaleU * s_one);
-        int32_t stepVAcross = (int32_t)(-sine * scaleV * s_one);
-        int32_t stepUDown = (int32_t)(sine * scaleU * s_one);
-        int32_t stepVDown = (int32_t)(cosine * scaleV * s_one);
+        std::memset(&setup, 0, sizeof(setup));
+        setup.m_textureId = textureId;
+        setup.m_srcX = srcX;
+        setup.m_srcY = srcY;
+        setup.m_srcWidth = srcWidth;
+        setup.m_srcHeight = srcHeight;
+        setup.m_rowU = (int32_t)(u * s_one);
+        setup.m_rowV = (int32_t)(v * s_one);
+        setup.m_stepUAcross = (int32_t)(cosine * scaleU * s_one);
+        setup.m_stepVAcross = (int32_t)(-sine * scaleV * s_one);
+        setup.m_stepUDown = (int32_t)(sine * scaleU * s_one);
+        setup.m_stepVDown = (int32_t)(cosine * scaleV * s_one);
+        setup.m_flip = quad.m_flip;
+        setup.m_r = r;
+        setup.m_g = g;
+        setup.m_b = b;
+        setup.m_a = a;
+        return true;
+    }
+
+    void drawQuad(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const QuadSetup &setup, const PixelRect &bounds, const PixelRect &clip)
+    {
+        PixelRect area = intersect(bounds, clip);
+        if (isEmpty(area))
+        {
+            return;
+        }
+
+        int r = setup.m_r;
+        int g = setup.m_g;
+        int b = setup.m_b;
+        int a = setup.m_a;
+        int srcX = setup.m_srcX;
+        int srcY = setup.m_srcY;
+        int srcWidth = setup.m_srcWidth;
+        int srcHeight = setup.m_srcHeight;
         uint32_t limitU = (uint32_t)srcWidth << 16;
         uint32_t limitV = (uint32_t)srcHeight << 16;
+        int skippedRows = area.m_top - bounds.m_top;
+        int skippedColumns = area.m_left - bounds.m_left;
+        int32_t rowU = setup.m_rowU + skippedRows * setup.m_stepUDown + skippedColumns * setup.m_stepUAcross;
+        int32_t rowV = setup.m_rowV + skippedRows * setup.m_stepVDown + skippedColumns * setup.m_stepVAcross;
 
         // A blank texture is white, so tinted it is one colour throughout.
         bool tinted = r != 255 || g != 255 || b != 255;
         uint16_t tint = fried_software_pack(r, g, b);
         uint32_t spreadTint = spread(tint);
-        bool flipX = quad.m_flip & s_flipHorizontal;
-        bool flipY = quad.m_flip & s_flipVertical;
+        bool flipX = setup.m_flip & s_flipHorizontal;
+        bool flipY = setup.m_flip & s_flipVertical;
 
-        for (int y = startY; y < endY; ++y)
+        for (int y = area.m_top; y < area.m_bottom; ++y)
         {
             uint16_t *row = frame.m_pixels + y * frame.m_width;
             int32_t texelU = rowU;
             int32_t texelV = rowV;
-            for (int x = startX; x < endX; ++x, texelU += stepUAcross, texelV += stepVAcross)
+            for (int x = area.m_left; x < area.m_right; ++x, texelU += setup.m_stepUAcross, texelV += setup.m_stepVAcross)
             {
                 if ((uint32_t)texelU >= limitU || (uint32_t)texelV >= limitV)
                 {
@@ -456,33 +577,38 @@ namespace
                     blendPixel(row[x], texture.m_pixels ? spread(color) : spreadTint, blendAlpha);
                 }
             }
-            rowU += stepUDown;
-            rowV += stepVDown;
+            rowU += setup.m_stepUDown;
+            rowV += setup.m_stepVDown;
         }
+    }
+
+    // Where a glyph lands, cut to what the texture holds.
+    PixelRect boundsOf(const FriedSoftwareTexture &texture, const FriedGlyphBlit &glyph, int left, int top)
+    {
+        int x = left + glyph.m_offsetX;
+        int y = top + glyph.m_offsetY;
+        return {x, y, std::min(x + glyph.m_width, x + texture.m_width - glyph.m_srcX), std::min(y + glyph.m_height, y + texture.m_height - glyph.m_srcY)};
     }
 
     // A glyph's texels land one to one on output pixels, so each is a
     // coverage looked up and, where it is not empty, the tint written or
     // blended over what is there.
-    void drawGlyph(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const FriedGlyphBlit &glyph, int left, int top, const FriedDisplayLayout &current, uint16_t color, int a)
+    void drawGlyph(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const FriedGlyphBlit &glyph, int left, int top, const PixelRect &clip, uint16_t color, int a)
     {
         int x = left + glyph.m_offsetX;
         int y = top + glyph.m_offsetY;
-        int startX = std::max(x, current.m_viewportX);
-        int startY = std::max(y, current.m_viewportY);
-        int endX = std::min({x + glyph.m_width, current.m_viewportX + current.m_viewportWidth, x + texture.m_width - glyph.m_srcX});
-        int endY = std::min({y + glyph.m_height, current.m_viewportY + current.m_viewportHeight, y + texture.m_height - glyph.m_srcY});
-        if (startX >= endX || startY >= endY)
+        PixelRect area = intersect(boundsOf(texture, glyph, left, top), clip);
+        if (isEmpty(area))
         {
             return;
         }
 
         uint32_t source = spread(color);
-        int width = endX - startX;
-        for (int row = startY; row < endY; ++row)
+        int width = area.m_right - area.m_left;
+        for (int row = area.m_top; row < area.m_bottom; ++row)
         {
-            const uint8_t *coverage = texture.m_alpha + (glyph.m_srcY + row - y) * texture.m_width + glyph.m_srcX + startX - x;
-            uint16_t *pixel = frame.m_pixels + row * frame.m_width + startX;
+            const uint8_t *coverage = texture.m_alpha + (glyph.m_srcY + row - y) * texture.m_width + glyph.m_srcX + area.m_left - x;
+            uint16_t *pixel = frame.m_pixels + row * frame.m_width + area.m_left;
             for (int column = 0; column < width; ++column)
             {
                 int alpha = coverage[column];
@@ -502,6 +628,265 @@ namespace
             }
         }
     }
+
+    // A frame's commands, one after another in a byte list: a header, then
+    // what the command draws with. Every byte of a command is set, padding
+    // included, so two that draw the same compare equal byte for byte.
+    enum CommandType : int32_t
+    {
+        ClearCommand,
+        FillCommand,
+        QuadCommand,
+        GlyphsCommand,
+        TriangleCommand,
+    };
+
+    struct CommandHeader
+    {
+        int32_t m_type;
+        int32_t m_size;
+        PixelRect m_bounds;
+    };
+
+    struct Fill
+    {
+        int32_t m_color;
+        int32_t m_blendAlpha;
+    };
+
+    // A clear is the viewport's colour inside it and black around it.
+    struct Clear
+    {
+        int32_t m_color;
+    };
+
+    struct Glyphs
+    {
+        int32_t m_textureId;
+        int32_t m_left;
+        int32_t m_top;
+        int32_t m_color;
+        int32_t m_alpha;
+        int32_t m_count;
+    };
+
+    void record(Renderer &renderer, CommandType type, const PixelRect &bounds, const void *command, size_t size, const void *extra = nullptr, size_t extraSize = 0)
+    {
+        CommandHeader header = {type, (int32_t)(size + extraSize), bounds};
+        std::vector<uint8_t> &commands = renderer.m_commands;
+        size_t at = commands.size();
+        commands.resize(at + sizeof(header) + size + extraSize);
+        std::memcpy(commands.data() + at, &header, sizeof(header));
+        std::memcpy(commands.data() + at + sizeof(header), command, size);
+        if (extraSize > 0)
+        {
+            std::memcpy(commands.data() + at + sizeof(header) + size, extra, extraSize);
+        }
+    }
+
+    void recordFill(Renderer &renderer, const PixelRect &rect)
+    {
+        int blendAlpha = toBlendAlpha(renderer.m_a);
+        if (isEmpty(rect) || blendAlpha == 0)
+        {
+            return;
+        }
+        Fill fill = {fried_software_pack(renderer.m_r, renderer.m_g, renderer.m_b), blendAlpha};
+        record(renderer, FillCommand, rect, &fill, sizeof(fill));
+    }
+
+    void recordQuad(Renderer &renderer, int textureId, const TexturedQuad &quad, int r, int g, int b, int a)
+    {
+        const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
+        if (!texture)
+        {
+            return;
+        }
+        QuadSetup setup;
+        PixelRect bounds;
+        if (setUpQuad(layout(renderer.m_windowId), textureId, *texture, quad, r, g, b, a, setup, bounds))
+        {
+            record(renderer, QuadCommand, bounds, &setup, sizeof(setup));
+        }
+    }
+
+    template <typename T>
+    T read(const uint8_t *at)
+    {
+        T value;
+        std::memcpy(&value, at, sizeof(value));
+        return value;
+    }
+
+    template <typename Visit>
+    void forEachCommand(const std::vector<uint8_t> &commands, Visit visit)
+    {
+        size_t at = 0;
+        while (at < commands.size())
+        {
+            CommandHeader header = read<CommandHeader>(commands.data() + at);
+            visit(header, commands.data() + at + sizeof(header));
+            at += sizeof(header) + header.m_size;
+        }
+    }
+
+    void replay(const Renderer &renderer, const FriedSoftwareFrame &frame, const FriedDisplayLayout &current, const CommandHeader &header, const uint8_t *command, const PixelRect &clip)
+    {
+        PixelRect area = intersect(header.m_bounds, clip);
+        if (isEmpty(area))
+        {
+            return;
+        }
+        switch (header.m_type)
+        {
+        case ClearCommand:
+        {
+            uint16_t color = (uint16_t)read<Clear>(command).m_color;
+            PixelRect whole = wholeOf(frame);
+            PixelRect viewport = viewportOf(current);
+            if (isSame(area, whole) && isSame(viewport, whole))
+            {
+                fried_software_frame_clear(renderer.m_windowId, color);
+                break;
+            }
+            PixelRect inside = intersect(area, viewport);
+            if (!isSame(inside, area))
+            {
+                fillPixels(renderer.m_windowId, frame, area, 0, 32);
+            }
+            fillPixels(renderer.m_windowId, frame, inside, color, 32);
+            break;
+        }
+        case FillCommand:
+        {
+            Fill fill = read<Fill>(command);
+            fillPixels(renderer.m_windowId, frame, area, (uint16_t)fill.m_color, fill.m_blendAlpha);
+            break;
+        }
+        case QuadCommand:
+        {
+            QuadSetup setup = read<QuadSetup>(command);
+            const FriedSoftwareTexture *texture = fried_texture_get_software(setup.m_textureId);
+            if (texture)
+            {
+                drawQuad(frame, *texture, setup, header.m_bounds, area);
+            }
+            break;
+        }
+        case GlyphsCommand:
+        {
+            Glyphs glyphs = read<Glyphs>(command);
+            const FriedSoftwareTexture *texture = fried_texture_get_software(glyphs.m_textureId);
+            if (!texture || !texture->m_alpha)
+            {
+                break;
+            }
+            const uint8_t *blits = command + sizeof(Glyphs);
+            for (int index = 0; index < glyphs.m_count; ++index)
+            {
+                FriedGlyphBlit glyph = read<FriedGlyphBlit>(blits + index * sizeof(FriedGlyphBlit));
+                drawGlyph(frame, *texture, glyph, glyphs.m_left, glyphs.m_top, area, (uint16_t)glyphs.m_color, glyphs.m_alpha);
+            }
+            break;
+        }
+        case TriangleCommand:
+            fillTriangle(frame, area, read<Triangle>(command));
+            break;
+        }
+    }
+
+    // At most a few regions, each grown over any other it touches, so the
+    // commands under a region are not drawn again for a neighbour of it.
+    constexpr size_t s_maxRegions = 8;
+
+    class Regions
+    {
+    public:
+        explicit Regions(const PixelRect &whole) : m_whole(whole)
+        {
+        }
+
+        void add(PixelRect rect)
+        {
+            rect = intersect(rect, m_whole);
+            if (isEmpty(rect))
+            {
+                return;
+            }
+            for (size_t index = 0; index < m_rects.size();)
+            {
+                const PixelRect &other = m_rects[index];
+                bool touches = rect.m_left <= other.m_right && other.m_left <= rect.m_right && rect.m_top <= other.m_bottom && other.m_top <= rect.m_bottom;
+                if (touches)
+                {
+                    rect = unite(rect, other);
+                    m_rects.erase(m_rects.begin() + index);
+                    index = 0;
+                    continue;
+                }
+                ++index;
+            }
+            m_rects.push_back(rect);
+            if (m_rects.size() > s_maxRegions)
+            {
+                PixelRect all = m_rects.front();
+                for (const PixelRect &other : m_rects)
+                {
+                    all = unite(all, other);
+                }
+                m_rects.assign(1, all);
+            }
+        }
+
+        const std::vector<PixelRect> &rects() const
+        {
+            return m_rects;
+        }
+
+    private:
+        PixelRect m_whole;
+        std::vector<PixelRect> m_rects;
+    };
+
+    // Commands are matched by their place in the list, so one that comes or
+    // goes marks every one after it, which is never wrong, only more to draw.
+    void collectChanges(const Renderer &renderer, const FriedDisplayLayout &current, Regions &regions, const PixelRect &whole)
+    {
+        bool sameLayout = std::memcmp(&current, &renderer.m_shownLayout, sizeof(current)) == 0;
+        if (!renderer.m_hasShown || !sameLayout || renderer.m_shownGeneration != fried_texture_get_software_generation())
+        {
+            regions.add(whole);
+            return;
+        }
+
+        const std::vector<uint8_t> &before = renderer.m_shownCommands;
+        const std::vector<uint8_t> &after = renderer.m_commands;
+        size_t atBefore = 0;
+        size_t atAfter = 0;
+        while (atBefore < before.size() || atAfter < after.size())
+        {
+            bool hasBefore = atBefore < before.size();
+            bool hasAfter = atAfter < after.size();
+            CommandHeader headerBefore = hasBefore ? read<CommandHeader>(before.data() + atBefore) : CommandHeader{};
+            CommandHeader headerAfter = hasAfter ? read<CommandHeader>(after.data() + atAfter) : CommandHeader{};
+            size_t sizeBefore = hasBefore ? sizeof(CommandHeader) + headerBefore.m_size : 0;
+            size_t sizeAfter = hasAfter ? sizeof(CommandHeader) + headerAfter.m_size : 0;
+            bool same = hasBefore && hasAfter && sizeBefore == sizeAfter && std::memcmp(before.data() + atBefore, after.data() + atAfter, sizeBefore) == 0;
+            if (!same)
+            {
+                if (hasBefore)
+                {
+                    regions.add(headerBefore.m_bounds);
+                }
+                if (hasAfter)
+                {
+                    regions.add(headerAfter.m_bounds);
+                }
+            }
+            atBefore += sizeBefore;
+            atAfter += sizeAfter;
+        }
+    }
 }
 
 int fried_renderer_create(int windowId, bool)
@@ -512,7 +897,10 @@ int fried_renderer_create(int windowId, bool)
         return -1;
     }
     fried_software_frame_open(windowId);
-    return s_renderers.store(new Renderer{windowId, 0, 0, 0, 255});
+    Renderer *renderer = new Renderer();
+    renderer->m_windowId = windowId;
+    renderer->m_a = 255;
+    return s_renderers.store(renderer);
 }
 
 void fried_renderer_destroy(int rendererId)
@@ -560,7 +948,8 @@ void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
 }
 
 // The bars around a letterboxed viewport are black, and a clear replaces what
-// is there rather than blending over it.
+// is there rather than blending over it. It covers what was drawn before it
+// this frame, so that is dropped.
 void fried_renderer_clear(int rendererId)
 {
     Renderer *renderer = s_renderers.get(rendererId);
@@ -568,31 +957,45 @@ void fried_renderer_clear(int rendererId)
     {
         return;
     }
-
-    uint16_t color = fried_software_pack(renderer->m_r, renderer->m_g, renderer->m_b);
-    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
-    FriedDisplayLayout current = layout(frame);
-    if (current.m_viewportWidth == frame.m_width && current.m_viewportHeight == frame.m_height)
-    {
-        fried_software_frame_clear(renderer->m_windowId, color);
-        return;
-    }
-
-    fried_software_frame_clear(renderer->m_windowId, 0);
-    fried_software_frame_fill(
-        renderer->m_windowId,
-        current.m_viewportX, current.m_viewportY,
-        current.m_viewportX + current.m_viewportWidth, current.m_viewportY + current.m_viewportHeight,
-        color);
+    renderer->m_commands.clear();
+    Clear clear = {fried_software_pack(renderer->m_r, renderer->m_g, renderer->m_b)};
+    record(*renderer, ClearCommand, wholeOf(fried_software_frame_get(renderer->m_windowId)), &clear, sizeof(clear));
 }
 
 void fried_renderer_present(int rendererId)
 {
     Renderer *renderer = s_renderers.get(rendererId);
-    if (renderer)
+    if (!renderer)
     {
-        fried_software_frame_present(renderer->m_windowId);
+        return;
     }
+
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
+    FriedDisplayLayout current = layout(frame);
+    PixelRect whole = wholeOf(frame);
+    if (fried_software_frame_take_lost(renderer->m_windowId))
+    {
+        renderer->m_hasShown = false;
+    }
+
+    Regions regions(whole);
+    collectChanges(*renderer, current, regions, whole);
+    int top = frame.m_height;
+    int bottom = 0;
+    for (const PixelRect &region : regions.rects())
+    {
+        forEachCommand(renderer->m_commands, [&](const CommandHeader &header, const uint8_t *command) {
+            replay(*renderer, frame, current, header, command, region);
+        });
+        top = std::min(top, region.m_top);
+        bottom = std::max(bottom, region.m_bottom);
+    }
+    fried_software_frame_present(renderer->m_windowId, top, bottom);
+    renderer->m_shownCommands.swap(renderer->m_commands);
+    renderer->m_commands.clear();
+    renderer->m_shownLayout = current;
+    renderer->m_shownGeneration = fried_texture_get_software_generation();
+    renderer->m_hasShown = true;
 }
 
 void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
@@ -603,34 +1006,31 @@ void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y
     {
         return;
     }
-    drawQuad(fried_software_frame_get(renderer->m_windowId), *texture, {0, 0, texture->m_width, texture->m_height, x, y, width, height, 0.0, false, 0.0f, 0.0f, 0}, 255, 255, 255, 255);
+    recordQuad(*renderer, textureId, {0, 0, texture->m_width, texture->m_height, x, y, width, height, 0.0, false, 0.0f, 0.0f, 0}, 255, 255, 255, 255);
 }
 
 // Turned about the quad's centre, as SDL does with no centre given.
 void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
     Renderer *renderer = s_renderers.get(rendererId);
-    const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
-    if (!renderer || !texture)
+    if (!renderer)
     {
         return;
     }
-    drawQuad(fried_software_frame_get(renderer->m_windowId), *texture, {srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, false, 0.0f, 0.0f, flipMode}, 255, 255, 255, 255);
+    recordQuad(*renderer, textureId, {srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, false, 0.0f, 0.0f, flipMode}, 255, 255, 255, 255);
 }
 
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
     Renderer *renderer = s_renderers.get(rendererId);
-    const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
-    if (!renderer || !texture)
+    if (!renderer)
     {
         return;
     }
-    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
     for (int index = 0; index < count; ++index)
     {
         const FriedQuad &quad = quads[index];
-        drawQuad(frame, *texture,
+        recordQuad(*renderer, textureId,
             {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight, quad.m_x, quad.m_y, quad.m_width, quad.m_height, quad.m_angle, true, quad.m_pivotX, quad.m_pivotY, 0},
             std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255), std::clamp(a, 0, 255));
     }
@@ -643,25 +1043,34 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
     {
         return true;
     }
-    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
-    FriedDisplayLayout current = layout(frame);
+    FriedDisplayLayout current = layout(renderer->m_windowId);
     if (current.m_scaleX != 1.0f || current.m_scaleY != 1.0f)
     {
         return false;
     }
     const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
-    if (!texture || !texture->m_alpha || a <= 0)
+    if (!texture || !texture->m_alpha || a <= 0 || count <= 0)
     {
         return true;
     }
 
-    int left = current.m_viewportX + (int)std::lround(x);
-    int top = current.m_viewportY + (int)std::lround(y);
-    uint16_t color = fried_software_pack(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
-    int alpha = std::min(a, 255);
-    for (int index = 0; index < count; ++index)
+    Glyphs command;
+    std::memset(&command, 0, sizeof(command));
+    command.m_textureId = textureId;
+    command.m_left = current.m_viewportX + (int)std::lround(x);
+    command.m_top = current.m_viewportY + (int)std::lround(y);
+    command.m_color = fried_software_pack(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
+    command.m_alpha = std::min(a, 255);
+    command.m_count = count;
+    PixelRect bounds = boundsOf(*texture, glyphs[0], command.m_left, command.m_top);
+    for (int index = 1; index < count; ++index)
     {
-        drawGlyph(frame, *texture, glyphs[index], left, top, current, color, alpha);
+        bounds = unite(bounds, boundsOf(*texture, glyphs[index], command.m_left, command.m_top));
+    }
+    bounds = intersect(bounds, viewportOf(current));
+    if (!isEmpty(bounds))
+    {
+        record(*renderer, GlyphsCommand, bounds, &command, sizeof(command), glyphs, count * sizeof(FriedGlyphBlit));
     }
     return true;
 }
@@ -673,8 +1082,7 @@ void fried_renderer_fill_rect(int rendererId, float x, float y, float width, flo
     {
         return;
     }
-    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
-    fillPixels(frame, toPixels(layout(frame), x, y, width, height), *renderer);
+    recordFill(*renderer, toPixels(layout(renderer->m_windowId), x, y, width, height));
 }
 
 // One logical pixel wide, with the sides between the top and bottom edges so
@@ -687,15 +1095,14 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
         return;
     }
 
-    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
-    FriedDisplayLayout current = layout(frame);
+    FriedDisplayLayout current = layout(renderer->m_windowId);
     PixelRect outer = toPixels(current, x, y, width, height);
     PixelRect inner = toPixels(current, x + 1.0f, y + 1.0f, width - 2.0f, height - 2.0f);
 
-    fillPixels(frame, {outer.m_left, outer.m_top, outer.m_right, inner.m_top}, *renderer);
-    fillPixels(frame, {outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom}, *renderer);
-    fillPixels(frame, {outer.m_left, inner.m_top, inner.m_left, inner.m_bottom}, *renderer);
-    fillPixels(frame, {inner.m_right, inner.m_top, outer.m_right, inner.m_bottom}, *renderer);
+    recordFill(*renderer, {outer.m_left, outer.m_top, outer.m_right, inner.m_top});
+    recordFill(*renderer, {outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom});
+    recordFill(*renderer, {outer.m_left, inner.m_top, inner.m_left, inner.m_bottom});
+    recordFill(*renderer, {inner.m_right, inner.m_top, outer.m_right, inner.m_bottom});
 }
 
 void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
@@ -706,8 +1113,8 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
         return;
     }
 
-    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
-    FriedDisplayLayout current = layout(frame);
+    FriedDisplayLayout current = layout(renderer->m_windowId);
+    PixelRect viewport = viewportOf(current);
     for (int index = 0; index < triangleCount; ++index)
     {
         uint32_t argb = (uint32_t)argbColors[index];
@@ -718,8 +1125,13 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
         }
         const double *corners = points + index * 6;
         uint16_t color = fried_software_pack((int)((argb >> 16) & 0xff), (int)((argb >> 8) & 0xff), (int)(argb & 0xff));
-        fillTriangle(frame, current, toFixedPixels(current, corners[0], corners[1]), toFixedPixels(current, corners[2], corners[3]),
-                     toFixedPixels(current, corners[4], corners[5]), color, blendAlpha);
+        Triangle triangle = sortedTriangle(toFixedPixels(current, corners[0], corners[1]), toFixedPixels(current, corners[2], corners[3]),
+                                           toFixedPixels(current, corners[4], corners[5]), color, blendAlpha);
+        PixelRect bounds = intersect(boundsOf(triangle), viewport);
+        if (!isEmpty(bounds))
+        {
+            record(*renderer, TriangleCommand, bounds, &triangle, sizeof(triangle));
+        }
     }
 }
 

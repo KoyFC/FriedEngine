@@ -80,5 +80,16 @@ void fried_software_frame_clear(int windowId, uint16_t color);
 // Fills output pixels opaquely, right and bottom excluded.
 void fried_software_frame_fill(int windowId, int left, int top, int right, int bottom, uint16_t color);
 
-void fried_software_frame_present(int windowId);
+// Sends the frame's rows from top to bottom, bottom excluded, the only ones
+// drawn since the last present; with none, top is not above bottom.
+void fried_software_frame_present(int windowId, int top, int bottom);
 bool fried_software_frame_has_vsync(int windowId);
+
+// Whether the screen stopped showing the frame since the last call, so all of
+// it has to be drawn and sent again.
+bool fried_software_frame_take_lost(int windowId);
+
+#ifdef TARGET_FXCG50
+// The main menu, or a world switch, has had the screen.
+void fried_software_frame_lose();
+#endif

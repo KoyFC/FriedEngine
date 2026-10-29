@@ -63,6 +63,11 @@ struct FriedSoftwareTexture
 };
 
 const FriedSoftwareTexture *fried_texture_get_software(int textureId);
+
+// Goes up whenever a texture is loaded, destroyed or written to, so a frame
+// drawn from the same commands as the last one can still tell it would not
+// look the same.
+int fried_texture_get_software_generation();
 #endif
 
 #ifdef FRIED_SOFTWARE_FONT
