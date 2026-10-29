@@ -21,6 +21,9 @@ class Renderer {
 
 	public var drawColor(default, set):Color;
 
+	@:allow(fried.graphics3d.Camera3D)
+	var drawsMeshes:Bool;
+
 	var texturesByPath:Map<String, Texture>;
 	var activeTextures:Array<Texture>;
 	var pendingLayerAdds:Array<Layer>;
@@ -36,6 +39,7 @@ class Renderer {
 		}
 		this.window = window;
 		isVsyncEnabled = RendererNative.hasVsync(id);
+		drawsMeshes = RendererNative.drawsMeshes(id);
 		refreshSize();
 		drawColor = Color.rgb(255, 255, 255);
 		texturesByPath = new Map();
@@ -240,6 +244,11 @@ class Renderer {
 	}
 
 	@:allow(fried.graphics.DrawQueue)
+	function drawMesh(meshId:Int, placement:Array<Float>, hasCamera:Bool, zoom:Float, cameraX:Float, cameraY:Float):Void {
+		RendererNative.drawMesh(id, meshId, cpp.Pointer.ofArray(placement).constRaw, hasCamera, zoom, cameraX, cameraY);
+	}
+
+	@:allow(fried.graphics.DrawQueue)
 	static function checkTriangles(points:Array<Float>, colors:Array<Color>):Void {
 		if (points.length != colors.length * 6) {
 			throw 'Triangles take six coordinates per colour, but ${points.length} came with ${colors.length} colours.';
@@ -277,6 +286,7 @@ class Renderer {
 }
 
 @:include("graphics/renderer.h")
+@:include("graphics/mesh.h")
 private extern class RendererNative {
 	@:native("fried_renderer_create")
 	static function create(windowId:Int, vsync:Bool):Int;
@@ -317,4 +327,10 @@ private extern class RendererNative {
 
 	@:native("fried_renderer_fill_triangles")
 	static function fillTriangles(id:Int, points:cpp.RawConstPointer<Float>, argbColors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;
+
+	@:native("fried_renderer_draws_meshes")
+	static function drawsMeshes(id:Int):Bool;
+
+	@:native("fried_renderer_draw_mesh")
+	static function drawMesh(id:Int, meshId:Int, placement:cpp.RawConstPointer<Float>, hasCamera:Bool, zoom:Float, cameraX:Float, cameraY:Float):Void;
 }

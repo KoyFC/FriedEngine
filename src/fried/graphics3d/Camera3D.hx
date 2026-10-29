@@ -11,6 +11,8 @@ class Camera3D {
 	public var near:Float;
 	public var viewport:Rect;
 
+	static inline var PLACEMENT_SIZE = 20;
+
 	static var viewVertices:Array<Float> = [];
 	static var depths:Array<Float> = [];
 	static var shades:Array<Color> = [];
@@ -25,7 +27,18 @@ class Camera3D {
 		this.viewport = viewport;
 	}
 
+	// Returns how many triangles went to the queue, which for a renderer that draws meshes
+	// itself is all of them, since it leaves out the ones facing away.
 	public function submitMesh(priority:Int, mesh:Mesh, transform:Transform3D, light:DirectionalLight):Int {
+		var target = DrawQueue.currentRenderTarget;
+		if (target != null && target.drawsMeshes) {
+			var meshId = mesh.copyForRenderer();
+			if (meshId >= 0) {
+				place(DrawQueue.submitMesh(priority, meshId, PLACEMENT_SIZE), transform, light);
+				return mesh.triangleColors.length;
+			}
+		}
+
 		toView(mesh, transform);
 		collectVisibleTriangles(mesh, light);
 		if (drawOrder.length == 0) {
@@ -35,6 +48,32 @@ class Camera3D {
 		project(mesh);
 		DrawQueue.submitTriangles(priority, points, colors);
 		return drawOrder.length;
+	}
+
+	// In the order graphics/mesh.h lists them, and as they are: the renderer
+	// works out what the camera and the light give once for every mesh they
+	// are the same for.
+	function place(placement:Array<Float>, transform:Transform3D, light:DirectionalLight):Void {
+		placement[0] = transform.position.x;
+		placement[1] = transform.position.y;
+		placement[2] = transform.position.z;
+		placement[3] = transform.rotation.x;
+		placement[4] = transform.rotation.y;
+		placement[5] = transform.rotation.z;
+		placement[6] = transform.scale;
+		placement[7] = position.x;
+		placement[8] = position.y;
+		placement[9] = position.z;
+		placement[10] = fieldOfView;
+		placement[11] = viewport.x;
+		placement[12] = viewport.y;
+		placement[13] = viewport.width;
+		placement[14] = viewport.height;
+		placement[15] = near;
+		placement[16] = light.direction.x;
+		placement[17] = light.direction.y;
+		placement[18] = light.direction.z;
+		placement[19] = light.ambient;
 	}
 
 	function toView(mesh:Mesh, transform:Transform3D):Void {

@@ -8,6 +8,7 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 - [x] `fried.graphics3d`: mesh, fixed camera, directional light, back-face culling, per-mesh sort
 - [x] `SceneManager`, with the sandbox split into a 2D and a 3D scene
 - [x] 3D stress test scene
+- [x] Meshes drawn by the DS's 3D engine on its top screen
 
 ## Next
 

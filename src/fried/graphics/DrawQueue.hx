@@ -71,6 +71,20 @@ class DrawQueue {
 		copyInto(colors, command.colors);
 	}
 
+	// A mesh the renderer draws itself. Returns the numbers that place it, for
+	// Camera3D to fill in the order graphics/mesh.h lists them: they are
+	// written straight into the command, as copying them takes as long again.
+	@:allow(fried.graphics3d.Camera3D)
+	static function submitMesh(priority:Int, meshId:Int, placementSize:Int):Array<Float> {
+		var command = next(priority);
+		command.type = DrawMesh;
+		command.meshId = meshId;
+		if (command.points.length != placementSize) {
+			command.points.resize(placementSize);
+		}
+		return command.points;
+	}
+
 	@:allow(fried.Application)
 	static function flush(renderers:Array<Renderer>):Void {
 		sortPending();
@@ -121,6 +135,8 @@ class DrawQueue {
 					renderer.outlineArea(viewX, viewY, viewWidth, viewHeight);
 				case FillTriangles:
 					renderer.fillTriangles(computeViewPoints(command, renderer), command.colors);
+				case DrawMesh:
+					drawMesh(command, renderer);
 			}
 		}
 
@@ -145,6 +161,17 @@ class DrawQueue {
 		viewHeight = command.height * camera.zoom;
 	}
 
+	// The 2D camera moves and zooms the screen a mesh is projected onto, as it
+	// does the points of triangles.
+	static function drawMesh(command:DrawCommand, renderer:Renderer):Void {
+		var camera = command.camera;
+		if (camera == null) {
+			renderer.drawMesh(command.meshId, command.points, false, 1.0, 0.0, 0.0);
+			return;
+		}
+		renderer.drawMesh(command.meshId, command.points, true, camera.zoom, camera.transform.x, camera.transform.y);
+	}
+
 	static function computeViewPoints(command:DrawCommand, renderer:Renderer):Array<Float> {
 		var camera = command.camera;
 		if (camera == null) {
@@ -161,6 +188,9 @@ class DrawQueue {
 		return viewPoints;
 	}
 
+	// Generic so hxcpp makes one per element type: otherwise it copies through
+	// Dynamic, which boxes every Float it copies.
+	@:generic
 	static function copyInto<T>(source:Array<T>, destination:Array<T>):Void {
 		destination.resize(source.length);
 		for (index in 0...source.length) {
@@ -317,6 +347,7 @@ private enum abstract DrawCommandType(Int) {
 	var DrawRect = 2;
 	var Text = 3;
 	var FillTriangles = 4;
+	var DrawMesh = 5;
 }
 
 private class DrawCommand {
@@ -339,6 +370,7 @@ private class DrawCommand {
 	public var hasSource:Bool;
 	public var source:Rect;
 	public var points:Array<Float>;
+	public var meshId:Int;
 
 	public var color:Color;
 	public var colors:Array<Color>;
@@ -346,6 +378,7 @@ private class DrawCommand {
 	public function new() {
 		source = new Rect(0, 0, 0, 0);
 		points = [];
+		meshId = -1;
 		colors = [];
 	}
 }

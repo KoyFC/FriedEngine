@@ -157,6 +157,22 @@ The native calls placed each edge through `fried_display_snap()` and `lround()`,
 
 Left for later: the 3D engine can draw both screens by turning to the other one every frame, with the display capture keeping each one's last image on the screen the 2D engine shows it on, which is libnds's `3D_Both_Screens` example. Both screens would then be drawn the same way, share their textures and show at 30 frames a second each, at the cost of VRAM banks C and D. It could sit next to the software renderer as a choice the project makes; it was left out of this step because doing both at once was about half as much work again as the software one alone.
 
+### Meshes on the 3D engine
+
+The 3D stress test ran on the CPU path every other platform uses, at about 2 ms a cube: 60 frames a second with 4 cubes, 28 with 16, 4 with 128, 1 with 512, where it then crashed. Every float in it is a call into software floating point. The top screen now hands meshes to the 3D engine, which turns, lights, culls and depth tests them itself (`ARCHITECTURE.md` describes how), so the CPU only places each one.
+
+| Cubes | Before, frames a second | Now, ms a frame | Frames a second | Polygons | Vertices |
+|---|---|---|---|---|---|
+| 64 | 8 | 16.9 | 60 | 226 | 925 |
+| 128 | 4 | 20.7 | 48 | 416 | 1686 |
+| 256 | 2 | 33.9 | 29 | 796 | 3214 |
+| 512 | 1 | 65.8 | 15 | 1531 | 6144 |
+| 1024 | | 124.7 | 8 | 1530 | 6144 |
+
+The frame times are melonDS's, averaged over 120 frames after the first 120, and the polygons and vertices are the most the engine held in a frame. The engine keeps at most 6144 vertices, so from 512 cubes on what comes last in a frame is not drawn, and which cubes those are changes from frame to frame as they turn. Joining each face's two triangles into one quad took 256 cubes from 4755 vertices to 3214; before it 512 cubes already overflowed. At 2048 the run did not reach its 240th frame, which was not looked into.
+
+At 256 cubes, before the quads, a frame went like this: 8.7 ms placing the cubes in Haxe, 18.6 ms in the native draw, 8.4 of them sending polygons, and 7 ms in the draw queue's Haxe. Copying the placement through the queue's generic `copyInto()` boxed every number, which took the same cubes from 12 to 20 frames a second, and writing it straight into the command took 9 ms more off a frame. Building each mesh's rotation on the CPU was slower than the engine's own rotate commands, so those stay. What is left is the cost of a draw command per cube in Haxe and of feeding the engine by hand; a mesh's commands could go as a display list by DMA, letting the CPU place the next cube meanwhile.
+
 melonDS needs DLDI enabled with an SD card image for the sandbox to start, since it writes user data before it opens a window and the DS has nowhere to write without a FAT volume.
 
 melonDS's Flatpak plays the sound broken up at regular intervals on the machine this was developed on, and with audio sync on it runs at 23 FPS, so its output to the host is what falls behind. The emulated DS makes it clean: its own capture unit, recording the mixer's output into RAM, wrote 4 seconds of the sandbox's music and sounds with no gap or clipping. On a real DS the sound plays cleanly.

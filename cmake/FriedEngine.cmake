@@ -98,6 +98,7 @@ if(FRIED_CG50)
         native/graphics/texture_software.cpp
         native/graphics/font_software.cpp
         native/graphics/pixel_font_gint.cpp
+        native/graphics/mesh_none.cpp
         native/audio/sound_gint.cpp
         native/audio/music_gint.cpp
     )
@@ -123,6 +124,7 @@ elseif(NINTENDO_DS)
         native/graphics/texture_software.cpp
         native/graphics/font_software.cpp
         native/graphics/pixel_font_nds.cpp
+        native/graphics/mesh_nds.cpp
         native/audio/sound_nds.cpp
         native/audio/music_nds.cpp
         native/audio/wave_nds.cpp
@@ -140,6 +142,7 @@ else()
         native/graphics/renderer_${_fried_graphics_backend}.cpp
         native/graphics/texture_${_fried_graphics_backend}.cpp
         native/graphics/font.cpp
+        native/graphics/mesh_none.cpp
         native/audio/sound.cpp
         native/audio/music.cpp
     )
