@@ -4,24 +4,17 @@
 #include "last_error.h"
 #include "graphics/display.h"
 #include "graphics/font.h"
+#include "graphics/software_frame.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
-
-#include <gint/display.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 
-// gint draws into a 396x224 RGB565 frame in memory, which dupdate() sends to
-// the screen. Everything here is drawn into that frame by the CPU, through
-// the same display layout the other backends hand their GPU.
-//
-// gint reaches the frame through an address that skips the CPU's cache, so
-// the DMA that sends it and the one that clears it never find a stale copy.
-// Blending reads every pixel it draws over, and each of those reads went out
-// to memory, so the frame is reached through the cache here instead, and the
-// cache is kept in step by hand on either side of the two transfers.
+// Everything here is drawn into the window's frame by the CPU, through the
+// same display layout the other backends hand their GPU. The platform owns
+// the frame and sends it to the screen (graphics/software_frame.h).
 
 namespace
 {
@@ -46,55 +39,14 @@ namespace
         int m_bottom;
     };
 
-    constexpr uintptr_t s_physicalMask = 0x1fffffff;
-    constexpr uintptr_t s_cachedArea = 0x80000000;
-    constexpr uintptr_t s_uncachedArea = 0xa0000000;
-    constexpr uintptr_t s_cacheLine = 32;
-
-    uint16_t *inArea(uint16_t *frame, uintptr_t area)
+    FriedDisplayLayout layout(const FriedSoftwareFrame &frame)
     {
-        return (uint16_t *)(((uintptr_t)frame & s_physicalMask) | area);
+        return fried_display_layout(frame.m_width, frame.m_height);
     }
 
-    void useFrameThrough(uintptr_t area)
+    FriedDisplayLayout layout(int windowId)
     {
-        uint16_t *frame = inArea(gint_vram, area);
-        dsetvram(frame, frame);
-    }
-
-    // gint aligns the frame to cache lines, so no other data shares one.
-    template <typename Operation>
-    void forEachFrameLine(Operation operation)
-    {
-        uintptr_t end = (uintptr_t)(gint_vram + DWIDTH * DHEIGHT);
-        for (uintptr_t line = (uintptr_t)gint_vram; line < end; line += s_cacheLine)
-        {
-            operation(line);
-        }
-    }
-
-    // What is drawn and still only in the cache goes out to memory, where the
-    // DMA reads it from.
-    void writeBackFrame()
-    {
-        forEachFrameLine([](uintptr_t line) { __asm__ volatile("ocbwb @%0" : : "r"(line) : "memory"); });
-    }
-
-    // The cached copy is dropped unwritten, ahead of a DMA that overwrites
-    // all of the frame.
-    void discardCachedFrame()
-    {
-        forEachFrameLine([](uintptr_t line) { __asm__ volatile("ocbi @%0" : : "r"(line) : "memory"); });
-    }
-
-    FriedDisplayLayout layout()
-    {
-        return fried_display_layout(DWIDTH, DHEIGHT);
-    }
-
-    uint16_t toRgb565(int r, int g, int b)
-    {
-        return (uint16_t)(((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3));
+        return layout(fried_software_frame_get(windowId));
     }
 
     // Each edge goes to the nearest output pixel, as fried_display_snap() does
@@ -127,7 +79,7 @@ namespace
     // to come back, and three of them per pixel made a translucent rectangle
     // the size of the screen cost around 90 ms. Against blending each channel
     // exactly, no channel is ever off by more than one step.
-    constexpr uint32_t s_spreadMask = 0x07E0F81F;
+    constexpr uint32_t s_spreadMask = (FRIED_SOFTWARE_HIGH_FIELD << 16) | FRIED_SOFTWARE_LOW_FIELDS;
 
     __attribute__((always_inline)) inline uint32_t spread(uint16_t color)
     {
@@ -136,7 +88,7 @@ namespace
 
     __attribute__((always_inline)) inline uint16_t pack(uint32_t spreadColor)
     {
-        return (uint16_t)((spreadColor & 0xF81F) | (spreadColor >> 16));
+        return (uint16_t)((spreadColor & FRIED_SOFTWARE_LOW_FIELDS) | (spreadColor >> 16));
     }
 
     // From 0..255 to the 0..32 the blend takes.
@@ -196,25 +148,25 @@ namespace
         }
     }
 
-    void fillPixels(const PixelRect &rect, const Renderer &renderer)
+    void fillPixels(const FriedSoftwareFrame &frame, const PixelRect &rect, const Renderer &renderer)
     {
         if (rect.m_left >= rect.m_right || rect.m_top >= rect.m_bottom || renderer.m_a == 0)
         {
             return;
         }
 
-        uint16_t color = toRgb565(renderer.m_r, renderer.m_g, renderer.m_b);
+        uint16_t color = fried_software_pack(renderer.m_r, renderer.m_g, renderer.m_b);
         int blendAlpha = toBlendAlpha(renderer.m_a);
         if (blendAlpha == 32)
         {
-            drect(rect.m_left, rect.m_top, rect.m_right - 1, rect.m_bottom - 1, color);
+            fried_software_frame_fill(renderer.m_windowId, rect.m_left, rect.m_top, rect.m_right, rect.m_bottom, color);
             return;
         }
 
         SpanBlend blend(color, blendAlpha);
         for (int y = rect.m_top; y < rect.m_bottom; ++y)
         {
-            blendRow(gint_vram + y * DWIDTH, rect.m_left, rect.m_right, blend);
+            blendRow(frame.m_pixels + y * frame.m_width, rect.m_left, rect.m_right, blend);
         }
     }
 
@@ -276,7 +228,7 @@ namespace
         int64_t m_step;
     };
 
-    void fillTriangle(const FriedDisplayLayout &layout, FixedPoint top, FixedPoint middle, FixedPoint bottom, uint16_t color, int blendAlpha)
+    void fillTriangle(const FriedSoftwareFrame &frame, const FriedDisplayLayout &layout, FixedPoint top, FixedPoint middle, FixedPoint bottom, uint16_t color, int blendAlpha)
     {
         if (middle.m_y < top.m_y)
         {
@@ -310,7 +262,7 @@ namespace
                 int right = std::min(firstPixelCentredFrom(std::max(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), viewportRight);
                 if (left < right)
                 {
-                    uint16_t *pixels = gint_vram + row * DWIDTH;
+                    uint16_t *pixels = frame.m_pixels + row * frame.m_width;
                     if (blendAlpha == 32)
                     {
                         std::fill(pixels + left, pixels + right, color);
@@ -361,7 +313,7 @@ namespace
     // rotation and the scale to the texel it shows, nearest first. The steps
     // from one pixel to the next are in 16.16 fixed point, since the SH4 has
     // no floating point unit.
-    void drawQuad(const FriedGintTexture &texture, const TexturedQuad &quad, int r, int g, int b, int a)
+    void drawQuad(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const TexturedQuad &quad, int r, int g, int b, int a)
     {
         int srcX = std::max(quad.m_srcX, 0);
         int srcY = std::max(quad.m_srcY, 0);
@@ -372,7 +324,7 @@ namespace
             return;
         }
 
-        FriedDisplayLayout current = layout();
+        FriedDisplayLayout current = layout(frame);
         float left = current.m_viewportX + std::round(quad.m_x * current.m_scaleX);
         float top = current.m_viewportY + std::round(quad.m_y * current.m_scaleY);
         float right = current.m_viewportX + std::round((quad.m_x + quad.m_width) * current.m_scaleX);
@@ -441,14 +393,14 @@ namespace
 
         // A blank texture is white, so tinted it is one colour throughout.
         bool tinted = r != 255 || g != 255 || b != 255;
-        uint16_t tint = toRgb565(r, g, b);
+        uint16_t tint = fried_software_pack(r, g, b);
         uint32_t spreadTint = spread(tint);
         bool flipX = quad.m_flip & s_flipHorizontal;
         bool flipY = quad.m_flip & s_flipVertical;
 
         for (int y = startY; y < endY; ++y)
         {
-            uint16_t *row = gint_vram + y * DWIDTH;
+            uint16_t *row = frame.m_pixels + y * frame.m_width;
             int32_t texelU = rowU;
             int32_t texelV = rowV;
             for (int x = startX; x < endX; ++x, texelU += stepUAcross, texelV += stepVAcross)
@@ -484,10 +436,10 @@ namespace
                 else if (tinted)
                 {
                     uint16_t texel = texture.m_pixels[index];
-                    color = toRgb565(
-                        divideBy255(((texel >> 8) & 0xf8) * r),
-                        divideBy255(((texel >> 3) & 0xfc) * g),
-                        divideBy255(((texel << 3) & 0xf8) * b));
+                    color = fried_software_pack(
+                        divideBy255(fried_software_red(texel) * r),
+                        divideBy255(fried_software_green(texel) * g),
+                        divideBy255(fried_software_blue(texel) * b));
                 }
                 else
                 {
@@ -512,7 +464,7 @@ namespace
     // A glyph's texels land one to one on output pixels, so each is a
     // coverage looked up and, where it is not empty, the tint written or
     // blended over what is there.
-    void drawGlyph(const FriedGintTexture &texture, const FriedGlyphBlit &glyph, int left, int top, const FriedDisplayLayout &current, uint16_t color, int a)
+    void drawGlyph(const FriedSoftwareFrame &frame, const FriedSoftwareTexture &texture, const FriedGlyphBlit &glyph, int left, int top, const FriedDisplayLayout &current, uint16_t color, int a)
     {
         int x = left + glyph.m_offsetX;
         int y = top + glyph.m_offsetY;
@@ -530,7 +482,7 @@ namespace
         for (int row = startY; row < endY; ++row)
         {
             const uint8_t *coverage = texture.m_alpha + (glyph.m_srcY + row - y) * texture.m_width + glyph.m_srcX + startX - x;
-            uint16_t *pixel = gint_vram + row * DWIDTH + startX;
+            uint16_t *pixel = frame.m_pixels + row * frame.m_width + startX;
             for (int column = 0; column < width; ++column)
             {
                 int alpha = coverage[column];
@@ -559,37 +511,39 @@ int fried_renderer_create(int windowId, bool)
         fried_set_last_error("No such window");
         return -1;
     }
-    useFrameThrough(s_cachedArea);
+    fried_software_frame_open(windowId);
     return s_renderers.store(new Renderer{windowId, 0, 0, 0, 255});
 }
 
 void fried_renderer_destroy(int rendererId)
 {
-    if (!s_renderers.get(rendererId))
+    Renderer *renderer = s_renderers.get(rendererId);
+    if (!renderer)
     {
         return;
     }
+    int windowId = renderer->m_windowId;
     fried_font_release_renderer(rendererId);
     delete s_renderers.release(rendererId);
-    writeBackFrame();
-    useFrameThrough(s_uncachedArea);
+    fried_software_frame_close(windowId);
 }
 
-// dupdate() sends the frame as soon as it is called; nothing waits for the
-// screen's refresh.
-bool fried_renderer_has_vsync(int)
+bool fried_renderer_has_vsync(int rendererId)
 {
-    return false;
+    Renderer *renderer = s_renderers.get(rendererId);
+    return renderer && fried_software_frame_has_vsync(renderer->m_windowId);
 }
 
 int fried_renderer_get_width(int rendererId)
 {
-    return s_renderers.get(rendererId) ? layout().m_width : 0;
+    Renderer *renderer = s_renderers.get(rendererId);
+    return renderer ? layout(renderer->m_windowId).m_width : 0;
 }
 
 int fried_renderer_get_height(int rendererId)
 {
-    return s_renderers.get(rendererId) ? layout().m_height : 0;
+    Renderer *renderer = s_renderers.get(rendererId);
+    return renderer ? layout(renderer->m_windowId).m_height : 0;
 }
 
 void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
@@ -615,63 +569,68 @@ void fried_renderer_clear(int rendererId)
         return;
     }
 
-    uint16_t color = toRgb565(renderer->m_r, renderer->m_g, renderer->m_b);
-    FriedDisplayLayout current = layout();
-    discardCachedFrame();
-    if (current.m_viewportWidth == DWIDTH && current.m_viewportHeight == DHEIGHT)
+    uint16_t color = fried_software_pack(renderer->m_r, renderer->m_g, renderer->m_b);
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
+    FriedDisplayLayout current = layout(frame);
+    if (current.m_viewportWidth == frame.m_width && current.m_viewportHeight == frame.m_height)
     {
-        dclear(color);
+        fried_software_frame_clear(renderer->m_windowId, color);
         return;
     }
 
-    dclear(0);
-    drect(
+    fried_software_frame_clear(renderer->m_windowId, 0);
+    fried_software_frame_fill(
+        renderer->m_windowId,
         current.m_viewportX, current.m_viewportY,
-        current.m_viewportX + current.m_viewportWidth - 1, current.m_viewportY + current.m_viewportHeight - 1,
+        current.m_viewportX + current.m_viewportWidth, current.m_viewportY + current.m_viewportHeight,
         color);
 }
 
 void fried_renderer_present(int rendererId)
 {
-    if (s_renderers.get(rendererId))
+    Renderer *renderer = s_renderers.get(rendererId);
+    if (renderer)
     {
-        writeBackFrame();
-        dupdate();
+        fried_software_frame_present(renderer->m_windowId);
     }
 }
 
 void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
-    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
-    if (!s_renderers.get(rendererId) || !texture)
+    Renderer *renderer = s_renderers.get(rendererId);
+    const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
+    if (!renderer || !texture)
     {
         return;
     }
-    drawQuad(*texture, {0, 0, texture->m_width, texture->m_height, x, y, width, height, 0.0, false, 0.0f, 0.0f, 0}, 255, 255, 255, 255);
+    drawQuad(fried_software_frame_get(renderer->m_windowId), *texture, {0, 0, texture->m_width, texture->m_height, x, y, width, height, 0.0, false, 0.0f, 0.0f, 0}, 255, 255, 255, 255);
 }
 
 // Turned about the quad's centre, as SDL does with no centre given.
 void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
-    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
-    if (!s_renderers.get(rendererId) || !texture)
+    Renderer *renderer = s_renderers.get(rendererId);
+    const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
+    if (!renderer || !texture)
     {
         return;
     }
-    drawQuad(*texture, {srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, false, 0.0f, 0.0f, flipMode}, 255, 255, 255, 255);
+    drawQuad(fried_software_frame_get(renderer->m_windowId), *texture, {srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, false, 0.0f, 0.0f, flipMode}, 255, 255, 255, 255);
 }
 
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
-    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
-    if (!s_renderers.get(rendererId) || !texture)
+    Renderer *renderer = s_renderers.get(rendererId);
+    const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
+    if (!renderer || !texture)
     {
         return;
     }
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
     for (int index = 0; index < count; ++index)
     {
         const FriedQuad &quad = quads[index];
-        drawQuad(*texture,
+        drawQuad(frame, *texture,
             {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight, quad.m_x, quad.m_y, quad.m_width, quad.m_height, quad.m_angle, true, quad.m_pivotX, quad.m_pivotY, 0},
             std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255), std::clamp(a, 0, 255));
     }
@@ -679,24 +638,30 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
 
 bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y, const FriedGlyphBlit *glyphs, int count, int r, int g, int b, int a)
 {
-    FriedDisplayLayout current = layout();
+    Renderer *renderer = s_renderers.get(rendererId);
+    if (!renderer)
+    {
+        return true;
+    }
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
+    FriedDisplayLayout current = layout(frame);
     if (current.m_scaleX != 1.0f || current.m_scaleY != 1.0f)
     {
         return false;
     }
-    const FriedGintTexture *texture = fried_texture_get_gint(textureId);
-    if (!s_renderers.get(rendererId) || !texture || !texture->m_alpha || a <= 0)
+    const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
+    if (!texture || !texture->m_alpha || a <= 0)
     {
         return true;
     }
 
     int left = current.m_viewportX + (int)std::lround(x);
     int top = current.m_viewportY + (int)std::lround(y);
-    uint16_t color = toRgb565(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
+    uint16_t color = fried_software_pack(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
     int alpha = std::min(a, 255);
     for (int index = 0; index < count; ++index)
     {
-        drawGlyph(*texture, glyphs[index], left, top, current, color, alpha);
+        drawGlyph(frame, *texture, glyphs[index], left, top, current, color, alpha);
     }
     return true;
 }
@@ -708,7 +673,8 @@ void fried_renderer_fill_rect(int rendererId, float x, float y, float width, flo
     {
         return;
     }
-    fillPixels(toPixels(layout(), x, y, width, height), *renderer);
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
+    fillPixels(frame, toPixels(layout(frame), x, y, width, height), *renderer);
 }
 
 // One logical pixel wide, with the sides between the top and bottom edges so
@@ -721,24 +687,27 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
         return;
     }
 
-    FriedDisplayLayout current = layout();
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
+    FriedDisplayLayout current = layout(frame);
     PixelRect outer = toPixels(current, x, y, width, height);
     PixelRect inner = toPixels(current, x + 1.0f, y + 1.0f, width - 2.0f, height - 2.0f);
 
-    fillPixels({outer.m_left, outer.m_top, outer.m_right, inner.m_top}, *renderer);
-    fillPixels({outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom}, *renderer);
-    fillPixels({outer.m_left, inner.m_top, inner.m_left, inner.m_bottom}, *renderer);
-    fillPixels({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom}, *renderer);
+    fillPixels(frame, {outer.m_left, outer.m_top, outer.m_right, inner.m_top}, *renderer);
+    fillPixels(frame, {outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom}, *renderer);
+    fillPixels(frame, {outer.m_left, inner.m_top, inner.m_left, inner.m_bottom}, *renderer);
+    fillPixels(frame, {inner.m_right, inner.m_top, outer.m_right, inner.m_bottom}, *renderer);
 }
 
 void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
 {
-    if (!s_renderers.get(rendererId))
+    Renderer *renderer = s_renderers.get(rendererId);
+    if (!renderer)
     {
         return;
     }
 
-    FriedDisplayLayout current = layout();
+    FriedSoftwareFrame frame = fried_software_frame_get(renderer->m_windowId);
+    FriedDisplayLayout current = layout(frame);
     for (int index = 0; index < triangleCount; ++index)
     {
         uint32_t argb = (uint32_t)argbColors[index];
@@ -748,32 +717,33 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
             continue;
         }
         const double *corners = points + index * 6;
-        uint16_t color = toRgb565((int)((argb >> 16) & 0xff), (int)((argb >> 8) & 0xff), (int)(argb & 0xff));
-        fillTriangle(current, toFixedPixels(current, corners[0], corners[1]), toFixedPixels(current, corners[2], corners[3]),
+        uint16_t color = fried_software_pack((int)((argb >> 16) & 0xff), (int)((argb >> 8) & 0xff), (int)(argb & 0xff));
+        fillTriangle(frame, current, toFixedPixels(current, corners[0], corners[1]), toFixedPixels(current, corners[2], corners[3]),
                      toFixedPixels(current, corners[4], corners[5]), color, blendAlpha);
     }
 }
 
-void fried_renderer_window_to_logical(int, int x, int y, int &logicalX, int &logicalY)
+void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
 {
-    FriedDisplayLayout current = layout();
+    FriedDisplayLayout current = layout(windowId);
     logicalX = (int)std::floor((x - current.m_viewportX) / current.m_scaleX);
     logicalY = (int)std::floor((y - current.m_viewportY) / current.m_scaleY);
 }
 
-void fried_renderer_touch_to_logical(int, float x, float y, int &logicalX, int &logicalY)
+void fried_renderer_touch_to_logical(int windowId, float x, float y, int &logicalX, int &logicalY)
 {
-    FriedDisplayLayout current = layout();
+    FriedDisplayLayout current = layout(windowId);
     logicalX = clampToPixelInside((int)(x * current.m_width), current.m_width);
     logicalY = clampToPixelInside((int)(y * current.m_height), current.m_height);
 }
 
 float fried_renderer_get_pixel_scale(int rendererId)
 {
-    if (!s_renderers.get(rendererId))
+    Renderer *renderer = s_renderers.get(rendererId);
+    if (!renderer)
     {
         return 1.0f;
     }
-    FriedDisplayLayout current = layout();
+    FriedDisplayLayout current = layout(renderer->m_windowId);
     return std::min(current.m_scaleX, current.m_scaleY);
 }

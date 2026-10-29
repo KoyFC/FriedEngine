@@ -78,7 +78,8 @@ else()
 endif()
 
 # The calculator has no SDL2 under any of it, so every file that calls SDL has
-# a gint sibling there.
+# a gint sibling there, apart from the renderer and textures, which are drawn by
+# the CPU into a frame software_frame_gint.cpp hands them.
 if(FRIED_CG50)
     set(_fried_native_sources
         native/platform/application_gint.cpp
@@ -89,8 +90,9 @@ if(FRIED_CG50)
         native/platform/mouse_gint.cpp
         native/platform/touch_gint.cpp
         native/platform/window_gint.cpp
-        native/graphics/renderer_gint.cpp
-        native/graphics/texture_gint.cpp
+        native/graphics/software_frame_gint.cpp
+        native/graphics/renderer_software.cpp
+        native/graphics/texture_software.cpp
         native/graphics/font_gint.cpp
         native/audio/sound_gint.cpp
         native/audio/music_gint.cpp
@@ -132,6 +134,7 @@ if(NOT TARGET fried_engine)
 
     if(FRIED_CG50)
         target_link_libraries(fried_engine PUBLIC Gint::Gint)
+        target_compile_definitions(fried_engine PUBLIC FRIED_SOFTWARE_RENDERER)
     elseif(FRIED_WEB)
         target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
     elseif(VITA OR NINTENDO_3DS)

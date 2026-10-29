@@ -21,14 +21,14 @@ bool fried_texture_write(int textureId, int x, int y, struct SDL_Surface *surfac
 #include <citro2d.h>
 
 const C2D_Image *fried_texture_get_citro(int textureId);
-#elif defined(TARGET_FXCG50)
+#elif defined(FRIED_SOFTWARE_RENDERER)
 #include <cstdint>
 
-// RGB565, the screen's own format, with an alpha channel only when the image
+// The screen's own pixel format, with an alpha channel only when the image
 // has a pixel that is not fully opaque. A texture made blank has no colours at
 // all, only alpha, and draws white: what a glyph atlas needs, at a third of
 // the memory.
-struct FriedGintTexture
+struct FriedSoftwareTexture
 {
     int m_width;
     int m_height;
@@ -36,7 +36,7 @@ struct FriedGintTexture
     uint8_t *m_alpha;
 };
 
-const FriedGintTexture *fried_texture_get_gint(int textureId);
+const FriedSoftwareTexture *fried_texture_get_software(int textureId);
 
 // Copies coverage into a blank texture's alpha, as fried_texture_write() does
 // a surface elsewhere.

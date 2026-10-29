@@ -1,0 +1,57 @@
+#pragma once
+
+#include <cstdint>
+
+// What a platform whose drawing is done by the CPU gives renderer_software.cpp:
+// a 16-bit frame per window in the screen's own pixel format, and the few
+// operations on a whole frame that its hardware does better than a loop.
+
+#ifdef TARGET_FXCG50
+// RGB565. Blending spreads a colour's fields apart in 32 bits, green high and
+// red and blue low, so one multiplication blends all three.
+constexpr uint32_t FRIED_SOFTWARE_LOW_FIELDS = 0xF81F;
+constexpr uint32_t FRIED_SOFTWARE_HIGH_FIELD = 0x07E0;
+
+inline uint16_t fried_software_pack(int r, int g, int b)
+{
+    return (uint16_t)(((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3));
+}
+
+inline int fried_software_red(uint16_t pixel)
+{
+    return (pixel >> 8) & 0xf8;
+}
+
+inline int fried_software_green(uint16_t pixel)
+{
+    return (pixel >> 3) & 0xfc;
+}
+
+inline int fried_software_blue(uint16_t pixel)
+{
+    return (pixel << 3) & 0xf8;
+}
+#endif
+
+// Rows are m_width pixels apart and start on four bytes.
+struct FriedSoftwareFrame
+{
+    uint16_t *m_pixels;
+    int m_width;
+    int m_height;
+};
+
+// Between open and close a renderer draws into the window's frame.
+FriedSoftwareFrame fried_software_frame_open(int windowId);
+void fried_software_frame_close(int windowId);
+
+FriedSoftwareFrame fried_software_frame_get(int windowId);
+
+// Fills the whole frame, replacing what is there.
+void fried_software_frame_clear(int windowId, uint16_t color);
+
+// Fills output pixels opaquely, right and bottom excluded.
+void fried_software_frame_fill(int windowId, int left, int top, int right, int bottom, uint16_t color);
+
+void fried_software_frame_present(int windowId);
+bool fried_software_frame_has_vsync(int windowId);

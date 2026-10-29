@@ -3,6 +3,7 @@
 #include "handle_pool.h"
 #include "last_error.h"
 #include "graphics/renderer.h"
+#include "graphics/software_frame.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -12,7 +13,7 @@
 #include <cstring>
 #include <new>
 
-// gint has no image decoder, so PNGs are decoded with stb_image, the same
+// With no SDL2_image underneath, PNGs are decoded with stb_image, the same
 // decoder SDL2_image uses on the other platforms, and only its PNG one.
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -23,9 +24,9 @@
 
 namespace
 {
-    HandlePool<FriedGintTexture> s_textures;
+    HandlePool<FriedSoftwareTexture> s_textures;
 
-    void destroy(FriedGintTexture *texture)
+    void destroy(FriedSoftwareTexture *texture)
     {
         if (!texture)
         {
@@ -36,8 +37,8 @@ namespace
         delete texture;
     }
 
-    // One read for the whole file: each call into the filesystem is a world
-    // switch to the OS and back.
+    // One read for the whole file: on the calculator each call into the
+    // filesystem is a world switch to the OS and back.
     unsigned char *readFile(const char *path, int &size)
     {
         int fd = open(path, O_RDONLY);
@@ -62,7 +63,7 @@ namespace
         return contents;
     }
 
-    FriedGintTexture *convert(const unsigned char *rgba, int width, int height)
+    FriedSoftwareTexture *convert(const unsigned char *rgba, int width, int height)
     {
         int count = width * height;
         bool translucent = false;
@@ -71,7 +72,7 @@ namespace
             translucent = rgba[index * 4 + 3] != 255;
         }
 
-        FriedGintTexture *texture = new (std::nothrow) FriedGintTexture{width, height, nullptr, nullptr};
+        FriedSoftwareTexture *texture = new (std::nothrow) FriedSoftwareTexture{width, height, nullptr, nullptr};
         if (texture)
         {
             texture->m_pixels = new (std::nothrow) uint16_t[count];
@@ -86,7 +87,7 @@ namespace
         for (int index = 0; index < count; ++index)
         {
             const unsigned char *pixel = rgba + index * 4;
-            texture->m_pixels[index] = (uint16_t)(((pixel[0] & 0xf8) << 8) | ((pixel[1] & 0xfc) << 3) | (pixel[2] >> 3));
+            texture->m_pixels[index] = fried_software_pack(pixel[0], pixel[1], pixel[2]);
             if (translucent)
             {
                 texture->m_alpha[index] = pixel[3];
@@ -96,7 +97,7 @@ namespace
     }
 }
 
-const FriedGintTexture *fried_texture_get_gint(int textureId)
+const FriedSoftwareTexture *fried_texture_get_software(int textureId)
 {
     return s_textures.get(textureId);
 }
@@ -109,7 +110,7 @@ int fried_texture_create_blank(int rendererId, int width, int height)
         return -1;
     }
 
-    FriedGintTexture *texture = new (std::nothrow) FriedGintTexture{width, height, nullptr, nullptr};
+    FriedSoftwareTexture *texture = new (std::nothrow) FriedSoftwareTexture{width, height, nullptr, nullptr};
     if (texture)
     {
         texture->m_alpha = new (std::nothrow) uint8_t[width * height]();
@@ -125,7 +126,7 @@ int fried_texture_create_blank(int rendererId, int width, int height)
 
 bool fried_texture_write_alpha(int textureId, int x, int y, const uint8_t *alpha, int width, int height)
 {
-    FriedGintTexture *texture = s_textures.get(textureId);
+    FriedSoftwareTexture *texture = s_textures.get(textureId);
     if (!texture || !texture->m_alpha || x < 0 || y < 0 || x + width > texture->m_width || y + height > texture->m_height)
     {
         return false;
@@ -161,7 +162,7 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    FriedGintTexture *texture = convert(rgba, width, height);
+    FriedSoftwareTexture *texture = convert(rgba, width, height);
     stbi_image_free(rgba);
     if (!texture)
     {
@@ -181,13 +182,13 @@ void fried_texture_destroy(int textureId)
 
 int fried_texture_get_width(int textureId)
 {
-    const FriedGintTexture *texture = s_textures.get(textureId);
+    const FriedSoftwareTexture *texture = s_textures.get(textureId);
     return texture ? texture->m_width : 0;
 }
 
 int fried_texture_get_height(int textureId)
 {
-    const FriedGintTexture *texture = s_textures.get(textureId);
+    const FriedSoftwareTexture *texture = s_textures.get(textureId);
     return texture ? texture->m_height : 0;
 }
 
