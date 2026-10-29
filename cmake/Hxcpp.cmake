@@ -179,7 +179,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         endif()
 
         if(NINTENDO_DS)
-            target_sources(${target_name} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/nds/atomics.cpp")
+            target_sources(${target_name} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/nds/runtime.cpp")
         endif()
     elseif(FRIED_WEB)
         # hxcpp's own emscripten toolchain passes -DEMSCRIPTEN; emcc only defines __EMSCRIPTEN__.
