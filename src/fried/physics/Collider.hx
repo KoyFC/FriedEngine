@@ -5,6 +5,7 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
 import fried.scene.Component;
 
+@:serializable
 class Collider extends Component {
 	public var width:Float;
 	public var height:Float;

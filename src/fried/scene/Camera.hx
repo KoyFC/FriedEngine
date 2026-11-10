@@ -3,6 +3,7 @@ package fried.scene;
 import fried.Log;
 import fried.graphics.Renderer;
 
+@:serializable
 class Camera extends Component {
 	public var zoom(default, set):Float;
 

@@ -3,6 +3,7 @@ package fried.scene;
 import fried.graphics.Renderer;
 import fried.input.InputEvent;
 
+@:autoBuild(fried.scene.serialization.ComponentBuilder.build())
 class Component {
 	public var gameObject(default, null):GameObject;
 	public var enabled:Bool;

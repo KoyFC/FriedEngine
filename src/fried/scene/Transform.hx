@@ -1,5 +1,6 @@
 package fried.scene;
 
+@:serializable
 class Transform extends Component {
 	public var x:Float;
 	public var y:Float;

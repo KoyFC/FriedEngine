@@ -4,6 +4,7 @@ import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 
+@:serializable
 class Text extends Component {
 	public var font(default, set):Font;
 	public var text(default, set):String;

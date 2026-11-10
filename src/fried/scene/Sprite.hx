@@ -5,6 +5,7 @@ import fried.graphics.FlipMode;
 import fried.graphics.Rect;
 import fried.graphics.Texture;
 
+@:serializable
 class Sprite extends Component {
 	public var texture:Texture;
 	public var source:Rect;

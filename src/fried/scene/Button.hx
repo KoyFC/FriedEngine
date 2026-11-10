@@ -8,6 +8,7 @@ import fried.graphics.Renderer;
 import fried.input.InputEvent;
 import fried.input.MouseButton;
 
+@:serializable
 class Button extends Component {
 	public var width:Int;
 	public var height:Int;
