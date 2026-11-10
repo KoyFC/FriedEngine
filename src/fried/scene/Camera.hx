@@ -17,20 +17,29 @@ class Camera extends Component {
 		this.zoom = zoom;
 	}
 
-	public function worldToScreenX(worldX:Float, renderer:Renderer):Float {
-		return (worldX - transform.x) * zoom + renderer.width / 2;
+	// Each conversion takes the view's size from the renderer given, or else from the scene the camera belongs to, so a component can call it without holding the renderer.
+	public function worldToScreenX(worldX:Float, ?renderer:Renderer):Float {
+		return (worldX - transform.x) * zoom + viewWidth(renderer) / 2;
 	}
 
-	public function worldToScreenY(worldY:Float, renderer:Renderer):Float {
-		return (worldY - transform.y) * zoom + renderer.height / 2;
+	public function worldToScreenY(worldY:Float, ?renderer:Renderer):Float {
+		return (worldY - transform.y) * zoom + viewHeight(renderer) / 2;
 	}
 
-	public function screenToWorldX(screenX:Float, renderer:Renderer):Float {
-		return (screenX - renderer.width / 2) / zoom + transform.x;
+	public function screenToWorldX(screenX:Float, ?renderer:Renderer):Float {
+		return (screenX - viewWidth(renderer) / 2) / zoom + transform.x;
 	}
 
-	public function screenToWorldY(screenY:Float, renderer:Renderer):Float {
-		return (screenY - renderer.height / 2) / zoom + transform.y;
+	public function screenToWorldY(screenY:Float, ?renderer:Renderer):Float {
+		return (screenY - viewHeight(renderer) / 2) / zoom + transform.y;
+	}
+
+	function viewWidth(renderer:Null<Renderer>):Int {
+		return renderer != null ? renderer.width : assignedScene.viewWidth;
+	}
+
+	function viewHeight(renderer:Null<Renderer>):Int {
+		return renderer != null ? renderer.height : assignedScene.viewHeight;
 	}
 
 	public function lookAt(worldX:Float, worldY:Float):Void {
