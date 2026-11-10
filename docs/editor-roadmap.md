@@ -45,8 +45,8 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ### 5. Scene editing (FriedEditor)
 
-- [ ] Scene document with load and save
-- [ ] Undo and redo commands
+- [x] Scene document with load and save
+- [x] Undo and redo commands
 - [ ] Viewport with pan, zoom and selection
 - [ ] Hierarchy panel
 - [ ] Inspector generated from the schema
