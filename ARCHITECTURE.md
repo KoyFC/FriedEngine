@@ -28,6 +28,8 @@ The Haxe side needed no equivalent, since it never had a location to configure. 
 
 Because that layout is fixed and small, it can be generated: [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager) lives in its own repository and writes a project already pinned to the engine. Nothing here knows about the tool, and the layout stays the contract between them.
 
+A scene editor, [FriedEditor](https://github.com/KoyFC/FriedEditor), is planned in a repository of its own, and the engine's share of that work is tracked in [`docs/editor-roadmap.md`](docs/editor-roadmap.md).
+
 ## SDL2 and the native layer
 
 SDL2 and its three companion libraries (SDL2_image, SDL2_mixer, SDL2_ttf) are initialized together in `native/platform/application.cpp`, so failing to bring one up fails `fried.Application.init()` rather than surfacing later at the first load.
