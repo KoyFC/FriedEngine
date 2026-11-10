@@ -182,6 +182,8 @@ Components are described, not reflected. A subclass of `Component` marked `@:ser
 
 An asset reference is `{"root", "path"}`, and a font adds `"size"`, resolved through `Filesystem.resolveAsset()`. A file that is wrong fails at load with the object and field in the message.
 
+A `platforms` block holds the differences between platforms, keyed the way `project.fried` is: `vita`, `switch`, `3ds`, `nds`, `cg50` and `web`, with the PC as the base that needs no block. Each entry is an object id, then a component type, then the fields to change, and the loader applies the block of `Application.platformName` after building the scene. It reaches the first component of that type, and an override that names an object or component the scene does not have fails at load rather than being skipped.
+
 ## 3D
 
 3D is done on the CPU in Haxe and drawn as 2D triangles, so it needs nothing from a platform beyond `fillTriangles()`, which every backend already has: a GPU path would be a separate renderer per console, and SDL's renderer, which most of them draw through, has no 3D at all. It lives in `fried.graphics3d`, apart from `fried.graphics`, because the line between them is where the 3D ends: `fried.graphics3d` works out which triangles to draw and where, and `fried.graphics` draws them like any other shape.

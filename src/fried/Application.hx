@@ -17,11 +17,15 @@ class Application {
 
 	public static var renderers(default, null):Array<Renderer> = [];
 
+	// The key `project.fried` and scene files use for this platform: pc, vita, switch, 3ds, nds, cg50 or web.
+	public static var platformName(default, null):String;
+
 	public static function init():Void {
 		if (ApplicationNative.init() != 0) {
 			throw NativeError.describe("Failed to initialize SDL");
 		}
 		openAudio();
+		platformName = ApplicationNative.platformName();
 		Filesystem.init();
 		UserData.init();
 		Log.openFile();
@@ -176,6 +180,9 @@ private extern class ApplicationNative {
 
 	@:native("fried_application_shutdown")
 	static function shutdown():Void;
+
+	@:native("fried_application_platform_name")
+	static function platformName():cpp.ConstCharStar;
 
 	@:native("fried_application_wait_for_host_frame")
 	static function waitForHostFrame():Int;

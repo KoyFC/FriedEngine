@@ -63,5 +63,15 @@
 			"name": "Label"
 		}
 	],
+	"platforms": {
+		"nds": {
+			"sprite": {
+				"Transform": {
+					"scaleX": 4,
+					"scaleY": 4
+				}
+			}
+		}
+	},
 	"version": 1
 }

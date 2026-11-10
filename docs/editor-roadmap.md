@@ -28,7 +28,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 - [x] `Filesystem.resolveAsset(root, path)` with path validation
 - [x] `ComponentBuilder` macro, `ComponentRegistry` and the built-in list
 - [x] `SceneLoader` and a sandbox scene loaded from JSON
-- [ ] `Application.platformName` and per-platform overrides
+- [x] `Application.platformName` and per-platform overrides
 
 ### 3. Editor player (FriedEngine)
 
