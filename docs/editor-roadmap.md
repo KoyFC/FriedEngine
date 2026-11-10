@@ -38,10 +38,10 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ### 4. Editor skeleton (FriedEditor)
 
-- [ ] CMake with `core/`, `core_tests` and `ui/qt/`
+- [x] CMake with `core/`, `core_tests` and `ui/qt/`
 - [x] Project and platform model in core (build targets come with play mode)
-- [ ] Subprocess, TCP listener and message framing
-- [ ] Player session: build, launch, handshake, schema
+- [x] Subprocess, TCP listener and message framing (POSIX only so far)
+- [x] Player session: build, launch, handshake, schema
 
 ### 5. Scene editing (FriedEditor)
 
