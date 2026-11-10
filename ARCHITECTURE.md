@@ -174,6 +174,14 @@ A load takes effect at the start of the next frame, before events are pumped. Th
 
 A layer pushed through the context goes above the layers that load already has on that renderer and below all the others, which needs `Renderer` to insert as well as push. The alternative, pushing on top, would put each new scene above an overlay the game created first, so a debug readout would vanish behind the first scene loaded after it.
 
+## Scene files
+
+A scene can also be data. `fried.scene.serialization.SceneLoader.register(name, assetPath, renderer)` registers a JSON file under the game's assets as a scene `SceneManager` can load, and `SceneLoader.build()` turns the parsed data into a `Scene`. The file is written by the editor and only ever read here, so there is no saving on the engine's side. It holds a `version`, a `name`, an optional `camera` naming an object, and `objects` in draw order, each with a stable `id`, a `name`, `active`, `priority` and its `components`. Ids exist because names are not unique, and `Scene.findById()` is how game code reaches an object a file created, to give a button its `onClick`, which a file cannot hold.
+
+Components are described, not reflected. A subclass of `Component` marked `@:serializable` gets a static `describeComponent()` from the build macro `ComponentBuilder`, which says how to create it, assign its fields and read them back. Every public, writable `var` of a supported type is a field: `Int`, `Float`, `Bool`, `String`, `Color`, `FlipMode`, `Rect`, and `Texture` and `Font` as asset references. Functions and read-only properties are not, and `@:noSerialize` leaves a field out by hand. Constructor parameters are matched to fields by name and a required one with no field is a compile error, so a component that a file could not build never compiles as serializable. Assignment goes through the property, so a setter such as `Camera.zoom` still runs. A scene may use only the components `Builtins` lists, because Haxe never types a class only a file names.
+
+An asset reference is `{"root", "path"}`, and a font adds `"size"`, resolved through `Filesystem.resolveAsset()`. A file that is wrong fails at load with the object and field in the message.
+
 ## 3D
 
 3D is done on the CPU in Haxe and drawn as 2D triangles, so it needs nothing from a platform beyond `fillTriangles()`, which every backend already has: a GPU path would be a separate renderer per console, and SDL's renderer, which most of them draw through, has no 3D at all. It lives in `fried.graphics3d`, apart from `fried.graphics`, because the line between them is where the 3D ends: `fried.graphics3d` works out which triangles to draw and where, and `fried.graphics` draws them like any other shape.

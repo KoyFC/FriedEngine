@@ -24,10 +24,10 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ### 2. Engine core (FriedEngine)
 
-- [ ] `GameObject.id`, `Scene.findById`, `Scene.findByName`
-- [ ] `Filesystem.resolveAsset(root, path)` with path validation
-- [ ] `ComponentBuilder` macro, `ComponentRegistry` and the built-in list
-- [ ] `SceneLoader` and a sandbox scene loaded from JSON
+- [x] `GameObject.id`, `Scene.findById`, `Scene.findByName`
+- [x] `Filesystem.resolveAsset(root, path)` with path validation
+- [x] `ComponentBuilder` macro, `ComponentRegistry` and the built-in list
+- [x] `SceneLoader` and a sandbox scene loaded from JSON
 - [ ] `Application.platformName` and per-platform overrides
 
 ### 3. Editor player (FriedEngine)
