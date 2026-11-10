@@ -214,14 +214,16 @@ if(NOT TARGET fried_engine)
     add_library(fried::engine ALIAS fried_engine)
 endif()
 
-# fried_add_game(<target> [PROJECT_DIR <dir>] [GENERATED_DIR <dir>])
+# fried_add_game(<target> [PROJECT_DIR <dir>] [GENERATED_DIR <dir>] [EDITOR_PLAYER])
 #
 # Builds the game rooted at the calling directory, in the layout every Fried
 # project has: build/cpp from its own `haxe build.hxml`, project.fried, assets/
 # and, for the Vita, sce_sys/. The editor builds a project's own editor player
-# from outside the project, which is what the two keywords are for.
+# from outside the project, which is what the two keywords are for, and
+# EDITOR_PLAYER leaves the project's display out, since the editor draws the
+# picture one to one and shows the display as a frame of its own.
 function(fried_add_game target_name)
-    cmake_parse_arguments(PARSE_ARGV 1 _game "" "PROJECT_DIR;GENERATED_DIR" "")
+    cmake_parse_arguments(PARSE_ARGV 1 _game "EDITOR_PLAYER" "PROJECT_DIR;GENERATED_DIR" "")
     get_filename_component(_engine_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
 
     if(NOT _game_PROJECT_DIR)
@@ -260,6 +262,10 @@ function(fried_add_game target_name)
 
     # The renderer applies the display, so it is compiled into the engine rather than the game.
     fried_read_project_display("${_project_json}" ${_platform} _display_mode _display_width _display_height _display_filter)
+    if(_game_EDITOR_PLAYER)
+        set(_display_mode default)
+        set(_display_filter nearest)
+    endif()
     if(NOT _display_mode STREQUAL "default")
         string(SUBSTRING ${_display_mode} 0 1 _initial)
         string(TOUPPER ${_initial} _initial)

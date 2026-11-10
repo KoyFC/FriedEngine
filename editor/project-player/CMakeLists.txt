@@ -15,4 +15,5 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/FriedEngine.cmake)
 fried_add_game(fried_project_editor_player
     PROJECT_DIR ${FRIED_PROJECT_DIR}
     GENERATED_DIR ${FRIED_PROJECT_DIR}/build/editor/cpp
+    EDITOR_PLAYER
 )
