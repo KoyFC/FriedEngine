@@ -61,7 +61,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ### 7. Play mode (FriedEditor)
 
-- [ ] Build and run the game for PC from the editor
+- [x] Build and run the game for PC from the editor
 
 ## Later
 
