@@ -55,6 +55,12 @@ class Project {
 	}
 
 	#if macro
+	// The class named by "gameClass" in project.fried, which extends fried.Game, or an empty string when there is none.
+	public static function gameClassName():String {
+		var name = Reflect.field(read(), "gameClass");
+		return Std.isOfType(name, String) ? name : "";
+	}
+
 	static function number(keys:Array<String>, fallback:Int):ExprOf<Int> {
 		var node:Dynamic = read();
 		for (key in keys) {

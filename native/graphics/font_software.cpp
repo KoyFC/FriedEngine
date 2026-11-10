@@ -581,6 +581,53 @@ namespace
         size = (int)end;
         return ReadResult::Read;
     }
+
+    // The same file at another size would be a second copy of the same bytes, and a font file is a large part of what a DS has to spare. Fonts of one file share it, and the last to go frees it.
+    struct SharedFile
+    {
+        std::string m_path;
+        unsigned char *m_data;
+        int m_size;
+        int m_references;
+    };
+
+    std::vector<SharedFile> s_sharedFiles;
+
+    ReadResult acquireFile(const char *path, unsigned char *&contents, int &size)
+    {
+        for (SharedFile &shared : s_sharedFiles)
+        {
+            if (shared.m_path == path)
+            {
+                ++shared.m_references;
+                contents = shared.m_data;
+                size = shared.m_size;
+                return ReadResult::Read;
+            }
+        }
+        ReadResult result = readFile(path, contents, size);
+        if (result == ReadResult::Read && contents)
+        {
+            s_sharedFiles.push_back({path, contents, size, 1});
+        }
+        return result;
+    }
+
+    void releaseFile(unsigned char *contents)
+    {
+        for (auto shared = s_sharedFiles.begin(); shared != s_sharedFiles.end(); ++shared)
+        {
+            if (shared->m_data == contents)
+            {
+                if (--shared->m_references == 0)
+                {
+                    delete[] shared->m_data;
+                    s_sharedFiles.erase(shared);
+                }
+                return;
+            }
+        }
+    }
 }
 
 int fried_font_load(const char *path, int size)
@@ -593,7 +640,7 @@ int fried_font_load(const char *path, int size)
 
     unsigned char *fileData = nullptr;
     int fileSize = 0;
-    ReadResult result = readFile(path, fileData, fileSize);
+    ReadResult result = acquireFile(path, fileData, fileSize);
     if (result == ReadResult::Failed)
     {
         return -1;
@@ -602,7 +649,7 @@ int fried_font_load(const char *path, int size)
     LoadedFont *font = new (std::nothrow) LoadedFont();
     if (!font)
     {
-        delete[] fileData;
+        releaseFile(fileData);
         fried_set_last_error("Not enough memory for a font");
         return -1;
     }
@@ -614,7 +661,7 @@ int fried_font_load(const char *path, int size)
         int offset = stbtt_GetFontOffsetForIndex(fileData, 0);
         if (offset < 0 || !stbtt_InitFont(&font->m_trueType, fileData, offset))
         {
-            delete[] fileData;
+            releaseFile(fileData);
             delete font;
             fried_set_last_error("Not a TrueType font");
             return -1;
@@ -648,7 +695,7 @@ void fried_font_destroy(int fontId)
     {
         fried_texture_destroy(atlas.m_textureId);
     }
-    delete[] font->m_fileData;
+    releaseFile(font->m_fileData);
     delete font;
 }
 
