@@ -1,6 +1,5 @@
 package components;
 
-import fried.graphics.Renderer;
 import fried.input.InputEvent;
 import fried.input.InputEventType;
 import fried.input.Key;
@@ -22,7 +21,7 @@ class KeyShortcuts extends Component {
 		return this;
 	}
 
-	override function onEvent(event:InputEvent, renderer:Renderer):Void {
+	override function onEvent(event:InputEvent):Void {
 		if (event.handled || event.type != InputEventType.KeyDown) {
 			return;
 		}

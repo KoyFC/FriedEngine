@@ -4,7 +4,6 @@ import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 import fried.graphics.Rect;
-import fried.graphics.Renderer;
 import fried.input.InputEvent;
 import fried.input.MouseButton;
 
@@ -50,26 +49,26 @@ class Button extends Component {
 		rect = new Rect(0, 0, 0, 0);
 	}
 
-	override function onEvent(event:InputEvent, renderer:Renderer):Void {
+	override function onEvent(event:InputEvent):Void {
 		var isHeld = isHeldByMouse || isHeldByTouch;
 		switch (event.type) {
-			case MouseButtonDown if (!isHeld && event.mouseButton == MouseButton.Left && contains(event, renderer)):
+			case MouseButtonDown if (!isHeld && event.mouseButton == MouseButton.Left && contains(event)):
 				isHeldByMouse = true;
 				hold(event);
-			case TouchDown if (!isHeld && event.touchDevice == FRONT_TOUCH_DEVICE && contains(event, renderer)):
+			case TouchDown if (!isHeld && event.touchDevice == FRONT_TOUCH_DEVICE && contains(event)):
 				isHeldByTouch = true;
 				heldFingerId = event.fingerId;
 				hold(event);
 			case MouseMoved if (isHeldByMouse):
-				isPressed = contains(event, renderer);
+				isPressed = contains(event);
 				event.handled = true;
 			case TouchMoved if (isHeldByTouch && event.fingerId == heldFingerId):
-				isPressed = contains(event, renderer);
+				isPressed = contains(event);
 				event.handled = true;
 			case MouseButtonUp if (isHeldByMouse && event.mouseButton == MouseButton.Left):
-				release(event, renderer);
+				release(event);
 			case TouchUp if (isHeldByTouch && event.fingerId == heldFingerId):
-				release(event, renderer);
+				release(event);
 			case _:
 		}
 	}
@@ -97,8 +96,8 @@ class Button extends Component {
 		event.handled = true;
 	}
 
-	function release(event:InputEvent, renderer:Renderer):Void {
-		var isClick = contains(event, renderer);
+	function release(event:InputEvent):Void {
+		var isClick = contains(event);
 		isHeldByMouse = false;
 		isHeldByTouch = false;
 		isPressed = false;
@@ -108,10 +107,10 @@ class Button extends Component {
 		}
 	}
 
-	function contains(event:InputEvent, renderer:Renderer):Bool {
+	function contains(event:InputEvent):Bool {
 		var camera = gameObject.scene != null ? gameObject.scene.camera : null;
-		var x = camera != null ? camera.screenToWorldX(event.x, renderer) : event.x;
-		var y = camera != null ? camera.screenToWorldY(event.y, renderer) : event.y;
+		var x = camera != null ? camera.screenToWorldX(event.x) : event.x;
+		var y = camera != null ? camera.screenToWorldY(event.y) : event.y;
 		var right = transform.x + width * transform.scaleX;
 		var bottom = transform.y + height * transform.scaleY;
 		return x >= Math.min(transform.x, right) && x < Math.max(transform.x, right) && y >= Math.min(transform.y, bottom) && y < Math.max(transform.y, bottom);

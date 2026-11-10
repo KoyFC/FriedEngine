@@ -23,6 +23,6 @@ class SceneLayer extends Layer {
 
 	override function onEvent(event:InputEvent):Void {
 		scene.setView(renderer.width, renderer.height);
-		scene.propagateEvent(event, renderer);
+		scene.propagateEvent(event);
 	}
 }

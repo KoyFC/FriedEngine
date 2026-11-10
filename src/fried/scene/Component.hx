@@ -1,6 +1,5 @@
 package fried.scene;
 
-import fried.graphics.Renderer;
 import fried.input.InputEvent;
 
 @:autoBuild(fried.scene.serialization.ComponentBuilder.build())
@@ -46,7 +45,7 @@ class Component {
 	function draw():Void {}
 
 	@:allow(fried.scene.GameObject)
-	function onEvent(event:InputEvent, renderer:Renderer):Void {}
+	function onEvent(event:InputEvent):Void {}
 
 	inline function get_transform():Transform {
 		return gameObject.transform;

@@ -109,7 +109,7 @@ class Scene {
 	}
 
 	// Top first, the reverse of the order things are drawn in.
-	public function propagateEvent(event:InputEvent, renderer:Renderer):Void {
+	public function propagateEvent(event:InputEvent):Void {
 		applyPendingChanges();
 		var index = sceneObjects.length - 1;
 		while (index >= 0) {
@@ -121,7 +121,7 @@ class Scene {
 			if (event.handled) {
 				break;
 			}
-			object.propagateEvent(event, renderer);
+			object.propagateEvent(event);
 		}
 		eventOrder.resize(0);
 	}

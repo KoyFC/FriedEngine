@@ -1,6 +1,5 @@
 package fried.scene;
 
-import fried.graphics.Renderer;
 import fried.input.InputEvent;
 
 class GameObject {
@@ -110,7 +109,7 @@ class GameObject {
 	}
 
 	@:allow(fried.scene.Scene)
-	function propagateEvent(event:InputEvent, renderer:Renderer):Void {
+	function propagateEvent(event:InputEvent):Void {
 		if (!isActive) {
 			return;
 		}
@@ -119,7 +118,7 @@ class GameObject {
 				return;
 			}
 			if (component.enabled) {
-				component.onEvent(event, renderer);
+				component.onEvent(event);
 			}
 		}
 	}
