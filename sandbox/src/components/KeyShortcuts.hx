@@ -1,3 +1,5 @@
+package components;
+
 import fried.graphics.Renderer;
 import fried.input.InputEvent;
 import fried.input.InputEventType;

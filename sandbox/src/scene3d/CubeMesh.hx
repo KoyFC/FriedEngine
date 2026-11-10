@@ -1,3 +1,5 @@
+package scene3d;
+
 import fried.graphics.Color;
 import fried.graphics3d.Mesh;
 

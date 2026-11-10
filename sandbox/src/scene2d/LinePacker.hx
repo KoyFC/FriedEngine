@@ -1,3 +1,5 @@
+package scene2d;
+
 import fried.graphics.Font;
 
 class LinePacker {

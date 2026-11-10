@@ -1,3 +1,5 @@
+package components;
+
 import fried.Time;
 import fried.scene.Component;
 import fried.scene.Sprite;

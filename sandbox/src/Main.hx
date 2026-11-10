@@ -1,3 +1,6 @@
+import debug.DebugOverlay;
+import scene2d.Scene2D;
+import scene3d.Scene3D;
 import fried.Application;
 import fried.Log;
 import fried.Project;
@@ -23,6 +26,7 @@ import fried.io.Filesystem;
 import fried.io.UserData;
 import fried.scene.Scene;
 import fried.scene.SceneManager;
+import fried.scene.serialization.ComponentDiscovery;
 import fried.scene.serialization.SceneLoader;
 
 class Main {
@@ -141,7 +145,7 @@ class Main {
 		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
 		overlayRenderer.pushLayer(overlay);
 
-		Components.register();
+		ComponentDiscovery.register();
 		SceneManager.register("2D", new Scene2D(renderer, font, overlay, zoom, runs).load);
 		SceneManager.register("3D", new Scene3D(renderer, font, overlay).load);
 		SceneLoader.register("Data", "scenes/sample.scene.json", renderer);

@@ -1,3 +1,5 @@
+package components;
+
 import fried.Time;
 import fried.graphics.FlipMode;
 import fried.input.GamepadAxis;

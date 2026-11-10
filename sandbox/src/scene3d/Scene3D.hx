@@ -1,3 +1,6 @@
+package scene3d;
+
+import debug.DebugOverlay;
 import fried.graphics.Color;
 import fried.graphics.Font;
 import fried.graphics.Renderer;

@@ -1,6 +1,6 @@
 -cp ../src
 -cp src
--main EditorMain
+-main fried.editor.ProjectPlayer
 -cpp build/editor/cpp
 -D no-compilation
 -D fried-editor

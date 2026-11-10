@@ -1,3 +1,5 @@
+package scene2d;
+
 import fried.Log;
 import fried.input.InputEvent;
 import fried.input.InputEventType;

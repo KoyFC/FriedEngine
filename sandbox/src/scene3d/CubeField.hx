@@ -1,3 +1,5 @@
+package scene3d;
+
 import fried.Time;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;

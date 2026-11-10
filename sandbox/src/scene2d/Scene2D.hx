@@ -1,3 +1,11 @@
+package scene2d;
+
+import components.Box;
+import components.CameraZoom;
+import components.KeyShortcuts;
+import components.PlayerController;
+import components.Spinner;
+import debug.DebugOverlay;
 import fried.Log;
 import fried.graphics.Color;
 import fried.graphics.Font;

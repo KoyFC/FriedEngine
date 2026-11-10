@@ -1,3 +1,6 @@
+package debug;
+
+import scene2d.LinePacker;
 import fried.Time;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;

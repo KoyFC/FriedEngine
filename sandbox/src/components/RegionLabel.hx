@@ -1,3 +1,5 @@
+package components;
+
 import fried.scene.Component;
 import fried.scene.GameObject;
 import fried.scene.Sprite;

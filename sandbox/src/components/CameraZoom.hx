@@ -1,3 +1,5 @@
+package components;
+
 import fried.Time;
 import fried.input.InputAction;
 import fried.scene.Camera;

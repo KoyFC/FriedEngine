@@ -6,13 +6,17 @@ import fried.graphics.Renderer;
 class SceneContext {
 	public var name(default, null):String;
 
+	// An additive scene stacks above the scene it was loaded on, so its layers go after theirs.
+	var below:Null<SceneContext>;
+
 	var layers:Array<Layer>;
 	var scenes:Array<Scene>;
 	var unloadCallbacks:Array<Void->Void>;
 
 	@:allow(fried.scene.SceneManager)
-	function new(name:String) {
+	function new(name:String, ?below:SceneContext) {
 		this.name = name;
+		this.below = below;
 		layers = [];
 		scenes = [];
 		unloadCallbacks = [];
@@ -22,7 +26,7 @@ class SceneContext {
 	public function pushLayer<T:Layer>(renderer:Renderer, layer:T):T {
 		var index = 0;
 		for (position in 0...renderer.layers.length) {
-			if (layers.indexOf(renderer.layers[position]) >= 0) {
+			if (owns(renderer.layers[position])) {
 				index = position + 1;
 			}
 		}
@@ -31,6 +35,10 @@ class SceneContext {
 			layers.push(layer);
 		}
 		return layer;
+	}
+
+	function owns(layer:Layer):Bool {
+		return layers.indexOf(layer) >= 0 || (below != null && below.owns(layer));
 	}
 
 	public function addScene(scene:Scene):Scene {

@@ -22,7 +22,47 @@ class Project {
 		return value(["window", "title"]);
 	}
 
+	// The size the project designs for, which a window opens at on a computer.
+	public static macro function displayWidth():ExprOf<Int> {
+		return number(["display", "width"], 640);
+	}
+
+	public static macro function displayHeight():ExprOf<Int> {
+		return number(["display", "height"], 480);
+	}
+
+	// The scene the game opens with, or an empty string when project.fried names none.
+	public static macro function startScene():ExprOf<String> {
+		var node:Dynamic = read();
+		var name = Reflect.field(node, "startScene");
+		return macro $v{Std.isOfType(name, String) ? (name : String) : ""};
+	}
+
+	// The names of the scene files in assets/scenes, which is how the engine finds scenes without listing a folder on a console.
+	public static macro function sceneNames():ExprOf<Array<String>> {
+		read();
+		var directory = haxe.io.Path.join([haxe.io.Path.directory(filePath), "assets", "scenes"]);
+		var names = [];
+		if (sys.FileSystem.exists(directory)) {
+			for (entry in sys.FileSystem.readDirectory(directory)) {
+				if (StringTools.endsWith(entry, ".scene.json")) {
+					names.push(entry.substr(0, entry.length - ".scene.json".length));
+				}
+			}
+		}
+		names.sort(Reflect.compare);
+		return macro $v{names};
+	}
+
 	#if macro
+	static function number(keys:Array<String>, fallback:Int):ExprOf<Int> {
+		var node:Dynamic = read();
+		for (key in keys) {
+			node = Reflect.isObject(node) ? Reflect.field(node, key) : null;
+		}
+		return macro $v{Std.isOfType(node, Int) ? (node : Int) : fallback};
+	}
+
 	static var file:Dynamic;
 	static var filePath:String;
 

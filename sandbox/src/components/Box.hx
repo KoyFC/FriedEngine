@@ -1,3 +1,5 @@
+package components;
+
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
