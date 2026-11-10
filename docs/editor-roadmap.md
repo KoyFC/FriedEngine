@@ -50,8 +50,8 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 - [x] Viewport with pan, zoom and selection
 - [x] Hierarchy panel
 - [x] Inspector generated from the schema
-- [ ] Asset browser, drag a texture to create a sprite
-- [ ] Move, scale and rotate gizmos
+- [x] Asset browser, drag a texture to create a sprite
+- [x] Move, scale and rotate gizmos
 
 ### 6. Per-platform (FriedEditor)
 
