@@ -9,6 +9,18 @@ class Filesystem {
 		return assetPath + relativePath;
 	}
 
+	// Resolves an asset chosen at run time, such as one a scene file names, which the Assets macros cannot check.
+	public static function resolveAsset(root:String, relativePath:String):String {
+		if (root != "engine" && root != "game") {
+			throw 'Unknown asset root "$root". It must be "engine" or "game".';
+		}
+		if (relativePath == null || relativePath == "" || relativePath.charAt(0) == "/" || relativePath.indexOf("\\") != -1
+			|| relativePath.indexOf(":") != -1 || relativePath.split("/").indexOf("..") != -1) {
+			throw 'Invalid asset path "$relativePath". It must be relative to its own asset root and may not contain "..".';
+		}
+		return getAssetPath(root + "/" + relativePath);
+	}
+
 	public static function exists(path:String):Bool {
 		return sys.FileSystem.exists(path);
 	}
