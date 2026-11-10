@@ -89,6 +89,7 @@ class ComponentBuilder {
 			case "Rect": {name: "", codec: "Rect", kind: "Region", needsContext: false};
 			case "Texture": {name: "", codec: "Texture", kind: "TextureRef", needsContext: true};
 			case "Font": {name: "", codec: "Font", kind: "FontRef", needsContext: true};
+			case "GameObject": {name: "", codec: "Object", kind: "ObjectRef", needsContext: true};
 			case _: null;
 		}
 	}

@@ -32,6 +32,14 @@ class EditorBounds {
 		if (collider != null) {
 			return box(collider.left, collider.top, collider.right - collider.left, collider.bottom - collider.top);
 		}
+		for (component in object.components) {
+			// A component of the game that has a size of its own, such as a box, is measured by it.
+			var width:Dynamic = Reflect.field(component, "width");
+			var height:Dynamic = Reflect.field(component, "height");
+			if (Std.isOfType(width, Int) && Std.isOfType(height, Int)) {
+				return box(transform.x, transform.y, width * transform.scaleX, height * transform.scaleY);
+			}
+		}
 		if (object.getComponent(Camera) != null) {
 			return box(transform.x - MARKER_SIZE / 2, transform.y - MARKER_SIZE / 2, MARKER_SIZE, MARKER_SIZE);
 		}

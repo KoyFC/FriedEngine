@@ -6,6 +6,7 @@ import fried.graphics.FlipMode;
 import fried.graphics.Rect;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
+import fried.scene.GameObject;
 
 // Converts between the data of a scene file and the values of component fields. The code a component's build macro generates calls these.
 class FieldCodec {
@@ -103,6 +104,22 @@ class FieldCodec {
 		return Font.from(assetPath(value, field), toInt(get(value, "size"), field));
 	}
 
+	// A reference is the id of another object of the same scene. It stays null while the scene is still being built, and the loader assigns it afterwards.
+	public static function toObject(value:Dynamic, field:String, context:LoadContext):GameObject {
+		if (value == null) {
+			return null;
+		}
+		var id = toText(value, field);
+		if (context.scene == null) {
+			return null;
+		}
+		var target = context.scene.findById(id);
+		if (target == null) {
+			throw 'The field "$field" refers to the object "$id", which the scene does not have.';
+		}
+		return target;
+	}
+
 	public static function fromInt(value:Int):Dynamic {
 		return value;
 	}
@@ -137,6 +154,14 @@ class FieldCodec {
 	}
 
 	public static function fromFont(value:Font):Dynamic {
+		return null;
+	}
+
+	public static function fromObject(value:GameObject):Dynamic {
+		return value == null ? null : value.id;
+	}
+
+	public static function zeroObject():GameObject {
 		return null;
 	}
 

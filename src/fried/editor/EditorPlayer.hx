@@ -174,7 +174,9 @@ class EditorPlayer {
 		}
 		var data = {};
 		Reflect.setField(data, field, value);
-		type.apply(target, data, new LoadContext(renderer));
+		var context = new LoadContext(renderer);
+		context.scene = scene;
+		type.apply(target, data, context);
 	}
 
 	function describeComponents():Array<Dynamic> {

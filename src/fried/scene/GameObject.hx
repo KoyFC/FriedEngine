@@ -19,6 +19,7 @@ class GameObject {
 
 	@:allow(fried.physics.Physics)
 	@:allow(fried.scene.serialization.SceneLoader)
+	@:allow(fried.editor.EditorBounds)
 	var components:Array<Component>;
 
 	public function new(name:String = "GameObject", xPosition:Float = 0.0, yPosition:Float = 0.0) {

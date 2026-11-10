@@ -214,18 +214,27 @@ if(NOT TARGET fried_engine)
     add_library(fried::engine ALIAS fried_engine)
 endif()
 
-# fried_add_game(<target>)
+# fried_add_game(<target> [PROJECT_DIR <dir>] [GENERATED_DIR <dir>])
 #
 # Builds the game rooted at the calling directory, in the layout every Fried
 # project has: build/cpp from its own `haxe build.hxml`, project.fried, assets/
-# and, for the Vita, sce_sys/.
+# and, for the Vita, sce_sys/. The editor builds a project's own editor player
+# from outside the project, which is what the two keywords are for.
 function(fried_add_game target_name)
+    cmake_parse_arguments(PARSE_ARGV 1 _game "" "PROJECT_DIR;GENERATED_DIR" "")
     get_filename_component(_engine_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
 
-    set(_generated_dir ${CMAKE_CURRENT_SOURCE_DIR}/build/cpp)
-    set(_project_file ${CMAKE_CURRENT_SOURCE_DIR}/project.fried)
+    if(NOT _game_PROJECT_DIR)
+        set(_game_PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
+    if(NOT _game_GENERATED_DIR)
+        set(_game_GENERATED_DIR ${_game_PROJECT_DIR}/build/cpp)
+    endif()
+
+    set(_generated_dir ${_game_GENERATED_DIR})
+    set(_project_file ${_game_PROJECT_DIR}/project.fried)
     set(_engine_assets ${_engine_dir}/assets)
-    set(_game_assets ${CMAKE_CURRENT_SOURCE_DIR}/assets)
+    set(_game_assets ${_game_PROJECT_DIR}/assets)
 
     fried_add_hxcpp_executable(${target_name} ${_generated_dir})
     target_link_libraries(${target_name} PRIVATE fried::engine)
@@ -274,7 +283,7 @@ function(fried_add_game target_name)
             NAME "${_name}"
             TITLE_ID ${_title_id}
             VERSION ${_version}
-            SCE_SYS ${CMAKE_CURRENT_SOURCE_DIR}/sce_sys
+            SCE_SYS ${_game_PROJECT_DIR}/sce_sys
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
@@ -289,7 +298,7 @@ function(fried_add_game target_name)
             NAME "${_name}"
             AUTHOR "${_organization}"
             VERSION ${_version}
-            ICON ${CMAKE_CURRENT_SOURCE_DIR}/switch/icon.jpg
+            ICON ${_game_PROJECT_DIR}/switch/icon.jpg
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
@@ -304,7 +313,7 @@ function(fried_add_game target_name)
             NAME "${_name}"
             DESCRIPTION "Version ${_version}"
             AUTHOR "${_organization}"
-            ICON ${CMAKE_CURRENT_SOURCE_DIR}/3ds/icon.png
+            ICON ${_game_PROJECT_DIR}/3ds/icon.png
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
@@ -318,7 +327,7 @@ function(fried_add_game target_name)
             NAME "${_name}"
             SUBTITLE1 "${_organization}"
             SUBTITLE2 "Version ${_version}"
-            ICON ${CMAKE_CURRENT_SOURCE_DIR}/nds/icon.bmp
+            ICON ${_game_PROJECT_DIR}/nds/icon.bmp
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
@@ -330,8 +339,8 @@ function(fried_add_game target_name)
 
         fried_add_cg50_g3a(${target_name}
             NAME "${_name}"
-            ICON_UNSELECTED ${CMAKE_CURRENT_SOURCE_DIR}/cg50/icon-uns.png
-            ICON_SELECTED ${CMAKE_CURRENT_SOURCE_DIR}/cg50/icon-sel.png
+            ICON_UNSELECTED ${_game_PROJECT_DIR}/cg50/icon-uns.png
+            ICON_SELECTED ${_game_PROJECT_DIR}/cg50/icon-sel.png
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )

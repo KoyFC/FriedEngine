@@ -5,20 +5,32 @@ import fried.graphics.Renderer;
 import fried.io.Filesystem;
 import haxe.Json;
 
+// The fields of a component that name other objects, which can only be assigned once every object of the scene exists.
+private typedef PendingReferences = {
+	var type:ComponentType;
+	var component:Component;
+	var data:Dynamic;
+}
+
 class SceneLoader {
 	public static inline var FORMAT_VERSION:Int = 1;
 
 	// Registers a scene file, under the game's assets, as a scene SceneManager can load.
 	public static function register(name:String, assetPath:String, renderer:Renderer):Void {
 		SceneManager.register(name, function(context) {
-			var path = Filesystem.resolveAsset("game", assetPath);
-			var data = try {
-				Json.parse(Filesystem.readBytes(path).toString());
-			} catch (error:Dynamic) {
-				throw 'Cannot read the scene file $assetPath: $error';
-			}
-			context.pushScene(renderer, build(data, renderer, Application.platformName));
+			context.pushScene(renderer, load(assetPath, renderer));
 		});
+	}
+
+	// Builds the scene of a file under the game's assets for the platform that is running. A game that pushes its own layers uses this instead of register.
+	public static function load(assetPath:String, renderer:Renderer):Scene {
+		var path = Filesystem.resolveAsset("game", assetPath);
+		var data = try {
+			Json.parse(Filesystem.readBytes(path).toString());
+		} catch (error:Dynamic) {
+			throw 'Cannot read the scene file $assetPath: $error';
+		}
+		return build(data, renderer, Application.platformName);
 	}
 
 	// The platform picks which block of the file's "platforms" is applied over the scene, none for null.
@@ -30,16 +42,22 @@ class SceneLoader {
 
 		var scene = new Scene(FieldCodec.toText(FieldCodec.get(data, "name"), "name"));
 		var context = new LoadContext(renderer);
+		var references:Array<PendingReferences> = [];
 		var objects:Array<Dynamic> = FieldCodec.get(data, "objects");
 		if (objects == null) {
 			throw "The scene file has no objects list.";
 		}
 		for (objectData in objects) {
-			var object = buildObject(objectData, context);
+			var object = buildObject(objectData, context, references);
 			if (scene.findById(object.id) != null) {
 				throw 'The object id "${object.id}" is used twice.';
 			}
 			scene.add(object);
+		}
+
+		context.scene = scene;
+		for (pending in references) {
+			pending.type.apply(pending.component, pending.data, context);
 		}
 
 		var cameraId:Null<String> = FieldCodec.get(data, "camera");
@@ -88,7 +106,7 @@ class SceneLoader {
 		}
 	}
 
-	static function buildObject(data:Dynamic, context:LoadContext):GameObject {
+	static function buildObject(data:Dynamic, context:LoadContext, references:Array<PendingReferences>):GameObject {
 		var id = FieldCodec.toText(FieldCodec.get(data, "id"), "object id");
 		if (id == "") {
 			throw "An object in the scene file has an empty id.";
@@ -118,6 +136,17 @@ class SceneLoader {
 			} else {
 				component = type.create(componentData, context);
 				object.addComponent(component);
+			}
+			var referenceData = {};
+			var hasReferences = false;
+			for (field in type.fields) {
+				if (field.kind == ObjectRef && FieldCodec.has(componentData, field.name)) {
+					Reflect.setField(referenceData, field.name, FieldCodec.get(componentData, field.name));
+					hasReferences = true;
+				}
+			}
+			if (hasReferences) {
+				references.push({type: type, component: component, data: referenceData});
 			}
 			if (FieldCodec.has(componentData, "enabled")) {
 				component.enabled = FieldCodec.toBool(FieldCodec.get(componentData, "enabled"), '$id.$typeName.enabled');

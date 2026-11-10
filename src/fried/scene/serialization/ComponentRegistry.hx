@@ -12,6 +12,18 @@ class ComponentRegistry {
 		return types.get(name);
 	}
 
+	// Adds the components of a game, whose classes the engine cannot name.
+	public static function register(added:Array<ComponentType>):Void {
+		ensureLoaded();
+		for (type in added) {
+			if (types.exists(type.name)) {
+				throw 'The component type "${type.name}" is registered twice.';
+			}
+			types.set(type.name, type);
+			ordered.push(type);
+		}
+	}
+
 	public static function all():Array<ComponentType> {
 		ensureLoaded();
 		return ordered.copy();
