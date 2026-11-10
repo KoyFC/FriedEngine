@@ -12,14 +12,17 @@ class SceneLayer extends Layer {
 	}
 
 	override function update():Void {
+		scene.setView(renderer.width, renderer.height);
 		scene.update();
 	}
 
 	override function draw():Void {
+		scene.setView(renderer.width, renderer.height);
 		scene.draw(renderer);
 	}
 
 	override function onEvent(event:InputEvent):Void {
+		scene.setView(renderer.width, renderer.height);
 		scene.propagateEvent(event, renderer);
 	}
 }

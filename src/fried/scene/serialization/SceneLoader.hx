@@ -34,13 +34,34 @@ class SceneLoader {
 	}
 
 	// The platform picks which block of the file's "platforms" is applied over the scene, none for null.
-	public static function build(data:Dynamic, renderer:Renderer, ?platform:String):Scene {
+	// Components start once every object and reference exists, unless the caller only wants to look at the scene, as the editor does.
+	public static function build(data:Dynamic, renderer:Renderer, ?platform:String, startComponents:Bool = true):Scene {
+		var outer = Component.waitingToStart;
+		var waiting:Array<Component> = [];
+		Component.waitingToStart = waiting;
+		var scene = try {
+			assemble(data, renderer, platform);
+		} catch (error:Dynamic) {
+			Component.waitingToStart = outer;
+			throw error;
+		}
+		Component.waitingToStart = outer;
+		if (startComponents) {
+			for (component in waiting) {
+				component.start();
+			}
+		}
+		return scene;
+	}
+
+	static function assemble(data:Dynamic, renderer:Renderer, platform:Null<String>):Scene {
 		var version = FieldCodec.get(data, "version");
 		if (version != FORMAT_VERSION) {
 			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION.';
 		}
 
 		var scene = new Scene(FieldCodec.toText(FieldCodec.get(data, "name"), "name"));
+		scene.setView(renderer.width, renderer.height);
 		var context = new LoadContext(renderer);
 		var references:Array<PendingReferences> = [];
 		var objects:Array<Dynamic> = FieldCodec.get(data, "objects");

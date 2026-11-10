@@ -14,10 +14,18 @@ class Component {
 		enabled = true;
 	}
 
+	// While a scene file is being built, components wait here instead of starting, since what they start with may not exist yet.
+	@:allow(fried.scene.serialization.SceneLoader)
+	static var waitingToStart:Null<Array<Component>>;
+
 	@:allow(fried.scene.GameObject)
 	function attach(owner:GameObject):Void {
 		gameObject = owner;
-		start();
+		if (waitingToStart != null) {
+			waitingToStart.push(this);
+		} else {
+			start();
+		}
 	}
 
 	@:allow(fried.scene.GameObject)
@@ -28,6 +36,7 @@ class Component {
 	@:allow(fried.scene.GameObject)
 	function destroy():Void {}
 
+	@:allow(fried.scene.serialization.SceneLoader)
 	function start():Void {}
 
 	@:allow(fried.scene.GameObject)

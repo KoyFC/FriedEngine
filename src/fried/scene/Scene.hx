@@ -12,6 +12,10 @@ class Scene {
 
 	public var objectCount(get, never):Int;
 
+	// The size of the view the scene is drawn to, which a component reads instead of holding the renderer. Zero until the scene has been given one.
+	public var viewWidth(default, null):Int;
+	public var viewHeight(default, null):Int;
+
 	@:allow(fried.physics.Physics)
 	@:allow(fried.editor.EditorPlayer)
 	var sceneObjects:Array<GameObject>;
@@ -23,12 +27,21 @@ class Scene {
 
 	public function new(name:String = "Scene") {
 		this.name = name;
+		viewWidth = 0;
+		viewHeight = 0;
 		sceneObjects = [];
 		pendingAdds = [];
 		pendingRemovals = [];
 		pendingDestroys = [];
 		eventOrder = [];
 		isIterating = false;
+	}
+
+	@:allow(fried.scene.SceneLayer)
+	@:allow(fried.scene.serialization.SceneLoader)
+	function setView(width:Int, height:Int):Void {
+		viewWidth = width;
+		viewHeight = height;
 	}
 
 	public function add(object:GameObject):GameObject {

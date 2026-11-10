@@ -134,7 +134,7 @@ class EditorPlayer {
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
 	function load(data:Dynamic, requestedPlatform:Null<String>):Void {
 		platform = requestedPlatform;
-		var next = SceneLoader.build(data, renderer, platform);
+		var next = SceneLoader.build(data, renderer, platform, false);
 		if (scene != null) {
 			scene.camera = null;
 			scene.destroy();
