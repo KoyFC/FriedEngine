@@ -20,7 +20,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 ### 1. Spikes (throwaway code, results recorded here)
 
 - [ ] A: loader round trip, sandbox scene from JSON on PC and on a console, plus `haxe.Json` cost on the DS and fx-CG50
-- [ ] B: offscreen frames from the engine into a Qt widget on a Wayland session
+- [x] B: offscreen frames from the engine into a Qt widget on a Wayland session
 
 ### 2. Engine core (FriedEngine)
 
@@ -47,9 +47,9 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 - [x] Scene document with load and save
 - [x] Undo and redo commands
-- [ ] Viewport with pan, zoom and selection
-- [ ] Hierarchy panel
-- [ ] Inspector generated from the schema
+- [x] Viewport with pan, zoom and selection
+- [x] Hierarchy panel
+- [x] Inspector generated from the schema
 - [ ] Asset browser, drag a texture to create a sprite
 - [ ] Move, scale and rotate gizmos
 
