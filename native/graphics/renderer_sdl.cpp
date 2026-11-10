@@ -205,6 +205,24 @@ void fried_renderer_present(int rendererId)
     SDL_RenderPresent(renderer);
 }
 
+bool fried_renderer_read_pixels(int rendererId, unsigned char *rgba, int width, int height)
+{
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer || !rgba)
+    {
+        fried_set_last_error("No such renderer, or no buffer to read into");
+        return false;
+    }
+
+    SDL_Rect area = {0, 0, width, height};
+    if (SDL_RenderReadPixels(renderer, &area, SDL_PIXELFORMAT_RGBA32, rgba, width * 4) != 0)
+    {
+        fried_capture_sdl_error();
+        return false;
+    }
+    return true;
+}
+
 void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);

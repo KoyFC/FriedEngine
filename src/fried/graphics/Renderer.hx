@@ -209,6 +209,17 @@ class Renderer {
 		RendererNative.present(id);
 	}
 
+	#if fried_editor
+	// RGBA bytes of what has been drawn this frame, so it has to be called before present.
+	public function readPixels():haxe.io.Bytes {
+		var pixels = haxe.io.Bytes.alloc(width * height * 4);
+		if (!RendererNative.readPixels(id, cpp.Pointer.ofArray(pixels.getData()).raw, width, height)) {
+			throw NativeError.describe("Failed to read the frame");
+		}
+		return pixels;
+	}
+	#end
+
 	public function drawTexture(texture:Texture, x:Float, y:Float, ?width:Float, ?height:Float):Void {
 		RendererNative.drawTexture(id, texture.id, x, y, width != null ? width : texture.width, height != null ? height : texture.height);
 	}
@@ -302,6 +313,11 @@ private extern class RendererNative {
 
 	@:native("fried_renderer_get_height")
 	static function getHeight(id:Int):Int;
+
+	#if fried_editor
+	@:native("fried_renderer_read_pixels")
+	static function readPixels(id:Int, rgba:cpp.RawPointer<cpp.UInt8>, width:Int, height:Int):Bool;
+	#end
 
 	@:native("fried_renderer_set_draw_color")
 	static function setDrawColor(id:Int, r:Int, g:Int, b:Int, a:Int):Void;

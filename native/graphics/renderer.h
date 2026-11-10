@@ -13,6 +13,9 @@ extern "C"
     void fried_renderer_clear(int rendererId);
     void fried_renderer_present(int rendererId);
 
+    // What has been drawn this frame, as RGBA bytes of width x height pixels from the top left. Only the SDL backend has it, for the editor's viewport.
+    bool fried_renderer_read_pixels(int rendererId, unsigned char *rgba, int width, int height);
+
     void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height);
     void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode);
 
