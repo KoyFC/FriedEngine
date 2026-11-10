@@ -1,6 +1,7 @@
 import fried.Time;
 import fried.scene.Component;
 
+@:serializable
 class Spinner extends Component {
 	public var degreesPerSecond:Float;
 

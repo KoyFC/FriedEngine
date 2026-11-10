@@ -14,6 +14,7 @@ import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.Sprite;
 import fried.scene.Text;
+import fried.scene.serialization.SceneLoader;
 
 class Scene2D {
 	static inline var WORLD_VIEW_HEIGHT = 480;
@@ -50,43 +51,27 @@ class Scene2D {
 			"Esc/Start: quit"
 		];
 
-		var spriteScale = 8.0;
-		var playerSpeed = 240.0;
 		var iconSize = 64;
-		var wallWidth = 900;
-		var wallHeight = 48;
 		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 
-		var scene = context.addScene(new Scene("Sandbox"));
+		var scene = context.addScene(SceneLoader.load("scenes/sandbox.scene.json", renderer));
+		var wallObject = scene.findById("wall");
+		var playerObject = scene.findById("player");
+		var playerCollider = playerObject.getComponent(Collider);
+		var playerController = playerObject.getComponent(PlayerController);
 
-		var wallObject = scene.add(new GameObject("Wall", -wallWidth / 2, 160));
-		wallObject.addComponent(new Box(wallWidth, wallHeight, Color.rgb(70, 70, 90), Color.rgb(150, 150, 190)));
-
-		var postWidth = 32;
-		var postHeight = 96;
 		var colliders = [];
-
 		for (index in 0...5) {
-			var postObject = scene.add(new GameObject('Post $index', -600 + index * 300, -220));
-			postObject.priority = -2;
-			postObject.addComponent(new Box(postWidth, postHeight, Color.rgb(58, 48, 44), Color.rgb(120, 100, 80)));
-			colliders.push(postObject.addComponent(new Collider(postWidth, postHeight)));
+			colliders.push(scene.findById('post-$index').getComponent(Collider));
 		}
-
-		var playerObject = scene.add(new GameObject("Player", -sprite.width * spriteScale / 2, -sprite.height * spriteScale / 2));
-		playerObject.transform.setScale(spriteScale);
-		playerObject.addComponent(new Sprite(sprite));
-		var playerCollider = playerObject.addComponent(new Collider(sprite.width, sprite.height));
 		colliders.push(playerCollider);
-		var playerController = playerObject.addComponent(new PlayerController(playerSpeed, wallObject));
 
-		var cameraObject = scene.add(new GameObject("Camera"));
-		var camera = cameraObject.addComponent(new Camera(renderer.height / WORLD_VIEW_HEIGHT));
-		cameraObject.addComponent(new CameraFollow(playerObject, sprite.width * spriteScale / 2, sprite.height * spriteScale / 2));
+		var cameraObject = scene.findById("camera");
+		var camera = cameraObject.getComponent(Camera);
+		camera.zoom = renderer.height / WORLD_VIEW_HEIGHT;
 		cameraObject.addComponent(new CameraZoom(zoom));
-		scene.camera = camera;
 
-		var uiScene = context.addScene(new Scene("Sandbox UI"));
+		var uiScene = context.addScene(SceneLoader.load("scenes/sandbox_ui.scene.json", renderer));
 
 		// The hints stop short of the icons down the right edge, so a narrow screen stacks more lines.
 		var hintMaxWidth = renderer.width - iconSize - 16 * 3;
@@ -106,27 +91,23 @@ class Scene2D {
 		var panelWidth = hintTextWidth + 8;
 		var panelHeight = hintTextHeight + 8;
 
-		var panelObject = uiScene.add(new GameObject("Hint panel", 12, 12));
-		panelObject.addComponent(new Box(panelWidth, panelHeight, Color.rgb(40, 40, 55), Color.rgb(90, 200, 140)));
+		var panelObject = uiScene.findById("hint-panel");
+		var panelBox = panelObject.getComponent(Box);
+		panelBox.width = panelWidth;
+		panelBox.height = panelHeight;
 
-		var regionObject = uiScene.add(new GameObject("Region icon", renderer.width - iconSize - 16, 16 + iconSize + 16));
-		regionObject.transform.scaleX = iconSize / scrollRegion.width;
-		regionObject.transform.scaleY = iconSize / scrollRegion.height;
-		var regionSprite = regionObject.addComponent(new Sprite(sprite, scrollRegion));
-		regionObject.addComponent(new RegionScroller(8.0));
+		// What sits along the right edge is placed from the screen's width, which a scene file cannot know.
+		var regionObject = uiScene.findById("region-icon");
+		regionObject.transform.x = renderer.width - iconSize - 16;
+		var regionSprite = regionObject.getComponent(Sprite);
 
-		var regionLabelText = 'region x ${scrollRegion.x}';
-		var regionLabelX = renderer.width - font.measureWidth(regionLabelText) - 16;
-		var regionLabelObject = uiScene.add(new GameObject("Region label", regionLabelX, 16 + iconSize + 16 + iconSize + 4));
-		regionLabelObject.priority = 1;
-		regionLabelObject.addComponent(new Text(font, regionLabelText, labelColor));
-		regionLabelObject.addComponent(new RegionLabel(regionSprite));
+		var regionLabelObject = uiScene.findById("region-label");
+		var regionLabelText = regionLabelObject.getComponent(Text);
+		regionLabelText.font = font;
+		regionLabelObject.transform.x = renderer.width - font.measureWidth('region x ${scrollRegion.x}') - 16;
 
-		var spinnerObject = uiScene.add(new GameObject("Spinning icon", renderer.width - iconSize - 16, 16));
-		spinnerObject.transform.scaleX = iconSize / sprite.width;
-		spinnerObject.transform.scaleY = iconSize / sprite.height;
-		spinnerObject.addComponent(new Sprite(sprite));
-		spinnerObject.addComponent(new Spinner(90.0));
+		var spinnerObject = uiScene.findById("spinning-icon");
+		spinnerObject.transform.x = renderer.width - iconSize - 16;
 
 		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
 
@@ -171,6 +152,7 @@ class Scene2D {
 		});
 
 		Log.success('Scene "${scene.name}" holds ${scene.objectCount} world objects, "${uiScene.name}" holds ${uiScene.objectCount} screen-space ones');
+		var spriteScale = playerObject.transform.scaleX;
 		Log.info('The player starts at world ${playerObject.transform.x}, ${playerObject.transform.y} and the wall sits at world y ${wallObject.transform.y}');
 		Log.info('The player collider measures ${playerCollider.right - playerCollider.left}x${playerCollider.bottom - playerCollider.top} once the transform scale of $spriteScale is applied to a ${sprite.width}x${sprite.height} sprite');
 		Log.info('The wall carries no collider, so it stays the draw order demo and the ${colliders.length - 1} posts are what the player cannot walk through');

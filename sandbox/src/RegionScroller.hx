@@ -2,6 +2,7 @@ import fried.Time;
 import fried.scene.Component;
 import fried.scene.Sprite;
 
+@:serializable
 class RegionScroller extends Component {
 	public var pixelsPerSecond:Float;
 

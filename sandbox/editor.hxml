@@ -1,0 +1,6 @@
+-cp ../src
+-cp src
+-main EditorMain
+-cpp build/editor/cpp
+-D no-compilation
+-D fried-editor

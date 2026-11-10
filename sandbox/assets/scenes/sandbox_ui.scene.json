@@ -1,0 +1,119 @@
+{
+	"name": "Sandbox UI",
+	"objects": [
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 12,
+					"y": 12
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 140,
+						"g": 200,
+						"r": 90
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 55,
+						"g": 40,
+						"r": 40
+					},
+					"height": 180,
+					"type": "Box",
+					"width": 300
+				}
+			],
+			"id": "hint-panel",
+			"name": "Hint panel"
+		},
+		{
+			"components": [
+				{
+					"scaleX": 8,
+					"scaleY": 8,
+					"type": "Transform",
+					"x": 560,
+					"y": 96
+				},
+				{
+					"source": {
+						"height": 8,
+						"width": 8,
+						"x": 0,
+						"y": 0
+					},
+					"texture": {
+						"path": "sprite.png",
+						"root": "game"
+					},
+					"type": "Sprite"
+				},
+				{
+					"pixelsPerSecond": 8,
+					"type": "RegionScroller"
+				}
+			],
+			"id": "region-icon",
+			"name": "Region icon"
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 500,
+					"y": 164
+				},
+				{
+					"color": {
+						"a": 255,
+						"b": 230,
+						"g": 220,
+						"r": 220
+					},
+					"font": {
+						"path": "NunitoSans.ttf",
+						"root": "engine",
+						"size": 16
+					},
+					"text": "region x 0",
+					"type": "Text"
+				},
+				{
+					"source": "region-icon",
+					"type": "RegionLabel"
+				}
+			],
+			"id": "region-label",
+			"name": "Region label",
+			"priority": 1
+		},
+		{
+			"components": [
+				{
+					"scaleX": 4,
+					"scaleY": 4,
+					"type": "Transform",
+					"x": 560,
+					"y": 16
+				},
+				{
+					"texture": {
+						"path": "sprite.png",
+						"root": "game"
+					},
+					"type": "Sprite"
+				},
+				{
+					"degreesPerSecond": 90,
+					"type": "Spinner"
+				}
+			],
+			"id": "spinning-icon",
+			"name": "Spinning icon"
+		}
+	],
+	"version": 1
+}

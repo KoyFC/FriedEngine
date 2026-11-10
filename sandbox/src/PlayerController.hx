@@ -12,12 +12,14 @@ import fried.scene.Component;
 import fried.scene.GameObject;
 import fried.scene.Sprite;
 
+@:serializable
 class PlayerController extends Component {
 	public var speed:Float;
 
 	public var blockedBy(default, null):String;
 
-	var wall:GameObject;
+	// The object whose y splits what the player walks in front of from what it walks behind.
+	public var wall:GameObject;
 	var sprite:Sprite;
 	var collider:Collider;
 	var movementAction:InputAction;
@@ -32,10 +34,10 @@ class PlayerController extends Component {
 			PadButton(GamepadButton.DpadRight)));
 		movementAction.addBinding(Vector(Keyboard(Key.W), Keyboard(Key.S), Keyboard(Key.A), Keyboard(Key.D)));
 		movementAction.addBinding(Vector(Keyboard(Key.Up), Keyboard(Key.Down), Keyboard(Key.Left), Keyboard(Key.Right)));
-		movementAction.enable();
 	}
 
 	override function start():Void {
+		movementAction.enable();
 		sprite = gameObject.getComponent(Sprite);
 		if (sprite == null) {
 			throw 'A PlayerController needs a Sprite on ${gameObject.name}.';

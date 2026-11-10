@@ -1,6 +1,7 @@
 import fried.scene.Component;
 import fried.scene.GameObject;
 
+@:serializable
 class CameraFollow extends Component {
 	public var target:GameObject;
 	public var offsetX:Float;

@@ -63,6 +63,15 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 - [x] Build and run the game for PC from the editor
 
+### 8. The sandbox as scene files (FriedEngine and FriedEditor)
+
+- [x] Object references between components, and a registry for a game's own components
+- [x] A player per project, built from its `editor.hxml`, rebuilt when its sources change
+- [x] The sandbox's 2D scene and its interface layer as `sandbox.scene.json` and `sandbox_ui.scene.json`, with the same frame as the scene built in code
+- [x] Open Scene in the editor
+
+Known limits: an object that other objects refer to cannot be deleted without fixing those references first, or the scene fails to load, and a game component is selected by its `width` and `height` or a fixed 16 pixel marker.
+
 ## Later
 
-A second UI backend (Dear ImGui), a binary cooked scene format, prefabs, hierarchy, a `screen` field for dual-screen platforms, 3D components, user components in the viewport, per-platform asset variants.
+A second UI backend (Dear ImGui), a binary cooked scene format, prefabs, hierarchy, a `screen` field for dual-screen platforms, 3D components, per-platform asset variants.

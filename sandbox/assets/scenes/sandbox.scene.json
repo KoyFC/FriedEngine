@@ -1,0 +1,256 @@
+{
+	"camera": "camera",
+	"name": "Sandbox",
+	"objects": [
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": -450,
+					"y": 160
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 190,
+						"g": 150,
+						"r": 150
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 90,
+						"g": 70,
+						"r": 70
+					},
+					"height": 48,
+					"type": "Box",
+					"width": 900
+				}
+			],
+			"id": "wall",
+			"name": "Wall"
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": -600,
+					"y": -220
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 80,
+						"g": 100,
+						"r": 120
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 44,
+						"g": 48,
+						"r": 58
+					},
+					"height": 96,
+					"type": "Box",
+					"width": 32
+				},
+				{
+					"height": 96,
+					"type": "Collider",
+					"width": 32
+				}
+			],
+			"id": "post-0",
+			"name": "Post 0",
+			"priority": -2
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": -300,
+					"y": -220
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 80,
+						"g": 100,
+						"r": 120
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 44,
+						"g": 48,
+						"r": 58
+					},
+					"height": 96,
+					"type": "Box",
+					"width": 32
+				},
+				{
+					"height": 96,
+					"type": "Collider",
+					"width": 32
+				}
+			],
+			"id": "post-1",
+			"name": "Post 1",
+			"priority": -2
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 0,
+					"y": -220
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 80,
+						"g": 100,
+						"r": 120
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 44,
+						"g": 48,
+						"r": 58
+					},
+					"height": 96,
+					"type": "Box",
+					"width": 32
+				},
+				{
+					"height": 96,
+					"type": "Collider",
+					"width": 32
+				}
+			],
+			"id": "post-2",
+			"name": "Post 2",
+			"priority": -2
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 300,
+					"y": -220
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 80,
+						"g": 100,
+						"r": 120
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 44,
+						"g": 48,
+						"r": 58
+					},
+					"height": 96,
+					"type": "Box",
+					"width": 32
+				},
+				{
+					"height": 96,
+					"type": "Collider",
+					"width": 32
+				}
+			],
+			"id": "post-3",
+			"name": "Post 3",
+			"priority": -2
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 600,
+					"y": -220
+				},
+				{
+					"borderColor": {
+						"a": 255,
+						"b": 80,
+						"g": 100,
+						"r": 120
+					},
+					"fillColor": {
+						"a": 255,
+						"b": 44,
+						"g": 48,
+						"r": 58
+					},
+					"height": 96,
+					"type": "Box",
+					"width": 32
+				},
+				{
+					"height": 96,
+					"type": "Collider",
+					"width": 32
+				}
+			],
+			"id": "post-4",
+			"name": "Post 4",
+			"priority": -2
+		},
+		{
+			"components": [
+				{
+					"scaleX": 8,
+					"scaleY": 8,
+					"type": "Transform",
+					"x": -64,
+					"y": -64
+				},
+				{
+					"texture": {
+						"path": "sprite.png",
+						"root": "game"
+					},
+					"type": "Sprite"
+				},
+				{
+					"height": 16,
+					"type": "Collider",
+					"width": 16
+				},
+				{
+					"speed": 240,
+					"type": "PlayerController",
+					"wall": "wall"
+				}
+			],
+			"id": "player",
+			"name": "Player"
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 0,
+					"y": 0
+				},
+				{
+					"type": "Camera",
+					"zoom": 1
+				},
+				{
+					"offsetX": 64,
+					"offsetY": 64,
+					"target": "player",
+					"type": "CameraFollow"
+				}
+			],
+			"id": "camera",
+			"name": "Camera"
+		}
+	],
+	"version": 1
+}

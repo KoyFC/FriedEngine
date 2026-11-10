@@ -141,6 +141,7 @@ class Main {
 		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
 		overlayRenderer.pushLayer(overlay);
 
+		Components.register();
 		SceneManager.register("2D", new Scene2D(renderer, font, overlay, zoom, runs).load);
 		SceneManager.register("3D", new Scene3D(renderer, font, overlay).load);
 		SceneLoader.register("Data", "scenes/sample.scene.json", renderer);
