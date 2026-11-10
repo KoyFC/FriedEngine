@@ -55,6 +55,25 @@ class Scene {
 		}
 	}
 
+	public function findById(id:String):Null<GameObject> {
+		return find(object -> object.id == id);
+	}
+
+	// Names are not unique, so this is the first match in draw order.
+	public function findByName(name:String):Null<GameObject> {
+		return find(object -> object.name == name);
+	}
+
+	function find(matches:GameObject->Bool):Null<GameObject> {
+		applyPendingChanges();
+		for (object in sceneObjects) {
+			if (!object.isDestroyed && matches(object)) {
+				return object;
+			}
+		}
+		return null;
+	}
+
 	public function update():Void {
 		applyPendingChanges();
 		isIterating = true;

@@ -4,6 +4,8 @@ import fried.graphics.Renderer;
 import fried.input.InputEvent;
 
 class GameObject {
+	// Empty for an object built in code. A scene file gives each one a stable id.
+	public var id:String;
 	public var name:String;
 	public var isActive:Bool;
 	public var priority:Int;
@@ -20,6 +22,7 @@ class GameObject {
 
 	public function new(name:String = "GameObject", xPosition:Float = 0.0, yPosition:Float = 0.0) {
 		this.name = name;
+		id = "";
 		isActive = true;
 		priority = 0;
 		isDestroyed = false;
