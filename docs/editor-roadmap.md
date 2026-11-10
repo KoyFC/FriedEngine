@@ -8,7 +8,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 - A scene is a JSON file under `assets/scenes/`, written by the editor and only read by the engine. Objects have stable ids, and a `platforms` block holds per-platform overrides keyed like `project.fried`.
 - The reference resolution is the project's `display` block, not a field of the scene.
 - Components are serialized through a build macro on `Component`, with no runtime reflection and an explicit registry of the built-ins.
-- The viewport is a separate engine process (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User components cannot be shown in it until a per-project player exists, because they are compiled Haxe.
+- The viewport is a separate engine process, driven by a small protocol (see the editor player section of `ARCHITECTURE.md`): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User components cannot be shown in it until a per-project player exists, because they are compiled Haxe.
 - The editor is split into a UI-independent core and swappable UI backends, Qt first.
 
 ## Phases
@@ -32,9 +32,9 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ### 3. Editor player (FriedEngine)
 
-- [ ] Software renderer fallback and `Renderer.readPixels()`
-- [ ] `Application.onBeforePresent` and `EditorSceneLayer`
-- [ ] Protocol, object bounds, schema reply, live asset roots, `editor/player/` target
+- [x] `Renderer.readPixels()` (no software fallback needed: `SDL_RENDER_DRIVER=software` is enough)
+- [x] `Application.onBeforePresent` and `EditorSceneLayer`
+- [x] Protocol, object bounds, schema reply, live asset roots, `editor/player/` target
 
 ### 4. Editor skeleton (FriedEditor)
 

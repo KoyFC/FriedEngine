@@ -13,6 +13,7 @@ class Scene {
 	public var objectCount(get, never):Int;
 
 	@:allow(fried.physics.Physics)
+	@:allow(fried.editor.EditorPlayer)
 	var sceneObjects:Array<GameObject>;
 	var pendingAdds:Array<GameObject>;
 	var pendingRemovals:Array<GameObject>;

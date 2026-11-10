@@ -18,8 +18,22 @@ class Filesystem {
 			|| relativePath.indexOf(":") != -1 || relativePath.split("/").indexOf("..") != -1) {
 			throw 'Invalid asset path "$relativePath". It must be relative to its own asset root and may not contain "..".';
 		}
+		#if fried_editor
+		if (rootOverrides.exists(root)) {
+			return rootOverrides.get(root) + "/" + relativePath;
+		}
+		#end
 		return getAssetPath(root + "/" + relativePath);
 	}
+
+	#if fried_editor
+	static var rootOverrides:Map<String, String> = new Map();
+
+	// Reads an asset root from the project's own folder instead of the copy beside the executable, so an edited asset is seen at once.
+	public static function overrideRoot(root:String, directory:String):Void {
+		rootOverrides.set(root, StringTools.endsWith(directory, "/") ? directory.substr(0, directory.length - 1) : directory);
+	}
+	#end
 
 	public static function exists(path:String):Bool {
 		return sys.FileSystem.exists(path);

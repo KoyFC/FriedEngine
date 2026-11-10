@@ -59,6 +59,16 @@ class SceneLoader {
 		return scene;
 	}
 
+	// The first component of an object whose class has that name, which is how a scene file names a type.
+	public static function findComponent(object:GameObject, typeName:String):Null<Component> {
+		for (component in object.components) {
+			if (Type.getClassName(Type.getClass(component)).split(".").pop() == typeName) {
+				return component;
+			}
+		}
+		return null;
+	}
+
 	// Each override is an object id, then a component type, then the fields to change. It reaches the first component of that type.
 	static function applyOverrides(overrides:Dynamic, scene:Scene, context:LoadContext):Void {
 		for (id in Reflect.fields(overrides)) {
@@ -69,13 +79,7 @@ class SceneLoader {
 			var byType = Reflect.field(overrides, id);
 			for (typeName in Reflect.fields(byType)) {
 				var type = ComponentRegistry.get(typeName);
-				var target = null;
-				for (component in object.components) {
-					if (Type.getClassName(Type.getClass(component)).split(".").pop() == typeName) {
-						target = component;
-						break;
-					}
-				}
+				var target = findComponent(object, typeName);
 				if (type == null || target == null) {
 					throw 'A platform override gives $id a $typeName, which it does not have.';
 				}
