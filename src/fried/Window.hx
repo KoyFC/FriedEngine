@@ -34,6 +34,12 @@ class Window {
 		WindowNative.setPosition(id, x, y);
 	}
 
+	/** Resizes the window on a computer, and the renderers drawing to it follow. A console's window is its screen, so there it stays as it is. **/
+	public function setSize(width:Int, height:Int):Void {
+		WindowNative.setSize(id, width, height);
+		Application.refreshRendererSizes(this);
+	}
+
 	public function setIcon(path:String):Void {
 		if (!WindowNative.setIcon(id, path)) {
 			throw NativeError.describe('Failed to set window icon: $path');
@@ -102,6 +108,9 @@ private extern class WindowNative {
 
 	@:native("fried_window_get_height")
 	static function getHeight(id:Int):Int;
+
+	@:native("fried_window_set_size")
+	static function setSize(id:Int, width:Int, height:Int):Void;
 
 	@:native("fried_window_get_x")
 	static function getX(id:Int):Int;

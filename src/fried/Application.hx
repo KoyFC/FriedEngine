@@ -86,6 +86,7 @@ class Application {
 	}
 
 	@:allow(fried.Events)
+	@:allow(fried.Window)
 	static function refreshRendererSizes(window:Window):Void {
 		for (renderer in renderers) {
 			if (renderer.window == window) {
@@ -151,6 +152,10 @@ class Application {
 	}
 
 	static function everyRendererHasVsync():Bool {
+		#if fried_editor
+		// The editor's player draws offscreen, where a software renderer says it waits for a vsync that never comes, and it paces itself.
+		return false;
+		#end
 		if (renderers.length == 0) {
 			return false;
 		}

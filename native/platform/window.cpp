@@ -171,6 +171,10 @@ int fried_window_get_y(int)
 void fried_window_set_position(int, int, int)
 {
 }
+
+void fried_window_set_size(int, int, int)
+{
+}
 #else
 int fried_window_get_x(int windowId)
 {
@@ -202,6 +206,15 @@ void fried_window_set_position(int windowId, int x, int y)
     if (window)
     {
         SDL_SetWindowPosition(window, x, y);
+    }
+}
+
+void fried_window_set_size(int windowId, int width, int height)
+{
+    SDL_Window *window = fried_window_get_sdl(windowId);
+    if (window)
+    {
+        SDL_SetWindowSize(window, width, height);
     }
 }
 #endif

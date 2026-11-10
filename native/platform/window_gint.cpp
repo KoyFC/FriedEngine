@@ -92,3 +92,7 @@ int fried_window_get_y(int)
 void fried_window_set_position(int, int, int)
 {
 }
+
+void fried_window_set_size(int, int, int)
+{
+}

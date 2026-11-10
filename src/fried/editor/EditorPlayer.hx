@@ -16,6 +16,11 @@ import fried.scene.serialization.SceneLoader;
 //
 // Started as `player --editor-port N --width W --height H --engine-assets DIR --game-assets DIR`.
 class EditorPlayer {
+	// Frames per second while the editor is asking for frames, and while it is not. A request waits for the next frame, so a high rate keeps it short.
+	static inline var ACTIVE_FPS = 240;
+	static inline var IDLE_FPS = 60;
+	static inline var ACTIVE_SECONDS = 0.4;
+
 	var renderer:Renderer;
 	var connection:EditorConnection;
 	var layer:EditorSceneLayer;
@@ -24,6 +29,8 @@ class EditorPlayer {
 	var camera:Camera;
 	var cameraObject:GameObject;
 	var isRenderRequested:Bool;
+	var window:Window;
+	var lastMessageTime:Float;
 
 	public static function run():Void {
 		var options = parseArguments(Sys.args());
@@ -36,8 +43,8 @@ class EditorPlayer {
 		var renderer = Application.createRenderer(window, false);
 		renderer.drawColor = Color.rgb(40, 40, 48);
 
-		var player = new EditorPlayer(renderer, new EditorConnection(Std.parseInt(options.get("editor-port"))));
-		Application.targetFps = 30;
+		var player = new EditorPlayer(window, renderer, new EditorConnection(Std.parseInt(options.get("editor-port"))));
+		Application.targetFps = IDLE_FPS;
 		Application.onBeforePresent = player.afterDraw;
 		window.onClose = Application.quit;
 		Application.run(player.update);
@@ -65,12 +72,15 @@ class EditorPlayer {
 		return options;
 	}
 
-	function new(renderer:Renderer, connection:EditorConnection) {
+	function new(window:Window, renderer:Renderer, connection:EditorConnection) {
+		this.window = window;
 		this.connection = connection;
+		lastMessageTime = Sys.time();
 		this.renderer = renderer;
 		isRenderRequested = false;
 
 		layer = new EditorSceneLayer();
+		layer.isEnabled = false;
 		renderer.pushLayer(layer);
 
 		// The editor's own view, never part of a scene file. It starts with the world's origin at the top left.
@@ -85,7 +95,12 @@ class EditorPlayer {
 			Application.quit();
 			return;
 		}
-		for (message in connection.poll()) {
+		var messages = connection.poll();
+		if (messages.length > 0) {
+			lastMessageTime = Sys.time();
+		}
+		Application.targetFps = Sys.time() - lastMessageTime < ACTIVE_SECONDS ? ACTIVE_FPS : IDLE_FPS;
+		for (message in messages) {
 			try {
 				handle(message);
 			} catch (error:Dynamic) {
@@ -99,6 +114,7 @@ class EditorPlayer {
 			return;
 		}
 		isRenderRequested = false;
+		layer.isEnabled = false;
 		var bounds = [];
 		if (scene != null) {
 			for (object in scene.sceneObjects) {
@@ -122,8 +138,11 @@ class EditorPlayer {
 				cameraObject.transform.x = message.x;
 				cameraObject.transform.y = message.y;
 				camera.zoom = message.zoom;
+			case "resize":
+				window.setSize(Std.int(message.width), Std.int(message.height));
 			case "render":
 				isRenderRequested = true;
+				layer.isEnabled = true;
 			case "quit":
 				Application.quit();
 			case other:

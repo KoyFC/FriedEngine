@@ -20,6 +20,8 @@ class EditorConnection {
 	public function new(port:Int) {
 		socket = new Socket();
 		socket.connect(new Host("127.0.0.1"), port);
+		// Messages are small and wait for an answer, so none may be held back to be sent together with the next.
+		socket.setFastSend(true);
 		socket.output.bigEndian = false;
 		received = Bytes.alloc(0);
 		chunk = Bytes.alloc(65536);
