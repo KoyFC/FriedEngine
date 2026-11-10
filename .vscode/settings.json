@@ -1,19 +1,29 @@
 {
-    "files.associations": {
-        "*.fried": "json"
-    },
-    "cmake.sourceDirectory": "${workspaceFolder}",
-    "cmake.buildDirectory": "${workspaceFolder}/build",
-    "cmake.configureOnOpen": false,
-    "haxe.executable": {
-        "linux": { "path": ".vscode/host-haxe.sh" },
-        "windows": "auto",
-        "osx": "auto"
-    },
-    "haxe.configurations": [
-        {
-            "label": "Sandbox (cpp)",
-            "args": ["--cwd", "sandbox", "build.hxml"]
-        }
-    ]
+  "files.associations": {
+    "*.fried": "json"
+  },
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.configureOnOpen": false,
+  "haxe.executable": {
+    "linux": { "path": ".vscode/host-haxe.sh" },
+    "windows": "auto",
+    "osx": "auto"
+  },
+  "haxe.configurations": [
+    {
+      "label": "Sandbox (cpp)",
+      "args": ["--cwd", "sandbox", "build.hxml"]
+    }
+  ],
+  "workbench.colorCustomizations": {
+    "sash.hoverBorder": "#874a22",
+    "commandCenter.border": "#e7e7e799",
+    "commandCenter.foreground": "#e7e7e7",
+    "titleBar.activeBackground": "#5e3418",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#5e341899",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#5E3418"
 }
