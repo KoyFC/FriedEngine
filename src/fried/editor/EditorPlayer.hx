@@ -29,6 +29,7 @@ class EditorPlayer {
 	var camera:Camera;
 	var cameraObject:GameObject;
 	var isRenderRequested:Bool;
+	var isJustResized:Bool;
 	var window:Window;
 	var lastMessageTime:Float;
 
@@ -113,6 +114,11 @@ class EditorPlayer {
 		if (!isRenderRequested) {
 			return;
 		}
+		// The window's new surface is only there after the frame was cleared, so this frame would have a black background. The next one is sent instead.
+		if (isJustResized) {
+			isJustResized = false;
+			return;
+		}
 		isRenderRequested = false;
 		layer.isEnabled = false;
 		var bounds = [];
@@ -140,6 +146,7 @@ class EditorPlayer {
 				camera.zoom = message.zoom;
 			case "resize":
 				window.setSize(Std.int(message.width), Std.int(message.height));
+				isJustResized = true;
 			case "render":
 				isRenderRequested = true;
 				layer.isEnabled = true;
