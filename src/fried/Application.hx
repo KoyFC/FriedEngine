@@ -20,6 +20,11 @@ class Application {
 	// The key `project.fried` and scene files use for this platform: pc, vita, switch, 3ds, nds, cg50 or web.
 	public static var platformName(default, null):String;
 
+	#if fried_editor
+	// Called each frame after everything is drawn and before it is presented, which is when the frame can still be read back.
+	public static var onBeforePresent:Void->Void;
+	#end
+
 	public static function init():Void {
 		if (ApplicationNative.init() != 0) {
 			throw NativeError.describe("Failed to initialize SDL");
@@ -116,6 +121,11 @@ class Application {
 				renderer.drawLayers();
 			}
 			DrawQueue.flush(renderers);
+			#if fried_editor
+			if (onBeforePresent != null) {
+				onBeforePresent();
+			}
+			#end
 			for (renderer in renderers) {
 				renderer.present();
 			}
