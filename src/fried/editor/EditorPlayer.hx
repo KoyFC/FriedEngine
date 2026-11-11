@@ -136,7 +136,7 @@ class EditorPlayer {
 			case "schema":
 				connection.send({type: "schema", components: describeComponents()});
 			case "load":
-				load(message.scene);
+				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});
 			case "setField":
 				setField(message.id, message.component, message.field, message.value);
@@ -158,10 +158,10 @@ class EditorPlayer {
 	}
 
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
-	function load(data:Dynamic):Void {
+	function load(data:Dynamic, viewWidth:Null<Int>, viewHeight:Null<Int>):Void {
 		var next = SceneLoader.build(data, renderer, false);
-		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size the project designs for, which the editor shows as the display's frame.
-		next.setView(Project.displayWidth(), Project.displayHeight());
+		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size of the game's screen that the editor shows as the display's frame, or the size the project designs for when the editor does not say.
+		next.setView(viewWidth != null ? viewWidth : Project.displayWidth(), viewHeight != null ? viewHeight : Project.displayHeight());
 		next.layout();
 		if (scene != null) {
 			scene.camera = null;
