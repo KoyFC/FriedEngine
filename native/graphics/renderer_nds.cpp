@@ -45,6 +45,7 @@ namespace
     {
         int m_windowId;
         FriedDisplayLayout m_layout;
+        bool m_hasUnitScale;
         int m_r;
         int m_g;
         int m_b;
@@ -157,9 +158,33 @@ namespace
         s_started = true;
     }
 
+    // The coordinate rounded half away from zero and kept within what a vertex
+    // holds, worked out from the float's bits: each comparison and addition on
+    // a float is a call into software floating point here. Past 4096 in size
+    // it saturates, and so would a value a float cannot place.
     int toVertexUnits(float coordinate)
     {
-        return fried_display_round(std::clamp(coordinate, -s_maxCoordinate, s_maxCoordinate));
+        constexpr int exponentOfHalf = 126;
+        constexpr int exponentOfMaximum = 139;
+        uint32_t bits;
+        std::memcpy(&bits, &coordinate, sizeof bits);
+        int exponent = (int)((bits >> 23) & 0xff);
+        int magnitude;
+        if (exponent < exponentOfHalf)
+        {
+            magnitude = 0;
+        }
+        else if (exponent >= exponentOfMaximum)
+        {
+            magnitude = (int)s_maxCoordinate;
+        }
+        else
+        {
+            uint32_t mantissa = (bits & 0x7fffff) | 0x800000;
+            int shift = 150 - exponent;
+            magnitude = (int)((mantissa + (1u << (shift - 1))) >> shift);
+        }
+        return (bits >> 31) ? -magnitude : magnitude;
     }
 
     // Output pixels, right and bottom excluded.
@@ -172,18 +197,20 @@ namespace
     };
 
     // The output pixel a logical edge lands on, as fried_display_snap() puts it.
-    int outputEdge(float logical, float scale, int offset)
+    int outputEdge(float logical, float scale, int offset, bool hasUnitScale)
     {
-        return offset + toVertexUnits(scale == 1.0f ? logical : logical * scale);
+        return offset + toVertexUnits(hasUnitScale ? logical : logical * scale);
     }
 
-    Edges outputEdges(const FriedDisplayLayout &layout, float x, float y, float width, float height)
+    Edges outputEdges(const Renderer &renderer, float x, float y, float width, float height)
     {
+        const FriedDisplayLayout &layout = renderer.m_layout;
+        bool hasUnitScale = renderer.m_hasUnitScale;
         return {
-            outputEdge(x, layout.m_scaleX, layout.m_viewportX),
-            outputEdge(y, layout.m_scaleY, layout.m_viewportY),
-            outputEdge(x + width, layout.m_scaleX, layout.m_viewportX),
-            outputEdge(y + height, layout.m_scaleY, layout.m_viewportY),
+            outputEdge(x, layout.m_scaleX, layout.m_viewportX, hasUnitScale),
+            outputEdge(y, layout.m_scaleY, layout.m_viewportY, hasUnitScale),
+            outputEdge(x + width, layout.m_scaleX, layout.m_viewportX, hasUnitScale),
+            outputEdge(y + height, layout.m_scaleY, layout.m_viewportY, hasUnitScale),
         };
     }
 
@@ -357,7 +384,7 @@ namespace
     void drawTexturedQuad(const Renderer &renderer, const FriedNdsTexture &texture, const TexelRegion &region, float x, float y, float width, float height, float angle, bool hasPivot, float pivotX, float pivotY)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
-        Edges edges = outputEdges(layout, x, y, width, height);
+        Edges edges = outputEdges(renderer, x, y, width, height);
         if (angle == 0.0f)
         {
             quad(edges, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
@@ -569,7 +596,7 @@ int fried_renderer_create(int windowId, bool)
         startEngine();
     }
     FriedDisplayLayout layout = fried_display_layout(s_screenWidth, s_screenHeight);
-    return s_renderers.store(new Renderer{windowId, layout, 0, 0, 0, 255});
+    return s_renderers.store(new Renderer{windowId, layout, layout.m_scaleX == 1.0f && layout.m_scaleY == 1.0f, 0, 0, 0, 255});
 }
 
 void fried_renderer_destroy(int rendererId)
@@ -791,7 +818,7 @@ void fried_renderer_fill_rect(int rendererId, float x, float y, float width, flo
     Renderer *renderer = s_renderers.get(rendererId);
     if (renderer)
     {
-        fillEdges(outputEdges(renderer->m_layout, x, y, width, height), renderer->m_r, renderer->m_g, renderer->m_b, renderer->m_a);
+        fillEdges(outputEdges(*renderer, x, y, width, height), renderer->m_r, renderer->m_g, renderer->m_b, renderer->m_a);
     }
 }
 
@@ -808,8 +835,8 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     {
         return;
     }
-    Edges outer = outputEdges(renderer->m_layout, x, y, width, height);
-    Edges inner = outputEdges(renderer->m_layout, x + 1.0f, y + 1.0f, width - 2.0f, height - 2.0f);
+    Edges outer = outputEdges(*renderer, x, y, width, height);
+    Edges inner = outputEdges(*renderer, x + 1.0f, y + 1.0f, width - 2.0f, height - 2.0f);
     if (isEmpty(outer) || !beginPolygons(GL_QUADS, renderer->m_a, nullptr))
     {
         return;
