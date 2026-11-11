@@ -134,6 +134,8 @@ class SceneLoader {
 				// It is the object's transform and takes the place of the Transform. A Transform listed before it only gives the values it starts from.
 				component = type.create(componentData, context);
 				object.replaceTransform(cast component);
+				// The replacement took the old values, so the file's own are given again.
+				type.apply(component, componentData, context);
 			} else if (typeName == "Transform") {
 				if (Std.isOfType(object.transform, RectTransform)) {
 					throw 'The object $id has a Transform and a RectTransform, and a RectTransform takes the place of the Transform.';
