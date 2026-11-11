@@ -73,8 +73,8 @@ class Main {
 		Log.info('Same path twice on one renderer: ${sprite == Texture.from(renderer, Assets.game("sprite.png"))}');
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
-		// Below the 3DS's 240 lines, a smaller size is what keeps the hints and the overlay on screen together.
-		var font = Font.from(Assets.engine("NunitoSans.ttf"), renderer.height < 240 ? 10 : 16);
+		// The world keeps its view on every screen, so on a small one the text grows in logical pixels to stay 10 pixels tall on the output.
+		var font = Font.from(Assets.engine("NunitoSans.ttf"), renderer.legibleSize(16, 10));
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var beep = Sound.from(Assets.game("beep.wav"));
