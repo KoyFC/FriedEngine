@@ -134,6 +134,9 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     if(FRIED_CG50)
         fried_cg50_patch_hxcpp(_runtime_sources _include_dir)
     endif()
+    if(NINTENDO_DS)
+        fried_nds_patch_hxcpp(_runtime_sources)
+    endif()
 
     add_executable(${target_name}
         ${_generated_sources}

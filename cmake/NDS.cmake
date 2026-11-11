@@ -44,3 +44,37 @@ function(fried_add_nds_rom target_name)
         NITROFS ${target_name}_nitrofs
     )
 endfunction()
+
+# fried_nds_patch_hxcpp(<runtime_sources_var>)
+#
+# Immix reserves its blocks 32 at a time, which is 1 MB of the DS's 4 MB for a
+# game that starts with a few dozen KB of objects; 4 at a time is 128 KB. A
+# copy of hxcpp's source with that changed, written into the build tree, is
+# what the DS compiles in its place, as the fx-CG50 does for the same define.
+function(fried_nds_patch_hxcpp runtime_sources_var)
+    set(_runtime_sources ${${runtime_sources_var}})
+    set(_patched "${CMAKE_BINARY_DIR}/fried_nds/hxcpp/src/hx/gc/Immix.cpp")
+
+    file(READ "${HXCPP_ROOT}/src/hx/gc/Immix.cpp" _immix)
+    set(_from "#define IMMIX_BLOCK_GROUP_BITS  5")
+    string(FIND "${_immix}" "${_from}" _found)
+    if(_found EQUAL -1)
+        message(FATAL_ERROR "hxcpp's src/hx/gc/Immix.cpp no longer contains \"${_from}\", which the DS build patches. cmake/NDS.cmake was written against hxcpp 4.3.2.")
+    endif()
+    string(REPLACE "${_from}" "#define IMMIX_BLOCK_GROUP_BITS  2" _immix "${_immix}")
+
+    # Rewritten only when the contents change, so configuring again does not
+    # rebuild the file.
+    file(WRITE "${_patched}.tmp" "${_immix}")
+    configure_file("${_patched}.tmp" "${_patched}" COPYONLY)
+    file(REMOVE "${_patched}.tmp")
+
+    # The copy still includes its neighbours by relative paths.
+    list(REMOVE_ITEM _runtime_sources "${HXCPP_ROOT}/src/hx/gc/Immix.cpp")
+    list(APPEND _runtime_sources "${_patched}")
+    set_source_files_properties("${_patched}" PROPERTIES
+        INCLUDE_DIRECTORIES "${HXCPP_ROOT}/src;${HXCPP_ROOT}/src/hx/gc"
+    )
+
+    set(${runtime_sources_var} ${_runtime_sources} PARENT_SCOPE)
+endfunction()
