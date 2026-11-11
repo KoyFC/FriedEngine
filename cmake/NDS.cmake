@@ -69,7 +69,7 @@ function(fried_nds_patch_hxcpp runtime_sources_var)
     configure_file("${_patched}.tmp" "${_patched}" COPYONLY)
     file(REMOVE "${_patched}.tmp")
 
-    # The copy still includes its neighbours by relative paths.
+    # The copy still includes its neighbors by relative paths.
     list(REMOVE_ITEM _runtime_sources "${HXCPP_ROOT}/src/hx/gc/Immix.cpp")
     list(APPEND _runtime_sources "${_patched}")
     set_source_files_properties("${_patched}" PROPERTIES

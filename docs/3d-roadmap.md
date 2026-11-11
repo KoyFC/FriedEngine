@@ -50,6 +50,6 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 
 - `.obj` loading
 - Textures
-- Point lights, vertex colours
+- Point lights, vertex colors
 - Hierarchies
 - GPU backends (OpenGL, citro3d, GXM)

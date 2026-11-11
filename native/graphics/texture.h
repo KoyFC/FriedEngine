@@ -53,7 +53,7 @@ struct SDL_Texture *fried_texture_get_sdl(int textureId);
 #include <cstdint>
 
 // The screen's own pixel format, with an alpha channel only when the image
-// has a pixel that is not fully opaque. A texture made blank has no colours at
+// has a pixel that is not fully opaque. A texture made blank has no colors at
 // all, only alpha, and draws white: what a glyph atlas needs, at a third of
 // the memory.
 struct FriedSoftwareTexture

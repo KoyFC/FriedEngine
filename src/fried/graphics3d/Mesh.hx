@@ -17,7 +17,7 @@ class Mesh {
 			throw 'A mesh takes three coordinates per vertex, but got ${vertices.length}.';
 		}
 		if (indices.length != triangleColors.length * 3) {
-			throw 'A mesh takes three indices per colour, but ${indices.length} came with ${triangleColors.length} colours.';
+			throw 'A mesh takes three indices per color, but ${indices.length} came with ${triangleColors.length} colors.';
 		}
 		var vertexCount = Std.int(vertices.length / 3);
 		for (index in indices) {

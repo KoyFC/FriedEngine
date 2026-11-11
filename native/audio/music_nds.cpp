@@ -94,7 +94,7 @@ namespace
 
     void startChannel(const Music &music)
     {
-        soundPreparePcm(s_musicChannel | SOUND_START, fried_audio_hardware_volume(s_volume), s_centrePan,
+        soundPreparePcm(s_musicChannel | SOUND_START, fried_audio_hardware_volume(s_volume), s_centerPan,
                         s_stream.m_timer, SoundMode_Repeat, fried_wave_format(music.m_wave), s_ring, 0,
                         ringBytes(music.m_wave) / 4);
         s_stream.m_startUs = fried_audio_now_us();

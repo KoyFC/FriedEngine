@@ -90,7 +90,7 @@ namespace
         return (x + 1 + (x >> 8)) >> 8;
     }
 
-    // Blending spreads a colour's three fields apart in 32 bits, green high and
+    // Blending spreads a color's three fields apart in 32 bits, green high and
     // red and blue low, so one multiplication by a 5-bit alpha blends all three
     // with room for each to carry: an SH4 multiplication takes several cycles
     // to come back, and three of them per pixel made a translucent rectangle
@@ -120,7 +120,7 @@ namespace
         pixel = pack(((((source - destination) * blendAlpha) >> 5) + destination) & s_spreadMask);
     }
 
-    // A fill blends one colour at one alpha throughout, so the colour's share
+    // A fill blends one color at one alpha throughout, so the color's share
     // of every pixel is worked out once, and what is left per pixel is the
     // share it keeps of the one below: as exact as blendPixel(), with no
     // field able to carry into the next, since neither share is over 31 * 32.
@@ -239,9 +239,9 @@ namespace
         return {(int64_t)(outputX * (1 << s_fixedShift)), (int64_t)(outputY * (1 << s_fixedShift))};
     }
 
-    // Covering a pixel by its centre means triangles sharing an edge never
+    // Covering a pixel by its center means triangles sharing an edge never
     // both draw a pixel on it.
-    int firstPixelCentredFrom(int64_t coordinate)
+    int firstPixelCenteredFrom(int64_t coordinate)
     {
         return (int)((coordinate + s_fixedHalf - 1) >> s_fixedShift);
     }
@@ -253,11 +253,11 @@ namespace
         {
             int64_t height = bottom.m_y - top.m_y;
             m_step = height > 0 ? ((bottom.m_x - top.m_x) << s_fixedShift) / height : 0;
-            int64_t firstCentre = ((int64_t)firstRow << s_fixedShift) + s_fixedHalf;
-            m_x = top.m_x + (((firstCentre - top.m_y) * m_step) >> s_fixedShift);
+            int64_t firstCenter = ((int64_t)firstRow << s_fixedShift) + s_fixedHalf;
+            m_x = top.m_x + (((firstCenter - top.m_y) * m_step) >> s_fixedShift);
         }
 
-        int64_t xAtRowCentre() const
+        int64_t xAtRowCenter() const
         {
             return m_x;
         }
@@ -310,18 +310,18 @@ namespace
     {
         int64_t left = std::min({triangle.m_top.m_x, triangle.m_middle.m_x, triangle.m_bottom.m_x});
         int64_t right = std::max({triangle.m_top.m_x, triangle.m_middle.m_x, triangle.m_bottom.m_x});
-        return {firstPixelCentredFrom(left), firstPixelCentredFrom(triangle.m_top.m_y), firstPixelCentredFrom(right), firstPixelCentredFrom(triangle.m_bottom.m_y)};
+        return {firstPixelCenteredFrom(left), firstPixelCenteredFrom(triangle.m_top.m_y), firstPixelCenteredFrom(right), firstPixelCenteredFrom(triangle.m_bottom.m_y)};
     }
 
     void fillTriangle(const FriedSoftwareFrame &frame, const PixelRect &clip, const Triangle &triangle)
     {
-        int firstRow = std::max(firstPixelCentredFrom(triangle.m_top.m_y), clip.m_top);
-        int endRow = std::min(firstPixelCentredFrom(triangle.m_bottom.m_y), clip.m_bottom);
+        int firstRow = std::max(firstPixelCenteredFrom(triangle.m_top.m_y), clip.m_top);
+        int endRow = std::min(firstPixelCenteredFrom(triangle.m_bottom.m_y), clip.m_bottom);
         if (firstRow >= endRow)
         {
             return;
         }
-        int splitRow = std::clamp(firstPixelCentredFrom(triangle.m_middle.m_y), firstRow, endRow);
+        int splitRow = std::clamp(firstPixelCenteredFrom(triangle.m_middle.m_y), firstRow, endRow);
 
         uint16_t color = (uint16_t)triangle.m_color;
         int blendAlpha = triangle.m_blendAlpha;
@@ -330,8 +330,8 @@ namespace
         auto fillRows = [&](EdgeWalk &shortEdge, int fromRow, int toRow) {
             for (int row = fromRow; row < toRow; ++row)
             {
-                int left = std::max(firstPixelCentredFrom(std::min(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), clip.m_left);
-                int right = std::min(firstPixelCentredFrom(std::max(longEdge.xAtRowCentre(), shortEdge.xAtRowCentre())), clip.m_right);
+                int left = std::max(firstPixelCenteredFrom(std::min(longEdge.xAtRowCenter(), shortEdge.xAtRowCenter())), clip.m_left);
+                int right = std::min(firstPixelCenteredFrom(std::max(longEdge.xAtRowCenter(), shortEdge.xAtRowCenter())), clip.m_right);
                 if (left < right)
                 {
                     uint16_t *pixels = frame.m_pixels + row * frame.m_width;
@@ -382,7 +382,7 @@ namespace
     };
 
     // A quad worked out in output pixels: the bounds it covers, and the texel
-    // under the centre of the first pixel with the steps from one pixel to
+    // under the center of the first pixel with the steps from one pixel to
     // the next, in 16.16 fixed point, since neither the SH4 nor the DS's ARM9
     // has a floating point unit. Drawn again, it costs no float operation.
     struct QuadSetup
@@ -462,14 +462,14 @@ namespace
             return false;
         }
 
-        // The texel under a pixel's centre, turned back by the angle and
+        // The texel under a pixel's center, turned back by the angle and
         // scaled from the quad to the source region.
         float scaleU = srcWidth / width;
         float scaleV = srcHeight / height;
-        float centreX = bounds.m_left + 0.5f - pivotX;
-        float centreY = bounds.m_top + 0.5f - pivotY;
-        float u = (cosine * centreX + sine * centreY + pivotX - left) * scaleU;
-        float v = (-sine * centreX + cosine * centreY + pivotY - top) * scaleV;
+        float centerX = bounds.m_left + 0.5f - pivotX;
+        float centerY = bounds.m_top + 0.5f - pivotY;
+        float u = (cosine * centerX + sine * centerY + pivotX - left) * scaleU;
+        float v = (-sine * centerX + cosine * centerY + pivotY - top) * scaleV;
 
         constexpr float s_one = 65536.0f;
         std::memset(&setup, 0, sizeof(setup));
@@ -515,7 +515,7 @@ namespace
         int32_t rowU = setup.m_rowU + skippedRows * setup.m_stepUDown + skippedColumns * setup.m_stepUAcross;
         int32_t rowV = setup.m_rowV + skippedRows * setup.m_stepVDown + skippedColumns * setup.m_stepVAcross;
 
-        // A blank texture is white, so tinted it is one colour throughout.
+        // A blank texture is white, so tinted it is one color throughout.
         bool tinted = r != 255 || g != 255 || b != 255;
         uint16_t tint = fried_software_pack(r, g, b);
         uint32_t spreadTint = spread(tint);
@@ -657,7 +657,7 @@ namespace
         int32_t m_blendAlpha;
     };
 
-    // A clear is the viewport's colour inside it and black around it.
+    // A clear is the viewport's color inside it and black around it.
     struct Clear
     {
         int32_t m_color;
@@ -799,7 +799,7 @@ namespace
     }
 
     // At most a few regions, each grown over any other it touches, so the
-    // commands under a region are not drawn again for a neighbour of it.
+    // commands under a region are not drawn again for a neighbor of it.
     constexpr size_t s_maxRegions = 8;
 
     class Regions
@@ -1012,7 +1012,7 @@ void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y
     recordQuad(*renderer, textureId, {0, 0, texture->m_width, texture->m_height, x, y, width, height, 0.0, false, 0.0f, 0.0f, 0}, 255, 255, 255, 255);
 }
 
-// Turned about the quad's centre, as SDL does with no centre given.
+// Turned about the quad's center, as SDL does with no center given.
 void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
     Renderer *renderer = s_renderers.get(rendererId);

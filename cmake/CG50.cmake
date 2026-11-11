@@ -113,7 +113,7 @@ function(fried_cg50_patch_hxcpp runtime_sources_var include_dir_var)
     )
     _fried_cg50_write_if_changed("${_patched_dir}/include/hxString.h" "${_hx_string}")
 
-    # The copies still include their neighbours by relative paths.
+    # The copies still include their neighbors by relative paths.
     foreach(_source src/hx/gc/Immix.cpp src/hx/Thread.cpp src/String.cpp)
         list(REMOVE_ITEM _runtime_sources "${HXCPP_ROOT}/${_source}")
         list(APPEND _runtime_sources "${_patched_dir}/${_source}")

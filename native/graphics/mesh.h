@@ -51,7 +51,7 @@ extern "C"
 
 #ifdef __NDS__
 // A triangle or a quad as the geometry engine takes it: its normal, its
-// colour as RGB15, its alpha from 0 to 255, and its corners as v16 x and y
+// color as RGB15, its alpha from 0 to 255, and its corners as v16 x and y
 // packed in a word and z alone, in units of the mesh's own.
 struct FriedNdsPolygon
 {

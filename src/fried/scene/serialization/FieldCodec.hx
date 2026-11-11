@@ -104,7 +104,7 @@ class FieldCodec {
 		return Font.from(assetPath(value, field), toInt(get(value, "size"), field));
 	}
 
-	// A reference is the id of another object of the same scene. It stays null while the scene is still being built, and the loader assigns it afterwards.
+	// A reference is the id of another object of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
 	public static function toObject(value:Dynamic, field:String, context:LoadContext):GameObject {
 		if (value == null) {
 			return null;
@@ -211,7 +211,7 @@ class FieldCodec {
 	static function channel(value:Dynamic, field:String):Int {
 		var number = toInt(value, field);
 		if (number < 0 || number > 255) {
-			return invalid(field, "a colour channel from 0 to 255");
+			return invalid(field, "a color channel from 0 to 255");
 		}
 		return number;
 	}

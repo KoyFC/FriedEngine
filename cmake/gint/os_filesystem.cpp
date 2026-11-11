@@ -61,7 +61,7 @@ namespace
     }
 
     // A directory is read whole when it opens, and anything else open is not
-    // a file, so only a file's descriptor reaches BFile afterwards.
+    // a file, so only a file's descriptor reaches BFile afterward.
     bool reachesBFile(const fs_descriptor_t *descriptor)
     {
         return descriptor->type == &fugue_descriptor_type;

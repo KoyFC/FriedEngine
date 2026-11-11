@@ -342,7 +342,7 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
     Tex3DS_SubTexture region = regionOf(*image, srcX, srcY, srcWidth, srcHeight);
     FriedRect destination = snapped(renderer, x, y, width, height);
 
-    // Rotated about the centre of the destination, as SDL_RenderCopyEx() does.
+    // Rotated about the center of the destination, as SDL_RenderCopyEx() does.
     // A negative size is how citro2d flips an image.
     float halfWidth = destination.m_width / 2.0f;
     float halfHeight = destination.m_height / 2.0f;
@@ -368,7 +368,7 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
         return;
     }
 
-    // At full blend the solid tint replaces the colour and multiplies the alpha.
+    // At full blend the solid tint replaces the color and multiplies the alpha.
     C2D_ImageTint tint;
     C2D_PlainImageTint(&tint, C2D_Color32((u8)r, (u8)g, (u8)b, (u8)a), 1.0f);
     for (int index = 0; index < count; ++index)

@@ -232,7 +232,7 @@ class Renderer {
 			width != null ? width : srcWidth, height != null ? height : srcHeight, angle, cast flip);
 	}
 
-	// Rotates about the centre of the box.
+	// Rotates about the center of the box.
 	public function drawText(font:Font, text:String, x:Float, y:Float, color:Color, ?width:Float, ?height:Float, angle:Float = 0.0):Void {
 		font.drawText(this, text, x, y, width != null ? width : font.measureWidth(text), height != null ? height : font.lineHeight, angle, color);
 	}
@@ -262,7 +262,7 @@ class Renderer {
 	@:allow(fried.graphics.DrawQueue)
 	static function checkTriangles(points:Array<Float>, colors:Array<Color>):Void {
 		if (points.length != colors.length * 6) {
-			throw 'Triangles take six coordinates per colour, but ${points.length} came with ${colors.length} colours.';
+			throw 'Triangles take six coordinates per color, but ${points.length} came with ${colors.length} colors.';
 		}
 	}
 

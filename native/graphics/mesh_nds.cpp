@@ -13,7 +13,7 @@
 // A mesh is turned into what the geometry engine takes once, when it is
 // created: each triangle's normal, worked out from its corners the way
 // Camera3D does, and its corners in fixed point. Two triangles in a row that
-// make a flat, convex quad of one colour, as a fan of two does, go as that
+// make a flat, convex quad of one color, as a fan of two does, go as that
 // quad: the engine keeps at most 6144 vertices a frame, and a quad takes four
 // of them where two triangles take six. Drawing it is then a few writes per
 // polygon, which renderer_nds.cpp makes.
@@ -70,7 +70,7 @@ namespace
     }
 
     // The triangles a, b, c and a, c, d make the quad a, b, c, d when they
-    // face the same way, have the same colour and the quad's other diagonal,
+    // face the same way, have the same color and the quad's other diagonal,
     // from b to d, has a and c on either side of it.
     bool joinsIntoQuad(const double *vertices, const Face &first, const Face &second)
     {

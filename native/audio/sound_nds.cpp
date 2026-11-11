@@ -184,7 +184,7 @@ void fried_sound_play(int soundId, int loops)
     uint64_t end = loops < 0 ? s_forever : now + sound->m_durationUs * (uint64_t)(loops + 1);
 
     soundStop(1u << index);
-    soundPreparePcm(index | SOUND_START, fried_audio_hardware_volume(sound->m_volume), s_centrePan,
+    soundPreparePcm(index | SOUND_START, fried_audio_hardware_volume(sound->m_volume), s_centerPan,
                     soundTimerFromHz(sound->m_rate), repeats ? SoundMode_Repeat : SoundMode_OneShot,
                     sound->m_format, sound->m_words.get(), 0, sound->m_wordCount);
     s_channels[index] = {soundId, repeats, now, end};

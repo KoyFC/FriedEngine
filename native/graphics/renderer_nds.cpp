@@ -108,7 +108,7 @@ namespace
     int64_t s_meshCameraX = 0;
     int64_t s_meshCameraY = 0;
     int64_t s_meshCameraZ = 0;
-    // From 0 to 32, how much of a polygon's colour it gives out unlit.
+    // From 0 to 32, how much of a polygon's color it gives out unlit.
     int s_meshAmbient = 0;
 
     constexpr int s_flipHorizontal = 1;
@@ -557,7 +557,7 @@ namespace
 
         // Set while the modelview matrix is the identity, so the light points
         // the same way in the camera's space whatever a mesh is turned by.
-        // A polygon gives out its ambient share of its colour unlit, and the
+        // A polygon gives out its ambient share of its color unlit, and the
         // light the rest as it faces into it, as Camera3D shades one.
         double ambient = std::clamp(number(FRIED_MESH_AMBIENT), 0.0, 1.0);
         double lightX = number(FRIED_MESH_LIGHT_X);
@@ -578,7 +578,7 @@ namespace
     }
 
     // Emission is the second half of the word that also holds the specular
-    // colour, which is left black.
+    // color, which is left black.
     uint32_t emissionOf(uint16_t color)
     {
         int r = ((color & 0x1f) * s_meshAmbient) >> 5;
@@ -726,7 +726,7 @@ void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y
     glEnd();
 }
 
-// Turned about the quad's centre, as SDL does with no centre given.
+// Turned about the quad's center, as SDL does with no center given.
 void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
     if (isSoftware(rendererId))
@@ -746,7 +746,7 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
     glEnd();
 }
 
-// The vertex colour multiplies the texture's, which for a blank one is white.
+// The vertex color multiplies the texture's, which for a blank one is white.
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
     if (isSoftware(rendererId))
@@ -991,7 +991,7 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
         {
             continue;
         }
-        // The material holds from one polygon to the next, as neighbours
+        // The material holds from one polygon to the next, as neighbors
         // often share it.
         if (polygon.m_color != color)
         {

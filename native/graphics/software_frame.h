@@ -7,7 +7,7 @@
 // operations on a whole frame that its hardware does better than a loop.
 
 #ifdef TARGET_FXCG50
-// RGB565. Blending spreads a colour's fields apart in 32 bits, green high and
+// RGB565. Blending spreads a color's fields apart in 32 bits, green high and
 // red and blue low, so one multiplication blends all three.
 constexpr uint32_t FRIED_SOFTWARE_LOW_FIELDS = 0xF81F;
 constexpr uint32_t FRIED_SOFTWARE_HIGH_FIELD = 0x07E0;

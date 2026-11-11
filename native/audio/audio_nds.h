@@ -9,7 +9,7 @@ constexpr int s_soundChannelCount = 15;
 constexpr int s_musicChannel = 15;
 
 constexpr unsigned s_maxHardwareVolume = 2047;
-constexpr unsigned s_centrePan = 64;
+constexpr unsigned s_centerPan = 64;
 
 inline unsigned fried_audio_hardware_volume(double volume)
 {
