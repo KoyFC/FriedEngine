@@ -232,6 +232,14 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         )
     endif()
 
+    # hxcpp reads the flags word in front of each string literal as an int.
+    # -Oz stops GCC aligning string literals to a word, and an unaligned load
+    # on the ARM9 comes back rotated, so a string is taken for the wrong
+    # encoding and Json.parse() fails.
+    if(NINTENDO_DS)
+        target_compile_options(${target_name} PRIVATE $<$<CONFIG:MinSizeRel>:-O2>)
+    endif()
+
     set_source_files_properties(${_runtime_sources} PROPERTIES
         COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"
     )
