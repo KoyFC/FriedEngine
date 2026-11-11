@@ -15,6 +15,10 @@ class DrawQueue {
 	static var viewY:Float = 0.0;
 	static var viewWidth:Float = 0.0;
 	static var viewHeight:Float = 0.0;
+	static var viewCamera:Camera;
+	static var viewZoom:Float = 1.0;
+	static var viewOffsetX:Float = 0.0;
+	static var viewOffsetY:Float = 0.0;
 	static var viewHalfWidth:Float = 0.0;
 	static var viewHalfHeight:Float = 0.0;
 	static var viewPoints:Array<Float> = [];
@@ -110,6 +114,7 @@ class DrawQueue {
 		var colorChanged = false;
 		viewHalfWidth = renderer.width / 2;
 		viewHalfHeight = renderer.height / 2;
+		viewCamera = null;
 
 		for (command in pendingDrawCommands) {
 			if (command.target != renderer) {
@@ -159,11 +164,26 @@ class DrawQueue {
 			viewHeight = command.height;
 			return;
 		}
+		useCamera(camera);
+		viewX = command.x * viewZoom + viewOffsetX;
+		viewY = command.y * viewZoom + viewOffsetY;
+		viewWidth = command.width * viewZoom;
+		viewHeight = command.height * viewZoom;
+	}
+
+	// A world position lands at position * zoom + offset on the screen, which is
+	// two double operations instead of the three of (position - camera) * zoom
+	// + half the view, and each is a call into software floating point on the DS.
+	// The numbers are worked out once for each run of commands on one camera.
+	static function useCamera(camera:Camera):Void {
+		if (camera == viewCamera) {
+			return;
+		}
+		viewCamera = camera;
 		var transform = camera.transform;
-		viewX = (command.x - transform.x) * camera.zoom + viewHalfWidth;
-		viewY = (command.y - transform.y) * camera.zoom + viewHalfHeight;
-		viewWidth = command.width * camera.zoom;
-		viewHeight = command.height * camera.zoom;
+		viewZoom = camera.zoom;
+		viewOffsetX = viewHalfWidth - transform.x * viewZoom;
+		viewOffsetY = viewHalfHeight - transform.y * viewZoom;
 	}
 
 	// The 2D camera moves and zooms the screen a mesh is projected onto, as it
@@ -183,15 +203,12 @@ class DrawQueue {
 			return command.points;
 		}
 		var points = command.points;
-		var transform = camera.transform;
-		var cameraX = transform.x;
-		var cameraY = transform.y;
-		var zoom = camera.zoom;
+		useCamera(camera);
 		viewPoints.resize(points.length);
 		var index = 0;
 		while (index < points.length) {
-			viewPoints[index] = (points[index] - cameraX) * zoom + viewHalfWidth;
-			viewPoints[index + 1] = (points[index + 1] - cameraY) * zoom + viewHalfHeight;
+			viewPoints[index] = points[index] * viewZoom + viewOffsetX;
+			viewPoints[index + 1] = points[index + 1] * viewZoom + viewOffsetY;
 			index += 2;
 		}
 		return viewPoints;
