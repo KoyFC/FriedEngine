@@ -1,4 +1,8 @@
 #include "graphics/font.h"
+#ifdef TARGET_FXCG50
+#include "graphics/display.h"
+#include "graphics/software_frame.h"
+#endif
 
 #include "handle_pool.h"
 #include "last_error.h"
@@ -455,9 +459,7 @@ namespace
         const GlyphSource &layout = font.m_layoutSource;
         if (layout.m_bitmap)
         {
-            // A whole scale that never covers more than the layout does, so a
-            // line stays inside the box sized from its measured width.
-            int scale = std::max(1, (int)std::floor(layout.m_bitmapScale * pixelScale + 0.001f));
+            int scale = std::max(1, (int)std::lround(layout.m_bitmapScale * pixelScale));
             return layout.m_bitmap->m_lineHeight * scale;
         }
         return std::max(1, (int)std::lround(font.m_size * pixelScale));
@@ -721,6 +723,20 @@ int fried_font_load(const char *path, int size)
             fried_set_last_error("Not enough memory to read the font");
             return -1;
         }
+#ifdef TARGET_FXCG50
+        // The pixel font draws at whole scales only, so the layout takes the
+        // size whose scale, on the one screen there is, covers a whole number
+        // of its pixels: a line then fills the box its measured width makes.
+        FriedSoftwareFrame frame = fried_software_frame_get(0);
+        FriedDisplayLayout display = fried_display_layout(frame.m_width, frame.m_height);
+        float pixelScale = std::min(display.m_scaleX, display.m_scaleY);
+        if (pixelScale > 0.0f)
+        {
+            int drawn = std::max(1, (int)std::lround(size * pixelScale / pixelFont->m_lineHeight));
+            size = std::max(1, (int)std::lround(drawn / pixelScale)) * pixelFont->m_lineHeight;
+            font->m_size = size;
+        }
+#endif
         font->m_layoutSource = bitmapSource(pixelFont, size);
     }
     font->m_lineHeight = font->m_layoutSource.m_lineHeight;
