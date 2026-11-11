@@ -44,6 +44,17 @@ class Component {
 	@:allow(fried.scene.GameObject)
 	function draw():Void {}
 
+	// The size a component gives its object before the transform's scale, or a negative number when it gives none. Layout and the editor measure an object by it.
+	@:allow(fried.scene.GameObject)
+	function intrinsicWidth():Float {
+		return -1;
+	}
+
+	@:allow(fried.scene.GameObject)
+	function intrinsicHeight():Float {
+		return -1;
+	}
+
 	// Layout runs before every draw, in the game and in the editor, so what a component sets here is seen where nothing updates. The size pass goes first for every object, so a component that places an object reads the final size of any other.
 	@:allow(fried.scene.GameObject)
 	function layoutSize():Void {}

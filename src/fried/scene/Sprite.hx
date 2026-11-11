@@ -18,6 +18,14 @@ class Sprite extends Component {
 		flip = None;
 	}
 
+	override function intrinsicWidth():Float {
+		return texture == null ? -1 : (source != null ? source.width : texture.width);
+	}
+
+	override function intrinsicHeight():Float {
+		return texture == null ? -1 : (source != null ? source.height : texture.height);
+	}
+
 	override function draw():Void {
 		if (texture == null) {
 			return;

@@ -34,6 +34,14 @@ class Button extends Component {
 	// The Vita's rear pad is device 1, and reaches no further than the front screen does.
 	static inline var FRONT_TOUCH_DEVICE:Int = 0;
 
+	override function intrinsicWidth():Float {
+		return width;
+	}
+
+	override function intrinsicHeight():Float {
+		return height;
+	}
+
 	public function new(width:Int, height:Int, font:Font, label:String, ?onClick:Void->Void) {
 		super();
 		this.width = width;

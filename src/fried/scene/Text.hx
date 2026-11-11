@@ -31,6 +31,14 @@ class Text extends Component {
 			transform.rotation);
 	}
 
+	override function intrinsicWidth():Float {
+		return font == null ? -1 : width;
+	}
+
+	override function intrinsicHeight():Float {
+		return font == null ? -1 : height;
+	}
+
 	function set_font(value:Font):Font {
 		if (value != font) {
 			font = value;

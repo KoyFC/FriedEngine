@@ -2,11 +2,8 @@ package fried.editor;
 
 #if fried_editor
 import fried.physics.Collider;
-import fried.scene.Button;
 import fried.scene.Camera;
 import fried.scene.GameObject;
-import fried.scene.Sprite;
-import fried.scene.Text;
 
 // The box an object takes up in the world, which is what a click on it is tested against.
 class EditorBounds {
@@ -14,19 +11,8 @@ class EditorBounds {
 
 	public static function of(object:GameObject):{x:Float, y:Float, width:Float, height:Float} {
 		var transform = object.transform;
-		var sprite = object.getComponent(Sprite);
-		if (sprite != null && sprite.texture != null) {
-			var width = sprite.source != null ? sprite.source.width : sprite.texture.width;
-			var height = sprite.source != null ? sprite.source.height : sprite.texture.height;
-			return box(transform.x, transform.y, width * transform.scaleX, height * transform.scaleY);
-		}
-		var text = object.getComponent(Text);
-		if (text != null && text.font != null) {
-			return box(transform.x, transform.y, text.width * transform.scaleX, text.height * transform.scaleY);
-		}
-		var button = object.getComponent(Button);
-		if (button != null) {
-			return box(transform.x, transform.y, button.width * transform.scaleX, button.height * transform.scaleY);
+		if (object.hasIntrinsicSize()) {
+			return box(transform.x, transform.y, object.intrinsicWidth() * transform.scaleX, object.intrinsicHeight() * transform.scaleY);
 		}
 		var collider = object.getComponent(Collider);
 		if (collider != null) {

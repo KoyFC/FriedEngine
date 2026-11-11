@@ -59,6 +59,36 @@ class GameObject {
 		return null;
 	}
 
+	// The size of the first component that has one, before the scale: a sprite's texture or source, a line of text, a button. Zero when the object has no size, and a label's padding is not part of it.
+	public function hasIntrinsicSize():Bool {
+		for (component in components) {
+			if (component.intrinsicWidth() >= 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public function intrinsicWidth():Float {
+		for (component in components) {
+			var width = component.intrinsicWidth();
+			if (width >= 0) {
+				return width;
+			}
+		}
+		return 0;
+	}
+
+	public function intrinsicHeight():Float {
+		for (component in components) {
+			var height = component.intrinsicHeight();
+			if (height >= 0) {
+				return height;
+			}
+		}
+		return 0;
+	}
+
 	public function removeComponent(component:Component):Void {
 		if (component == transform) {
 			throw 'The Transform of ${name} cannot be removed.';
