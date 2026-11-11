@@ -1,20 +1,17 @@
 package scene3d;
 
+import components.CubeField;
 import debug.DebugOverlay;
-import fried.graphics.Color;
 import fried.graphics.Font;
 import fried.graphics.Renderer;
 import fried.input.GamepadButton;
 import fried.input.InputAction;
 import fried.input.Key;
-import fried.scene.GameObject;
-import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.Text;
+import fried.scene.serialization.SceneLoader;
 
 class Scene3D {
-	static inline var STARTING_CUBES = 16;
-
 	var renderer:Renderer;
 	var font:Font;
 	var overlay:DebugOverlay;
@@ -26,12 +23,9 @@ class Scene3D {
 	}
 
 	public function load(context:SceneContext):Void {
-		var scene = context.pushScene(renderer, new Scene("Sandbox 3D"));
-		var field = scene.add(new GameObject("Cube field")).addComponent(new CubeField(renderer, STARTING_CUBES));
-
-		var hintObject = scene.add(new GameObject("Hint", 12, 12));
-		hintObject.priority = 1;
-		hintObject.addComponent(new Text(font, "Up/Down: cubes x2 or /2   F2/North: next scene", Color.rgb(220, 220, 230)));
+		var scene = context.pushScene(renderer, SceneLoader.load("scenes/sandbox_3d.scene.json", renderer));
+		var field = scene.findById("cube-field").getComponent(CubeField);
+		scene.findById("hint").getComponent(Text).font = font;
 
 		function doubleCubes():Void {
 			field.setCubeCount(field.cubeCount * 2);

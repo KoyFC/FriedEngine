@@ -32,11 +32,17 @@
 		{
 			"components": [
 				{
+					"anchorMaxX": 1,
+					"anchorMaxY": 0,
+					"anchorMinX": 1,
+					"anchorMinY": 0,
+					"offsetX": -16,
+					"offsetY": 96,
+					"pivotX": 1,
+					"pivotY": 0,
 					"scaleX": 8,
 					"scaleY": 8,
-					"type": "Transform",
-					"x": 560,
-					"y": 96
+					"type": "RectTransform"
 				},
 				{
 					"source": {
@@ -62,9 +68,15 @@
 		{
 			"components": [
 				{
-					"type": "Transform",
-					"x": 500,
-					"y": 164
+					"anchorMaxX": 1,
+					"anchorMaxY": 0,
+					"anchorMinX": 1,
+					"anchorMinY": 0,
+					"offsetX": -16,
+					"offsetY": 164,
+					"pivotX": 1,
+					"pivotY": 0,
+					"type": "RectTransform"
 				},
 				{
 					"color": {
@@ -93,11 +105,17 @@
 		{
 			"components": [
 				{
+					"anchorMaxX": 1,
+					"anchorMaxY": 0,
+					"anchorMinX": 1,
+					"anchorMinY": 0,
+					"offsetX": -16,
+					"offsetY": 16,
+					"pivotX": 1,
+					"pivotY": 0,
 					"scaleX": 4,
 					"scaleY": 4,
-					"type": "Transform",
-					"x": 560,
-					"y": 16
+					"type": "RectTransform"
 				},
 				{
 					"texture": {

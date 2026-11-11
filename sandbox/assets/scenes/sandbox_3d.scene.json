@@ -1,0 +1,49 @@
+{
+	"name": "Sandbox 3D",
+	"objects": [
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 0,
+					"y": 0
+				},
+				{
+					"cubeCount": 16,
+					"type": "CubeField"
+				}
+			],
+			"id": "cube-field",
+			"name": "Cube field",
+			"priority": 0
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 12,
+					"y": 12
+				},
+				{
+					"color": {
+						"a": 255,
+						"b": 230,
+						"g": 220,
+						"r": 220
+					},
+					"font": {
+						"path": "NunitoSans.ttf",
+						"root": "engine",
+						"size": 16
+					},
+					"text": "Up/Down: cubes x2 or /2   F2/North: next scene",
+					"type": "Text"
+				}
+			],
+			"id": "hint",
+			"name": "Hint",
+			"priority": 1
+		}
+	],
+	"version": 1
+}

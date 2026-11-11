@@ -104,18 +104,14 @@ class Scene2D {
 		panelBox.width = panelWidth;
 		panelBox.height = panelHeight;
 
-		// What sits along the right edge is placed from the screen's width, which a scene file cannot know.
 		var regionObject = uiScene.findById("region-icon");
-		regionObject.transform.x = renderer.width - iconSize - 16;
 		var regionSprite = regionObject.getComponent(Sprite);
 
 		var regionLabelObject = uiScene.findById("region-label");
 		var regionLabelText = regionLabelObject.getComponent(Text);
 		regionLabelText.font = font;
-		regionLabelObject.transform.x = renderer.width - font.measureWidth('region x ${scrollRegion.x}') - 16;
 
 		var spinnerObject = uiScene.findById("spinning-icon");
-		spinnerObject.transform.x = renderer.width - iconSize - 16;
 
 		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
 
