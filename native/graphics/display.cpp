@@ -60,6 +60,12 @@ FriedDisplayLayout fried_display_layout(int outputWidth, int outputHeight)
             outputWidth, outputHeight,
             std::max(1, (int)std::lround(outputWidth / fitScale)),
             std::max(1, (int)std::lround(outputHeight / fitScale)));
+    case FriedDisplayMode::Height:
+    {
+        // The game always sees its design's height, whatever the screen, and the width follows the screen's shape.
+        int logicalWidth = std::max(1, (int)std::lround((double)outputWidth * s_designHeight / outputHeight));
+        return coveringOutput(outputWidth, outputHeight, logicalWidth, s_designHeight);
+    }
     case FriedDisplayMode::Pixel:
     {
         // The scale is a whole number that never drops below 1, so a small screen shows less of the world rather than a shrunken, unreadable one.
