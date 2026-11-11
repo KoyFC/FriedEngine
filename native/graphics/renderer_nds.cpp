@@ -346,6 +346,15 @@ namespace
         vertexAtSameDepth(edges.m_left, edges.m_bottom, u0, v1);
     }
 
+    // With no texture bound the engine ignores texel coordinates, so none are sent.
+    void plainQuad(const Edges &edges)
+    {
+        glVertex3v16((v16)edges.m_left, (v16)edges.m_top, (v16)nextDepth());
+        GFX_VERTEX_XY = ((uint32_t)edges.m_top << 16) | ((uint32_t)edges.m_right & 0xffff);
+        GFX_VERTEX_XY = ((uint32_t)edges.m_bottom << 16) | ((uint32_t)edges.m_right & 0xffff);
+        GFX_VERTEX_XY = ((uint32_t)edges.m_bottom << 16) | ((uint32_t)edges.m_left & 0xffff);
+    }
+
     void fillEdges(const Edges &edges, int r, int g, int b, int a)
     {
         if (isEmpty(edges) || !beginPolygons(GL_QUADS, a, nullptr))
@@ -353,7 +362,7 @@ namespace
             return;
         }
         glColor(toVertexColor(r, g, b));
-        quad(edges, 0, 0, 0, 0);
+        plainQuad(edges);
         glEnd();
     }
 
@@ -842,10 +851,10 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
         return;
     }
     glColor(toVertexColor(renderer->m_r, renderer->m_g, renderer->m_b));
-    quad({outer.m_left, outer.m_top, outer.m_right, inner.m_top}, 0, 0, 0, 0);
-    quad({outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom}, 0, 0, 0, 0);
-    quad({outer.m_left, inner.m_top, inner.m_left, inner.m_bottom}, 0, 0, 0, 0);
-    quad({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom}, 0, 0, 0, 0);
+    plainQuad({outer.m_left, outer.m_top, outer.m_right, inner.m_top});
+    plainQuad({outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom});
+    plainQuad({outer.m_left, inner.m_top, inner.m_left, inner.m_bottom});
+    plainQuad({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom});
     glEnd();
 }
 
