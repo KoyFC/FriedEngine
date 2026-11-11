@@ -55,7 +55,11 @@ namespace
 
     FriedDisplayLayout layout(const FriedSoftwareFrame &frame)
     {
+#ifdef FRIED_SOFTWARE_NATIVE_DISPLAY
+        return {frame.m_width, frame.m_height, 0, 0, frame.m_width, frame.m_height, 1.0f, 1.0f};
+#else
         return fried_display_layout(frame.m_width, frame.m_height);
+#endif
     }
 
     FriedDisplayLayout layout(int windowId)

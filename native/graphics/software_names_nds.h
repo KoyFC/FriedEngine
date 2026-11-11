@@ -8,6 +8,10 @@
 // Each side numbers its renderers and textures from zero; the public ids the
 // two DS files give out keep them apart.
 
+// The project's display applies to the top screen only, as on the 3DS, so this
+// renderer draws its screen at its own size, where text blits as glyphs.
+#define FRIED_SOFTWARE_NATIVE_DISPLAY
+
 #define fried_renderer_clear fried_software_renderer_clear
 #define fried_renderer_create fried_software_renderer_create
 #define fried_renderer_destroy fried_software_renderer_destroy
