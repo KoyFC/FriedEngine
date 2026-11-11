@@ -1,6 +1,7 @@
 package fried.editor;
 
 #if fried_editor
+import fried.Project;
 import fried.graphics.Color;
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
@@ -159,6 +160,9 @@ class EditorPlayer {
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
 	function load(data:Dynamic):Void {
 		var next = SceneLoader.build(data, renderer, false);
+		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size the project designs for, which the editor shows as the display's frame.
+		next.setView(Project.displayWidth(), Project.displayHeight());
+		next.layout();
 		if (scene != null) {
 			scene.camera = null;
 			scene.destroy();

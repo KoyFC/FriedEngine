@@ -40,6 +40,7 @@ class Scene {
 
 	@:allow(fried.scene.SceneLayer)
 	@:allow(fried.scene.serialization.SceneLoader)
+	@:allow(fried.editor.EditorPlayer)
 	function setView(width:Int, height:Int):Void {
 		viewWidth = width;
 		viewHeight = height;
@@ -100,6 +101,7 @@ class Scene {
 
 	// Sizes every object, then places each one after the objects it depends on, so the result does not depend on the order of the objects or of their components. It runs before every draw, which is also where the editor reaches it, and a scene that was just built runs it once so it is placed before the first frame.
 	@:allow(fried.scene.serialization.SceneLoader)
+	@:allow(fried.editor.EditorPlayer)
 	function layout():Void {
 		applyPendingChanges();
 		for (object in sceneObjects) {
