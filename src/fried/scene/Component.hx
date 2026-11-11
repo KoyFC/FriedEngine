@@ -44,6 +44,19 @@ class Component {
 	@:allow(fried.scene.GameObject)
 	function draw():Void {}
 
+	// Layout runs before every draw, in the game and in the editor, so what a component sets here is seen where nothing updates. The size pass goes first for every object, so a component that places an object reads the final size of any other.
+	@:allow(fried.scene.GameObject)
+	function layoutSize():Void {}
+
+	@:allow(fried.scene.GameObject)
+	function layoutPosition():Void {}
+
+	// An object that must be placed before this component places its own, whatever the order of the scene.
+	@:allow(fried.scene.GameObject)
+	function layoutAfter():Null<GameObject> {
+		return null;
+	}
+
 	@:allow(fried.scene.GameObject)
 	function onEvent(event:InputEvent):Void {}
 

@@ -49,6 +49,7 @@ class SceneLoader {
 				component.start();
 			}
 		}
+		scene.layout();
 		return scene;
 	}
 

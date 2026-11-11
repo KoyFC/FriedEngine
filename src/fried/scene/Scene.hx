@@ -1,5 +1,6 @@
 package fried.scene;
 
+import fried.Log;
 import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
 import fried.input.InputEvent;
@@ -97,8 +98,39 @@ class Scene {
 		isIterating = false;
 	}
 
-	public function draw(renderer:Renderer):Void {
+	// Sizes every object, then places each one after the objects it depends on, so the result does not depend on the order of the objects or of their components. It runs before every draw, which is also where the editor reaches it, and a scene that was just built runs it once so it is placed before the first frame.
+	@:allow(fried.scene.serialization.SceneLoader)
+	function layout():Void {
 		applyPendingChanges();
+		for (object in sceneObjects) {
+			object.layoutState = 0;
+			object.layoutSize();
+		}
+		for (object in sceneObjects) {
+			place(object);
+		}
+	}
+
+	function place(object:GameObject):Void {
+		if (object.layoutState != 0) {
+			if (object.layoutState == 1 && !object.isLayoutCycleReported) {
+				object.isLayoutCycleReported = true;
+				Log.warn('The layout of ${object.name} depends on itself, so one of the objects in the loop is placed before the other.');
+			}
+			return;
+		}
+		object.layoutState = 1;
+		for (dependency in object.layoutDependencies()) {
+			if (dependency.scene == this) {
+				place(dependency);
+			}
+		}
+		object.layoutPosition();
+		object.layoutState = 2;
+	}
+
+	public function draw(renderer:Renderer):Void {
+		layout();
 		DrawQueue.currentRenderTarget = renderer;
 		DrawQueue.currentCamera = camera;
 		isIterating = true;

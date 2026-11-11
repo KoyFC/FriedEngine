@@ -21,12 +21,21 @@ class GameObject {
 	@:allow(fried.editor.EditorBounds)
 	var components:Array<Component>;
 
+	// 0 not placed yet this pass, 1 being placed, 2 placed.
+	@:allow(fried.scene.Scene)
+	var layoutState:Int;
+
+	@:allow(fried.scene.Scene)
+	var isLayoutCycleReported:Bool;
+
 	public function new(name:String = "GameObject", xPosition:Float = 0.0, yPosition:Float = 0.0) {
 		this.name = name;
 		id = "";
 		isActive = true;
 		priority = 0;
 		isDestroyed = false;
+		layoutState = 0;
+		isLayoutCycleReported = false;
 		components = [];
 		transform = addComponent(new Transform(xPosition, yPosition));
 	}
@@ -106,6 +115,45 @@ class GameObject {
 				component.draw();
 			}
 		}
+	}
+
+	@:allow(fried.scene.Scene)
+	function layoutSize():Void {
+		if (!isActive) {
+			return;
+		}
+		for (component in components) {
+			if (component.enabled) {
+				component.layoutSize();
+			}
+		}
+	}
+
+	@:allow(fried.scene.Scene)
+	function layoutPosition():Void {
+		if (!isActive) {
+			return;
+		}
+		for (component in components) {
+			if (component.enabled) {
+				component.layoutPosition();
+			}
+		}
+	}
+
+	@:allow(fried.scene.Scene)
+	function layoutDependencies():Array<GameObject> {
+		var dependencies = [];
+		if (!isActive) {
+			return dependencies;
+		}
+		for (component in components) {
+			var dependency = component.enabled ? component.layoutAfter() : null;
+			if (dependency != null) {
+				dependencies.push(dependency);
+			}
+		}
+		return dependencies;
 	}
 
 	@:allow(fried.scene.Scene)
