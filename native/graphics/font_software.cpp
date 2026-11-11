@@ -451,7 +451,16 @@ namespace
 
     int rasterSizeOn(const LoadedFont &font, int rendererId)
     {
-        return std::max(1, (int)std::lround(font.m_size * fried_renderer_get_pixel_scale(rendererId)));
+        float pixelScale = fried_renderer_get_pixel_scale(rendererId);
+        const GlyphSource &layout = font.m_layoutSource;
+        if (layout.m_bitmap)
+        {
+            // A whole scale that never covers more than the layout does, so a
+            // line stays inside the box sized from its measured width.
+            int scale = std::max(1, (int)std::floor(layout.m_bitmapScale * pixelScale + 0.001f));
+            return layout.m_bitmap->m_lineHeight * scale;
+        }
+        return std::max(1, (int)std::lround(font.m_size * pixelScale));
     }
 
     GlyphSource sourceAtSize(const LoadedFont &font, int size)
