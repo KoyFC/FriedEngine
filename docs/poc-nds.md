@@ -234,3 +234,39 @@ Estimated in days of work at the pace of Phases 1 and 2, the larger ones the lea
 
 About 10 to 17 days. What a first game needs is the measurements on a DS, the GC's reservation and running without a FAT volume, about 2.5 days; the rest can wait for a game that asks for it.
 
+
+## Performance pass
+
+Measured in melonDS 1.1 (JIT off) on a stress scene, the sandbox's 2D scene plus 200 sprites and 100 boxes, 450 draw commands a frame, with the time of each phase of the frame read off the debug overlay. Phase 3's figures above are for the sandbox alone and stand; these are for a heavier frame. Every number is an emulator's and still needs a DS.
+
+### What changed
+
+| Change | Flush, ms |
+|---|---|
+| Before the pass (`0d070c7`, `-O2`) | 30.6 |
+| The camera's half view worked out once, vertices rounded from the float's bits, texel regions shifted | 18.4 |
+| Quads with no texture send no texel coordinates | 17.7 |
+| The camera's scale and offset worked out once per camera | 16.9 |
+| Native code at `-O2` instead of `-Oz` (21.3 ms with it at `-Oz`) | 16.9 |
+
+The frame went from 42.8 ms (24 frames a second) to 27.6 ms (39). The DS now builds as `Release`: the native code at `-O2` costs about 27 KB more than at `-Oz`, since nearly all the code is hxcpp's.
+
+### Where the flush goes now
+
+Of 18 ms: about 4.5 ms is `DrawQueue.computeView`, double precision arithmetic in software; about 2 ms is the rest of the draw queue; about 2 ms is Haxe wrappers and the conversion of each argument to a float; and about 7.8 ms is the native draw calls, 450 of them, 11 us each. The geometry engine accounts for about 3 ms of those at 3 to 4 us a quad over 764 quads (112 outlines are four quads each); the other 4 to 5 ms is native CPU time nobody has taken apart yet, and is the largest open item. Leaving out one kind of command at a time took 2.7 ms for 200 textures, 1.9 ms for 113 rectangles, 2.8 ms for 112 outlines and 1.6 ms for 22 lines of text.
+
+### What was left alone, and why
+
+- **Skipping repeated polygon state.** Not tried. The stress scene alternates sprites, fills and outlines, so it has no runs of one state to skip, and translucent polygons need their own ID each time.
+- **Batching the calls from Haxe.** The wrappers are about 13 % of the flush, under the 25 % that would justify a new native entry.
+- **Text, layers, events, `Scene.update`.** The generated C++ has no boxing, closures or allocation on these paths; the cost is the game's own components.
+- **SDL and citro2d backends.** Both batch inside their libraries.
+- **Shifting texel regions instead of dividing** is in, but its effect is below what the overlay resolves, so it was never isolated.
+
+### Memory
+
+On the stress scene, `Release` has 2,054 KB of heap in use of a 2,332 KB ceiling and `MinSizeRel` 2,358 KB: the difference is the 26 KB of code. Phase 3's 751 KB spare is out of date, as the hxcpp code at `-O2` takes about 500 KB more than at `-Oz`. With the collector reserving 4 blocks at a time, 1,912 KB are in use, which leaves about 420 KB.
+
+### The build type, and why `-Oz` cannot be used for hxcpp's code
+
+`-Oz` stops GCC aligning string literals to a word (`.align 2` is in front of a literal at `-O2` and not at `-Oz`). hxcpp keeps a flags word in front of each literal and reads it as an `int`, so where a literal falls on an odd address the ARM9 returns a rotated word, and the string reads as UTF-16. `Json.parse("300")` then failed with `Invalid char 12339 at position 0`, and a scene file with `The scene file is version 0, and this engine reads version 1.` `cmake/Hxcpp.cmake` now builds the hxcpp code at `-O2` whatever the build type. Reaching it took the scene loader, which is the first code to run JSON on the DS.
