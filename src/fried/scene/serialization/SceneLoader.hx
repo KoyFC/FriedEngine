@@ -1,6 +1,5 @@
 package fried.scene.serialization;
 
-import fried.Application;
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
 import haxe.Json;
@@ -30,17 +29,16 @@ class SceneLoader {
 		} catch (error:Dynamic) {
 			throw 'Cannot read the scene file $assetPath: $error';
 		}
-		return build(data, renderer, Application.platformName);
+		return build(data, renderer);
 	}
 
-	// The platform picks which block of the file's "platforms" is applied over the scene, none for null.
 	// Components start once every object and reference exists, unless the caller only wants to look at the scene, as the editor does.
-	public static function build(data:Dynamic, renderer:Renderer, ?platform:String, startComponents:Bool = true):Scene {
+	public static function build(data:Dynamic, renderer:Renderer, startComponents:Bool = true):Scene {
 		var outer = Component.waitingToStart;
 		var waiting:Array<Component> = [];
 		Component.waitingToStart = waiting;
 		var scene = try {
-			assemble(data, renderer, platform);
+			assemble(data, renderer);
 		} catch (error:Dynamic) {
 			Component.waitingToStart = outer;
 			throw error;
@@ -54,7 +52,7 @@ class SceneLoader {
 		return scene;
 	}
 
-	static function assemble(data:Dynamic, renderer:Renderer, platform:Null<String>):Scene {
+	static function assemble(data:Dynamic, renderer:Renderer):Scene {
 		var version = FieldCodec.get(data, "version");
 		if (version != FORMAT_VERSION) {
 			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION.';
@@ -91,10 +89,6 @@ class SceneLoader {
 			scene.camera = camera;
 		}
 
-		var overrides = FieldCodec.has(data, "platforms") && platform != null ? FieldCodec.get(FieldCodec.get(data, "platforms"), platform) : null;
-		if (overrides != null) {
-			applyOverrides(overrides, scene, context);
-		}
 		return scene;
 	}
 
@@ -106,25 +100,6 @@ class SceneLoader {
 			}
 		}
 		return null;
-	}
-
-	// Each override is an object id, then a component type, then the fields to change. It reaches the first component of that type.
-	static function applyOverrides(overrides:Dynamic, scene:Scene, context:LoadContext):Void {
-		for (id in Reflect.fields(overrides)) {
-			var object = scene.findById(id);
-			if (object == null) {
-				throw 'A platform override names the object "$id", which the scene does not have.';
-			}
-			var byType = Reflect.field(overrides, id);
-			for (typeName in Reflect.fields(byType)) {
-				var type = ComponentRegistry.get(typeName);
-				var target = findComponent(object, typeName);
-				if (type == null || target == null) {
-					throw 'A platform override gives $id a $typeName, which it does not have.';
-				}
-				type.apply(target, Reflect.field(byType, typeName), context);
-			}
-		}
 	}
 
 	static function buildObject(data:Dynamic, context:LoadContext, references:Array<PendingReferences>):GameObject {

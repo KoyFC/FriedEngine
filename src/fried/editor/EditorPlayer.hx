@@ -25,7 +25,6 @@ class EditorPlayer {
 	var connection:EditorConnection;
 	var layer:EditorSceneLayer;
 	var scene:Scene;
-	var platform:String;
 	var camera:Camera;
 	var cameraObject:GameObject;
 	var isRenderRequested:Bool;
@@ -136,7 +135,7 @@ class EditorPlayer {
 			case "schema":
 				connection.send({type: "schema", components: describeComponents()});
 			case "load":
-				load(message.scene, message.platform);
+				load(message.scene);
 				connection.send({type: "loaded"});
 			case "setField":
 				setField(message.id, message.component, message.field, message.value);
@@ -158,9 +157,8 @@ class EditorPlayer {
 	}
 
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
-	function load(data:Dynamic, requestedPlatform:Null<String>):Void {
-		platform = requestedPlatform;
-		var next = SceneLoader.build(data, renderer, platform, false);
+	function load(data:Dynamic):Void {
+		var next = SceneLoader.build(data, renderer, false);
 		if (scene != null) {
 			scene.camera = null;
 			scene.destroy();

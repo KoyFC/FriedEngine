@@ -5,7 +5,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 ## Decisions
 
 - v1 is 2D only, with no hierarchy and built-in components only.
-- A scene is a JSON file under `assets/scenes/`, written by the editor and only read by the engine. Objects have stable ids, and a `platforms` block holds per-platform overrides keyed like `project.fried`.
+- A scene is a JSON file under `assets/scenes/`, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a component that differs on a platform decides so in its own code.
 - The reference resolution is the project's `display` block, not a field of the scene.
 - Components are serialized through a build macro on `Component`, with no runtime reflection and an explicit registry of the built-ins.
 - The viewport is a separate engine process, driven by a small protocol (see the editor player section of `ARCHITECTURE.md`): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User components cannot be shown in it until a per-project player exists, because they are compiled Haxe.
@@ -28,7 +28,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 - [x] `Filesystem.resolveAsset(root, path)` with path validation
 - [x] `ComponentBuilder` macro, `ComponentRegistry` and the built-in list
 - [x] `SceneLoader` and a sandbox scene loaded from JSON
-- [x] `Application.platformName` and per-platform overrides
+- [x] `Application.platformName`
 
 ### 3. Editor player (FriedEngine)
 
@@ -55,7 +55,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ### 6. Per-platform (FriedEditor)
 
-- [x] Platform selector and override editing
+- [x] Platform selector (per-platform component overrides were removed: a component that differs by platform says so in its own code)
 - [x] Display frame from `project.fried`
 - [x] Asset validation with fixes (texture sizes, DS audio format, fx-CG50 size)
 
