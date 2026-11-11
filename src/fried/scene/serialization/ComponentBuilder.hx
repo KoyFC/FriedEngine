@@ -28,7 +28,7 @@ class ComponentBuilder {
 		}
 
 		var className = localClass.pack.concat([localClass.name]).join(".");
-		var serialized = collectFields(fields);
+		var serialized = collectInherited(localClass).concat(collectFields(fields));
 		var source = describeSource(localClass.name, className, serialized, constructorArguments(fields), localClass.pos);
 
 		var describe = Context.parse(source, localClass.pos);
@@ -44,6 +44,50 @@ class ComponentBuilder {
 				Context.error("The generated describeComponent is not a function.", localClass.pos);
 		}
 		return fields;
+	}
+
+	// A serializable class that extends another serializable class, such as a RectTransform that is a Transform, has the fields of both.
+	static function collectInherited(localClass:haxe.macro.Type.ClassType):Array<SerializedField> {
+		var chain:Array<haxe.macro.Type.ClassType> = [];
+		var parent = localClass.superClass;
+		while (parent != null) {
+			var parentClass = parent.t.get();
+			if (!parentClass.meta.has(":serializable")) {
+				break;
+			}
+			chain.unshift(parentClass);
+			parent = parentClass.superClass;
+		}
+		var result = [];
+		for (ancestor in chain) {
+			for (field in ancestor.fields.get()) {
+				if (!field.isPublic || field.meta.has(":noSerialize")) {
+					continue;
+				}
+				var isWritable = switch (field.kind) {
+					case FVar(_, AccNormal) | FVar(_, AccCall):
+						true;
+					case _:
+						false;
+				}
+				var typeName = switch (field.type) {
+					case TAbstract(reference, _):
+						reference.get().name;
+					case TInst(reference, _):
+						reference.get().name;
+					case TEnum(reference, _):
+						reference.get().name;
+					case _:
+						null;
+				}
+				var classified = isWritable && typeName != null ? classify(TPath({pack: [], name: typeName})) : null;
+				if (classified != null) {
+					classified.name = field.name;
+					result.push(classified);
+				}
+			}
+		}
+		return result;
 	}
 
 	static function collectFields(fields:Array<Field>):Array<SerializedField> {

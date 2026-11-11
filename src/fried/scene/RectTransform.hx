@@ -1,14 +1,16 @@
 package fried.scene;
 
-// Places an object in the view, as a rectangle does in Unity's interface: against the view's edges, whatever its size, and in the editor as in the game.
+// The transform of an object of the interface, which takes the place of its Transform, as in Unity. It places the object in the view, as a rectangle does there: against the view's edges, whatever its size, and in the editor as in the game.
 //
 // On each axis the anchors are fractions of the view. When the two are equal the object keeps its own size and sits at that point, moved by the pivot, a fraction of its own size, and then by the offset. When they differ the object is stretched between the two anchors, shrunk by the insets, and its scale takes the size it is given.
 //
 // Stretching is done by the transform's scale, so it suits a sprite or a box and distorts a line of text, which a FitText sizes instead.
 //
+// What it places is its own x and y, and the scale where it stretches, so what a file holds for those is overwritten by every layout and the offsets and insets are what to edit. Rotation is left to the file.
+//
 // An object can instead sit under another one, with the offset as the gap. A line of text that must shrink to fit puts a FitText of the game before this in the layout, which is sized first.
 @:serializable
-class RectTransform extends Component {
+class RectTransform extends Transform {
 	public var anchorMinX:Float;
 	public var anchorMinY:Float;
 	public var anchorMaxX:Float;

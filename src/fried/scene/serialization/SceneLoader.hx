@@ -127,7 +127,17 @@ class SceneLoader {
 			}
 
 			var component:Component;
-			if (typeName == "Transform") {
+			if (typeName == "RectTransform") {
+				if (Std.isOfType(object.transform, RectTransform)) {
+					throw 'The object $id has more than one RectTransform.';
+				}
+				// It is the object's transform and takes the place of the Transform. A Transform listed before it only gives the values it starts from.
+				component = type.create(componentData, context);
+				object.replaceTransform(cast component);
+			} else if (typeName == "Transform") {
+				if (Std.isOfType(object.transform, RectTransform)) {
+					throw 'The object $id has a Transform and a RectTransform, and a RectTransform takes the place of the Transform.';
+				}
 				component = object.transform;
 				type.apply(component, componentData, context);
 			} else {

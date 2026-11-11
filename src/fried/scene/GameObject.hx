@@ -89,6 +89,24 @@ class GameObject {
 		return 0;
 	}
 
+	// Swaps the Transform for another kind, such as a RectTransform for an object of the interface. It takes the place of the first component and the position, rotation and scale the old one had.
+	public function replaceTransform(replacement:Transform):Transform {
+		if (replacement.gameObject != null) {
+			throw 'A component may only belong to one game object. This one belongs to ${replacement.gameObject.name}.';
+		}
+		var old = transform;
+		replacement.x = old.x;
+		replacement.y = old.y;
+		replacement.rotation = old.rotation;
+		replacement.scaleX = old.scaleX;
+		replacement.scaleY = old.scaleY;
+		components[components.indexOf(old)] = replacement;
+		transform = replacement;
+		old.detach();
+		replacement.attach(this);
+		return replacement;
+	}
+
 	public function removeComponent(component:Component):Void {
 		if (component == transform) {
 			throw 'The Transform of ${name} cannot be removed.';
