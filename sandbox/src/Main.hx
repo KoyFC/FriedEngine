@@ -27,7 +27,6 @@ import fried.io.UserData;
 import fried.scene.Scene;
 import fried.scene.SceneManager;
 import fried.scene.serialization.ComponentDiscovery;
-import fried.scene.serialization.SceneLoader;
 
 class Main {
 	public static function main():Void {
@@ -148,7 +147,6 @@ class Main {
 		ComponentDiscovery.register();
 		SceneManager.register("2D", new Scene2D(renderer, font, overlay, zoom, runs).load);
 		SceneManager.register("3D", new Scene3D(renderer, font, overlay).load);
-		SceneLoader.register("Data", "scenes/sample.scene.json", renderer);
 		SceneManager.load("2D");
 
 		function closeWindow():Void {
