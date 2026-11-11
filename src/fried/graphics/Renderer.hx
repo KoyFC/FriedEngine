@@ -19,6 +19,9 @@ class Renderer {
 	public var width(default, null):Int;
 	public var height(default, null):Int;
 
+	// How many output pixels one logical pixel covers, the smaller axis when they differ. Below 1 the display shrinks the game, as a fixed height does on a small screen.
+	public var pixelScale(default, null):Float;
+
 	public var drawColor(default, set):Color;
 
 	@:allow(fried.graphics3d.Camera3D)
@@ -293,6 +296,12 @@ class Renderer {
 	function refreshSize():Void {
 		width = RendererNative.getWidth(id);
 		height = RendererNative.getHeight(id);
+		pixelScale = RendererNative.getPixelScale(id);
+	}
+
+	// The font size, in logical pixels, that is at least screenPixels tall on the output: text stays readable where the display shrinks the game, while the world keeps its view.
+	public function legibleSize(size:Int, screenPixels:Int):Int {
+		return Std.int(Math.max(size, Math.ceil(screenPixels / pixelScale)));
 	}
 }
 
@@ -313,6 +322,9 @@ private extern class RendererNative {
 
 	@:native("fried_renderer_get_height")
 	static function getHeight(id:Int):Int;
+
+	@:native("fried_renderer_get_pixel_scale")
+	static function getPixelScale(id:Int):cpp.Float32;
 
 	#if fried_editor
 	@:native("fried_renderer_read_pixels")

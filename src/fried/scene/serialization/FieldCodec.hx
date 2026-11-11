@@ -101,7 +101,12 @@ class FieldCodec {
 		if (value == null) {
 			return null;
 		}
-		return Font.from(assetPath(value, field), toInt(get(value, "size"), field));
+		var size = toInt(get(value, "size"), field);
+		// A font may ask for a size on the output, which grows its logical size where the display shrinks the game.
+		if (has(value, "minScreenSize") && context.renderer != null) {
+			size = context.renderer.legibleSize(size, toInt(get(value, "minScreenSize"), field));
+		}
+		return Font.from(assetPath(value, field), size);
 	}
 
 	// A reference is the id of another object of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
