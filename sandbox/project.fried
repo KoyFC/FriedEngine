@@ -1,37 +1,20 @@
 {
-	"3ds": {
-		"display": {
-			"mode": "default"
-		}
-	},
-	"cg50": {
-		"display": {
-			"mode": "default"
-		}
-	},
 	"display": {
 		"height": 480,
-		"mode": "expand",
+		"mode": "pixel",
 		"width": 640
 	},
 	"name": "Fried Sandbox",
-	"nds": {
-		"display": {
-			"mode": "default"
-		}
-	},
 	"organization": "Fried Engine",
 	"switch": {
 		"display": {
-			"filter": "nearest",
-			"mode": "default"
+			"filter": "nearest"
 		}
 	},
 	"version": "01.00",
 	"vita": {
 		"display": {
-			"filter": "nearest",
-			"mode": "default"
+			"filter": "nearest"
 		},
 		"titleId": "FRIE00001"
 	},
