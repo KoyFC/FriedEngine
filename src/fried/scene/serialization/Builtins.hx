@@ -10,6 +10,7 @@ class Builtins {
 			Sprite.describeComponent(),
 			Text.describeComponent(),
 			Button.describeComponent(),
+			RectTransform.describeComponent(),
 			Camera.describeComponent(),
 			Collider.describeComponent()
 		];
