@@ -58,8 +58,10 @@ struct FriedGlyphBlit
 };
 
 // Draws a line of glyphs from a blank texture with no transform on any of
-// them, starting at a logical position. Where logical pixels are not output
-// ones it draws nothing and returns false, for the caller to draw quads.
+// them, starting at a logical position. The glyphs are placed in output
+// pixels, so they are copied as rasterized however much the display scales.
+// A renderer that cannot copy them at that scale draws nothing and returns
+// false, for the caller to draw quads.
 bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y, const FriedGlyphBlit *glyphs, int count, int r, int g, int b, int a);
 #endif
 

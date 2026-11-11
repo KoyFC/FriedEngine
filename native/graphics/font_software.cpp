@@ -542,6 +542,41 @@ namespace
         return *line;
     }
 
+    // Where a line's glyphs go in output pixels, laid out at the size the
+    // atlas was rasterized at so each one lands as it was drawn. Scaling the
+    // layout's places instead would space whole-scale pixel fonts unevenly.
+    void blitsOf(GlyphAtlas &atlas, CachedLine &line)
+    {
+        GlyphSource &source = atlas.m_rasterSource;
+        std::vector<PlacedGlyph> placed;
+        int penX = 0;
+        int minX = 0;
+        uint32_t previous = 0;
+        const char *cursor = line.m_text.c_str();
+        while (*cursor)
+        {
+            uint32_t codepoint = nextCodepoint(cursor);
+            const GlyphMetrics &metrics = metricsOf(source, codepoint);
+            if (previous != 0 && source.m_trueType)
+            {
+                penX += (int)std::lround(stbtt_GetCodepointKernAdvance(source.m_trueType, (int)previous, (int)codepoint) * source.m_trueTypeScale);
+            }
+            placed.push_back({codepoint, &metrics, penX});
+            minX = std::min(minX, penX + metrics.m_offsetX);
+            penX += metrics.m_advance;
+            previous = codepoint;
+        }
+        for (const PlacedGlyph &glyph : placed)
+        {
+            const AtlasRegion *region = atlasRegionOf(atlas, glyph.m_codepoint, *glyph.m_metrics);
+            if (region)
+            {
+                line.m_blits.push_back({region->m_x, region->m_y, region->m_width, region->m_height,
+                                        -minX + glyph.m_penX + glyph.m_metrics->m_offsetX, glyph.m_metrics->m_offsetY});
+            }
+        }
+    }
+
     // One read for the whole file: on the calculator each call into the
     // filesystem is a world switch to the OS and back. A file too big to hold is not an error, only
     // a reason to fall back, so it reports that apart from failing to read.
@@ -763,21 +798,14 @@ void fried_font_draw_text(int fontId, int rendererId, const char *text, float x,
         return;
     }
 
-    // A line drawn unturned at the size it was laid out and rasterized at
-    // needs no transform: its glyphs go to the screen as the atlas holds them.
-    if (angle == 0.0 && width == (float)lineWidth && height == (float)font->m_lineHeight && atlas->m_rasterSize == font->m_size)
+    // A line drawn unturned at the size it was laid out at needs no transform:
+    // its glyphs go to the screen as the atlas holds them, however much the
+    // display scales.
+    if (angle == 0.0 && width == (float)lineWidth && height == (float)font->m_lineHeight)
     {
         if (!line.m_hasBlits)
         {
-            for (const PlacedGlyph &glyph : line.m_glyphs)
-            {
-                const AtlasRegion *region = atlasRegionOf(*atlas, glyph.m_codepoint, *glyph.m_metrics);
-                if (region)
-                {
-                    line.m_blits.push_back({region->m_x, region->m_y, region->m_width, region->m_height,
-                                            originX + glyph.m_penX + glyph.m_metrics->m_offsetX, glyph.m_metrics->m_offsetY});
-                }
-            }
+            blitsOf(*atlas, line);
             line.m_hasBlits = true;
         }
         if (fried_renderer_draw_glyphs(rendererId, atlas->m_textureId, x, y, line.m_blits.data(), (int)line.m_blits.size(), r, g, b, a))

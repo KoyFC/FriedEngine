@@ -1051,10 +1051,6 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
         return true;
     }
     FriedDisplayLayout current = layout(renderer->m_windowId);
-    if (current.m_scaleX != 1.0f || current.m_scaleY != 1.0f)
-    {
-        return false;
-    }
     const FriedSoftwareTexture *texture = fried_texture_get_software(textureId);
     if (!texture || !texture->m_alpha || a <= 0 || count <= 0)
     {
@@ -1064,8 +1060,8 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
     Glyphs command;
     std::memset(&command, 0, sizeof(command));
     command.m_textureId = textureId;
-    command.m_left = current.m_viewportX + fried_display_round(x);
-    command.m_top = current.m_viewportY + fried_display_round(y);
+    command.m_left = current.m_viewportX + fried_display_round(x * current.m_scaleX);
+    command.m_top = current.m_viewportY + fried_display_round(y * current.m_scaleY);
     command.m_color = fried_software_pack(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
     command.m_alpha = std::min(a, 255);
     command.m_count = count;
