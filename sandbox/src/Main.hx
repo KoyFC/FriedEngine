@@ -98,8 +98,12 @@ class Main {
 			Log.success('Second window created: ${secondRenderer.width}x${secondRenderer.height}, so the debug overlay moves to it');
 		}
 
+		// Each screen has its own scale, so each gets a font sized for it: the overlay's screen may not be the game's.
+		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
+		var overlayFont = overlayRenderer == renderer ? font : Font.from(Assets.engine("NunitoSans.ttf"), overlayRenderer.legibleSize(overlayRenderer.height < 240 ? 10 : 16, 10));
+
 		var debugScene = new Scene("Sandbox debug");
-		var overlay = new DebugOverlay(debugScene, font, renderer);
+		var overlay = new DebugOverlay(debugScene, overlayFont, renderer);
 
 		function toggleMusic():Void {
 			if (music.paused) {
@@ -141,7 +145,6 @@ class Main {
 
 		gameplay.enable();
 
-		var overlayRenderer = secondRenderer != null ? secondRenderer : renderer;
 		overlayRenderer.pushLayer(overlay);
 
 		ComponentDiscovery.register();
