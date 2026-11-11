@@ -73,8 +73,8 @@ class Main {
 		Log.info('Same path twice on one renderer: ${sprite == Texture.from(renderer, Assets.game("sprite.png"))}');
 		Log.success('Texture loaded: ${sprite.width}x${sprite.height}');
 
-		// The world keeps its view on every screen, so on a small one the text grows in logical pixels to stay 10 pixels tall on the output.
-		var font = Font.from(Assets.engine("NunitoSans.ttf"), renderer.legibleSize(16, 10));
+		// The world keeps its view on every screen, so on a small one the text grows in logical pixels to stay 12 pixels tall on the output.
+		var font = Font.from(Assets.engine("NunitoSans.ttf"), renderer.legibleSize(16, 12));
 		Log.success('Font loaded: line height ${font.lineHeight}');
 
 		var beep = Sound.from(Assets.game("beep.wav"));
