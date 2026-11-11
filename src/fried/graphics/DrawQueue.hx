@@ -15,6 +15,8 @@ class DrawQueue {
 	static var viewY:Float = 0.0;
 	static var viewWidth:Float = 0.0;
 	static var viewHeight:Float = 0.0;
+	static var viewHalfWidth:Float = 0.0;
+	static var viewHalfHeight:Float = 0.0;
 	static var viewPoints:Array<Float> = [];
 	static var sortScratch:Array<DrawCommand> = [];
 	static var sortedLayers:Array<Int> = [];
@@ -106,12 +108,14 @@ class DrawQueue {
 	static function draw(renderer:Renderer):Void {
 		var restoreColor = renderer.drawColor;
 		var colorChanged = false;
+		viewHalfWidth = renderer.width / 2;
+		viewHalfHeight = renderer.height / 2;
 
 		for (command in pendingDrawCommands) {
 			if (command.target != renderer) {
 				continue;
 			}
-			computeView(command, renderer);
+			computeView(command);
 			switch (command.type) {
 				case TextureRegion:
 					var texture = command.texture;
@@ -134,7 +138,7 @@ class DrawQueue {
 					colorChanged = true;
 					renderer.outlineArea(viewX, viewY, viewWidth, viewHeight);
 				case FillTriangles:
-					renderer.fillTriangles(computeViewPoints(command, renderer), command.colors);
+					renderer.fillTriangles(computeViewPoints(command), command.colors);
 				case DrawMesh:
 					drawMesh(command, renderer);
 			}
@@ -146,7 +150,7 @@ class DrawQueue {
 	}
 
 	// Kept fractional all the way down, so the backend rounds each edge once, to a pixel of the real screen.
-	static function computeView(command:DrawCommand, renderer:Renderer):Void {
+	static function computeView(command:DrawCommand):Void {
 		var camera = command.camera;
 		if (camera == null) {
 			viewX = command.x;
@@ -155,8 +159,9 @@ class DrawQueue {
 			viewHeight = command.height;
 			return;
 		}
-		viewX = camera.worldToScreenX(command.x, renderer);
-		viewY = camera.worldToScreenY(command.y, renderer);
+		var transform = camera.transform;
+		viewX = (command.x - transform.x) * camera.zoom + viewHalfWidth;
+		viewY = (command.y - transform.y) * camera.zoom + viewHalfHeight;
 		viewWidth = command.width * camera.zoom;
 		viewHeight = command.height * camera.zoom;
 	}
@@ -172,17 +177,21 @@ class DrawQueue {
 		renderer.drawMesh(command.meshId, command.points, true, camera.zoom, camera.transform.x, camera.transform.y);
 	}
 
-	static function computeViewPoints(command:DrawCommand, renderer:Renderer):Array<Float> {
+	static function computeViewPoints(command:DrawCommand):Array<Float> {
 		var camera = command.camera;
 		if (camera == null) {
 			return command.points;
 		}
 		var points = command.points;
+		var transform = camera.transform;
+		var cameraX = transform.x;
+		var cameraY = transform.y;
+		var zoom = camera.zoom;
 		viewPoints.resize(points.length);
 		var index = 0;
 		while (index < points.length) {
-			viewPoints[index] = camera.worldToScreenX(points[index], renderer);
-			viewPoints[index + 1] = camera.worldToScreenY(points[index + 1], renderer);
+			viewPoints[index] = (points[index] - cameraX) * zoom + viewHalfWidth;
+			viewPoints[index + 1] = (points[index + 1] - cameraY) * zoom + viewHalfHeight;
 			index += 2;
 		}
 		return viewPoints;
