@@ -4,6 +4,8 @@ package fried.scene;
 //
 // On each axis the anchors are fractions of the view. When the two are equal the object keeps its own size and sits at that point, moved by the pivot, a fraction of its own size, and then by the offset. When they differ the object is stretched between the two anchors, shrunk by the insets, and its scale takes the size it is given.
 //
+// Stretching is done by the transform's scale, so it suits a sprite or a box and distorts a line of text, which a FitText sizes instead.
+//
 // An object can instead sit under another one, with the offset as the gap. A line of text that must shrink to fit puts a FitText of the game before this in the layout, which is sized first.
 @:serializable
 class RectTransform extends Component {
