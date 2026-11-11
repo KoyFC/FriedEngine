@@ -314,9 +314,11 @@ int fried_texture_load(int rendererId, const char *path)
     }
 
     int downscale = 1;
+    int downscaleShift = 0;
     while (width / downscale > s_maxSide || height / downscale > s_maxSide)
     {
         downscale *= 2;
+        ++downscaleShift;
     }
     int storedWidth = std::max(1, width / downscale);
     int storedHeight = std::max(1, height / downscale);
@@ -342,6 +344,7 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
     texture->m_public.m_downscale = downscale;
+    texture->m_public.m_downscaleShift = downscaleShift;
     return s_textures.store(texture);
 }
 

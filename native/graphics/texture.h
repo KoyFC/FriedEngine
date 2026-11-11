@@ -34,6 +34,8 @@ struct FriedNdsTexture
     int m_textureWidth;
     int m_textureHeight;
     bool m_translucent;
+    // The power of two m_downscale is, so a region is shifted into the stored texels instead of divided.
+    int m_downscaleShift;
 };
 
 const FriedNdsTexture *fried_texture_get_nds(int textureId);

@@ -368,8 +368,8 @@ namespace
 
     TexelRegion regionOf(const FriedNdsTexture &texture, int srcX, int srcY, int srcWidth, int srcHeight, int flipMode)
     {
-        int scale = texture.m_downscale;
-        TexelRegion region = {(srcX << 4) / scale, (srcY << 4) / scale, ((srcX + srcWidth) << 4) / scale, ((srcY + srcHeight) << 4) / scale};
+        int shift = texture.m_downscaleShift;
+        TexelRegion region = {(srcX << 4) >> shift, (srcY << 4) >> shift, ((srcX + srcWidth) << 4) >> shift, ((srcY + srcHeight) << 4) >> shift};
         if (flipMode & s_flipHorizontal)
         {
             std::swap(region.m_u0, region.m_u1);
