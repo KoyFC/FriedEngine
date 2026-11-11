@@ -253,7 +253,7 @@ The frame went from 42.8 ms (24 frames a second) to 27.6 ms (39). The DS now bui
 
 ### Where the flush goes now
 
-Of 18 ms: about 4.5 ms is `DrawQueue.computeView`, double precision arithmetic in software; about 2 ms is the rest of the draw queue; about 2 ms is Haxe wrappers and the conversion of each argument to a float; and about 7.8 ms is the native draw calls, 450 of them, 11 us each. The geometry engine accounts for about 3 ms of those at 3 to 4 us a quad over 764 quads (112 outlines are four quads each); the other 4 to 5 ms is native CPU time nobody has taken apart yet, and is the largest open item. Leaving out one kind of command at a time took 2.7 ms for 200 textures, 1.9 ms for 113 rectangles, 2.8 ms for 112 outlines and 1.6 ms for 22 lines of text.
+Of 18 ms: about 4.5 ms is `DrawQueue.computeView`, double precision arithmetic in software; about 2 ms is the rest of the draw queue; about 2 ms is Haxe wrappers and the conversion of each argument to a float; and about 7.8 ms is the native draw calls, 450 of them, 11 us each. The geometry engine accounts for about 3 ms of those at 3 to 4 us a quad over 764 quads (112 outlines are four quads each); the other 4 to 5 ms is native CPU time, spread over the edges, the polygon state and the vertices as described below. Leaving out one kind of command at a time took 2.7 ms for 200 textures, 1.9 ms for 113 rectangles, 2.8 ms for 112 outlines and 1.6 ms for 22 lines of text.
 
 ### What was left alone, and why
 
@@ -261,6 +261,7 @@ Of 18 ms: about 4.5 ms is `DrawQueue.computeView`, double precision arithmetic i
 - **Batching the calls from Haxe.** The wrappers are about 13 % of the flush, under the 25 % that would justify a new native entry.
 - **Text, layers, events, `Scene.update`.** The generated C++ has no boxing, closures or allocation on these paths; the cost is the game's own components.
 - **SDL and citro2d backends.** Both batch inside their libraries.
+- **Edges added in fixed point and the polygon's alpha without a division.** Both were written and checked against the old results over tens of millions of values, and neither moved the flush: 17.25 ms against 17.35. They were reverted. Taking the native calls apart by stage showed the time is spread over them rather than in one place: with each call returning at its first line the flush is 9.7 ms, with the edges worked out 12.5, with the polygon state sent 15.2, and with the vertices sent 17.6. A stage that leaves its result unused can be removed by the compiler, so the first attempt measured less than it seemed to.
 - **Shifting texel regions instead of dividing** is in, but its effect is below what the overlay resolves, so it was never isolated.
 
 ### Memory
@@ -270,3 +271,7 @@ On the stress scene, `Release` has 2,054 KB of heap in use of a 2,332 KB ceiling
 ### The build type, and why `-Oz` cannot be used for hxcpp's code
 
 `-Oz` stops GCC aligning string literals to a word (`.align 2` is in front of a literal at `-O2` and not at `-Oz`). hxcpp keeps a flags word in front of each literal and reads it as an `int`, so where a literal falls on an odd address the ARM9 returns a rotated word, and the string reads as UTF-16. `Json.parse("300")` then failed with `Invalid char 12339 at position 0`, and a scene file with `The scene file is version 0, and this engine reads version 1.` `cmake/Hxcpp.cmake` now builds the hxcpp code at `-O2` whatever the build type. Reaching it took the scene loader, which is the first code to run JSON on the DS.
+
+### On a DS
+
+A DSi XL running the same stress scene reads `ms u 1.74 d 4.54 f 15.13 w 26.08` at 37 to 40 frames a second, against `u 0.89 d 5.04 f 16.9 w 27.6` and 39 frames a second in melonDS: close enough for melonDS's numbers to guide the work. The sandbox alone runs at 60 frames a second on the DS.
