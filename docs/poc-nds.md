@@ -275,3 +275,13 @@ On the stress scene, `Release` has 2,054 KB of heap in use of a 2,332 KB ceiling
 ### On a DS
 
 A DSi XL running the same stress scene reads `ms u 1.74 d 4.54 f 15.13 w 26.08` at 37 to 40 frames a second, against `u 0.89 d 5.04 f 16.9 w 27.6` and 39 frames a second in melonDS: close enough for melonDS's numbers to guide the work. The sandbox alone runs at 60 frames a second on the DS.
+
+### What is left to work on
+
+The small, safe changes are spent: what remains of the stress scene's 17 ms flush is the geometry engine's 760 polygons, double precision arithmetic in `DrawQueue.computeView` (about 4 ms), and the draw queue and Haxe wrappers (about 4 ms). Going further needs a decision that is not an optimization alone, in the order they look most worth taking:
+
+- **Outlines as one polygon.** An outline is four quads, and 112 of them are 448 of the 764. A strip of quads, or a different way of drawing a one pixel border, would cut the polygon count the geometry engine has to take. The ID and depth ordering `renderer_nds.cpp` keeps across polygons has to hold.
+- **Coordinates that are not double precision.** `Transform`, the camera and the draw queue are `Float`, which is a software double on the ARM9 at about 4 us an operation, and this is where `computeView` and part of the wrappers go. Single precision or fixed point would change the public API, which `Phase 0` advised against unless a game needs it.
+- **A native tilemap.** A grid of tiles drawn by one native call in integers would replace hundreds of sprite commands, each with its own `computeView`, wrapper and polygon state. The engine has no tilemap type yet, so it is a feature to design first: the 2D engine's tile backgrounds cannot interleave with the 3D engine's priorities or follow the camera's rotation, so a grid drawn as quads is the starting point, with hardware backgrounds as an option on top.
+
+Also open, not tried: skipping repeated polygon state between draws of the same texture (the stress scene has no runs to test it on), and fonts converted at build time, which saves boot time and RAM, not frame time.
