@@ -5,7 +5,7 @@
 # Width and height are only required, and only returned, when the mode is not
 # "default".
 function(fried_read_project_display json platform out_mode out_width out_height out_filter)
-    set(_modes default fit integer expand stretch)
+    set(_modes default fit integer expand pixel stretch)
     set(_filters nearest linear)
 
     foreach(_key mode width height filter)

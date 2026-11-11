@@ -6,6 +6,7 @@ enum class FriedDisplayMode
     Fit,
     Integer,
     Expand,
+    Pixel,
     Stretch
 };
 

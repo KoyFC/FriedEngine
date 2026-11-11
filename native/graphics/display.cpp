@@ -60,6 +60,22 @@ FriedDisplayLayout fried_display_layout(int outputWidth, int outputHeight)
             outputWidth, outputHeight,
             std::max(1, (int)std::lround(outputWidth / fitScale)),
             std::max(1, (int)std::lround(outputHeight / fitScale)));
+    case FriedDisplayMode::Pixel:
+    {
+        // The scale is a whole number that never drops below 1, so a small screen shows less of the world rather than a shrunken, unreadable one.
+        // The logical size is what fits whole at that scale, which leaves at most scale - 1 output pixels unused on a side.
+        int scale = std::max(1, (int)std::floor(fitScale));
+        int logicalWidth = std::max(1, outputWidth / scale);
+        int logicalHeight = std::max(1, outputHeight / scale);
+        int viewportWidth = std::min(outputWidth, logicalWidth * scale);
+        int viewportHeight = std::min(outputHeight, logicalHeight * scale);
+        return {
+            logicalWidth, logicalHeight,
+            (outputWidth - viewportWidth) / 2, (outputHeight - viewportHeight) / 2,
+            viewportWidth, viewportHeight,
+            (float)viewportWidth / logicalWidth, (float)viewportHeight / logicalHeight,
+        };
+    }
     case FriedDisplayMode::Stretch:
         return coveringOutput(outputWidth, outputHeight, s_designWidth, s_designHeight);
     default:
