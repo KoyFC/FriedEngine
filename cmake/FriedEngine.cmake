@@ -21,6 +21,24 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 
+# fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
+#
+# A line of packaging text a platform's section may give, or the fallback when
+# it does not. One too long for what the package holds is refused at configure
+# time rather than cut where nobody can see it.
+function(fried_read_optional_text json fallback max_length out_variable section key)
+    string(JSON _value ERROR_VARIABLE _error GET "${json}" ${section} ${key})
+    if(_error OR _value STREQUAL "")
+        set(_value "${fallback}")
+    else()
+        string(LENGTH "${_value}" _length)
+        if(_length GREATER ${max_length})
+            message(FATAL_ERROR "project.fried gives ${section}.${key} ${_length} characters, and the package holds ${max_length}.")
+        endif()
+    endif()
+    set(${out_variable} "${_value}" PARENT_SCOPE)
+endfunction()
+
 if(VITA)
     include("${CMAKE_CURRENT_LIST_DIR}/Vita.cmake")
 elseif(NINTENDO_SWITCH)
@@ -309,30 +327,35 @@ function(fried_add_game target_name)
             GAME_ASSETS ${_game_assets}
         )
     elseif(NINTENDO_3DS)
-        # The SMDH carries the same identity as the Switch's .nro. It also has a
-        # description line, which shows the version rather than a new key.
+        # The SMDH carries the same identity as the Switch's .nro. Its
+        # description line shows the version unless "3ds.description" says
+        # otherwise, which an SMDH holds up to 128 characters of.
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
+        fried_read_optional_text("${_project_json}" "Version ${_version}" 128 _description 3ds description)
 
         fried_add_3ds_3dsx(${target_name}
             NAME "${_name}"
-            DESCRIPTION "Version ${_version}"
+            DESCRIPTION "${_description}"
             AUTHOR "${_organization}"
             ICON ${_game_PROJECT_DIR}/3ds/icon.png
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
     elseif(NINTENDO_DS)
-        # The banner's three lines are the same identity the 3DS's SMDH shows.
+        # The banner's three lines are the same identity the 3DS's SMDH shows,
+        # unless "nds.subtitle1" and "nds.subtitle2" give the second and third.
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
+        fried_read_optional_text("${_project_json}" "${_organization}" 31 _subtitle1 nds subtitle1)
+        fried_read_optional_text("${_project_json}" "Version ${_version}" 31 _subtitle2 nds subtitle2)
 
         fried_add_nds_rom(${target_name}
             NAME "${_name}"
-            SUBTITLE1 "${_organization}"
-            SUBTITLE2 "Version ${_version}"
+            SUBTITLE1 "${_subtitle1}"
+            SUBTITLE2 "${_subtitle2}"
             ICON ${_game_PROJECT_DIR}/nds/icon.bmp
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
