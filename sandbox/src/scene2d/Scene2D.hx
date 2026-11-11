@@ -7,7 +7,6 @@ import components.PlayerController;
 import components.Spinner;
 import debug.DebugOverlay;
 import fried.Log;
-import fried.graphics.Color;
 import fried.graphics.Font;
 import fried.graphics.Rect;
 import fried.graphics.Renderer;
@@ -43,7 +42,6 @@ class Scene2D {
 
 	public function load(context:SceneContext):Void {
 		var sprite = Texture.from(renderer, Assets.game("sprite.png"));
-		var labelColor = Color.rgb(220, 220, 230);
 		var hints = [
 			'Run $runs',
 			"Space/Enter/A/click: sound",
@@ -82,22 +80,14 @@ class Scene2D {
 		var uiScene = context.addScene(SceneLoader.load("scenes/sandbox_ui.scene.json", renderer));
 
 		// The hints stop short of the icons down the right edge, so a narrow screen stacks more lines.
-		var hintMaxWidth = renderer.width - iconSize - 16 * 3;
-		var hintLines = LinePacker.pack(font, hints, hintMaxWidth);
-		var hintTextWidth = 0;
-		var hintTextHeight = 0;
-		for (index in 0...hintLines.length) {
-			var labelObject = uiScene.add(new GameObject('Hint label, line ${index + 1}', 16, 16 + hintTextHeight));
-			labelObject.priority = 1;
-			var label = labelObject.addComponent(new Text(font, hintLines[index], labelColor));
-			hintTextWidth = label.width > hintTextWidth ? label.width : hintTextWidth;
-			hintTextHeight += label.height;
-		}
+		var hintText = uiScene.findById("hints").getComponent(Text);
+		hintText.font = font;
+		hintText.text = hints.join("   ");
+		hintText.maxWidth = renderer.width - iconSize - 16 * 3;
+		var panelWidth = hintText.width + 8;
+		var panelHeight = hintText.height + 8;
 
-		Log.info('The hints take ${hintLines.length} lines, ${hintTextWidth}x${hintTextHeight}, before a frame has drawn them');
-
-		var panelWidth = hintTextWidth + 8;
-		var panelHeight = hintTextHeight + 8;
+		Log.info('The hints take ${hintText.height / font.lineHeight} lines, ${hintText.width}x${hintText.height}, before a frame has drawn them');
 
 		var panelObject = uiScene.findById("hint-panel");
 		var panelBox = panelObject.getComponent(Box);

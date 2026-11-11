@@ -21,13 +21,41 @@
 						"g": 40,
 						"r": 40
 					},
-					"height": 180,
+					"height": 96,
 					"type": "Box",
-					"width": 300
+					"width": 490
 				}
 			],
 			"id": "hint-panel",
 			"name": "Hint panel"
+		},
+		{
+			"components": [
+				{
+					"type": "Transform",
+					"x": 16,
+					"y": 16
+				},
+				{
+					"color": {
+						"a": 255,
+						"b": 230,
+						"g": 220,
+						"r": 220
+					},
+					"font": {
+						"path": "NunitoSans.ttf",
+						"root": "engine",
+						"size": 16
+					},
+					"maxWidth": 528,
+					"text": "Run 1   Space/Enter/A/click: sound   M/F6/B: music   WASD/arrows/stick/d-pad: move   Q/E/L/R: zoom   Shift+arrows: move window   F2/North: next scene   F3/Select: overlay   F4: interface   F5: collider bounds   F7: gameplay actions   Esc/Start: quit",
+					"type": "Text"
+				}
+			],
+			"id": "hints",
+			"name": "Hints",
+			"priority": 1
 		},
 		{
 			"components": [
