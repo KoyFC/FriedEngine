@@ -90,7 +90,7 @@ Known limits: an object that other objects refer to cannot be deleted without fi
 - [x] Small screens through a `cg50` override block instead of `Screen.scale`
 - [x] Built for the PC and the fx-CG50 (the .g3a is 1.9 MB of 2 MB). Not run on a calculator, and the start screen was compared with the old one on the PC only
 
-Known limit: a position that depends on the screen's size, such as the right edge, is set by a component, and the editor shows it unplaced because its player never updates.
+The editor lays a scene out against the project's display size, not the panel's, so a position taken from the view, such as the right edge, is shown where the game puts it. Layout is tested on WhiteCellSimulator's start, gameover and hud scenes.
 
 ### 11. Viewport and speed (FriedEngine and FriedEditor)
 
