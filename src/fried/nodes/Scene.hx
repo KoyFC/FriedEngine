@@ -54,8 +54,19 @@ class Scene {
 	@:allow(fried.nodes.serialization.SceneLoader)
 	@:allow(fried.nodes.editor.EditorPlayer)
 	function setView(width:Int, height:Int):Void {
+		if (width == viewWidth && height == viewHeight) {
+			return;
+		}
 		viewWidth = width;
 		viewHeight = height;
+		notifyView(root);
+	}
+
+	function notifyView(node:Node):Void {
+		for (child in node.children) {
+			child.viewChanged();
+			notifyView(child);
+		}
 	}
 
 	public function add<T:Node>(node:T):T {

@@ -86,6 +86,9 @@ class Node {
 
 	function parentTransformChanged():Void {}
 
+	// The size of the view the scene is drawn to changed.
+	function viewChanged():Void {}
+
 	public function addChild<T:Node>(child:T, ?index:Int):T {
 		if (child.parent != null) {
 			throw 'The node ${child.name} already has the parent ${child.parent.name}.';
