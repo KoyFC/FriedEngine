@@ -2,26 +2,31 @@ package fried.scene.serialization;
 
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
+import fried.scene.SceneManager;
+import fried.scene.serialization.FieldCodec;
+import fried.scene.serialization.LoadContext;
 import haxe.Json;
 
-// The fields of a component that name other objects, which can only be assigned once every object of the scene exists.
+// The fields of a node that name other nodes, which can only be assigned once every node of the scene exists.
 private typedef PendingReferences = {
-	var type:ComponentType;
-	var component:Component;
+	var type:NodeType;
+	var node:Node;
 	var data:Dynamic;
 }
 
 class SceneLoader {
-	public static inline var FORMAT_VERSION:Int = 1;
+	public static inline var FORMAT_VERSION:Int = 2;
 
 	// Registers a scene file, under the game's assets, as a scene SceneManager can load.
 	public static function register(name:String, assetPath:String, renderer:Renderer):Void {
 		SceneManager.register(name, function(context) {
-			context.pushScene(renderer, load(assetPath, renderer));
+			var scene = load(assetPath, renderer);
+			context.pushLayer(renderer, new SceneLayer(scene));
+			context.onUnload(scene.destroy);
 		});
 	}
 
-	// Builds the scene of a file under the game's assets for the platform that is running. A game that pushes its own layers uses this instead of register.
+	// Builds the scene of a file under the game's assets for the platform that is running.
 	public static function load(assetPath:String, renderer:Renderer):Scene {
 		var path = Filesystem.resolveAsset("game", assetPath);
 		var data = try {
@@ -32,135 +37,100 @@ class SceneLoader {
 		return build(data, renderer);
 	}
 
-	// Components start once every object and reference exists, unless the caller only wants to look at the scene, as the editor does.
-	public static function build(data:Dynamic, renderer:Renderer, startComponents:Bool = true):Scene {
-		var outer = Component.waitingToStart;
-		var waiting:Array<Component> = [];
-		Component.waitingToStart = waiting;
+	// Nodes become ready once every node and reference exists, unless the caller only wants to look at the scene, as the editor does.
+	public static function build(data:Dynamic, renderer:Renderer, readyNodes:Bool = true):Scene {
+		var outer = Node.waitingToReady;
+		var waiting:Array<Node> = [];
+		Node.waitingToReady = waiting;
 		var scene = try {
 			assemble(data, renderer);
 		} catch (error:Dynamic) {
-			Component.waitingToStart = outer;
+			Node.waitingToReady = outer;
 			throw error;
 		}
-		Component.waitingToStart = outer;
-		if (startComponents) {
-			for (component in waiting) {
-				component.start();
+		Node.waitingToReady = outer;
+		if (readyNodes) {
+			for (node in waiting) {
+				node.ready();
 			}
 		}
-		scene.layout();
 		return scene;
 	}
 
 	static function assemble(data:Dynamic, renderer:Renderer):Scene {
 		var version = FieldCodec.get(data, "version");
 		if (version != FORMAT_VERSION) {
-			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION.';
+			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION. Scenes are rewritten by hand: see ARCHITECTURE.md.';
 		}
 
 		var scene = new Scene(FieldCodec.toText(FieldCodec.get(data, "name"), "name"));
 		scene.setView(renderer.width, renderer.height);
 		var context = new LoadContext(renderer);
 		var references:Array<PendingReferences> = [];
-		var objects:Array<Dynamic> = FieldCodec.get(data, "objects");
-		if (objects == null) {
-			throw "The scene file has no objects list.";
+		var seen = new Map<String, Bool>();
+		var nodes:Array<Dynamic> = FieldCodec.get(data, "nodes");
+		if (nodes == null) {
+			throw "The scene file has no nodes list.";
 		}
-		for (objectData in objects) {
-			var object = buildObject(objectData, context, references);
-			if (scene.findById(object.id) != null) {
-				throw 'The object id "${object.id}" is used twice.';
-			}
-			scene.add(object);
+		for (nodeData in nodes) {
+			scene.add(buildNode(nodeData, context, references, seen));
 		}
 
 		context.scene = scene;
 		for (pending in references) {
-			pending.type.apply(pending.component, pending.data, context);
+			pending.type.apply(pending.node, pending.data, context);
 		}
 
 		var cameraId:Null<String> = FieldCodec.get(data, "camera");
 		if (cameraId != null) {
-			var cameraObject = scene.findById(cameraId);
-			var camera = cameraObject != null ? cameraObject.getComponent(Camera) : null;
+			var camera = Std.downcast(scene.findById(cameraId), Camera);
 			if (camera == null) {
-				throw 'The scene camera "$cameraId" is not an object with a Camera component.';
+				throw 'The scene camera "$cameraId" is not a Camera node.';
 			}
 			scene.camera = camera;
 		}
-
 		return scene;
 	}
 
-	// The first component of an object whose class has that name, which is how a scene file names a type.
-	public static function findComponent(object:GameObject, typeName:String):Null<Component> {
-		for (component in object.components) {
-			if (Type.getClassName(Type.getClass(component)).split(".").pop() == typeName) {
-				return component;
-			}
-		}
-		return null;
-	}
-
-	static function buildObject(data:Dynamic, context:LoadContext, references:Array<PendingReferences>):GameObject {
-		var id = FieldCodec.toText(FieldCodec.get(data, "id"), "object id");
+	// Children are built and added before their parent joins the scene, so the node is ready, children first, only once all of it exists.
+	static function buildNode(data:Dynamic, context:LoadContext, references:Array<PendingReferences>, seen:Map<String, Bool>):Node {
+		var id = FieldCodec.toText(FieldCodec.get(data, "id"), "node id");
 		if (id == "") {
-			throw "An object in the scene file has an empty id.";
+			throw "A node in the scene file has an empty id.";
+		}
+		if (seen.exists(id)) {
+			throw 'The node id "$id" is used twice.';
+		}
+		seen.set(id, true);
+
+		var typeName = FieldCodec.toText(FieldCodec.get(data, "type"), '$id type');
+		var type = NodeRegistry.get(typeName);
+		if (type == null) {
+			throw 'The node $id has the unknown type "$typeName".';
 		}
 
-		var object = new GameObject(FieldCodec.has(data, "name") ? FieldCodec.toText(FieldCodec.get(data, "name"), '$id.name') : id);
-		object.id = id;
-		if (FieldCodec.has(data, "active")) {
-			object.isActive = FieldCodec.toBool(FieldCodec.get(data, "active"), '$id.active');
-		}
-		if (FieldCodec.has(data, "priority")) {
-			object.priority = FieldCodec.toInt(FieldCodec.get(data, "priority"), '$id.priority');
-		}
+		var node = type.create(data, context);
+		node.id = id;
+		node.name = FieldCodec.has(data, "name") ? FieldCodec.toText(FieldCodec.get(data, "name"), '$id.name') : id;
 
-		var components:Array<Dynamic> = FieldCodec.has(data, "components") ? FieldCodec.get(data, "components") : [];
-		for (componentData in components) {
-			var typeName = FieldCodec.toText(FieldCodec.get(componentData, "type"), '$id component type');
-			var type = ComponentRegistry.get(typeName);
-			if (type == null) {
-				throw 'The object $id has a component of the unknown type "$typeName".';
-			}
-
-			var component:Component;
-			if (typeName == "RectTransform") {
-				if (Std.isOfType(object.transform, RectTransform)) {
-					throw 'The object $id has more than one RectTransform.';
-				}
-				// It is the object's transform and takes the place of the Transform. A Transform listed before it only gives the values it starts from.
-				component = type.create(componentData, context);
-				object.replaceTransform(cast component);
-				// The replacement took the old values, so the file's own are given again.
-				type.apply(component, componentData, context);
-			} else if (typeName == "Transform") {
-				if (Std.isOfType(object.transform, RectTransform)) {
-					throw 'The object $id has a Transform and a RectTransform, and a RectTransform takes the place of the Transform.';
-				}
-				component = object.transform;
-				type.apply(component, componentData, context);
-			} else {
-				component = type.create(componentData, context);
-				object.addComponent(component);
-			}
-			var referenceData = {};
-			var hasReferences = false;
-			for (field in type.fields) {
-				if (field.kind == ObjectRef && FieldCodec.has(componentData, field.name)) {
-					Reflect.setField(referenceData, field.name, FieldCodec.get(componentData, field.name));
+		var referenceData = {};
+		var hasReferences = false;
+		for (link in NodeRegistry.chain(typeName)) {
+			for (field in link.fields) {
+				if (field.kind == ObjectRef && FieldCodec.has(data, field.name)) {
+					Reflect.setField(referenceData, field.name, FieldCodec.get(data, field.name));
 					hasReferences = true;
 				}
 			}
-			if (hasReferences) {
-				references.push({type: type, component: component, data: referenceData});
-			}
-			if (FieldCodec.has(componentData, "enabled")) {
-				component.enabled = FieldCodec.toBool(FieldCodec.get(componentData, "enabled"), '$id.$typeName.enabled');
-			}
 		}
-		return object;
+		if (hasReferences) {
+			references.push({type: type, node: node, data: referenceData});
+		}
+
+		var children:Array<Dynamic> = FieldCodec.has(data, "children") ? FieldCodec.get(data, "children") : [];
+		for (childData in children) {
+			node.addChild(buildNode(childData, context, references, seen));
+		}
+		return node;
 	}
 }

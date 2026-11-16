@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(fried_project_editor_player LANGUAGES CXX)
 
-# The editor player of one game, with that game's components in it. The editor
+# The editor player of one game, with that game's nodes in it. The editor
 # configures this with FRIED_PROJECT_DIR set, after `haxe editor.hxml` has run
 # in the project.
 set(FRIED_PROJECT_DIR "" CACHE PATH "The project the editor player is built for")

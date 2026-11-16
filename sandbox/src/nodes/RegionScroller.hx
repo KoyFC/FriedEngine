@@ -1,0 +1,39 @@
+package nodes;
+
+import fried.Time;
+import fried.scene.Node;
+import fried.scene.TextureRect;
+
+// Scrolls the source region of the picture it is a child of across its texture.
+@:serializable
+class RegionScroller extends Node {
+	public var pixelsPerSecond:Float;
+
+	var picture:TextureRect;
+	var offset:Float;
+	var range:Int;
+
+	public function new(pixelsPerSecond:Float) {
+		super("RegionScroller");
+		this.pixelsPerSecond = pixelsPerSecond;
+		offset = 0.0;
+	}
+
+	override function ready():Void {
+		picture = findParent(TextureRect);
+		if (picture == null || picture.source == null) {
+			throw 'A RegionScroller needs a TextureRect with a source region as its parent, and $name has none.';
+		}
+		range = picture.texture.width - picture.source.width;
+		if (range <= 0) {
+			throw 'The source region of ${picture.name} is as wide as its texture, so there is nothing to scroll.';
+		}
+		offset = picture.source.x;
+	}
+
+	override function update():Void {
+		offset += pixelsPerSecond * Time.deltaSeconds;
+		offset -= Math.ffloor(offset / range) * range;
+		picture.source.x = Std.int(offset);
+	}
+}

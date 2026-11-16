@@ -1,5 +1,5 @@
 class Main {
 	public static function main():Void {
-		fried.nodes.editor.EditorPlayer.run();
+		fried.editor.EditorPlayer.run();
 	}
 }

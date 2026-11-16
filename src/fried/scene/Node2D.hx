@@ -1,4 +1,4 @@
-package fried.nodes;
+package fried.scene;
 
 // A node with a position, a rotation in degrees and a scale in the plane, relative to its parent.
 @:serializable

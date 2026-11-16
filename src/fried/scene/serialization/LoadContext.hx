@@ -6,14 +6,11 @@ class LoadContext {
 	// Textures belong to a renderer, so loading an asset reference needs one.
 	public var renderer(default, null):Renderer;
 
-	// Builds a component with a zero value for every constructor argument the data leaves out, instead of failing.
+	// Builds a node with a zero value for every constructor argument the data leaves out, instead of failing.
 	public var usesZeroDefaults(default, null):Bool;
 
-	// The scene being built. It is null until every object exists, so a reference to another object cannot be resolved before then.
+	// The scene being built. It is null until every node exists, so a reference to another node cannot be resolved before then.
 	public var scene:Scene;
-
-	// The same for the scene of nodes being built.
-	public var nodeScene:fried.nodes.Scene;
 
 	public function new(renderer:Renderer, usesZeroDefaults:Bool = false) {
 		this.renderer = renderer;

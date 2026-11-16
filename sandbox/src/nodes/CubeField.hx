@@ -1,4 +1,4 @@
-package components;
+package nodes;
 
 import fried.Time;
 import fried.graphics.Rect;
@@ -7,12 +7,12 @@ import fried.graphics3d.DirectionalLight;
 import fried.graphics3d.Mesh;
 import fried.graphics3d.Transform3D;
 import fried.graphics3d.Vec3;
-import fried.scene.Component;
+import fried.scene.Node;
 import scene3d.CubeMesh;
 
 // A field of spinning cubes in front of a 3D camera, drawn at the size of the scene's view so the editor shows it too.
 @:serializable
-class CubeField extends Component {
+class CubeField extends Node {
 	public static inline var MIN_CUBES = 1;
 	public static inline var MAX_CUBES = 16384;
 
@@ -31,7 +31,7 @@ class CubeField extends Component {
 	var spinSpeeds:Array<Vec3>;
 
 	public function new(cubeCount:Int = 16) {
-		super();
+		super("CubeField");
 		viewWidth = 0;
 		viewHeight = 0;
 		mesh = CubeMesh.create();
@@ -62,8 +62,7 @@ class CubeField extends Component {
 		return cubeCount;
 	}
 
-	override function layoutSize():Void {
-		var scene = gameObject.scene;
+	function followView():Void {
 		if (scene.viewWidth != viewWidth || scene.viewHeight != viewHeight) {
 			viewWidth = scene.viewWidth;
 			viewHeight = scene.viewHeight;
@@ -95,6 +94,7 @@ class CubeField extends Component {
 	}
 
 	override function update():Void {
+		followView();
 		for (index in 0...cubeCount) {
 			var rotation = cubes[index].rotation;
 			var speed = spinSpeeds[index];
@@ -104,9 +104,10 @@ class CubeField extends Component {
 	}
 
 	override function draw():Void {
+		followView();
 		trianglesDrawn = 0;
 		for (cube in cubes) {
-			trianglesDrawn += camera.submitMesh(gameObject.priority, mesh, cube, light);
+			trianglesDrawn += camera.submitMesh(0, mesh, cube, light);
 		}
 	}
 }

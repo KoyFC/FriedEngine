@@ -1,247 +1,212 @@
 {
 	"camera": "camera",
 	"name": "Sandbox",
-	"objects": [
+	"nodes": [
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": -450,
-					"y": 160
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 190,
-						"g": 150,
-						"r": 150
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 90,
-						"g": 70,
-						"r": 70
-					},
-					"height": 48,
-					"type": "Box",
-					"width": 900
-				}
-			],
+			"borderColor": {
+				"a": 255,
+				"b": 190,
+				"g": 150,
+				"r": 150
+			},
+			"fillColor": {
+				"a": 255,
+				"b": 90,
+				"g": 70,
+				"r": 70
+			},
+			"height": 48,
 			"id": "wall",
-			"name": "Wall"
+			"name": "Wall",
+			"type": "Box",
+			"width": 900,
+			"x": -450,
+			"y": 160
 		},
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": -600,
-					"y": -220
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 80,
-						"g": 100,
-						"r": 120
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 44,
-						"g": 48,
-						"r": 58
-					},
-					"height": 96,
-					"type": "Box",
-					"width": 32
-				},
+			"borderColor": {
+				"a": 255,
+				"b": 80,
+				"g": 100,
+				"r": 120
+			},
+			"children": [
 				{
 					"height": 96,
+					"id": "post-0-hitbox",
+					"name": "Post 0 hitbox",
 					"type": "Collider",
 					"width": 32
 				}
 			],
+			"fillColor": {
+				"a": 255,
+				"b": 44,
+				"g": 48,
+				"r": 58
+			},
+			"height": 96,
 			"id": "post-0",
 			"name": "Post 0",
-			"priority": -2
+			"priority": -2,
+			"type": "Box",
+			"width": 32,
+			"x": -600,
+			"y": -220
 		},
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": -300,
-					"y": -220
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 80,
-						"g": 100,
-						"r": 120
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 44,
-						"g": 48,
-						"r": 58
-					},
-					"height": 96,
-					"type": "Box",
-					"width": 32
-				},
+			"borderColor": {
+				"a": 255,
+				"b": 80,
+				"g": 100,
+				"r": 120
+			},
+			"children": [
 				{
 					"height": 96,
+					"id": "post-1-hitbox",
+					"name": "Post 1 hitbox",
 					"type": "Collider",
 					"width": 32
 				}
 			],
+			"fillColor": {
+				"a": 255,
+				"b": 44,
+				"g": 48,
+				"r": 58
+			},
+			"height": 96,
 			"id": "post-1",
 			"name": "Post 1",
-			"priority": -2
+			"priority": -2,
+			"type": "Box",
+			"width": 32,
+			"x": -300,
+			"y": -220
 		},
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": 0,
-					"y": -220
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 80,
-						"g": 100,
-						"r": 120
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 44,
-						"g": 48,
-						"r": 58
-					},
-					"height": 96,
-					"type": "Box",
-					"width": 32
-				},
+			"borderColor": {
+				"a": 255,
+				"b": 80,
+				"g": 100,
+				"r": 120
+			},
+			"children": [
 				{
 					"height": 96,
+					"id": "post-2-hitbox",
+					"name": "Post 2 hitbox",
 					"type": "Collider",
 					"width": 32
 				}
 			],
+			"fillColor": {
+				"a": 255,
+				"b": 44,
+				"g": 48,
+				"r": 58
+			},
+			"height": 96,
 			"id": "post-2",
 			"name": "Post 2",
-			"priority": -2
+			"priority": -2,
+			"type": "Box",
+			"width": 32,
+			"x": 0,
+			"y": -220
 		},
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": 300,
-					"y": -220
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 80,
-						"g": 100,
-						"r": 120
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 44,
-						"g": 48,
-						"r": 58
-					},
-					"height": 96,
-					"type": "Box",
-					"width": 32
-				},
+			"borderColor": {
+				"a": 255,
+				"b": 80,
+				"g": 100,
+				"r": 120
+			},
+			"children": [
 				{
 					"height": 96,
+					"id": "post-3-hitbox",
+					"name": "Post 3 hitbox",
 					"type": "Collider",
 					"width": 32
 				}
 			],
+			"fillColor": {
+				"a": 255,
+				"b": 44,
+				"g": 48,
+				"r": 58
+			},
+			"height": 96,
 			"id": "post-3",
 			"name": "Post 3",
-			"priority": -2
+			"priority": -2,
+			"type": "Box",
+			"width": 32,
+			"x": 300,
+			"y": -220
 		},
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": 600,
-					"y": -220
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 80,
-						"g": 100,
-						"r": 120
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 44,
-						"g": 48,
-						"r": 58
-					},
-					"height": 96,
-					"type": "Box",
-					"width": 32
-				},
+			"borderColor": {
+				"a": 255,
+				"b": 80,
+				"g": 100,
+				"r": 120
+			},
+			"children": [
 				{
 					"height": 96,
+					"id": "post-4-hitbox",
+					"name": "Post 4 hitbox",
 					"type": "Collider",
 					"width": 32
 				}
 			],
+			"fillColor": {
+				"a": 255,
+				"b": 44,
+				"g": 48,
+				"r": 58
+			},
+			"height": 96,
 			"id": "post-4",
 			"name": "Post 4",
-			"priority": -2
+			"priority": -2,
+			"type": "Box",
+			"width": 32,
+			"x": 600,
+			"y": -220
 		},
 		{
-			"components": [
-				{
-					"scaleX": 8,
-					"scaleY": 8,
-					"type": "Transform",
-					"x": -64,
-					"y": -64
-				},
-				{
-					"texture": {
-						"path": "sprite.png",
-						"root": "game"
-					},
-					"type": "Sprite"
-				},
+			"children": [
 				{
 					"height": 16,
+					"id": "player-hitbox",
+					"name": "Player hitbox",
 					"type": "Collider",
 					"width": 16
-				},
-				{
-					"speed": 240,
-					"type": "PlayerController",
-					"wall": "wall"
 				}
 			],
 			"id": "player",
-			"name": "Player"
+			"name": "Player",
+			"scaleX": 8,
+			"scaleY": 8,
+			"speed": 240,
+			"texture": {
+				"path": "sprite.png",
+				"root": "game"
+			},
+			"type": "Player",
+			"wall": "wall",
+			"x": -64,
+			"y": -64
 		},
 		{
-			"components": [
+			"children": [
 				{
-					"type": "Transform",
-					"x": 0,
-					"y": 0
-				},
-				{
-					"type": "Camera",
-					"zoom": 1
-				},
-				{
+					"id": "camera-follow",
+					"name": "Camera follow",
 					"offsetX": 64,
 					"offsetY": 64,
 					"target": "player",
@@ -249,8 +214,12 @@
 				}
 			],
 			"id": "camera",
-			"name": "Camera"
+			"name": "Camera",
+			"type": "Camera",
+			"x": 0,
+			"y": 0,
+			"zoom": 1
 		}
 	],
-	"version": 1
+	"version": 2
 }

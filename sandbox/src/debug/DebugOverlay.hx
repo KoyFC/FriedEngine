@@ -9,7 +9,6 @@ import fried.graphics.Rect;
 import fried.graphics.Renderer;
 import fried.input.Input;
 import fried.scene.Button;
-import fried.scene.GameObject;
 import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.SceneLayer;
@@ -58,9 +57,9 @@ class DebugOverlay extends SceneLayer {
 	}
 
 	public function addButton(label:Void->String, onClick:Void->Void):Button {
-		var object = scene.add(new GameObject('Debug button ${buttons.length + 1}'));
-		object.priority = 1;
-		var button = object.addComponent(new Button(BUTTON_WIDTH, BUTTON_HEIGHT, font, label()));
+		var button = scene.add(new Button(BUTTON_WIDTH, BUTTON_HEIGHT, font, label()));
+		button.name = 'Debug button ${buttons.length + 1}';
+		button.priority = 1;
 		button.onClick = function() {
 			onClick();
 			button.label = label();
@@ -88,9 +87,7 @@ class DebugOverlay extends SceneLayer {
 		}
 		buttons.splice(index, 1);
 		buttonLabels.splice(index, 1);
-		if (button.gameObject != null) {
-			button.gameObject.destroy();
-		}
+		button.destroy();
 		nextRefresh = 0.0;
 	}
 
@@ -191,8 +188,8 @@ class DebugOverlay extends SceneLayer {
 		for (index in 0...buttons.length) {
 			var button = buttons[index];
 			button.width = buttonWidth;
-			button.transform.x = background.x + PADDING + (index % BUTTON_COLUMNS) * (buttonWidth + BUTTON_SPACING);
-			button.transform.y = buttonsTop + Std.int(index / BUTTON_COLUMNS) * (BUTTON_HEIGHT + BUTTON_SPACING);
+			button.offsetX = background.x + PADDING + (index % BUTTON_COLUMNS) * (buttonWidth + BUTTON_SPACING);
+			button.offsetY = buttonsTop + Std.int(index / BUTTON_COLUMNS) * (BUTTON_HEIGHT + BUTTON_SPACING);
 		}
 	}
 }

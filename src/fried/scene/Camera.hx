@@ -2,66 +2,49 @@ package fried.scene;
 
 import fried.Log;
 import fried.graphics.CameraView;
-import fried.graphics.Renderer;
 
+@:allow(fried.scene)
 @:serializable
-class Camera extends Component {
+class Camera extends Node2D {
 	public var zoom(default, set):Float;
-
-	@:allow(fried.scene.Scene)
-	public var assignedScene(default, null):Scene;
 
 	static inline var MIN_ZOOM:Float = 0.01;
 
 	public function new(zoom:Float = 1.0) {
 		super();
+		name = "Camera";
 		this.zoom = zoom;
 	}
 
-	// Each conversion takes the view's size from the renderer given, or else from the scene the camera belongs to, so a component can call it without holding the renderer.
-	public function worldToScreenX(worldX:Float, ?renderer:Renderer):Float {
-		return (worldX - transform.x) * zoom + viewWidth(renderer) / 2;
-	}
-
-	public function worldToScreenY(worldY:Float, ?renderer:Renderer):Float {
-		return (worldY - transform.y) * zoom + viewHeight(renderer) / 2;
-	}
-
-	public function screenToWorldX(screenX:Float, ?renderer:Renderer):Float {
-		return (screenX - viewWidth(renderer) / 2) / zoom + transform.x;
-	}
-
-	public function screenToWorldY(screenY:Float, ?renderer:Renderer):Float {
-		return (screenY - viewHeight(renderer) / 2) / zoom + transform.y;
-	}
-
-	function viewWidth(renderer:Null<Renderer>):Int {
-		return renderer != null ? renderer.width : assignedScene.viewWidth;
-	}
-
-	function viewHeight(renderer:Null<Renderer>):Int {
-		return renderer != null ? renderer.height : assignedScene.viewHeight;
-	}
-
 	// What the draw queue reads, written before the scene is drawn.
-	public var view(default, null):CameraView = new CameraView();
+	@:noSerialize public var view(default, null):CameraView = new CameraView();
 
-	@:allow(fried.scene.Scene)
+	// Each conversion works from the view of the scene the camera belongs to.
+	public function worldToScreenX(worldPosition:Float):Float {
+		return (worldPosition - worldX) * zoom + scene.viewWidth / 2;
+	}
+
+	public function worldToScreenY(worldPosition:Float):Float {
+		return (worldPosition - worldY) * zoom + scene.viewHeight / 2;
+	}
+
+	public function screenToWorldX(screenX:Float):Float {
+		return (screenX - scene.viewWidth / 2) / zoom + worldX;
+	}
+
+	public function screenToWorldY(screenY:Float):Float {
+		return (screenY - scene.viewHeight / 2) / zoom + worldY;
+	}
+
+	public function lookAt(x:Float, y:Float):Void {
+		this.x = x;
+		this.y = y;
+	}
+
 	function updateView():Void {
-		view.x = transform.x;
-		view.y = transform.y;
+		view.x = worldX;
+		view.y = worldY;
 		view.zoom = zoom;
-	}
-
-	public function lookAt(worldX:Float, worldY:Float):Void {
-		transform.x = worldX;
-		transform.y = worldY;
-	}
-
-	override function destroy():Void {
-		if (assignedScene != null) {
-			assignedScene.camera = null;
-		}
 	}
 
 	function set_zoom(value:Float):Float {

@@ -26,7 +26,7 @@ import fried.io.Filesystem;
 import fried.io.UserData;
 import fried.scene.Scene;
 import fried.scene.SceneManager;
-import fried.scene.serialization.ComponentDiscovery;
+import fried.scene.serialization.NodeDiscovery;
 
 class Main {
 	public static function main():Void {
@@ -147,7 +147,7 @@ class Main {
 
 		overlayRenderer.pushLayer(overlay);
 
-		ComponentDiscovery.register();
+		NodeDiscovery.register();
 		SceneManager.register("2D", new Scene2D(renderer, font, overlay, zoom, runs).load);
 		SceneManager.register("3D", new Scene3D(renderer, font, overlay).load);
 		SceneManager.load("2D");

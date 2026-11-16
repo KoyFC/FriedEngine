@@ -12,26 +12,26 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 
 ## Next
 
-### 1. Unified transform
+### 1. Node3D
 
-- `Transform` gets `z`, `rotationX`, `rotationY`, `rotationZ`, `scaleZ`
-- `rotation` becomes `rotationZ` in 2D code (`Sprite`, `Text`, sandbox, template)
+- `Node3D` is its own branch of the node tree beside `Node2D`, under `CanvasItem`, with `x`, `y`, `z`, a rotation about each axis and a scale on each
+- Its world values are cached and marked dirty like a `Node2D`'s, and a `Node3D` under a `Node2D` is not a supported parent
 - 2D keeps y down; 3D is left handed with y up and z forward
 
 ### 2. Free camera
 
-- `Camera3D` is a component that reads its object's `Transform`
+- `Camera3D` is a `Node3D` that reads its own world position and rotation
 - `fieldOfView`, `near`, `far` and `lookAt(x, y, z)`
 - Rotation order z, x, y, like Unity
 - `Scene.camera3D`, with the same rules as `Scene.camera`
 - Remove `Transform3D` and `Vec3`
 
-### 3. Mesh renderer and global sort
+### 3. Mesh instance and global sort
 
-- `MeshRenderer` component; meshes can be shared
-- Directional light as a component, direction from its rotation
+- `MeshInstance` node; meshes can be shared
+- Directional light as a node, direction from its rotation
 - The scene sorts the triangles of all its meshes together and submits one batch
-- Port the stress test to components
+- Port the stress test from the sandbox's `CubeField` to nodes
 
 ### 4. Clipping
 
@@ -42,7 +42,7 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 ## Constraints
 
 - Works on every platform except the fx-CG50, which keeps the `fillTriangles()` it has now and gets no further 3D support
-- Games only use components, so a GPU backend can replace the pipeline later
+- Games only use nodes, so a GPU backend can replace the pipeline later
 - No per-frame allocations
 - Intersecting triangles still sort wrong without a depth buffer
 
@@ -51,5 +51,5 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 - `.obj` loading
 - Textures
 - Point lights, vertex colors
-- Hierarchies
+- Parenting a mesh under another mesh
 - GPU backends (OpenGL, citro3d, GXM)

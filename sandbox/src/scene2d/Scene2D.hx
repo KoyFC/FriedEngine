@@ -1,11 +1,10 @@
 package scene2d;
 
-import components.Box;
-import components.CameraZoom;
-import components.KeyShortcuts;
-import components.PlayerController;
-import components.Spinner;
 import debug.DebugOverlay;
+import nodes.Box;
+import nodes.CameraZoom;
+import nodes.KeyShortcuts;
+import nodes.Player;
 import fried.Log;
 import fried.graphics.Font;
 import fried.graphics.Rect;
@@ -16,11 +15,11 @@ import fried.input.Key;
 import fried.io.Assets;
 import fried.physics.Collider;
 import fried.scene.Camera;
-import fried.scene.GameObject;
-import fried.scene.Scene;
+import fried.scene.Control;
+import fried.scene.Label;
+import fried.scene.Node2D;
 import fried.scene.SceneContext;
-import fried.scene.Sprite;
-import fried.scene.Text;
+import fried.scene.TextureRect;
 import fried.scene.serialization.SceneLoader;
 
 class Scene2D {
@@ -61,49 +60,41 @@ class Scene2D {
 		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 
 		var scene = context.addScene(SceneLoader.load("scenes/sandbox.scene.json", renderer));
-		var wallObject = scene.findById("wall");
-		var playerObject = scene.findById("player");
-		var playerCollider = playerObject.getComponent(Collider);
-		var playerController = playerObject.getComponent(PlayerController);
+		var wallNode = scene.getById("wall", Node2D);
+		var player = scene.getById("player", Player);
+		var playerCollider = scene.getById("player-hitbox", Collider);
 
 		var colliders = [];
 		for (index in 0...5) {
-			colliders.push(scene.findById('post-$index').getComponent(Collider));
+			colliders.push(scene.getById('post-$index-hitbox', Collider));
 		}
 		colliders.push(playerCollider);
 
-		var cameraObject = scene.findById("camera");
-		var camera = cameraObject.getComponent(Camera);
+		var camera = scene.getById("camera", Camera);
 		camera.zoom = renderer.height / WORLD_VIEW_HEIGHT;
-		cameraObject.addComponent(new CameraZoom(zoom));
+		camera.addChild(new CameraZoom(zoom));
 
 		var uiScene = context.addScene(SceneLoader.load("scenes/sandbox_ui.scene.json", renderer));
 
 		// The hints stop short of the icons down the right edge, so a narrow screen stacks more lines.
-		var hintText = uiScene.findById("hints").getComponent(Text);
+		var hintText = uiScene.getById("hints", Label);
 		hintText.font = font;
 		hintText.text = hints.join("   ");
 		hintText.maxWidth = renderer.width - iconSize - 16 * 3;
-		var panelWidth = hintText.width + 8;
-		var panelHeight = hintText.height + 8;
+		var panelWidth = hintText.textWidth + 8;
+		var panelHeight = hintText.textHeight + 8;
 
-		Log.info('The hints take ${hintText.height / font.lineHeight} lines, ${hintText.width}x${hintText.height}, before a frame has drawn them');
+		Log.info('The hints take ${hintText.textHeight / font.lineHeight} lines, ${hintText.textWidth}x${hintText.textHeight}, before a frame has drawn them');
 
-		var panelObject = uiScene.findById("hint-panel");
-		var panelBox = panelObject.getComponent(Box);
-		panelBox.width = panelWidth;
-		panelBox.height = panelHeight;
+		var panel = uiScene.getById("hint-panel", Box);
+		panel.width = panelWidth;
+		panel.height = panelHeight;
 
-		var regionObject = uiScene.findById("region-icon");
-		var regionSprite = regionObject.getComponent(Sprite);
+		var regionIcon = uiScene.getById("region-icon", TextureRect);
+		uiScene.getById("region-label", Label).font = font;
+		var spinningIcon = uiScene.getById("spinning-icon", TextureRect);
 
-		var regionLabelObject = uiScene.findById("region-label");
-		var regionLabelText = regionLabelObject.getComponent(Text);
-		regionLabelText.font = font;
-
-		var spinnerObject = uiScene.findById("spinning-icon");
-
-		var interfaceLayer = new InterfaceLayer(uiScene, panelObject, panelWidth, panelHeight);
+		var interfaceLayer = new InterfaceLayer(uiScene, panel, panelWidth, panelHeight);
 
 		function toggleColliders():Void {
 			for (collider in colliders) {
@@ -122,15 +113,14 @@ class Scene2D {
 			}
 		}
 
-		var shortcutsObject = scene.add(new GameObject("Shortcuts"));
-		shortcutsObject.addComponent(new KeyShortcuts()).add(Key.F4, toggleInterface).add(Key.F5, toggleColliders);
+		scene.add(new KeyShortcuts()).add(Key.F4, toggleInterface).add(Key.F5, toggleColliders);
 
 		overlay.setSceneDetails(context, function() {
-			var contact = playerController.blockedBy == null ? "none" : playerController.blockedBy;
+			var contact = player.blockedBy == null ? "none" : player.blockedBy;
 			return [
-				'camera ${Std.int(camera.transform.x)}, ${Std.int(camera.transform.y)}',
+				'camera ${Std.int(camera.x)}, ${Std.int(camera.y)}',
 				'zoom ${Math.round(camera.zoom * 100) / 100}',
-				'player priority ${playerObject.priority}',
+				'player priority ${player.priority}',
 				'blocked by $contact'
 			];
 		});
@@ -141,14 +131,14 @@ class Scene2D {
 		context.pushLayer(renderer, interfaceLayer);
 
 		context.onUnload(function() {
-			Log.info('Spinner reached ${spinnerObject.transform.rotation} degrees by the time ${context.name} unloaded');
-			Log.info('Region icon ended with its region at x ${regionSprite.source.x}');
+			Log.info('Spinner reached ${spinningIcon.rotation} degrees by the time ${context.name} unloaded');
+			Log.info('Region icon ended with its region at x ${regionIcon.source.x}');
 		});
 
-		Log.success('Scene "${scene.name}" holds ${scene.objectCount} world objects, "${uiScene.name}" holds ${uiScene.objectCount} screen-space ones');
-		var spriteScale = playerObject.transform.scaleX;
-		Log.info('The player starts at world ${playerObject.transform.x}, ${playerObject.transform.y} and the wall sits at world y ${wallObject.transform.y}');
-		Log.info('The player collider measures ${playerCollider.right - playerCollider.left}x${playerCollider.bottom - playerCollider.top} once the transform scale of $spriteScale is applied to a ${sprite.width}x${sprite.height} sprite');
+		Log.success('Scene "${scene.name}" holds ${scene.nodeCount} world nodes, "${uiScene.name}" holds ${uiScene.nodeCount} screen-space ones');
+		var spriteScale = player.scaleX;
+		Log.info('The player starts at world ${player.x}, ${player.y} and the wall sits at world y ${wallNode.y}');
+		Log.info('The player collider measures ${playerCollider.right - playerCollider.left}x${playerCollider.bottom - playerCollider.top} once the scale of $spriteScale is applied to a ${sprite.width}x${sprite.height} sprite');
 		Log.info('The wall carries no collider, so it stays the draw order demo and the ${colliders.length - 1} posts are what the player cannot walk through');
 	}
 }

@@ -6,24 +6,17 @@ import fried.graphics.Rect;
 import fried.graphics.Texture;
 
 @:serializable
-class Sprite extends Component {
+class Sprite extends Node2D {
 	public var texture:Texture;
 	public var source:Rect;
 	public var flip:FlipMode;
 
-	public function new(texture:Texture, ?source:Rect) {
+	public function new(texture:Texture = null, ?source:Rect) {
 		super();
+		name = "Sprite";
 		this.texture = texture;
 		this.source = source;
 		flip = None;
-	}
-
-	override function intrinsicWidth():Float {
-		return texture == null ? -1 : (source != null ? source.width : texture.width);
-	}
-
-	override function intrinsicHeight():Float {
-		return texture == null ? -1 : (source != null ? source.height : texture.height);
 	}
 
 	override function draw():Void {
@@ -32,7 +25,6 @@ class Sprite extends Component {
 		}
 		var baseWidth = source != null ? source.width : texture.width;
 		var baseHeight = source != null ? source.height : texture.height;
-		DrawQueue.submitTexture(gameObject.priority, texture, transform.x, transform.y, baseWidth * transform.scaleX, baseHeight * transform.scaleY,
-			transform.rotation, flip, source);
+		DrawQueue.submitTexture(priority, texture, worldX, worldY, baseWidth * worldScaleX, baseHeight * worldScaleY, worldRotation, flip, source);
 	}
 }

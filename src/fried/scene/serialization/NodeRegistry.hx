@@ -1,4 +1,4 @@
-package fried.nodes.serialization;
+package fried.scene.serialization;
 
 class NodeRegistry {
 	static var types:Map<String, NodeType>;

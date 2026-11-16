@@ -7,10 +7,9 @@ import fried.graphics.Rect;
 import fried.input.InputEvent;
 import fried.input.MouseButton;
 
+// A rectangle with a label that calls onClick when it is pressed and released over it. Its size is its control's width and height.
 @:serializable
-class Button extends Component {
-	public var width:Int;
-	public var height:Int;
+class Button extends Control {
 	public var font(default, set):Font;
 	public var label(default, set):String;
 	public var onClick:Void->Void;
@@ -21,7 +20,7 @@ class Button extends Component {
 	public var labelColor:Color;
 
 	// Held, with the pointer still over the button.
-	public var isPressed(default, null):Bool;
+	@:noSerialize public var isPressed(default, null):Bool;
 
 	var isHeldByMouse:Bool;
 	var isHeldByTouch:Bool;
@@ -34,16 +33,8 @@ class Button extends Component {
 	// The Vita's rear pad is device 1, and reaches no further than the front screen does.
 	static inline var FRONT_TOUCH_DEVICE:Int = 0;
 
-	override function intrinsicWidth():Float {
-		return width;
-	}
-
-	override function intrinsicHeight():Float {
-		return height;
-	}
-
-	public function new(width:Int, height:Int, font:Font, label:String, ?onClick:Void->Void) {
-		super();
+	public function new(width:Float = 100.0, height:Float = 30.0, font:Font = null, label:String = "", ?onClick:Void->Void) {
+		super("Button");
 		this.width = width;
 		this.height = height;
 		this.font = font;
@@ -82,21 +73,21 @@ class Button extends Component {
 	}
 
 	override function draw():Void {
-		rect.x = Std.int(transform.x);
-		rect.y = Std.int(transform.y);
-		rect.width = Std.int(width * transform.scaleX);
-		rect.height = Std.int(height * transform.scaleY);
-		DrawQueue.submitFillRect(gameObject.priority, rect, isPressed ? pressedColor : color);
-		DrawQueue.submitRect(gameObject.priority, rect, borderColor);
+		rect.x = Std.int(worldX);
+		rect.y = Std.int(worldY);
+		rect.width = Std.int(rectWidth);
+		rect.height = Std.int(rectHeight);
+		DrawQueue.submitFillRect(priority, rect, isPressed ? pressedColor : color);
+		DrawQueue.submitRect(priority, rect, borderColor);
 
 		if (font == null || label == null || label == "") {
 			return;
 		}
-		var drawnLabelWidth = Std.int(measuredLabelWidth() * transform.scaleX);
-		var drawnLabelHeight = Std.int(font.lineHeight * transform.scaleY);
+		var drawnLabelWidth = Std.int(measuredLabelWidth() * worldScaleX);
+		var drawnLabelHeight = Std.int(font.lineHeight * worldScaleY);
 		var labelX = rect.x + Std.int((rect.width - drawnLabelWidth) / 2);
 		var labelY = rect.y + Std.int((rect.height - drawnLabelHeight) / 2);
-		DrawQueue.submitText(gameObject.priority, font, label, labelX, labelY, drawnLabelWidth, drawnLabelHeight, labelColor);
+		DrawQueue.submitText(priority, font, label, labelX, labelY, drawnLabelWidth, drawnLabelHeight, labelColor);
 	}
 
 	function hold(event:InputEvent):Void {
@@ -116,12 +107,14 @@ class Button extends Component {
 	}
 
 	function contains(event:InputEvent):Bool {
-		var camera = gameObject.scene != null ? gameObject.scene.camera : null;
+		var camera = scene != null ? scene.camera : null;
 		var x = camera != null ? camera.screenToWorldX(event.x) : event.x;
 		var y = camera != null ? camera.screenToWorldY(event.y) : event.y;
-		var right = transform.x + width * transform.scaleX;
-		var bottom = transform.y + height * transform.scaleY;
-		return x >= Math.min(transform.x, right) && x < Math.max(transform.x, right) && y >= Math.min(transform.y, bottom) && y < Math.max(transform.y, bottom);
+		var left = worldX;
+		var top = worldY;
+		var right = left + rectWidth;
+		var bottom = top + rectHeight;
+		return x >= Math.min(left, right) && x < Math.max(left, right) && y >= Math.min(top, bottom) && y < Math.max(top, bottom);
 	}
 
 	function measuredLabelWidth():Int {

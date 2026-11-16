@@ -28,12 +28,12 @@ class WorldLayer extends SceneLayer {
 			return;
 		}
 		var camera = scene.camera;
-		var worldX = camera.screenToWorldX(event.x, renderer);
-		var worldY = camera.screenToWorldY(event.y, renderer);
+		var worldX = camera.screenToWorldX(event.x);
+		var worldY = camera.screenToWorldY(event.y);
 		Log.info('${isClick ? "Left click" : "Touch"} at screen ${event.x}, ${event.y}, world $worldX, $worldY');
 
 		var clicked = Physics.overlapPoint(scene, worldX, worldY);
-		Log.info(clicked == null ? "Nothing has a collider under that point" : 'That point is inside the collider of ${clicked.gameObject.name}');
+		Log.info(clicked == null ? "Nothing has a collider under that point" : 'That point is inside the collider of ${ownerName(clicked)}');
 
 		var toClickX = worldX - player.centerX;
 		var toClickY = worldY - player.centerY;
@@ -43,6 +43,11 @@ class WorldLayer extends SceneLayer {
 			Log.info('Nothing stands between the player and that point over $reach units');
 			return;
 		}
-		Log.info('The line of sight stops on ${hit.collider.gameObject.name} after ${hit.distance} of $reach units, at ${hit.x}, ${hit.y}, face normal ${hit.normalX}, ${hit.normalY}');
+		Log.info('The line of sight stops on ${ownerName(hit.collider)} after ${hit.distance} of $reach units, at ${hit.x}, ${hit.y}, face normal ${hit.normalX}, ${hit.normalY}');
+	}
+
+	// A collider is named for the node it belongs to, which is its parent.
+	function ownerName(collider:Collider):String {
+		return collider.parent != null ? collider.parent.name : collider.name;
 	}
 }

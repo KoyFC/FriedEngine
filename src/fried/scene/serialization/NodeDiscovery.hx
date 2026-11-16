@@ -1,4 +1,4 @@
-package fried.nodes.serialization;
+package fried.scene.serialization;
 
 import haxe.macro.Context;
 import haxe.macro.Expr;
@@ -32,7 +32,7 @@ class NodeDiscovery {
 				}
 			}
 		}
-		return macro fried.nodes.serialization.NodeRegistry.register([$a{describes}]);
+		return macro fried.scene.serialization.NodeRegistry.register([$a{describes}]);
 	}
 
 	static function collect(directory:String, prefix:String, modules:Array<String>):Void {

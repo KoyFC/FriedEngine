@@ -1,12 +1,12 @@
-package components;
+package nodes;
 
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
-import fried.scene.Component;
+import fried.scene.Node2D;
 
 @:serializable
-class Box extends Component {
+class Box extends Node2D {
 	public var width:Int;
 	public var height:Int;
 	public var fillColor:Color;
@@ -16,6 +16,7 @@ class Box extends Component {
 
 	public function new(width:Int, height:Int, fillColor:Color, borderColor:Color) {
 		super();
+		name = "Box";
 		this.width = width;
 		this.height = height;
 		this.fillColor = fillColor;
@@ -24,11 +25,11 @@ class Box extends Component {
 	}
 
 	override function draw():Void {
-		rect.x = Std.int(transform.x);
-		rect.y = Std.int(transform.y);
+		rect.x = Std.int(worldX);
+		rect.y = Std.int(worldY);
 		rect.width = width;
 		rect.height = height;
-		DrawQueue.submitFillRect(gameObject.priority, rect, fillColor);
-		DrawQueue.submitRect(gameObject.priority, rect, borderColor);
+		DrawQueue.submitFillRect(priority, rect, fillColor);
+		DrawQueue.submitRect(priority, rect, borderColor);
 	}
 }

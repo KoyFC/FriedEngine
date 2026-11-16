@@ -6,9 +6,8 @@ import fried.graphics.FlipMode;
 import fried.graphics.Rect;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
-import fried.scene.GameObject;
 
-// Converts between the data of a scene file and the values of component fields. The code a component's build macro generates calls these.
+// Converts between the data of a scene file and the values of node fields. The code a node's build macro generates calls these.
 class FieldCodec {
 	static var flipNames:Array<String> = ["None", "Horizontal", "Vertical", "Both"];
 
@@ -109,8 +108,8 @@ class FieldCodec {
 		return Font.from(assetPath(value, field), size);
 	}
 
-	// A reference is the id of another object of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
-	public static function toObject(value:Dynamic, field:String, context:LoadContext):GameObject {
+	// A reference is the id of another node of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
+	public static function toNode(value:Dynamic, field:String, context:LoadContext):fried.scene.Node {
 		if (value == null) {
 			return null;
 		}
@@ -120,32 +119,16 @@ class FieldCodec {
 		}
 		var target = context.scene.findById(id);
 		if (target == null) {
-			throw 'The field "$field" refers to the object "$id", which the scene does not have.';
-		}
-		return target;
-	}
-
-	// A reference is the id of another node of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
-	public static function toNode(value:Dynamic, field:String, context:LoadContext):fried.nodes.Node {
-		if (value == null) {
-			return null;
-		}
-		var id = toText(value, field);
-		if (context.nodeScene == null) {
-			return null;
-		}
-		var target = context.nodeScene.findById(id);
-		if (target == null) {
 			throw 'The field "$field" refers to the node "$id", which the scene does not have.';
 		}
 		return target;
 	}
 
-	public static function fromNode(value:fried.nodes.Node):Dynamic {
+	public static function fromNode(value:fried.scene.Node):Dynamic {
 		return value == null ? null : value.id;
 	}
 
-	public static function zeroNode():fried.nodes.Node {
+	public static function zeroNode():fried.scene.Node {
 		return null;
 	}
 
@@ -183,14 +166,6 @@ class FieldCodec {
 	}
 
 	public static function fromFont(value:Font):Dynamic {
-		return null;
-	}
-
-	public static function fromObject(value:GameObject):Dynamic {
-		return value == null ? null : value.id;
-	}
-
-	public static function zeroObject():GameObject {
 		return null;
 	}
 

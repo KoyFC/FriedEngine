@@ -3,35 +3,38 @@ package fried.physics;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
-import fried.scene.Component;
+import fried.scene.Node2D;
 
+// An axis aligned box that Physics finds. Its position is the box's top left corner, in its parent's space, so what used to be a collider's offset is where the node sits, and it follows a node it is a child of.
 @:serializable
-class Collider extends Component {
+class Collider extends Node2D {
 	public var width:Float;
 	public var height:Float;
-	public var offsetX:Float;
-	public var offsetY:Float;
 
 	public var isDebugVisible:Bool;
 	public var debugColor:Color;
 
-	public var left(get, never):Float;
-	public var top(get, never):Float;
-	public var right(get, never):Float;
-	public var bottom(get, never):Float;
-	public var centerX(get, never):Float;
-	public var centerY(get, never):Float;
+	@:noSerialize public var left(get, never):Float;
+	@:noSerialize public var top(get, never):Float;
+	@:noSerialize public var right(get, never):Float;
+	@:noSerialize public var bottom(get, never):Float;
+	@:noSerialize public var centerX(get, never):Float;
+	@:noSerialize public var centerY(get, never):Float;
 
 	var debugRect:Rect;
 
-	public function new(width:Float, height:Float, offsetX:Float = 0.0, offsetY:Float = 0.0) {
+	public function new(width:Float = 0.0, height:Float = 0.0) {
 		super();
+		name = "Collider";
 		this.width = width;
 		this.height = height;
-		this.offsetX = offsetX;
-		this.offsetY = offsetY;
 		isDebugVisible = false;
 		debugColor = Color.rgb(90, 230, 130);
+	}
+
+	// It draws, for the debug outline, and Scene keeps a list of colliders for Physics, which a flag in the same word asks for.
+	override function hookFlags():Int {
+		return super.hookFlags() | 2 | 8;
 	}
 
 	public function overlaps(other:Collider):Bool {
@@ -64,42 +67,38 @@ class Collider extends Component {
 		debugRect.y = Std.int(top);
 		debugRect.width = Std.int(right) - debugRect.x;
 		debugRect.height = Std.int(bottom) - debugRect.y;
-		DrawQueue.submitRect(gameObject.priority, debugRect, debugColor);
+		DrawQueue.submitRect(priority, debugRect, debugColor);
 	}
 
-	override function destroy():Void {
+	override function destroyed():Void {
 		debugRect = null;
 	}
 
 	function get_left():Float {
-		var edge = transform.x + offsetX * transform.scaleX;
-		var size = width * transform.scaleX;
-		return size < 0.0 ? edge + size : edge;
+		var size = width * worldScaleX;
+		return size < 0.0 ? worldX + size : worldX;
 	}
 
 	function get_right():Float {
-		var edge = transform.x + offsetX * transform.scaleX;
-		var size = width * transform.scaleX;
-		return size < 0.0 ? edge : edge + size;
+		var size = width * worldScaleX;
+		return size < 0.0 ? worldX : worldX + size;
 	}
 
 	function get_top():Float {
-		var edge = transform.y + offsetY * transform.scaleY;
-		var size = height * transform.scaleY;
-		return size < 0.0 ? edge + size : edge;
+		var size = height * worldScaleY;
+		return size < 0.0 ? worldY + size : worldY;
 	}
 
 	function get_bottom():Float {
-		var edge = transform.y + offsetY * transform.scaleY;
-		var size = height * transform.scaleY;
-		return size < 0.0 ? edge : edge + size;
+		var size = height * worldScaleY;
+		return size < 0.0 ? worldY : worldY + size;
 	}
 
 	function get_centerX():Float {
-		return transform.x + (offsetX + width / 2.0) * transform.scaleX;
+		return worldX + width * worldScaleX / 2.0;
 	}
 
 	function get_centerY():Float {
-		return transform.y + (offsetY + height / 2.0) * transform.scaleY;
+		return worldY + height * worldScaleY / 2.0;
 	}
 }

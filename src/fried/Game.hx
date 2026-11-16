@@ -4,7 +4,7 @@ package fried;
 class Game {
 	public function new() {}
 
-	// The window and the renderer exist and the components and scenes are registered, and no scene is loaded yet.
+	// The window and the renderer exist and the nodes and scenes are registered, and no scene is loaded yet.
 	public function start():Void {}
 
 	// Once a frame, before the scenes update.

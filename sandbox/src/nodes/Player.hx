@@ -1,4 +1,4 @@
-package components;
+package nodes;
 
 import fried.Time;
 import fried.graphics.FlipMode;
@@ -10,24 +10,25 @@ import fried.input.InputSource;
 import fried.input.Key;
 import fried.physics.Collider;
 import fried.physics.Physics;
-import fried.scene.Component;
-import fried.scene.GameObject;
+import fried.scene.Node2D;
 import fried.scene.Sprite;
 
+// A sprite the player moves, blocked by the colliders of the scene. Its own Collider is a child.
 @:serializable
-class PlayerController extends Component {
+class Player extends Sprite {
 	public var speed:Float;
 
-	public var blockedBy(default, null):String;
+	// The node whose y splits what the player walks in front of from what it walks behind.
+	public var wall:Node2D;
 
-	// The object whose y splits what the player walks in front of from what it walks behind.
-	public var wall:GameObject;
-	var sprite:Sprite;
+	@:noSerialize public var blockedBy(default, null):String;
+
 	var collider:Collider;
 	var movementAction:InputAction;
 
-	public function new(speed:Float, wall:GameObject) {
+	public function new(speed:Float, wall:Node2D) {
 		super();
+		name = "Player";
 		this.speed = speed;
 		this.wall = wall;
 		movementAction = new InputAction("Move", Vector2);
@@ -38,19 +39,15 @@ class PlayerController extends Component {
 		movementAction.addBinding(Vector(Keyboard(Key.Up), Keyboard(Key.Down), Keyboard(Key.Left), Keyboard(Key.Right)));
 	}
 
-	override function start():Void {
+	override function ready():Void {
 		movementAction.enable();
-		sprite = gameObject.getComponent(Sprite);
-		if (sprite == null) {
-			throw 'A PlayerController needs a Sprite on ${gameObject.name}.';
-		}
-		collider = gameObject.getComponent(Collider);
+		collider = findChild(Collider);
 		if (collider == null) {
-			throw 'A PlayerController needs a Collider on ${gameObject.name}.';
+			throw 'A Player needs a Collider child on $name.';
 		}
 	}
 
-	override function destroy():Void {
+	override function destroyed():Void {
 		movementAction.disable();
 	}
 
@@ -63,12 +60,12 @@ class PlayerController extends Component {
 		stepAxis(0.0, moveY * speed * Time.deltaSeconds);
 
 		if (moveX < -0.01) {
-			sprite.flip = FlipMode.Horizontal;
+			flip = FlipMode.Horizontal;
 		} else if (moveX > 0.01) {
-			sprite.flip = FlipMode.None;
+			flip = FlipMode.None;
 		}
 
-		gameObject.priority = transform.y < wall.transform.y ? -1 : 1;
+		priority = y < wall.y ? -1 : 1;
 	}
 
 	// One axis at a time, so a run into a post still slides along the other,
@@ -77,21 +74,21 @@ class PlayerController extends Component {
 		if (dx == 0.0 && dy == 0.0) {
 			return;
 		}
-		transform.translate(dx, dy);
-		var blocker = Physics.overlapCollider(gameObject.scene, collider);
+		translate(dx, dy);
+		var blocker = Physics.overlapCollider(scene, collider);
 		if (blocker == null) {
 			return;
 		}
-		blockedBy = blocker.gameObject.name;
+		blockedBy = blocker.parent != null ? blocker.parent.name : blocker.name;
 		if (dx > 0.0) {
-			transform.x -= collider.right - blocker.left;
+			x -= collider.right - blocker.left;
 		} else if (dx < 0.0) {
-			transform.x += blocker.right - collider.left;
+			x += blocker.right - collider.left;
 		}
 		if (dy > 0.0) {
-			transform.y -= collider.bottom - blocker.top;
+			y -= collider.bottom - blocker.top;
 		} else if (dy < 0.0) {
-			transform.y += blocker.bottom - collider.top;
+			y += blocker.bottom - collider.top;
 		}
 	}
 }

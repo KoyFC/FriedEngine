@@ -1,4 +1,4 @@
-package fried.nodes;
+package fried.scene;
 
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;

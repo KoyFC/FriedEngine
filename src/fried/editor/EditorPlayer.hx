@@ -2,15 +2,17 @@ package fried.editor;
 
 #if fried_editor
 import fried.Project;
+import fried.editor.EditorConnection;
 import fried.graphics.Color;
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
 import fried.scene.Camera;
-import fried.scene.GameObject;
+import fried.scene.CanvasItem;
+import fried.scene.Node;
 import fried.scene.Scene;
-import fried.scene.serialization.ComponentRegistry;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.LoadContext;
+import fried.scene.serialization.NodeRegistry;
 import fried.scene.serialization.SceneLoader;
 
 // The editor's viewport: a game with no game in it. It shows the scene the editor sends and answers its requests, and draws only when asked.
@@ -27,7 +29,6 @@ class EditorPlayer {
 	var layer:EditorSceneLayer;
 	var scene:Scene;
 	var camera:Camera;
-	var cameraObject:GameObject;
 	var isRenderRequested:Bool;
 	var isJustResized:Bool;
 	var window:Window;
@@ -85,8 +86,9 @@ class EditorPlayer {
 		renderer.pushLayer(layer);
 
 		// The editor's own view, never part of a scene file. It starts with the world's origin at the top left.
-		cameraObject = new GameObject("Editor camera", renderer.width / 2, renderer.height / 2);
-		camera = cameraObject.addComponent(new Camera());
+		camera = new Camera();
+		camera.x = renderer.width / 2;
+		camera.y = renderer.height / 2;
 
 		connection.send({type: "hello", protocol: EditorConnection.PROTOCOL, platform: Application.platformName});
 	}
@@ -123,26 +125,40 @@ class EditorPlayer {
 		layer.isEnabled = false;
 		var bounds = [];
 		if (scene != null) {
-			for (object in scene.sceneObjects) {
-				var box = EditorBounds.of(object);
-				bounds.push({id: object.id, x: box.x, y: box.y, width: box.width, height: box.height});
-			}
+			collectBounds(scene.root, bounds);
 		}
 		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds}, renderer.readPixels());
+	}
+
+	// Every node that is drawn, in tree order, with what its parent gives it so a drag can be turned into the node's own coordinates.
+	function collectBounds(parent:Node, bounds:Array<Dynamic>):Void {
+		for (node in parent.children) {
+			var item = Std.downcast(node, CanvasItem);
+			if (item != null) {
+				var box = EditorBounds.of(item);
+				var entry:Dynamic = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height};
+				var around = EditorBounds.parentOf(item);
+				if (around != null) {
+					entry.parent = around;
+				}
+				bounds.push(entry);
+			}
+			collectBounds(node, bounds);
+		}
 	}
 
 	function handle(message:Dynamic):Void {
 		switch (message.type) {
 			case "schema":
-				connection.send({type: "schema", components: describeComponents()});
+				connection.send({type: "schema", classes: describeClasses()});
 			case "load":
 				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});
 			case "setField":
-				setField(message.id, message.component, message.field, message.value);
+				setField(message.id, message.field, message.value);
 			case "setEditorCamera":
-				cameraObject.transform.x = message.x;
-				cameraObject.transform.y = message.y;
+				camera.x = message.x;
+				camera.y = message.y;
 				camera.zoom = message.zoom;
 			case "resize":
 				window.setSize(Std.int(message.width), Std.int(message.height));
@@ -162,7 +178,6 @@ class EditorPlayer {
 		var next = SceneLoader.build(data, renderer, false);
 		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size of the game's screen that the editor shows as the display's frame, or the size the project designs for when the editor does not say.
 		next.setView(viewWidth != null ? viewWidth : Project.displayWidth(), viewHeight != null ? viewHeight : Project.displayHeight());
-		next.layout();
 		if (scene != null) {
 			scene.camera = null;
 			scene.destroy();
@@ -172,46 +187,31 @@ class EditorPlayer {
 		layer.scene = scene;
 	}
 
-	function setField(id:String, componentName:String, field:String, value:Dynamic):Void {
-		var object = scene != null ? scene.findById(id) : null;
-		if (object == null) {
-			throw 'The scene has no object "$id".';
+	function setField(id:String, field:String, value:Dynamic):Void {
+		var node = scene != null ? scene.findById(id) : null;
+		if (node == null) {
+			throw 'The scene has no node "$id".';
 		}
-		if (componentName == "") {
-			switch (field) {
-				case "name":
-					object.name = FieldCodec.toText(value, "name");
-				case "active":
-					object.isActive = FieldCodec.toBool(value, "active");
-				case "priority":
-					object.priority = FieldCodec.toInt(value, "priority");
-				case other:
-					throw 'An object has no field "$other".';
-			}
+		if (field == "name") {
+			node.name = FieldCodec.toText(value, "name");
 			return;
 		}
-
-		var target = SceneLoader.findComponent(object, componentName);
-		var type = ComponentRegistry.get(componentName);
-		if (target == null || type == null) {
-			throw 'The object $id has no $componentName.';
-		}
-		if (field == "enabled") {
-			target.enabled = FieldCodec.toBool(value, "enabled");
-			return;
+		var type = NodeRegistry.get(Type.getClassName(Type.getClass(node)).split(".").pop());
+		if (type == null) {
+			throw 'The node $id is of a class a scene file cannot name.';
 		}
 		var data = {};
 		Reflect.setField(data, field, value);
 		var context = new LoadContext(renderer);
 		context.scene = scene;
-		type.apply(target, data, context);
+		type.apply(node, data, context);
 	}
 
-	function describeComponents():Array<Dynamic> {
-		var components = [];
-		for (type in ComponentRegistry.all()) {
+	function describeClasses():Array<Dynamic> {
+		var classes = [];
+		for (type in NodeRegistry.all()) {
 			var defaults = type.defaultValues();
-			var fields:Array<Dynamic> = [{name: "enabled", kind: "bool", values: [], defaultValue: true}];
+			var fields:Array<Dynamic> = [];
 			for (field in type.fields) {
 				fields.push({
 					name: field.name,
@@ -220,9 +220,9 @@ class EditorPlayer {
 					defaultValue: Reflect.field(defaults, field.name)
 				});
 			}
-			components.push({name: type.name, fields: fields});
+			classes.push({name: type.name, parent: type.parent, fields: fields});
 		}
-		return components;
+		return classes;
 	}
 }
 #end

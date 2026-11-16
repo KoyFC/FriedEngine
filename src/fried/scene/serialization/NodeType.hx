@@ -1,4 +1,4 @@
-package fried.nodes.serialization;
+package fried.scene.serialization;
 
 import fried.scene.serialization.FieldInfo;
 import fried.scene.serialization.LoadContext;

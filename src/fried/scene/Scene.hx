@@ -1,233 +1,252 @@
 package fried.scene;
 
-import fried.Log;
 import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
 import fried.input.InputEvent;
+import fried.physics.Collider;
 import haxe.ds.ArraySort;
 
+// A tree of nodes and the lists a frame runs through. The lists hold only the nodes whose class overrides the hook, in tree order, and are filled again only when the tree changed, so a frame never walks the tree.
+@:allow(fried.scene)
 class Scene {
 	public var name:String;
 
-	public var camera(default, set):Camera;
+	public var camera:Null<Camera>;
 
-	public var objectCount(get, never):Int;
+	public var nodeCount(default, null):Int;
 
-	// The size of the view the scene is drawn to, which a component reads instead of holding the renderer. Zero until the scene has been given one.
+	// The size of the view the scene is drawn to, which a node reads instead of holding the renderer. Zero until the scene has been given one.
 	public var viewWidth(default, null):Int;
 	public var viewHeight(default, null):Int;
 
-	@:allow(fried.physics.Physics)
-	@:allow(fried.editor.EditorPlayer)
-	var sceneObjects:Array<GameObject>;
-	var pendingAdds:Array<GameObject>;
-	var pendingRemovals:Array<GameObject>;
-	var pendingDestroys:Array<GameObject>;
-	var eventOrder:Array<GameObject>;
-	var isIterating:Bool;
+	// Every node of the scene sits under this one, which is never drawn or updated.
+	public var root(default, null):Node;
+
+	@:allow(fried.scene.CanvasItem)
+	var isEventOrderDirty:Bool;
+
+	var byId:Map<String, Node>;
+	var updateList:Array<Node>;
+	var drawList:Array<Node>;
+	var eventTree:Array<Node>;
+	var eventList:Array<Node>;
+	var colliders:Array<Collider>;
+	var areListsDirty:Bool;
 
 	public function new(name:String = "Scene") {
 		this.name = name;
 		viewWidth = 0;
 		viewHeight = 0;
-		sceneObjects = [];
-		pendingAdds = [];
-		pendingRemovals = [];
-		pendingDestroys = [];
-		eventOrder = [];
-		isIterating = false;
+		nodeCount = 0;
+		byId = new Map();
+		updateList = [];
+		drawList = [];
+		eventTree = [];
+		eventList = [];
+		colliders = [];
+		areListsDirty = false;
+		isEventOrderDirty = false;
+		root = new Node("Root");
+		root.enterScene(this);
 	}
 
 	@:allow(fried.scene.SceneLayer)
 	@:allow(fried.scene.serialization.SceneLoader)
 	@:allow(fried.editor.EditorPlayer)
 	function setView(width:Int, height:Int):Void {
-		viewWidth = width;
-		viewHeight = height;
-	}
-
-	public function add(object:GameObject):GameObject {
-		if (object.scene != null) {
-			throw 'The game object ${object.name} already belongs to the scene ${object.scene.name}.';
-		}
-		object.scene = this;
-		if (isIterating) {
-			pendingAdds.push(object);
-		} else {
-			sceneObjects.push(object);
-		}
-		return object;
-	}
-
-	public function remove(object:GameObject):Void {
-		if (object.scene != this) {
+		if (width == viewWidth && height == viewHeight) {
 			return;
 		}
-		object.scene = null;
-		if (isIterating) {
-			pendingRemovals.push(object);
-		} else {
-			sceneObjects.remove(object);
+		viewWidth = width;
+		viewHeight = height;
+		notifyView(root);
+	}
+
+	function notifyView(node:Node):Void {
+		for (child in node.children) {
+			child.viewChanged();
+			notifyView(child);
 		}
 	}
 
-	public function findById(id:String):Null<GameObject> {
-		return find(object -> object.id == id);
+	public function add<T:Node>(node:T):T {
+		return root.addChild(node);
 	}
 
-	// Names are not unique, so this is the first match in draw order.
-	public function findByName(name:String):Null<GameObject> {
-		return find(object -> object.name == name);
+	public function remove(node:Node):Void {
+		if (node.scene == this && node.parent != null) {
+			node.parent.removeChild(node);
+		}
 	}
 
-	function find(matches:GameObject->Bool):Null<GameObject> {
-		applyPendingChanges();
-		for (object in sceneObjects) {
-			if (!object.isDestroyed && matches(object)) {
-				return object;
+	public function findById(id:String):Null<Node> {
+		return byId.get(id);
+	}
+
+	// The node with that id as the class a caller expects, which fails loudly when the scene has no such node or it is another class.
+	public function getById<T:Node>(id:String, type:Class<T>):T {
+		var node = byId.get(id);
+		if (node == null) {
+			throw 'The scene $name has no node "$id".';
+		}
+		var typed = Std.downcast(node, type);
+		if (typed == null) {
+			throw 'The node "$id" of the scene $name is not a ${Type.getClassName(type)}.';
+		}
+		return typed;
+	}
+
+	// Names are not unique, so this is the first match in tree order.
+	public function findByName(name:String):Null<Node> {
+		return search(root, name);
+	}
+
+	function search(node:Node, name:String):Null<Node> {
+		for (child in node.children) {
+			if (child.name == name) {
+				return child;
+			}
+			var found = search(child, name);
+			if (found != null) {
+				return found;
 			}
 		}
 		return null;
 	}
 
+	@:allow(fried.scene.Node)
+	function register(node:Node):Void {
+		if (node.id != "") {
+			byId.set(node.id, node);
+		}
+		nodeCount++;
+		areListsDirty = true;
+	}
+
+	@:allow(fried.scene.Node)
+	function unregister(node:Node):Void {
+		if (node.id != "" && byId.get(node.id) == node) {
+			byId.remove(node.id);
+		}
+		nodeCount--;
+		areListsDirty = true;
+	}
+
+	function rebuildLists():Void {
+		updateList.resize(0);
+		drawList.resize(0);
+		eventTree.resize(0);
+		colliders.resize(0);
+		collect(root);
+		areListsDirty = false;
+		isEventOrderDirty = true;
+	}
+
+	function collect(node:Node):Void {
+		var flags = node.hooks;
+		if (flags != 0) {
+			if ((flags & 1) != 0) {
+				updateList.push(node);
+			}
+			if ((flags & 2) != 0) {
+				drawList.push(node);
+			}
+			if ((flags & 4) != 0) {
+				eventTree.push(node);
+			}
+			if ((flags & 8) != 0) {
+				colliders.push(cast node);
+			}
+		}
+		for (child in node.children) {
+			collect(child);
+		}
+	}
+
+	// Every collider of the scene, in tree order, for Physics to test. Whether each is active is for the caller.
+	public function activeColliders():Array<Collider> {
+		if (areListsDirty) {
+			rebuildLists();
+		}
+		return colliders;
+	}
+
 	public function update():Void {
-		applyPendingChanges();
-		isIterating = true;
-		for (object in sceneObjects) {
-			object.update();
+		if (areListsDirty) {
+			rebuildLists();
 		}
-		isIterating = false;
-	}
-
-	// Sizes every object, then places each one after the objects it depends on, so the result does not depend on the order of the objects or of their components. It runs before every draw, which is also where the editor reaches it, and a scene that was just built runs it once so it is placed before the first frame.
-	@:allow(fried.scene.serialization.SceneLoader)
-	@:allow(fried.editor.EditorPlayer)
-	function layout():Void {
-		applyPendingChanges();
-		for (object in sceneObjects) {
-			object.layoutState = 0;
-			object.layoutSize();
-		}
-		for (object in sceneObjects) {
-			place(object);
-		}
-	}
-
-	function place(object:GameObject):Void {
-		if (object.layoutState != 0) {
-			if (object.layoutState == 1 && !object.isLayoutCycleReported) {
-				object.isLayoutCycleReported = true;
-				Log.warn('The layout of ${object.name} depends on itself, so one of the objects in the loop is placed before the other.');
+		var list = updateList;
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var node = list[index];
+			if (node.activeInTree) {
+				node.update();
 			}
-			return;
+			index++;
 		}
-		object.layoutState = 1;
-		for (dependency in object.layoutDependencies()) {
-			if (dependency.scene == this) {
-				place(dependency);
-			}
-		}
-		object.layoutPosition();
-		object.layoutState = 2;
 	}
 
 	public function draw(renderer:Renderer):Void {
-		layout();
+		if (areListsDirty) {
+			rebuildLists();
+		}
 		DrawQueue.currentRenderTarget = renderer;
 		if (camera != null) {
 			camera.updateView();
 		}
 		DrawQueue.currentCamera = camera != null ? camera.view : null;
-		isIterating = true;
-		for (object in sceneObjects) {
-			object.draw();
+		var list = drawList;
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var node = list[index];
+			if (node.shownInTree) {
+				node.draw();
+			}
+			index++;
 		}
-		isIterating = false;
 	}
 
-	// Top first, the reverse of the order things are drawn in.
+	// Top first, the reverse of the order things are drawn in, and a higher priority before a lower one.
 	public function propagateEvent(event:InputEvent):Void {
-		applyPendingChanges();
-		var index = sceneObjects.length - 1;
-		while (index >= 0) {
-			eventOrder.push(sceneObjects[index]);
-			index--;
+		if (areListsDirty) {
+			rebuildLists();
 		}
-		ArraySort.sort(eventOrder, byPriorityDescending);
-		for (object in eventOrder) {
+		if (isEventOrderDirty) {
+			eventList.resize(0);
+			var index = eventTree.length - 1;
+			while (index >= 0) {
+				eventList.push(eventTree[index]);
+				index--;
+			}
+			ArraySort.sort(eventList, byPriorityDescending);
+			isEventOrderDirty = false;
+		}
+		var list = eventList;
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
 			if (event.handled) {
 				break;
 			}
-			object.propagateEvent(event);
+			var node = list[index];
+			if (node.activeInTree) {
+				node.onEvent(event);
+			}
+			index++;
 		}
-		eventOrder.resize(0);
 	}
 
 	public function destroy():Void {
-		applyPendingChanges();
-		isIterating = true;
-		for (object in sceneObjects) {
-			object.scene = null;
-			object.destroy();
+		for (child in root.children.copy()) {
+			root.removeChild(child);
+			child.destroyTree();
 		}
-		isIterating = false;
-		sceneObjects.resize(0);
-		pendingAdds.resize(0);
-		pendingRemovals.resize(0);
-		pendingDestroys.resize(0);
+		camera = null;
 	}
 
-	@:allow(fried.scene.GameObject)
-	function destroyLater(object:GameObject):Void {
-		pendingDestroys.push(object);
-	}
-
-	function applyPendingChanges():Void {
-		for (object in pendingDestroys) {
-			sceneObjects.remove(object);
-			object.scene = null;
-			object.destroyComponents();
-		}
-		pendingDestroys.resize(0);
-
-		for (object in pendingRemovals) {
-			sceneObjects.remove(object);
-		}
-		pendingRemovals.resize(0);
-
-		for (object in pendingAdds) {
-			sceneObjects.push(object);
-		}
-		pendingAdds.resize(0);
-	}
-
-	static function byPriorityDescending(first:GameObject, second:GameObject):Int {
-		return second.priority - first.priority;
-	}
-
-	function get_objectCount():Int {
-		return sceneObjects.length;
-	}
-
-	function set_camera(value:Camera):Camera {
-		if (value == camera) {
-			return camera;
-		}
-		if (value != null) {
-			if (value.gameObject == null) {
-				throw 'A camera must belong to a game object before the scene $name can draw through it.';
-			}
-			if (value.assignedScene != null) {
-				throw 'That camera is already the view of the scene ${value.assignedScene.name}.';
-			}
-		}
-		if (camera != null) {
-			camera.assignedScene = null;
-		}
-		camera = value;
-		if (value != null) {
-			value.assignedScene = this;
-		}
-		return camera;
+	static function byPriorityDescending(first:Node, second:Node):Int {
+		return second.sortPriority() - first.sortPriority();
 	}
 }

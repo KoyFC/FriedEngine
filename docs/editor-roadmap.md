@@ -4,7 +4,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 ## Decisions
 
-- v1 is 2D only, with no hierarchy and built-in components only.
+- v1 is 2D only, with no hierarchy and built-in components only. Phase 14 replaced that with a tree of typed nodes.
 - A scene is a JSON file under `assets/scenes/`, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a component that differs on a platform decides so in its own code.
 - The reference resolution is the project's `display` block, not a field of the scene.
 - Components are serialized through a build macro on `Component`, with no runtime reflection and an explicit registry of the built-ins.
@@ -110,6 +110,15 @@ The editor lays a scene out against the project's display size, not the panel's,
 - [x] A page per platform: its icon from any image, its packaging text, and its build with the output as it is printed
 - [x] The Project Manager on FriedCore
 
+### 14. Nodes (FriedEngine, then FriedEditor)
+
+- [x] `GameObject` and `Component` replaced by a tree of typed nodes: `Node`, `CanvasItem`, `Node2D` and `Control` with `Sprite`, `Camera`, `Collider`, `Label`, `TextureRect` and `Button`
+- [x] Scene file version 2, with nested `children`, and no converter: scenes are rewritten by hand
+- [x] Editor protocol 2: a schema of classes with their parents and own fields, and bounds with the parent's world values
+- [x] The sandbox on nodes
+- [ ] The editor on nodes: a tree in the hierarchy panel, one inspector section per class, and structural changes sent as `addNode`, `removeNode` and `moveNode`
+- [ ] The Project Manager's template and WhiteCellSimulator on nodes
+
 ## Later
 
-A second UI backend (Dear ImGui), a binary cooked scene format, prefabs, hierarchy, a `screen` field for dual-screen platforms, 3D components, per-platform asset variants.
+A second UI backend (Dear ImGui), a binary cooked scene format, prefabs, a `screen` field for dual-screen platforms, 3D nodes, per-platform asset variants.

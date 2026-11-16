@@ -1,165 +1,142 @@
 {
 	"name": "Sandbox UI",
-	"objects": [
+	"nodes": [
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": 12,
-					"y": 12
-				},
-				{
-					"borderColor": {
-						"a": 255,
-						"b": 140,
-						"g": 200,
-						"r": 90
-					},
-					"fillColor": {
-						"a": 255,
-						"b": 55,
-						"g": 40,
-						"r": 40
-					},
-					"height": 96,
-					"type": "Box",
-					"width": 490
-				}
-			],
+			"borderColor": {
+				"a": 255,
+				"b": 140,
+				"g": 200,
+				"r": 90
+			},
+			"fillColor": {
+				"a": 255,
+				"b": 55,
+				"g": 40,
+				"r": 40
+			},
+			"height": 96,
 			"id": "hint-panel",
-			"name": "Hint panel"
+			"name": "Hint panel",
+			"type": "Box",
+			"width": 490,
+			"x": 12,
+			"y": 12
 		},
 		{
-			"components": [
-				{
-					"type": "Transform",
-					"x": 16,
-					"y": 16
-				},
-				{
-					"color": {
-						"a": 255,
-						"b": 230,
-						"g": 220,
-						"r": 220
-					},
-					"font": {
-						"path": "NunitoSans.ttf",
-						"root": "engine",
-						"size": 16
-					},
-					"maxWidth": 528,
-					"text": "Run 1   Space/Enter/A/click: sound   M/F6/B: music   WASD/arrows/stick/d-pad: move   Q/E/L/R: zoom   Shift+arrows: move window   F2/North: next scene   F3/Select: overlay   F4: interface   F5: collider bounds   F7: gameplay actions   Esc/Start: quit",
-					"type": "Text"
-				}
-			],
+			"color": {
+				"a": 255,
+				"b": 230,
+				"g": 220,
+				"r": 220
+			},
+			"font": {
+				"path": "NunitoSans.ttf",
+				"root": "engine",
+				"size": 16
+			},
 			"id": "hints",
+			"maxWidth": 528,
 			"name": "Hints",
-			"priority": 1
+			"offsetX": 16,
+			"offsetY": 16,
+			"priority": 1,
+			"text": "Run 1   Space/Enter/A/click: sound   M/F6/B: music   WASD/arrows/stick/d-pad: move   Q/E/L/R: zoom   Shift+arrows: move window   F2/North: next scene   F3/Select: overlay   F4: interface   F5: collider bounds   F7: gameplay actions   Esc/Start: quit",
+			"type": "Label"
 		},
 		{
-			"components": [
+			"anchorMaxX": 1,
+			"anchorMaxY": 0,
+			"anchorMinX": 1,
+			"anchorMinY": 0,
+			"children": [
 				{
-					"anchorMaxX": 1,
-					"anchorMaxY": 0,
-					"anchorMinX": 1,
-					"anchorMinY": 0,
-					"offsetX": -16,
-					"offsetY": 96,
-					"pivotX": 1,
-					"pivotY": 0,
-					"scaleX": 8,
-					"scaleY": 8,
-					"type": "RectTransform"
-				},
-				{
-					"source": {
-						"height": 8,
-						"width": 8,
-						"x": 0,
-						"y": 0
-					},
-					"texture": {
-						"path": "sprite.png",
-						"root": "game"
-					},
-					"type": "Sprite"
-				},
-				{
+					"id": "region-scroller",
+					"name": "Region scroller",
 					"pixelsPerSecond": 8,
 					"type": "RegionScroller"
 				}
 			],
 			"id": "region-icon",
-			"name": "Region icon"
+			"name": "Region icon",
+			"offsetX": -16,
+			"offsetY": 96,
+			"pivotX": 1,
+			"pivotY": 0,
+			"scaleX": 8,
+			"scaleY": 8,
+			"source": {
+				"height": 8,
+				"width": 8,
+				"x": 0,
+				"y": 0
+			},
+			"texture": {
+				"path": "sprite.png",
+				"root": "game"
+			},
+			"type": "TextureRect"
 		},
 		{
-			"components": [
+			"anchorMaxX": 1,
+			"anchorMaxY": 0,
+			"anchorMinX": 1,
+			"anchorMinY": 0,
+			"children": [
 				{
-					"anchorMaxX": 1,
-					"anchorMaxY": 0,
-					"anchorMinX": 1,
-					"anchorMinY": 0,
-					"offsetX": -16,
-					"offsetY": 164,
-					"pivotX": 1,
-					"pivotY": 0,
-					"type": "RectTransform"
-				},
-				{
-					"color": {
-						"a": 255,
-						"b": 230,
-						"g": 220,
-						"r": 220
-					},
-					"font": {
-						"path": "NunitoSans.ttf",
-						"root": "engine",
-						"size": 16
-					},
-					"text": "region x 0",
-					"type": "Text"
-				},
-				{
+					"id": "region-readout",
+					"name": "Region readout",
 					"source": "region-icon",
 					"type": "RegionLabel"
 				}
 			],
+			"color": {
+				"a": 255,
+				"b": 230,
+				"g": 220,
+				"r": 220
+			},
+			"font": {
+				"path": "NunitoSans.ttf",
+				"root": "engine",
+				"size": 16
+			},
 			"id": "region-label",
 			"name": "Region label",
-			"priority": 1
+			"offsetX": -16,
+			"offsetY": 164,
+			"pivotX": 1,
+			"pivotY": 0,
+			"priority": 1,
+			"text": "region x 0",
+			"type": "Label"
 		},
 		{
-			"components": [
-				{
-					"anchorMaxX": 1,
-					"anchorMaxY": 0,
-					"anchorMinX": 1,
-					"anchorMinY": 0,
-					"offsetX": -16,
-					"offsetY": 16,
-					"pivotX": 1,
-					"pivotY": 0,
-					"scaleX": 4,
-					"scaleY": 4,
-					"type": "RectTransform"
-				},
-				{
-					"texture": {
-						"path": "sprite.png",
-						"root": "game"
-					},
-					"type": "Sprite"
-				},
+			"anchorMaxX": 1,
+			"anchorMaxY": 0,
+			"anchorMinX": 1,
+			"anchorMinY": 0,
+			"children": [
 				{
 					"degreesPerSecond": 90,
+					"id": "spinner",
+					"name": "Spinner",
 					"type": "Spinner"
 				}
 			],
 			"id": "spinning-icon",
-			"name": "Spinning icon"
+			"name": "Spinning icon",
+			"offsetX": -16,
+			"offsetY": 16,
+			"pivotX": 1,
+			"pivotY": 0,
+			"scaleX": 4,
+			"scaleY": 4,
+			"texture": {
+				"path": "sprite.png",
+				"root": "game"
+			},
+			"type": "TextureRect"
 		}
 	],
-	"version": 1
+	"version": 2
 }

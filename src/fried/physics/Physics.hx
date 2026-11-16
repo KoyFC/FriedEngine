@@ -141,18 +141,9 @@ class Physics {
 		if (scene == null) {
 			return queryColliders;
 		}
-		for (object in scene.sceneObjects) {
-			if (!object.isActive) {
-				continue;
-			}
-			for (component in object.components) {
-				if (!component.enabled) {
-					continue;
-				}
-				var collider = Std.downcast(component, Collider);
-				if (collider != null && collider != ignore) {
-					queryColliders.push(collider);
-				}
+		for (collider in scene.activeColliders()) {
+			if (collider.activeInTree && collider != ignore) {
+				queryColliders.push(collider);
 			}
 		}
 		return queryColliders;

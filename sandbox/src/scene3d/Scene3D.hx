@@ -1,6 +1,6 @@
 package scene3d;
 
-import components.CubeField;
+import nodes.CubeField;
 import debug.DebugOverlay;
 import fried.graphics.Font;
 import fried.graphics.Renderer;
@@ -8,7 +8,7 @@ import fried.input.GamepadButton;
 import fried.input.InputAction;
 import fried.input.Key;
 import fried.scene.SceneContext;
-import fried.scene.Text;
+import fried.scene.Label;
 import fried.scene.serialization.SceneLoader;
 
 class Scene3D {
@@ -24,8 +24,8 @@ class Scene3D {
 
 	public function load(context:SceneContext):Void {
 		var scene = context.pushScene(renderer, SceneLoader.load("scenes/sandbox_3d.scene.json", renderer));
-		var field = scene.findById("cube-field").getComponent(CubeField);
-		scene.findById("hint").getComponent(Text).font = font;
+		var field = scene.getById("cube-field", CubeField);
+		scene.getById("hint", Label).font = font;
 
 		function doubleCubes():Void {
 			field.setCubeCount(field.cubeCount * 2);

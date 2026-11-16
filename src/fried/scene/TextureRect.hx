@@ -1,4 +1,4 @@
-package fried.nodes;
+package fried.scene;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.FlipMode;

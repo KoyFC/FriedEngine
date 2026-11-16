@@ -1,8 +1,9 @@
-package fried.nodes.serialization;
+package fried.scene.serialization;
 
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+import haxe.macro.ComplexTypeTools;
 import haxe.macro.ExprTools;
 
 using Lambda;
@@ -22,8 +23,8 @@ private typedef SerializedField = {
 class NodeBuilder {
 	static inline var CODEC = "fried.scene.serialization.FieldCodec";
 	static inline var FIELDS = "fried.scene.serialization";
-	static inline var NODES = "fried.nodes.serialization";
-	static inline var NODE = "fried.nodes.Node";
+	static inline var NODES = "fried.scene.serialization";
+	static inline var NODE = "fried.scene.Node";
 	static var reserved = ["type", "id", "name", "children"];
 
 	public static function build():Array<Field> {
@@ -270,16 +271,17 @@ class NodeBuilder {
 			var match = serialized.filter(field -> field.name == argument.name)[0];
 			var defaultValue = argument.value != null ? ExprTools.toString(argument.value) : null;
 			var variable = 'argument$index';
+			var declared = match != null && match.codec == "Node" && argument.type != null ? ":" + ComplexTypeTools.toString(argument.type) : "";
 			argumentNames.push(variable);
 			if (match == null) {
 				if (defaultValue == null && !argument.opt) {
 					Context.error('The constructor of $className requires "${argument.name}", which is not a serialized field, so a scene file cannot supply it.', position);
 				}
-				create.add('var $variable = ${defaultValue != null ? defaultValue : "null"};\n');
+				create.add('var $variable$declared = ${defaultValue != null ? defaultValue : "null"};\n');
 				continue;
 			}
-			var absent = defaultValue != null ? defaultValue : argument.opt ? "null" : 'ctx.usesZeroDefaults ? $CODEC.zero${match.codec}() : $CODEC.missing("$name", "${match.name}")';
-			create.add('var $variable = $CODEC.has(data, "${match.name}") ? ${convert(match, name)} : $absent;\n');
+			var absent = defaultValue != null ? defaultValue : argument.opt ? "null" : 'ctx.usesZeroDefaults ? ${match.codec == "Node" ? "null" : '$CODEC.zero${match.codec}()'} : $CODEC.missing("$name", "${match.name}")';
+			create.add('var $variable$declared = $CODEC.has(data, "${match.name}") ? ${convert(match, name)} : $absent;\n');
 		}
 		create.add('var instance = new $className(${argumentNames.join(", ")});\n');
 		for (field in serialized) {

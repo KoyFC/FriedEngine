@@ -4,16 +4,16 @@ import fried.Log;
 import fried.input.InputEvent;
 import fried.input.InputEventType;
 import fried.input.MouseButton;
-import fried.scene.GameObject;
+import fried.scene.Node2D;
 import fried.scene.Scene;
 import fried.scene.SceneLayer;
 
 class InterfaceLayer extends SceneLayer {
-	var panel:GameObject;
+	var panel:Node2D;
 	var panelWidth:Int;
 	var panelHeight:Int;
 
-	public function new(scene:Scene, panel:GameObject, panelWidth:Int, panelHeight:Int) {
+	public function new(scene:Scene, panel:Node2D, panelWidth:Int, panelHeight:Int) {
 		super(scene);
 		this.panel = panel;
 		this.panelWidth = panelWidth;
@@ -38,6 +38,6 @@ class InterfaceLayer extends SceneLayer {
 	}
 
 	function panelContains(x:Int, y:Int):Bool {
-		return x >= panel.transform.x && y >= panel.transform.y && x < panel.transform.x + panelWidth && y < panel.transform.y + panelHeight;
+		return x >= panel.x && y >= panel.y && x < panel.x + panelWidth && y < panel.y + panelHeight;
 	}
 }
