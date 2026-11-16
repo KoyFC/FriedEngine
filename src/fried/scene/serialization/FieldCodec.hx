@@ -125,6 +125,30 @@ class FieldCodec {
 		return target;
 	}
 
+	// A reference is the id of another node of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
+	public static function toNode(value:Dynamic, field:String, context:LoadContext):fried.nodes.Node {
+		if (value == null) {
+			return null;
+		}
+		var id = toText(value, field);
+		if (context.nodeScene == null) {
+			return null;
+		}
+		var target = context.nodeScene.findById(id);
+		if (target == null) {
+			throw 'The field "$field" refers to the node "$id", which the scene does not have.';
+		}
+		return target;
+	}
+
+	public static function fromNode(value:fried.nodes.Node):Dynamic {
+		return value == null ? null : value.id;
+	}
+
+	public static function zeroNode():fried.nodes.Node {
+		return null;
+	}
+
 	public static function fromInt(value:Int):Dynamic {
 		return value;
 	}

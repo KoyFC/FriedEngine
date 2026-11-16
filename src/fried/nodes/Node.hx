@@ -5,7 +5,9 @@ import fried.input.InputEvent;
 // The base of everything in a scene: a name, a place in a tree, and hooks a game overrides.
 //
 // A hook is only called if a class overrides it. NodeBuilder notes that when the class is compiled, so a node that does not override update never costs a call, however many there are.
+@:build(fried.nodes.serialization.NodeBuilder.build())
 @:autoBuild(fried.nodes.serialization.NodeBuilder.build())
+@:serializable
 @:allow(fried.nodes)
 class Node {
 	static inline var UPDATE:Int = 1;

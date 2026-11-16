@@ -1,6 +1,7 @@
 package fried.nodes;
 
 // A node that is drawn: it can be hidden, and it has a place on the screen worked out from the nodes above it.
+@:serializable
 @:allow(fried.nodes)
 class CanvasItem extends Node {
 	public var visible(default, set):Bool;

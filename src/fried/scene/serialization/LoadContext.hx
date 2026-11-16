@@ -12,6 +12,9 @@ class LoadContext {
 	// The scene being built. It is null until every object exists, so a reference to another object cannot be resolved before then.
 	public var scene:Scene;
 
+	// The same for the scene of nodes being built.
+	public var nodeScene:fried.nodes.Scene;
+
 	public function new(renderer:Renderer, usesZeroDefaults:Bool = false) {
 		this.renderer = renderer;
 		this.usesZeroDefaults = usesZeroDefaults;
