@@ -156,6 +156,12 @@ class EditorPlayer {
 				connection.send({type: "loaded"});
 			case "setField":
 				setField(message.id, message.field, message.value);
+			case "addNode":
+				SceneLoader.addSubtree(requireScene(), nodeOrRoot(message.parent), message.index, message.node, renderer);
+			case "removeNode":
+				nodeNamed(message.id).destroy();
+			case "moveNode":
+				SceneLoader.moveSubtree(requireScene(), nodeNamed(message.id), nodeOrRoot(message.parent), message.index);
 			case "setEditorCamera":
 				camera.x = message.x;
 				camera.y = message.y;
@@ -187,11 +193,28 @@ class EditorPlayer {
 		layer.scene = scene;
 	}
 
-	function setField(id:String, field:String, value:Dynamic):Void {
+	function requireScene():Scene {
+		if (scene == null) {
+			throw "No scene has been loaded.";
+		}
+		return scene;
+	}
+
+	function nodeNamed(id:String):Node {
 		var node = scene != null ? scene.findById(id) : null;
 		if (node == null) {
 			throw 'The scene has no node "$id".';
 		}
+		return node;
+	}
+
+	// The empty id is the top of the scene.
+	function nodeOrRoot(id:String):Null<Node> {
+		return id == null || id == "" ? null : nodeNamed(id);
+	}
+
+	function setField(id:String, field:String, value:Dynamic):Void {
+		var node = nodeNamed(id);
 		if (field == "name") {
 			node.name = FieldCodec.toText(value, "name");
 			return;

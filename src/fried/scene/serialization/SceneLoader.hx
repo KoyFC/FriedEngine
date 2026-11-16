@@ -92,6 +92,48 @@ class SceneLoader {
 		return scene;
 	}
 
+	// Adds a subtree to a scene that exists, as a child of a node or of the scene, at a place among its children. Nothing in it is readied, which is what the editor wants of a scene it only looks at.
+	public static function addSubtree(scene:Scene, parent:Null<Node>, index:Int, data:Dynamic, renderer:Renderer):Void {
+		var outer = Node.waitingToReady;
+		Node.waitingToReady = [];
+		try {
+			var context = new LoadContext(renderer);
+			var references:Array<PendingReferences> = [];
+			var seen = new Map<String, Bool>();
+			var node = buildNode(data, context, references, seen);
+			for (id in seen.keys()) {
+				if (scene.findById(id) != null) {
+					throw 'The node id "$id" is already in the scene.';
+				}
+			}
+			(parent != null ? parent : scene.root).addChild(node, index);
+			context.scene = scene;
+			for (pending in references) {
+				pending.type.apply(pending.node, pending.data, context);
+			}
+		} catch (error:Dynamic) {
+			Node.waitingToReady = outer;
+			throw error;
+		}
+		Node.waitingToReady = outer;
+	}
+
+	// Moves a node of a scene that exists under another node, or to the top of the scene, without readying anything.
+	public static function moveSubtree(scene:Scene, node:Node, parent:Null<Node>, index:Int):Void {
+		var outer = Node.waitingToReady;
+		Node.waitingToReady = [];
+		try {
+			if (node.parent != null) {
+				node.parent.removeChild(node);
+			}
+			(parent != null ? parent : scene.root).addChild(node, index);
+		} catch (error:Dynamic) {
+			Node.waitingToReady = outer;
+			throw error;
+		}
+		Node.waitingToReady = outer;
+	}
+
 	// Children are built and added before their parent joins the scene, so the node is ready, children first, only once all of it exists.
 	static function buildNode(data:Dynamic, context:LoadContext, references:Array<PendingReferences>, seen:Map<String, Bool>):Node {
 		var id = FieldCodec.toText(FieldCodec.get(data, "id"), "node id");
