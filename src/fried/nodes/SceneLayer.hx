@@ -1,0 +1,28 @@
+package fried.nodes;
+
+import fried.Layer;
+import fried.input.InputEvent;
+
+class SceneLayer extends Layer {
+	public var scene(default, null):Scene;
+
+	public function new(scene:Scene, ?name:String) {
+		super(name == null ? scene.name : name);
+		this.scene = scene;
+	}
+
+	override function update():Void {
+		scene.setView(renderer.width, renderer.height);
+		scene.update();
+	}
+
+	override function draw():Void {
+		scene.setView(renderer.width, renderer.height);
+		scene.draw(renderer);
+	}
+
+	override function onEvent(event:InputEvent):Void {
+		scene.setView(renderer.width, renderer.height);
+		scene.propagateEvent(event);
+	}
+}

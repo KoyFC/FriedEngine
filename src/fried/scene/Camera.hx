@@ -1,6 +1,7 @@
 package fried.scene;
 
 import fried.Log;
+import fried.graphics.CameraView;
 import fried.graphics.Renderer;
 
 @:serializable
@@ -40,6 +41,16 @@ class Camera extends Component {
 
 	function viewHeight(renderer:Null<Renderer>):Int {
 		return renderer != null ? renderer.height : assignedScene.viewHeight;
+	}
+
+	// What the draw queue reads, written before the scene is drawn.
+	public var view(default, null):CameraView = new CameraView();
+
+	@:allow(fried.scene.Scene)
+	function updateView():Void {
+		view.x = transform.x;
+		view.y = transform.y;
+		view.zoom = zoom;
 	}
 
 	public function lookAt(worldX:Float, worldY:Float):Void {

@@ -134,7 +134,10 @@ class Scene {
 	public function draw(renderer:Renderer):Void {
 		layout();
 		DrawQueue.currentRenderTarget = renderer;
-		DrawQueue.currentCamera = camera;
+		if (camera != null) {
+			camera.updateView();
+		}
+		DrawQueue.currentCamera = camera != null ? camera.view : null;
 		isIterating = true;
 		for (object in sceneObjects) {
 			object.draw();

@@ -1,12 +1,11 @@
 package fried.graphics;
 
-import fried.scene.Camera;
 
 class DrawQueue {
 	public static var capacity(get, never):Int;
 
 	public static var currentRenderTarget:Renderer;
-	public static var currentCamera:Camera;
+	public static var currentCamera:CameraView;
 	public static var currentLayerIndex:Int = 0;
 
 	static var drawCommandPool:Array<DrawCommand> = [];
@@ -15,7 +14,7 @@ class DrawQueue {
 	static var viewY:Float = 0.0;
 	static var viewWidth:Float = 0.0;
 	static var viewHeight:Float = 0.0;
-	static var viewCamera:Camera;
+	static var viewCamera:CameraView;
 	static var viewZoom:Float = 1.0;
 	static var viewOffsetX:Float = 0.0;
 	static var viewOffsetY:Float = 0.0;
@@ -175,15 +174,14 @@ class DrawQueue {
 	// two double operations instead of the three of (position - camera) * zoom
 	// + half the view, and each is a call into software floating point on the DS.
 	// The numbers are worked out once for each run of commands on one camera.
-	static function useCamera(camera:Camera):Void {
+	static function useCamera(camera:CameraView):Void {
 		if (camera == viewCamera) {
 			return;
 		}
 		viewCamera = camera;
-		var transform = camera.transform;
 		viewZoom = camera.zoom;
-		viewOffsetX = viewHalfWidth - transform.x * viewZoom;
-		viewOffsetY = viewHalfHeight - transform.y * viewZoom;
+		viewOffsetX = viewHalfWidth - camera.x * viewZoom;
+		viewOffsetY = viewHalfHeight - camera.y * viewZoom;
 	}
 
 	// The 2D camera moves and zooms the screen a mesh is projected onto, as it
@@ -194,7 +192,7 @@ class DrawQueue {
 			renderer.drawMesh(command.meshId, command.points, false, 1.0, 0.0, 0.0);
 			return;
 		}
-		renderer.drawMesh(command.meshId, command.points, true, camera.zoom, camera.transform.x, camera.transform.y);
+		renderer.drawMesh(command.meshId, command.points, true, camera.zoom, camera.x, camera.y);
 	}
 
 	static function computeViewPoints(command:DrawCommand):Array<Float> {
@@ -382,7 +380,7 @@ private class DrawCommand {
 	public var sequence:Int;
 	public var layerIndex:Int;
 	public var target:Renderer;
-	public var camera:Camera;
+	public var camera:CameraView;
 
 	public var texture:Texture;
 	public var font:Font;
