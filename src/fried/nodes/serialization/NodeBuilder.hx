@@ -59,6 +59,9 @@ class NodeBuilder {
 
 	static function addHookFlags(localClass:haxe.macro.Type.ClassType, fields:Array<Field>):Void {
 		var flags = 0;
+		if (fields.exists(field -> field.name == "hookFlags")) {
+			return;
+		}
 		for (field in fields) {
 			if (field.access != null && field.access.indexOf(AStatic) >= 0) {
 				continue;
