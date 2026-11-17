@@ -16,6 +16,8 @@ class Layer {
 
 	public function update(delta:Float):Void {}
 
+	public function fixedUpdate(delta:Float):Void {}
+
 	public function draw():Void {}
 
 	public function onEvent(event:InputEvent):Void {}

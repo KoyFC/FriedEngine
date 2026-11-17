@@ -27,6 +27,7 @@ class Scene {
 
 	var byId:Map<String, Node>;
 	var updateList:Array<Node>;
+	var fixedUpdateList:Array<Node>;
 	var drawList:Array<Node>;
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;
@@ -41,6 +42,7 @@ class Scene {
 		nodeCount = 0;
 		byId = new Map();
 		updateList = [];
+		fixedUpdateList = [];
 		drawList = [];
 		eventTree = [];
 		eventList = [];
@@ -149,6 +151,7 @@ class Scene {
 
 	function rebuildLists():Void {
 		updateList.resize(0);
+		fixedUpdateList.resize(0);
 		drawList.resize(0);
 		eventTree.resize(0);
 		collect(root);
@@ -167,6 +170,9 @@ class Scene {
 			}
 			if ((flags & 4) != 0) {
 				eventTree.push(node);
+			}
+			if ((flags & 16) != 0) {
+				fixedUpdateList.push(node);
 			}
 		}
 		for (child in node.children) {
@@ -204,6 +210,22 @@ class Scene {
 			var node = list[index];
 			if (node.activeInTree) {
 				node.update(delta);
+			}
+			index++;
+		}
+	}
+
+	public function fixedUpdate(delta:Float):Void {
+		if (areListsDirty) {
+			rebuildLists();
+		}
+		var list = fixedUpdateList;
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var node = list[index];
+			if (node.activeInTree) {
+				node.fixedUpdate(delta);
 			}
 			index++;
 		}

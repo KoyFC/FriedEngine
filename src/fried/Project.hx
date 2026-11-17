@@ -42,6 +42,11 @@ class Project {
 		return number(["defaultTargetFramerate"], 0);
 	}
 
+	// How many fixed steps a second the game runs, 60 when project.fried does not say.
+	public static macro function physicsRate():ExprOf<Int> {
+		return number(["physicsRate"], 60);
+	}
+
 	// The scene the game opens with, or an empty string when project.fried names none.
 	public static macro function startScene():ExprOf<String> {
 		var node:Dynamic = read();

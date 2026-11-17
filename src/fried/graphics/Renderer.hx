@@ -137,6 +137,18 @@ class Renderer {
 	}
 
 	@:allow(fried.Application)
+	function fixedUpdateLayers(delta:Float):Void {
+		applyPendingLayerChanges();
+		isIteratingLayers = true;
+		for (layer in layers) {
+			if (layer.isEnabled) {
+				layer.fixedUpdate(delta);
+			}
+		}
+		isIteratingLayers = false;
+	}
+
+	@:allow(fried.Application)
 	function drawLayers():Void {
 		applyPendingLayerChanges();
 		isIteratingLayers = true;

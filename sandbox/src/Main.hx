@@ -4,6 +4,7 @@ import scene3d.Scene3D;
 import fried.Application;
 import fried.Log;
 import fried.Project;
+import fried.Time;
 import fried.Window;
 import fried.audio.Music;
 import fried.audio.Sound;
@@ -66,6 +67,8 @@ class Main {
 		if (!vsyncEnabled) {
 			Application.targetFps = Project.defaultTargetFramerate();
 		}
+
+		Time.setFixedRate(Project.physicsRate());
 
 		var renderer = Application.createRenderer(window, vsyncEnabled);
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.isVsyncEnabled ? "on" : "off"}');

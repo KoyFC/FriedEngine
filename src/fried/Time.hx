@@ -7,7 +7,18 @@ class Time {
 	public static var unscaledElapsedSeconds(default, null):Float = 0.0;
 	public static var frameCount(default, null):Int = 0;
 
+	// The seconds one fixed step stands for, which is what a fixedUpdate is given.
+	public static var fixedDeltaSeconds(default, null):Float = 1.0 / 60.0;
+
 	static inline var MAX_DELTA_SECONDS:Float = 0.25;
+
+	// A frame that takes a hair less than a step still runs it, or a game that renders at its physics rate would skip a step and then run two.
+	static inline var FIXED_STEP_TOLERANCE:Float = 0.0005;
+
+	// A slow frame never owes more than this many steps, so catching up cannot make the next frame slower still.
+	public static inline var MAX_FIXED_STEPS:Int = 3;
+
+	static var fixedAccumulator:Float = 0.0;
 
 	static var startTime:Float = 0.0;
 	static var lastTime:Float = 0.0;
@@ -20,6 +31,25 @@ class Time {
 		deltaSeconds = 0.0;
 		unscaledDeltaSeconds = 0.0;
 		frameCount = 0;
+		fixedAccumulator = 0.0;
+	}
+
+	public static function setFixedRate(stepsPerSecond:Int):Void {
+		fixedDeltaSeconds = 1.0 / (stepsPerSecond > 0 ? stepsPerSecond : 60);
+	}
+
+	// The fixed steps this frame owes, at most MAX_FIXED_STEPS. What is still owed after that is dropped, which is time the game runs slower rather than a debt it keeps.
+	public static function fixedStepsDue():Int {
+		fixedAccumulator += deltaSeconds;
+		var steps = 0;
+		while (steps < MAX_FIXED_STEPS && fixedAccumulator + FIXED_STEP_TOLERANCE >= fixedDeltaSeconds) {
+			fixedAccumulator -= fixedDeltaSeconds;
+			steps++;
+		}
+		if (steps == MAX_FIXED_STEPS && fixedAccumulator + FIXED_STEP_TOLERANCE >= fixedDeltaSeconds) {
+			fixedAccumulator = 0.0;
+		}
+		return steps;
 	}
 
 	public static function tick():Void {

@@ -28,6 +28,7 @@ class Bootstrap {
 		if (!Project.vsync()) {
 			Application.targetFps = Project.defaultTargetFramerate();
 		}
+		Time.setFixedRate(Project.physicsRate());
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
 		NodeDiscovery.register();

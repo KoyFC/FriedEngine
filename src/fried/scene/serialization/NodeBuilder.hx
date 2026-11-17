@@ -76,6 +76,8 @@ class NodeBuilder {
 							flags |= 2;
 						case "onEvent":
 							flags |= 4;
+						case "fixedUpdate":
+							flags |= 16;
 						case _:
 					}
 				case _:

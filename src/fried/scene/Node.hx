@@ -63,6 +63,9 @@ class Node {
 	// Once a frame. The delta is the seconds the frame took, and what a movement is multiplied by.
 	function update(delta:Float):Void {}
 
+	// A fixed number of times a second, however long the frames take, and the delta is always the same: Time.fixedDeltaSeconds. Input is read in update, since a frame can run no fixed step or several.
+	function fixedUpdate(delta:Float):Void {}
+
 	function draw():Void {}
 
 	function onEvent(event:InputEvent):Void {}

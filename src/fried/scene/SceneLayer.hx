@@ -16,6 +16,10 @@ class SceneLayer extends Layer {
 		scene.update(delta);
 	}
 
+	override function fixedUpdate(delta:Float):Void {
+		scene.fixedUpdate(delta);
+	}
+
 	override function draw():Void {
 		scene.setView(renderer.width, renderer.height);
 		scene.draw(renderer);

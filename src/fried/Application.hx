@@ -107,6 +107,13 @@ class Application {
 			propagateInputEvents();
 			InputAction.updateAll();
 			Time.tick();
+			var fixedSteps = Time.fixedStepsDue();
+			while (fixedSteps > 0) {
+				for (renderer in renderers) {
+					renderer.fixedUpdateLayers(Time.fixedDeltaSeconds);
+				}
+				fixedSteps--;
+			}
 
 			for (renderer in renderers) {
 				renderer.clear();
