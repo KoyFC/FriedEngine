@@ -33,6 +33,7 @@ class DrawQueue {
 	static inline var RECORD_FILL = 1;
 	static inline var RECORD_OUTLINE = 2;
 	static inline var RECORD_CAMERA = 3;
+	static inline var RECORD_SCALED_TEXTURE = 4;
 	static var batchInts:Array<Int> = [];
 	static var batchDoubles:Array<Float> = [];
 	static var batchCapacity:Int = 0;
@@ -49,6 +50,27 @@ class DrawQueue {
 		command.y = y;
 		command.width = width;
 		command.height = height;
+		command.angle = angle;
+		command.flip = flip;
+		command.hasSource = source != null;
+		if (source != null) {
+			command.source.x = source.x;
+			command.source.y = source.y;
+			command.source.width = source.width;
+			command.source.height = source.height;
+		}
+	}
+
+	// A texture drawn at a multiple of its size, which the renderer works out: the multiplication of a size by a scale is a call into software floating point on the DS, and there it is done on the bits of the scale instead.
+	@:allow(fried.scene)
+	static function submitSprite(priority:Int, texture:Texture, x:Float, y:Float, scaleX:Float, scaleY:Float, angle:Float, flip:FlipMode, source:Rect):Void {
+		var command = next(priority);
+		command.type = ScaledTextureRegion;
+		command.texture = texture;
+		command.x = x;
+		command.y = y;
+		command.width = scaleX;
+		command.height = scaleY;
 		command.angle = angle;
 		command.flip = flip;
 		command.hasSource = source != null;
@@ -137,23 +159,9 @@ class DrawQueue {
 			}
 			switch (command.type) {
 				case TextureRegion:
-					var texture = command.texture;
-					var record = addRecord(command, RECORD_TEXTURE);
-					var ints = record << 3;
-					batchInts[ints + 1] = texture.id;
-					if (command.hasSource) {
-						var source = command.source;
-						batchInts[ints + 2] = source.x;
-						batchInts[ints + 3] = source.y;
-						batchInts[ints + 4] = source.width;
-						batchInts[ints + 5] = source.height;
-					} else {
-						batchInts[ints + 2] = 0;
-						batchInts[ints + 3] = 0;
-						batchInts[ints + 4] = texture.width;
-						batchInts[ints + 5] = texture.height;
-					}
-					batchInts[ints + 6] = cast command.flip;
+					writeTexture(command, RECORD_TEXTURE);
+				case ScaledTextureRegion:
+					writeTexture(command, RECORD_SCALED_TEXTURE);
 				case FillRect:
 					colorChanged = true;
 					var record = addRecord(command, RECORD_FILL);
@@ -179,6 +187,26 @@ class DrawQueue {
 		if (colorChanged) {
 			renderer.drawColor = restoreColor;
 		}
+	}
+
+	static function writeTexture(command:DrawCommand, kind:Int):Void {
+		var texture = command.texture;
+		var record = addRecord(command, kind);
+		var ints = record << 3;
+		batchInts[ints + 1] = texture.id;
+		if (command.hasSource) {
+			var source = command.source;
+			batchInts[ints + 2] = source.x;
+			batchInts[ints + 3] = source.y;
+			batchInts[ints + 4] = source.width;
+			batchInts[ints + 5] = source.height;
+		} else {
+			batchInts[ints + 2] = 0;
+			batchInts[ints + 3] = 0;
+			batchInts[ints + 4] = texture.width;
+			batchInts[ints + 5] = texture.height;
+		}
+		batchInts[ints + 6] = cast command.flip;
 	}
 
 	// Appends a record for a sprite or a rectangle, after the one that says which camera it is placed by when that is not the camera of the record before it. Returns the record's place, with its numbers written.
@@ -443,6 +471,7 @@ private enum abstract DrawCommandType(Int) {
 	var Text = 3;
 	var FillTriangles = 4;
 	var DrawMesh = 5;
+	var ScaledTextureRegion = 6;
 }
 
 private class DrawCommand {

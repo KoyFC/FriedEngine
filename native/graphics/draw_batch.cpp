@@ -9,9 +9,10 @@ namespace
     constexpr int s_fillRecord = 1;
     constexpr int s_outlineRecord = 2;
     constexpr int s_cameraRecord = 3;
+    constexpr int s_scaledTextureRecord = 4;
 }
 
-// The same arithmetic, in the same order, that the draw queue did when it placed each command itself.
+// The same arithmetic, in the same order, that the draw queue did when it placed each command itself. A scaled texture's size is its source's size times the scale, as Sprite worked it out before.
 void fried_draw_batch_with_calls(int rendererId, const int *ints, const double *doubles, int count)
 {
     double halfWidth = fried_renderer_get_width(rendererId) / 2.0;
@@ -42,6 +43,11 @@ void fried_draw_batch_with_calls(int rendererId, const int *ints, const double *
         double y = values[1];
         double width = values[2];
         double height = values[3];
+        if (kind == s_scaledTextureRecord)
+        {
+            width = (double)record[4] * width;
+            height = (double)record[5] * height;
+        }
         if (hasCamera)
         {
             x = x * zoom + offsetX;
@@ -50,7 +56,7 @@ void fried_draw_batch_with_calls(int rendererId, const int *ints, const double *
             height = height * zoom;
         }
 
-        if (kind == s_textureRecord)
+        if (kind == s_textureRecord || kind == s_scaledTextureRecord)
         {
             fried_renderer_draw_texture_ex(rendererId, record[1], record[2], record[3], record[4], record[5], (float)x, (float)y, (float)width, (float)height, values[4], record[6]);
             continue;

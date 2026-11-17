@@ -23,8 +23,6 @@ class Sprite extends Node2D {
 		if (texture == null) {
 			return;
 		}
-		var baseWidth = source != null ? source.width : texture.width;
-		var baseHeight = source != null ? source.height : texture.height;
-		DrawQueue.submitTexture(priority, texture, worldX, worldY, baseWidth * worldScaleX, baseHeight * worldScaleY, worldRotation, flip, source);
+		DrawQueue.submitSprite(priority, texture, worldX, worldY, worldScaleX, worldScaleY, worldRotation, flip, source);
 	}
 }

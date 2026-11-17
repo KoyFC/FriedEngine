@@ -616,6 +616,7 @@ namespace
     constexpr int s_fillRecord = 1;
     constexpr int s_outlineRecord = 2;
     constexpr int s_cameraRecord = 3;
+    constexpr int s_scaledTextureRecord = 4;
     constexpr int s_fixedOne = 1 << 16;
 
     // What places a record: the camera and the display's layout, in 16.16 fixed point, worked out from the doubles' bits so no float operation is done for it.
@@ -662,9 +663,9 @@ namespace
         int64_t m_height;
     };
 
-    LogicalRect placeOf(const BatchView &view, const double *values)
+    LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
     {
-        LogicalRect rect = {toFixed(values[0], 16), toFixed(values[1], 16), toFixed(values[2], 16), toFixed(values[3], 16)};
+        LogicalRect rect = {toFixed(values[0], 16), toFixed(values[1], 16), width, height};
         if (view.m_hasCamera)
         {
             rect.m_x = ((rect.m_x * view.m_zoom) >> 16) + view.m_offsetX;
@@ -780,8 +781,11 @@ namespace
                 continue;
             }
 
-            LogicalRect rect = placeOf(view, values);
-            if (kind == s_textureRecord)
+            // A scale takes 32 bits of fraction so that a size times it is cut at the same place as the size worked out whole.
+            int64_t width = kind == s_scaledTextureRecord ? (toFixed(values[2], 32) * record[4]) >> 16 : toFixed(values[2], 16);
+            int64_t height = kind == s_scaledTextureRecord ? (toFixed(values[3], 32) * record[5]) >> 16 : toFixed(values[3], 16);
+            LogicalRect rect = placeOf(view, values, width, height);
+            if (kind == s_textureRecord || kind == s_scaledTextureRecord)
             {
                 const FriedNdsTexture *texture = fried_texture_get_nds(record[1]);
                 if (!texture || !startList(list, texture, 255))
