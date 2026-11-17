@@ -63,7 +63,7 @@ class Main {
 			Log.info(focused ? "Window focused" : "Window unfocused");
 		};
 
-		var vsyncEnabled = true;
+		var vsyncEnabled = Project.vsync();
 
 		var renderer = Application.createRenderer(window, vsyncEnabled);
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.isVsyncEnabled ? "on" : "off"}');

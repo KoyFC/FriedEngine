@@ -24,7 +24,7 @@ class Bootstrap {
 			window.setIcon(icon);
 		}
 		window.onClose = Application.quit;
-		renderer = Application.createRenderer(window);
+		renderer = Application.createRenderer(window, Project.vsync());
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
 		NodeDiscovery.register();

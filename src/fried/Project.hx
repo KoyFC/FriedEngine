@@ -31,6 +31,12 @@ class Project {
 		return number(["display", "height"], 480);
 	}
 
+	// Whether a desktop window waits for the display's refresh, true when project.fried does not say. Consoles ignore it.
+	public static macro function vsync():ExprOf<Bool> {
+		var node:Dynamic = read();
+		return macro $v{Reflect.field(node, "vsync") != false};
+	}
+
 	// The scene the game opens with, or an empty string when project.fried names none.
 	public static macro function startScene():ExprOf<String> {
 		var node:Dynamic = read();
