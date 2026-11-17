@@ -64,6 +64,9 @@ class Main {
 		};
 
 		var vsyncEnabled = Project.vsync();
+		if (!vsyncEnabled) {
+			Application.targetFps = Project.defaultTargetFramerate();
+		}
 
 		var renderer = Application.createRenderer(window, vsyncEnabled);
 		Log.success('Renderer created: ${renderer.width}x${renderer.height}, vsync ${renderer.isVsyncEnabled ? "on" : "off"}');

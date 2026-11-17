@@ -25,6 +25,9 @@ class Bootstrap {
 		}
 		window.onClose = Application.quit;
 		renderer = Application.createRenderer(window, Project.vsync());
+		if (!Project.vsync()) {
+			Application.targetFps = Project.defaultTargetFramerate();
+		}
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
 		NodeDiscovery.register();
