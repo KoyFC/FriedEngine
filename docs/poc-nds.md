@@ -285,3 +285,13 @@ The small, safe changes are spent: what remains of the stress scene's 17 ms flus
 - **A native tilemap.** A grid of tiles drawn by one native call in integers would replace hundreds of sprite commands, each with its own `computeView`, wrapper and polygon state. The engine has no tilemap type yet, so it is a feature to design first: the 2D engine's tile backgrounds cannot interleave with the 3D engine's priorities or follow the camera's rotation, so a grid drawn as quads is the starting point, with hardware backgrounds as an option on top.
 
 Also open, not tried: skipping repeated polygon state between draws of the same texture (the stress scene has no runs to test it on), and fonts converted at build time, which saves boot time and RAM, not frame time.
+
+### One call a frame for sprites and rectangles
+
+The draw queue's Haxe wrappers were most of the flush: placing a command, then converting its five doubles to the floats a native call takes, cost about 25 µs a command in software floating point, 10 ms for the stress scene's 400 sprites, boxes and outlines. They now write each command as a record, the doubles as they are, and the DS decodes the batch in fixed point (`ARCHITECTURE.md`). On the stress scene in melonDS the flush went from 19.57 to 15.3 ms, and from there to 14.4 ms when quads of one state share a polygon list. A frame's work is 19.96 ms, 50 frames a second, from 24.97 and 40.
+
+Where the 14.4 ms goes, from timers around each part: sorting 1 ms, writing the records 2 ms, the native batch 6.3 ms and text 5.8 ms. Decoding the batch takes 0.84 ms of the native 7.2, so the rest is handing polygons to the engine: leaving out the 100 outlines takes 2.5 ms off it, the 200 sprites 3.2 ms.
+
+Tried and left out: an opaque outline as one polygon of alpha zero, which the engine draws as a wireframe. It took no time off the flush (14.47 ms against 14.41) and drew the box without its fill, so outlines stay four quads in a list.
+
+Text is the biggest part left. The stress scene draws 640x480 on the 256x192 screen, and a line of glyphs is only blitted as rasterized at a scale of one (`fried_renderer_draw_glyphs()` returns false otherwise), so every glyph goes through `font_software.cpp`'s float arithmetic and `fried_renderer_draw_tinted()`: 22 lines cost 5.8 ms, about 260 µs a line.

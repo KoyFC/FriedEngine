@@ -410,6 +410,26 @@ namespace
         quad(corners, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
     }
 
+    // One pixel wide, inside the outer edges, from four rectangles of a polygon list that is already open.
+    void outlineQuads(const Edges &outer, const Edges &inner, int r, int g, int b)
+    {
+        glColor(toVertexColor(r, g, b));
+        plainQuad({outer.m_left, outer.m_top, outer.m_right, inner.m_top});
+        plainQuad({outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom});
+        plainQuad({outer.m_left, inner.m_top, inner.m_left, inner.m_bottom});
+        plainQuad({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom});
+    }
+
+    void outlineEdges(const Edges &outer, const Edges &inner, int r, int g, int b, int a)
+    {
+        if (isEmpty(outer) || !beginPolygons(GL_QUADS, a, nullptr))
+        {
+            return;
+        }
+        outlineQuads(outer, inner, r, g, b);
+        glEnd();
+    }
+
     // Painted over the frame rather than clipped to, so whatever was drawn past
     // the viewport is hidden too.
     void drawLetterboxBars(const FriedDisplayLayout &layout)
@@ -585,6 +605,231 @@ namespace
         int g = (((color >> 5) & 0x1f) * s_meshAmbient) >> 5;
         int b = (((color >> 10) & 0x1f) * s_meshAmbient) >> 5;
         return (uint32_t)RGB15(r, g, b) << 16;
+    }
+}
+
+namespace
+{
+    constexpr int s_recordInts = 8;
+    constexpr int s_recordDoubles = 5;
+    constexpr int s_textureRecord = 0;
+    constexpr int s_fillRecord = 1;
+    constexpr int s_outlineRecord = 2;
+    constexpr int s_cameraRecord = 3;
+    constexpr int s_fixedOne = 1 << 16;
+
+    // What places a record: the camera and the display's layout, in 16.16 fixed point, worked out from the doubles' bits so no float operation is done for it.
+    struct BatchView
+    {
+        bool m_hasCamera;
+        bool m_hasUnitScale;
+        int64_t m_zoom;
+        int64_t m_offsetX;
+        int64_t m_offsetY;
+        int64_t m_scaleX;
+        int64_t m_scaleY;
+        int m_viewportX;
+        int m_viewportY;
+    };
+
+    // Rounded half away from zero to a pixel, and kept within what a vertex holds.
+    int roundToPixels(int64_t value)
+    {
+        int64_t magnitude = ((value < 0 ? -value : value) + (s_fixedOne >> 1)) >> 16;
+        if (magnitude > (int64_t)s_maxCoordinate)
+        {
+            magnitude = (int64_t)s_maxCoordinate;
+        }
+        return value < 0 ? -(int)magnitude : (int)magnitude;
+    }
+
+    int batchEdgeX(const BatchView &view, int64_t logical)
+    {
+        return view.m_viewportX + roundToPixels(view.m_hasUnitScale ? logical : (logical * view.m_scaleX) >> 16);
+    }
+
+    int batchEdgeY(const BatchView &view, int64_t logical)
+    {
+        return view.m_viewportY + roundToPixels(view.m_hasUnitScale ? logical : (logical * view.m_scaleY) >> 16);
+    }
+
+    // A record's rectangle on the logical screen, in 16.16.
+    struct LogicalRect
+    {
+        int64_t m_x;
+        int64_t m_y;
+        int64_t m_width;
+        int64_t m_height;
+    };
+
+    LogicalRect placeOf(const BatchView &view, const double *values)
+    {
+        LogicalRect rect = {toFixed(values[0], 16), toFixed(values[1], 16), toFixed(values[2], 16), toFixed(values[3], 16)};
+        if (view.m_hasCamera)
+        {
+            rect.m_x = ((rect.m_x * view.m_zoom) >> 16) + view.m_offsetX;
+            rect.m_y = ((rect.m_y * view.m_zoom) >> 16) + view.m_offsetY;
+            rect.m_width = (rect.m_width * view.m_zoom) >> 16;
+            rect.m_height = (rect.m_height * view.m_zoom) >> 16;
+        }
+        return rect;
+    }
+
+    Edges edgesOf(const BatchView &view, const LogicalRect &rect)
+    {
+        return {batchEdgeX(view, rect.m_x), batchEdgeY(view, rect.m_y), batchEdgeX(view, rect.m_x + rect.m_width), batchEdgeY(view, rect.m_y + rect.m_height)};
+    }
+
+    bool isZero(double value)
+    {
+        uint64_t bits;
+        std::memcpy(&bits, &value, sizeof bits);
+        return (bits << 1) == 0;
+    }
+
+    // The corners turned about the middle of the edges, in half pixels so the middle needs no division.
+    void rotatedQuad(const Edges &edges, const TexelRegion &region, int angle)
+    {
+        int cosine = cosLerp((s16)angle);
+        int sine = sinLerp((s16)angle);
+        int pivotX = edges.m_left + edges.m_right;
+        int pivotY = edges.m_top + edges.m_bottom;
+        const int cornerX[4] = {edges.m_left, edges.m_right, edges.m_right, edges.m_left};
+        const int cornerY[4] = {edges.m_top, edges.m_top, edges.m_bottom, edges.m_bottom};
+        int turnedX[4];
+        int turnedY[4];
+        for (int index = 0; index < 4; ++index)
+        {
+            int offsetX = cornerX[index] * 2 - pivotX;
+            int offsetY = cornerY[index] * 2 - pivotY;
+            turnedX[index] = (pivotX + ((offsetX * cosine - offsetY * sine) >> 12) + 1) >> 1;
+            turnedY[index] = (pivotY + ((offsetX * sine + offsetY * cosine) >> 12) + 1) >> 1;
+        }
+        int depth = nextDepth();
+        vertex(turnedX[0], turnedY[0], region.m_u0, region.m_v0, depth);
+        vertexAtSameDepth(turnedX[1], turnedY[1], region.m_u1, region.m_v0);
+        vertexAtSameDepth(turnedX[2], turnedY[2], region.m_u1, region.m_v1);
+        vertexAtSameDepth(turnedX[3], turnedY[3], region.m_u0, region.m_v1);
+    }
+
+    // The list of quads a run of draws shares. Quads that are opaque and of one texture, or of none, are drawn under one polygon format, texture and list; a translucent one takes a polygon ID of its own, so it never shares.
+    struct PolygonList
+    {
+        bool m_isOpen;
+        const FriedNdsTexture *m_texture;
+    };
+
+    void endList(PolygonList &list)
+    {
+        if (list.m_isOpen)
+        {
+            glEnd();
+            list.m_isOpen = false;
+        }
+    }
+
+    bool startList(PolygonList &list, const FriedNdsTexture *texture, int alpha)
+    {
+        bool isShareable = alpha == 255 && !(texture && texture->m_translucent);
+        if (list.m_isOpen && isShareable && list.m_texture == texture)
+        {
+            return true;
+        }
+        endList(list);
+        if (!beginPolygons(GL_QUADS, alpha, texture))
+        {
+            return false;
+        }
+        list.m_isOpen = isShareable;
+        list.m_texture = texture;
+        return true;
+    }
+
+    // Closes what startList() opened, unless a following draw may carry on in it.
+    void finishDraw(const PolygonList &list)
+    {
+        if (!list.m_isOpen)
+        {
+            glEnd();
+        }
+    }
+
+    void drawBatchRecords(const Renderer &renderer, const int *ints, const double *doubles, int count)
+    {
+        const FriedDisplayLayout &layout = renderer.m_layout;
+        BatchView view = {false, renderer.m_hasUnitScale, s_fixedOne, 0, 0, toFixed((double)layout.m_scaleX, 16), toFixed((double)layout.m_scaleY, 16),
+                          layout.m_viewportX, layout.m_viewportY};
+        int64_t halfWidth = (int64_t)layout.m_width << 15;
+        int64_t halfHeight = (int64_t)layout.m_height << 15;
+        PolygonList list = {false, nullptr};
+
+        for (int index = 0; index < count; ++index)
+        {
+            const int *record = ints + index * s_recordInts;
+            const double *values = doubles + index * s_recordDoubles;
+            int kind = record[0];
+            if (kind == s_cameraRecord)
+            {
+                view.m_hasCamera = record[7] != 0;
+                if (view.m_hasCamera)
+                {
+                    view.m_zoom = toFixed(values[0], 16);
+                    view.m_offsetX = halfWidth - ((toFixed(values[1], 16) * view.m_zoom) >> 16);
+                    view.m_offsetY = halfHeight - ((toFixed(values[2], 16) * view.m_zoom) >> 16);
+                }
+                continue;
+            }
+
+            LogicalRect rect = placeOf(view, values);
+            if (kind == s_textureRecord)
+            {
+                const FriedNdsTexture *texture = fried_texture_get_nds(record[1]);
+                if (!texture || !startList(list, texture, 255))
+                {
+                    continue;
+                }
+                glColor(toVertexColor(255, 255, 255));
+                Edges edges = edgesOf(view, rect);
+                TexelRegion region = regionOf(*texture, record[2], record[3], record[4], record[5], record[6]);
+                if (isZero(values[4]))
+                {
+                    quad(edges, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
+                }
+                else
+                {
+                    rotatedQuad(edges, region, toAngle(values[4]));
+                }
+                finishDraw(list);
+                continue;
+            }
+
+            int color = record[1];
+            int r = (color >> 16) & 0xff;
+            int g = (color >> 8) & 0xff;
+            int b = color & 0xff;
+            int a = (color >> 24) & 0xff;
+            if (kind == s_fillRecord)
+            {
+                Edges edges = edgesOf(view, rect);
+                if (!isEmpty(edges) && startList(list, nullptr, a))
+                {
+                    glColor(toVertexColor(r, g, b));
+                    plainQuad(edges);
+                    finishDraw(list);
+                }
+            }
+            else if (kind == s_outlineRecord && rect.m_width > 0 && rect.m_height > 0)
+            {
+                Edges outer = edgesOf(view, rect);
+                Edges inner = edgesOf(view, {rect.m_x + s_fixedOne, rect.m_y + s_fixedOne, rect.m_width - 2 * s_fixedOne, rect.m_height - 2 * s_fixedOne});
+                if (!isEmpty(outer) && startList(list, nullptr, a))
+                {
+                    outlineQuads(outer, inner, r, g, b);
+                    finishDraw(list);
+                }
+            }
+        }
+        endList(list);
     }
 }
 
@@ -846,16 +1091,21 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     }
     Edges outer = outputEdges(*renderer, x, y, width, height);
     Edges inner = outputEdges(*renderer, x + 1.0f, y + 1.0f, width - 2.0f, height - 2.0f);
-    if (isEmpty(outer) || !beginPolygons(GL_QUADS, renderer->m_a, nullptr))
+    outlineEdges(outer, inner, renderer->m_r, renderer->m_g, renderer->m_b, renderer->m_a);
+}
+
+void fried_renderer_draw_batch(int rendererId, const int *ints, const double *doubles, int count)
+{
+    if (isSoftware(rendererId))
     {
+        fried_draw_batch_with_calls(rendererId, ints, doubles, count);
         return;
     }
-    glColor(toVertexColor(renderer->m_r, renderer->m_g, renderer->m_b));
-    plainQuad({outer.m_left, outer.m_top, outer.m_right, inner.m_top});
-    plainQuad({outer.m_left, inner.m_bottom, outer.m_right, outer.m_bottom});
-    plainQuad({outer.m_left, inner.m_top, inner.m_left, inner.m_bottom});
-    plainQuad({inner.m_right, inner.m_top, outer.m_right, inner.m_bottom});
-    glEnd();
+    Renderer *renderer = s_renderers.get(rendererId);
+    if (renderer && count > 0)
+    {
+        drawBatchRecords(*renderer, ints, doubles, count);
+    }
 }
 
 void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)

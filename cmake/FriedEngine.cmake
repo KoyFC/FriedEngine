@@ -168,6 +168,7 @@ endif()
 list(APPEND _fried_native_sources
     native/last_error.cpp
     native/graphics/display.cpp
+    native/graphics/draw_batch.cpp
 )
 list(TRANSFORM _fried_native_sources PREPEND "${FRIED_ENGINE_DIR}/")
 

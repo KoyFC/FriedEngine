@@ -5,6 +5,7 @@ import fried.NativeError;
 
 class Texture {
 	@:allow(fried.graphics.Renderer)
+	@:allow(fried.graphics.DrawQueue)
 	var id:Int;
 
 	var renderer:Renderer;

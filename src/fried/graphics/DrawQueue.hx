@@ -26,6 +26,20 @@ class DrawQueue {
 	static var sortedPriorities:Array<Int> = [];
 	static var sortedOrder:Array<Int> = [];
 
+	// What a frame's sprites, rectangles and outlines are sent to the renderer as: eight integers and five doubles to a record, one record after another, so a frame crosses into native code once and no double is converted on the way.
+	static inline var RECORD_INTS = 8;
+	static inline var RECORD_DOUBLES = 5;
+	static inline var RECORD_TEXTURE = 0;
+	static inline var RECORD_FILL = 1;
+	static inline var RECORD_OUTLINE = 2;
+	static inline var RECORD_CAMERA = 3;
+	static var batchInts:Array<Int> = [];
+	static var batchDoubles:Array<Float> = [];
+	static var batchCapacity:Int = 0;
+	static var batchCount:Int = 0;
+	static var batchCamera:CameraView;
+	static var isBatchCameraKnown:Bool = false;
+
 	public static function submitTexture(priority:Int, texture:Texture, x:Float, y:Float, width:Float, height:Float, angle:Float = 0.0,
 			flip:FlipMode = None, ?source:Rect):Void {
 		var command = next(priority);
@@ -114,43 +128,100 @@ class DrawQueue {
 		viewHalfWidth = renderer.width / 2;
 		viewHalfHeight = renderer.height / 2;
 		viewCamera = null;
+		batchCount = 0;
+		isBatchCameraKnown = false;
 
 		for (command in pendingDrawCommands) {
 			if (command.target != renderer) {
 				continue;
 			}
-			computeView(command);
 			switch (command.type) {
 				case TextureRegion:
 					var texture = command.texture;
-					var source = command.source;
+					var record = addRecord(command, RECORD_TEXTURE);
+					var ints = record << 3;
+					batchInts[ints + 1] = texture.id;
 					if (command.hasSource) {
-						renderer.textureArea(texture, source.x, source.y, source.width, source.height, viewX, viewY, viewWidth, viewHeight,
-							command.angle, command.flip);
+						var source = command.source;
+						batchInts[ints + 2] = source.x;
+						batchInts[ints + 3] = source.y;
+						batchInts[ints + 4] = source.width;
+						batchInts[ints + 5] = source.height;
 					} else {
-						renderer.textureArea(texture, 0, 0, texture.width, texture.height, viewX, viewY, viewWidth, viewHeight, command.angle,
-							command.flip);
+						batchInts[ints + 2] = 0;
+						batchInts[ints + 3] = 0;
+						batchInts[ints + 4] = texture.width;
+						batchInts[ints + 5] = texture.height;
 					}
-				case Text:
-					renderer.textArea(command.font, command.text, viewX, viewY, viewWidth, viewHeight, command.angle, command.color);
+					batchInts[ints + 6] = cast command.flip;
 				case FillRect:
-					renderer.drawColor = command.color;
 					colorChanged = true;
-					renderer.fillArea(viewX, viewY, viewWidth, viewHeight);
+					var record = addRecord(command, RECORD_FILL);
+					batchInts[(record << 3) + 1] = cast command.color;
 				case DrawRect:
-					renderer.drawColor = command.color;
 					colorChanged = true;
-					renderer.outlineArea(viewX, viewY, viewWidth, viewHeight);
+					var record = addRecord(command, RECORD_OUTLINE);
+					batchInts[(record << 3) + 1] = cast command.color;
+				case Text:
+					sendBatch(renderer);
+					computeView(command);
+					renderer.textArea(command.font, command.text, viewX, viewY, viewWidth, viewHeight, command.angle, command.color);
 				case FillTriangles:
+					sendBatch(renderer);
 					renderer.fillTriangles(computeViewPoints(command), command.colors);
 				case DrawMesh:
+					sendBatch(renderer);
 					drawMesh(command, renderer);
 			}
 		}
+		sendBatch(renderer);
 
 		if (colorChanged) {
 			renderer.drawColor = restoreColor;
 		}
+	}
+
+	// Appends a record for a sprite or a rectangle, after the one that says which camera it is placed by when that is not the camera of the record before it. Returns the record's place, with its numbers written.
+	static function addRecord(command:DrawCommand, kind:Int):Int {
+		if (batchCount + 2 > batchCapacity) {
+			batchCapacity = batchCapacity == 0 ? 256 : batchCapacity * 2;
+			batchInts.resize(batchCapacity * RECORD_INTS);
+			batchDoubles.resize(batchCapacity * RECORD_DOUBLES);
+		}
+		var camera = command.camera;
+		if (!isBatchCameraKnown || camera != batchCamera) {
+			isBatchCameraKnown = true;
+			batchCamera = camera;
+			var cameraRecord = batchCount++;
+			batchInts[cameraRecord << 3] = RECORD_CAMERA;
+			if (camera == null) {
+				batchInts[(cameraRecord << 3) + 7] = 0;
+			} else {
+				batchInts[(cameraRecord << 3) + 7] = 1;
+				var cameraDoubles = cameraRecord * RECORD_DOUBLES;
+				batchDoubles[cameraDoubles] = camera.zoom;
+				batchDoubles[cameraDoubles + 1] = camera.x;
+				batchDoubles[cameraDoubles + 2] = camera.y;
+			}
+		}
+		var record = batchCount++;
+		batchInts[record << 3] = kind;
+		var doubles = record * RECORD_DOUBLES;
+		batchDoubles[doubles] = command.x;
+		batchDoubles[doubles + 1] = command.y;
+		batchDoubles[doubles + 2] = command.width;
+		batchDoubles[doubles + 3] = command.height;
+		batchDoubles[doubles + 4] = command.angle;
+		return record;
+	}
+
+	static function sendBatch(renderer:Renderer):Void {
+		if (batchCount == 0) {
+			return;
+		}
+		renderer.drawBatch(batchInts, batchDoubles, batchCount);
+		batchCount = 0;
+		isBatchCameraKnown = false;
 	}
 
 	// Kept fractional all the way down, so the backend rounds each edge once, to a pixel of the real screen.

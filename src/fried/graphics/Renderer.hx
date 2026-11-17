@@ -272,12 +272,6 @@ class Renderer {
 	// What the draw queue calls, with no optional arguments: hxcpp passes an
 	// optional Float boxed, which allocates on every call.
 	@:allow(fried.graphics.DrawQueue)
-	function textureArea(texture:Texture, srcX:Int, srcY:Int, srcWidth:Int, srcHeight:Int, x:Float, y:Float, width:Float, height:Float,
-			angle:Float, flip:FlipMode):Void {
-		RendererNative.drawTextureEx(id, texture.id, srcX, srcY, srcWidth, srcHeight, x, y, width, height, angle, cast flip);
-	}
-
-	@:allow(fried.graphics.DrawQueue)
 	function textArea(font:Font, text:String, x:Float, y:Float, width:Float, height:Float, angle:Float, color:Color):Void {
 		font.drawText(this, text, x, y, width, height, angle, color);
 	}
@@ -290,6 +284,11 @@ class Renderer {
 	@:allow(fried.graphics.DrawQueue)
 	function outlineArea(x:Float, y:Float, width:Float, height:Float):Void {
 		RendererNative.drawRect(id, x, y, width, height);
+	}
+
+	@:allow(fried.graphics.DrawQueue)
+	function drawBatch(ints:Array<Int>, doubles:Array<Float>, count:Int):Void {
+		RendererNative.drawBatch(id, cpp.Pointer.ofArray(ints).constRaw, cpp.Pointer.ofArray(doubles).constRaw, count);
 	}
 
 	@:allow(fried.Application)
@@ -339,6 +338,9 @@ private extern class RendererNative {
 
 	@:native("fried_renderer_present")
 	static function present(id:Int):Void;
+
+	@:native("fried_renderer_draw_batch")
+	static function drawBatch(id:Int, ints:cpp.RawConstPointer<Int>, doubles:cpp.RawConstPointer<Float>, count:Int):Void;
 
 	@:native("fried_renderer_draw_texture")
 	static function drawTexture(id:Int, textureId:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
