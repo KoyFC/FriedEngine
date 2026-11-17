@@ -130,13 +130,13 @@ class EditorPlayer {
 		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds}, renderer.readPixels());
 	}
 
-	// Every node that is drawn, in tree order, with what its parent gives it so a drag can be turned into the node's own coordinates.
+	// Every node that is drawn, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the node's own coordinates.
 	function collectBounds(parent:Node, bounds:Array<Dynamic>):Void {
 		for (node in parent.children) {
 			var item = Std.downcast(node, CanvasItem);
 			if (item != null) {
 				var box = EditorBounds.of(item);
-				var entry:Dynamic = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height};
+				var entry:Dynamic = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: item.worldX, originY: item.worldY};
 				var around = EditorBounds.parentOf(item);
 				if (around != null) {
 					entry.parent = around;
