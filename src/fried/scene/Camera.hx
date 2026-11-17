@@ -19,21 +19,28 @@ class Camera extends Node2D {
 	// What the draw queue reads, written before the scene is drawn.
 	@:noSerialize public var view(default, null):CameraView = new CameraView();
 
-	// Each conversion works from the view of the scene the camera belongs to.
+	// The scene that draws through this camera, which is how a camera that sits in no scene, the editor's own, still has a view to convert against.
+	var viewScene:Null<Scene>;
+
+	// Each conversion works from the view of the scene the camera belongs to, or else the scene it draws.
 	public function worldToScreenX(worldPosition:Float):Float {
-		return (worldPosition - worldX) * zoom + scene.viewWidth / 2;
+		return (worldPosition - worldX) * zoom + owner().viewWidth / 2;
 	}
 
 	public function worldToScreenY(worldPosition:Float):Float {
-		return (worldPosition - worldY) * zoom + scene.viewHeight / 2;
+		return (worldPosition - worldY) * zoom + owner().viewHeight / 2;
 	}
 
 	public function screenToWorldX(screenX:Float):Float {
-		return (screenX - scene.viewWidth / 2) / zoom + worldX;
+		return (screenX - owner().viewWidth / 2) / zoom + worldX;
 	}
 
 	public function screenToWorldY(screenY:Float):Float {
-		return (screenY - scene.viewHeight / 2) / zoom + worldY;
+		return (screenY - owner().viewHeight / 2) / zoom + worldY;
+	}
+
+	function owner():Scene {
+		return scene != null ? scene : viewScene;
 	}
 
 	public function lookAt(x:Float, y:Float):Void {

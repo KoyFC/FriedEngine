@@ -11,7 +11,7 @@ import haxe.ds.ArraySort;
 class Scene {
 	public var name:String;
 
-	public var camera:Null<Camera>;
+	public var camera(default, set):Null<Camera>;
 
 	public var nodeCount(default, null):Int;
 
@@ -50,6 +50,17 @@ class Scene {
 		isEventOrderDirty = false;
 		root = new Node("Root");
 		root.enterScene(this);
+	}
+
+	function set_camera(value:Null<Camera>):Null<Camera> {
+		if (camera != null) {
+			camera.viewScene = null;
+		}
+		camera = value;
+		if (value != null) {
+			value.viewScene = this;
+		}
+		return value;
 	}
 
 	@:allow(fried.scene.SceneLayer)
