@@ -193,7 +193,7 @@ class Scene {
 		return colliders;
 	}
 
-	public function update():Void {
+	public function update(delta:Float):Void {
 		if (areListsDirty) {
 			rebuildLists();
 		}
@@ -203,7 +203,7 @@ class Scene {
 		while (index < count) {
 			var node = list[index];
 			if (node.activeInTree) {
-				node.update();
+				node.update(delta);
 			}
 			index++;
 		}

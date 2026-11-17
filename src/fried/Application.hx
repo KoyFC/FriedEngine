@@ -95,7 +95,7 @@ class Application {
 		}
 	}
 
-	public static function run(update:Void->Void):Void {
+	public static function run(update:Float->Void):Void {
 		while (isRunning) {
 			var frameStart = Sys.time();
 			SceneManager.applyPendingLoad();
@@ -114,9 +114,9 @@ class Application {
 			DrawQueue.currentRenderTarget = renderers.length > 0 ? renderers[0] : null;
 			DrawQueue.currentCamera = null;
 			DrawQueue.currentLayerIndex = 0;
-			update();
+			update(Time.deltaSeconds);
 			for (renderer in renderers) {
-				renderer.updateLayers();
+				renderer.updateLayers(Time.deltaSeconds);
 			}
 			for (renderer in renderers) {
 				renderer.drawLayers();

@@ -91,8 +91,8 @@ class DebugOverlay extends SceneLayer {
 		nextRefresh = 0.0;
 	}
 
-	override function update():Void {
-		super.update();
+	override function update(delta:Float):Void {
+		super.update(delta);
 		if (Time.elapsedSeconds < nextRefresh) {
 			return;
 		}

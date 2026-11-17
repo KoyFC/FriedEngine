@@ -1,6 +1,5 @@
 package nodes;
 
-import fried.Time;
 import fried.graphics.Rect;
 import fried.graphics3d.Camera3D;
 import fried.graphics3d.DirectionalLight;
@@ -93,13 +92,13 @@ class CubeField extends Node {
 		}
 	}
 
-	override function update():Void {
+	override function update(delta:Float):Void {
 		followView();
 		for (index in 0...cubeCount) {
 			var rotation = cubes[index].rotation;
 			var speed = spinSpeeds[index];
-			rotation.x += speed.x * Time.deltaSeconds;
-			rotation.y += speed.y * Time.deltaSeconds;
+			rotation.x += speed.x * delta;
+			rotation.y += speed.y * delta;
 		}
 	}
 

@@ -108,7 +108,7 @@ A drawn size belongs to the node that draws: a `Sprite` takes the texture's dime
 
 `activeInTree` and `shownInTree` cache what the ancestors allow. A change of `active` or `visible` rewrites them with one walk of that subtree, and the frame loops, `Physics` and the event walk read only the flags, never the chain of parents. A subtree stops with its parent: an inactive node switches off its children and their colliders with it.
 
-A `Scene` updates every node and then draws every node, in two passes rather than one. All movement therefore happens before any drawing, so a node that another node moved in the same frame is never drawn where it used to be. With a single pass, tree order would quietly decide which nodes got a stale position.
+A `Scene` updates every node and then draws every node, in two passes rather than one. All movement therefore happens before any drawing, so a node that another node moved in the same frame is never drawn where it used to be. With a single pass, tree order would quietly decide which nodes got a stale position. `update(delta)` receives the seconds the frame took, the value `Time.deltaSeconds` holds, so a movement takes its step from its own argument and not from a global.
 
 The tree changes at once and the lists are refilled before the next pass, so a node can add or destroy others from inside `update()`; the loops skip a node that has left the scene. `destroy()` detaches a node, clears its scene and calls `destroyed()` on each node of its subtree, children first. `ready()` is called once per node, children before their parent, when it first enters a scene. A scene file builds its whole tree first, so every node and reference exists when `ready()` runs, and the editor player never readies them. A node made in code is readied as soon as it joins a scene, which is what spawning at run time relies on.
 
@@ -154,7 +154,7 @@ Two consequences are worth knowing. A scene has one camera and a camera has one 
 
 ## Layers
 
-A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update()`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the three hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer can still draw what is not a scene: `sandbox/src/DebugOverlay.hx` draws its buttons through a scene and its readout straight to the queue from its own `draw()`. Making a layer *be* a scene would have closed that door to save those few lines.
+A `fried.Layer` is a name, an enabled flag and three hooks a game overrides: `update(delta)`, `draw()` and `onEvent()`. `fried.scene.SceneLayer` is the only one the engine ships, and it barely has a body: it holds a `Scene` and forwards the three hooks to it. So the common case, a world with an interface over it, is two pushes, and a layer can still draw what is not a scene: `sandbox/src/DebugOverlay.hx` draws its buttons through a scene and its readout straight to the queue from its own `draw()`. Making a layer *be* a scene would have closed that door to save those few lines.
 
 A `SceneLayer` does not own its scene. The game created it and the game destroys it, so removing a layer takes down the presentation and leaves the content alone.
 
@@ -201,7 +201,7 @@ A scene file is built whole before any node is readied: every node and reference
 
 ## Starting a game
 
-`fried.Bootstrap.run()` is a whole `main` for a game made the editor's way: it opens a window of the size `display` in `project.fried` names, creates the renderer, registers the game's nodes and every file in `assets/scenes` under its file name, and loads the scene named by `startScene` (the first one, by name, when there is none). A game that needs more extends `fried.Game`, with `start()`, `update()` and `shutdown()` hooks, and passes it in, which is where a second window or a global such as a saved score goes. The nodes are the `@:serializable` classes in the game's `nodes` package, found by the macro `NodeDiscovery`, so there is no list to keep. The size, scene names and start scene are read from `project.fried` at compile time, like `Project.name()`.
+`fried.Bootstrap.run()` is a whole `main` for a game made the editor's way: it opens a window of the size `display` in `project.fried` names, creates the renderer, registers the game's nodes and every file in `assets/scenes` under its file name, and loads the scene named by `startScene` (the first one, by name, when there is none). A game that needs more extends `fried.Game`, with `start()`, `update(delta)` and `shutdown()` hooks, and passes it in, which is where a second window or a global such as a saved score goes. The nodes are the `@:serializable` classes in the game's `nodes` package, found by the macro `NodeDiscovery`, so there is no list to keep. The size, scene names and start scene are read from `project.fried` at compile time, like `Project.name()`.
 
 ## Editor player
 

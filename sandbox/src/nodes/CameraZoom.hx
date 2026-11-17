@@ -1,6 +1,5 @@
 package nodes;
 
-import fried.Time;
 import fried.input.InputAction;
 import fried.scene.Camera;
 import fried.scene.Node;
@@ -22,7 +21,7 @@ class CameraZoom extends Node {
 		}
 	}
 
-	override function update():Void {
-		camera.zoom += action.value * Time.deltaSeconds;
+	override function update(delta:Float):Void {
+		camera.zoom += action.value * delta;
 	}
 }

@@ -1,6 +1,5 @@
 package nodes;
 
-import fried.Time;
 import fried.scene.Node;
 import fried.scene.TextureRect;
 
@@ -31,8 +30,8 @@ class RegionScroller extends Node {
 		offset = picture.source.x;
 	}
 
-	override function update():Void {
-		offset += pixelsPerSecond * Time.deltaSeconds;
+	override function update(delta:Float):Void {
+		offset += pixelsPerSecond * delta;
 		offset -= Math.ffloor(offset / range) * range;
 		picture.source.x = Std.int(offset);
 	}

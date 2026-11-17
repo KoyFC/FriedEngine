@@ -4,7 +4,6 @@ import scene3d.Scene3D;
 import fried.Application;
 import fried.Log;
 import fried.Project;
-import fried.Time;
 import fried.Window;
 import fried.audio.Music;
 import fried.audio.Sound;
@@ -179,7 +178,7 @@ class Main {
 		music.play();
 		Log.success('Music playing at volume ${Music.volume}');
 
-		Application.run(function() {
+		Application.run(function(delta:Float) {
 			for (event in Input.events) {
 				if (event.type == InputEventType.TouchDown || event.type == InputEventType.TouchUp) {
 					var action = event.type == InputEventType.TouchDown ? "down" : "up";
@@ -201,8 +200,8 @@ class Main {
 					windowY = window.y;
 					windowMoving = true;
 				}
-				windowX += windowDirX * windowSpeed * Time.deltaSeconds;
-				windowY += windowDirY * windowSpeed * Time.deltaSeconds;
+				windowX += windowDirX * windowSpeed * delta;
+				windowY += windowDirY * windowSpeed * delta;
 				window.setPosition(Math.round(windowX), Math.round(windowY));
 			} else {
 				windowMoving = false;

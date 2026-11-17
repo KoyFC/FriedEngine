@@ -14,7 +14,7 @@ class Layer {
 		isEnabled = true;
 	}
 
-	public function update():Void {}
+	public function update(delta:Float):Void {}
 
 	public function draw():Void {}
 

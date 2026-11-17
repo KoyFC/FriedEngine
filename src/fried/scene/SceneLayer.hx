@@ -11,9 +11,9 @@ class SceneLayer extends Layer {
 		this.scene = scene;
 	}
 
-	override function update():Void {
+	override function update(delta:Float):Void {
 		scene.setView(renderer.width, renderer.height);
-		scene.update();
+		scene.update(delta);
 	}
 
 	override function draw():Void {

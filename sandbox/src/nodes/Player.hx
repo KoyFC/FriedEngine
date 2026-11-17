@@ -1,6 +1,5 @@
 package nodes;
 
-import fried.Time;
 import fried.graphics.FlipMode;
 import fried.input.GamepadAxis;
 import fried.input.GamepadButton;
@@ -51,13 +50,13 @@ class Player extends Sprite {
 		movementAction.disable();
 	}
 
-	override function update():Void {
+	override function update(delta:Float):Void {
 		var moveX = movementAction.x;
 		var moveY = movementAction.y;
 
 		blockedBy = null;
-		stepAxis(moveX * speed * Time.deltaSeconds, 0.0);
-		stepAxis(0.0, moveY * speed * Time.deltaSeconds);
+		stepAxis(moveX * speed * delta, 0.0);
+		stepAxis(0.0, moveY * speed * delta);
 
 		if (moveX < -0.01) {
 			flip = FlipMode.Horizontal;

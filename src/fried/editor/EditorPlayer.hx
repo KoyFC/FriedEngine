@@ -93,7 +93,7 @@ class EditorPlayer {
 		connection.send({type: "hello", protocol: EditorConnection.PROTOCOL, platform: Application.platformName});
 	}
 
-	function update():Void {
+	function update(delta:Float):Void {
 		if (connection.isClosed) {
 			Application.quit();
 			return;

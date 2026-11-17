@@ -1,6 +1,5 @@
 package nodes;
 
-import fried.Time;
 import fried.scene.Control;
 import fried.scene.Node;
 
@@ -23,7 +22,7 @@ class Spinner extends Node {
 		}
 	}
 
-	override function update():Void {
-		target.rotation += degreesPerSecond * Time.deltaSeconds;
+	override function update(delta:Float):Void {
+		target.rotation += degreesPerSecond * delta;
 	}
 }

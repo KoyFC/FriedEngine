@@ -125,12 +125,12 @@ class Renderer {
 	}
 
 	@:allow(fried.Application)
-	function updateLayers():Void {
+	function updateLayers(delta:Float):Void {
 		applyPendingLayerChanges();
 		isIteratingLayers = true;
 		for (layer in layers) {
 			if (layer.isEnabled) {
-				layer.update();
+				layer.update(delta);
 			}
 		}
 		isIteratingLayers = false;

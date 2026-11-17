@@ -27,7 +27,7 @@ class RegionLabel extends Node {
 		}
 	}
 
-	override function update():Void {
+	override function update(delta:Float):Void {
 		label.text = 'region x ${source.source.x}';
 	}
 }

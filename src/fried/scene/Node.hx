@@ -60,7 +60,8 @@ class Node {
 	// Called once, after the node and everything its scene file names exist, children before their parent.
 	function ready():Void {}
 
-	function update():Void {}
+	// Once a frame. The delta is the seconds the frame took, and what a movement is multiplied by.
+	function update(delta:Float):Void {}
 
 	function draw():Void {}
 
