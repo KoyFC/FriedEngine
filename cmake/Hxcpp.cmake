@@ -114,10 +114,14 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     file(STRINGS "${generated_dir}/Options.txt" _api_level_line REGEX "^hxcpp_api_level=")
     string(REPLACE "hxcpp_api_level=" "" _hxcpp_api_level "${_api_level_line}")
 
-    # CONFIGURE_DEPENDS because the directory is written by the Haxe compiler: a
-    # new type there would otherwise fail to link until someone reconfigured by
-    # hand, with nothing in the error naming the glob as the reason.
-    file(GLOB_RECURSE _generated_sources CONFIGURE_DEPENDS "${generated_dir}/src/*.cpp")
+    # The sources are the ones Build.xml lists, not whatever is in the directory: the Haxe compiler leaves behind the files of a class that no longer exists, and compiling those fails against the headers that replaced them. Build.xml is a configure dependency so a new class is picked up without a manual reconfigure.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${generated_dir}/Build.xml")
+    file(STRINGS "${generated_dir}/Build.xml" _generated_entries REGEX "<file name=\"src/")
+    set(_generated_sources "")
+    foreach(_entry IN LISTS _generated_entries)
+        string(REGEX REPLACE "^.*<file name=\"([^\"]+)\".*$" "\\1" _relative "${_entry}")
+        list(APPEND _generated_sources "${generated_dir}/${_relative}")
+    endforeach()
     list(FILTER _generated_sources EXCLUDE REGEX "__lib__\\.cpp$")
     list(FILTER _generated_sources EXCLUDE REGEX "__files__\\.cpp$")
 
