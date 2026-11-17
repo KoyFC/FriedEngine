@@ -29,12 +29,19 @@ class Collider extends Node2D {
 
 	var debugRect:Rect;
 
-	// The box in world space, worked out when read and again only after the node, an ancestor or the size changed. The DS has no hardware floating point, so a query reads these and does not multiply again for every candidate.
-	var boundsLeft:Float;
-	var boundsTop:Float;
-	var boundsRight:Float;
-	var boundsBottom:Float;
+	// The box in world space as integers, in 20.12 (see FixedPoint), worked out when read and again only after the node, an ancestor or the size changed. A query compares these and does no arithmetic on a Float for every candidate, which is a call into software floating point on the DS.
+	var boundsLeft:Int;
+	var boundsTop:Int;
+	var boundsRight:Int;
+	var boundsBottom:Int;
 	var boundsDirty:Bool;
+
+	// The same box as Floats, for what asks for left, right, top and bottom, which is worked out only when one of them is read.
+	var exactLeft:Float;
+	var exactTop:Float;
+	var exactRight:Float;
+	var exactBottom:Float;
+	var exactDirty:Bool;
 
 	public function new(width:Float = 0.0, height:Float = 0.0) {
 		super();
@@ -47,6 +54,7 @@ class Collider extends Node2D {
 		isDebugVisible = false;
 		debugColor = Color.rgb(90, 230, 130);
 		boundsDirty = true;
+		exactDirty = true;
 	}
 
 	// It draws, for the debug outline, and Scene keeps a list of colliders for Physics, which a flag in the same word asks for.
@@ -56,29 +64,42 @@ class Collider extends Node2D {
 
 	override function markWorldDirty():Void {
 		boundsDirty = true;
+		exactDirty = true;
 		super.markWorldDirty();
 	}
 
 	function refreshBounds():Void {
+		var scaleX = worldScaleX;
+		var scaleY = worldScaleY;
+		var originX = worldX;
+		var originY = worldY;
+		boundsLeft = FixedPoint.low(originX, width, scaleX);
+		boundsRight = FixedPoint.high(originX, width, scaleX);
+		boundsTop = FixedPoint.low(originY, height, scaleY);
+		boundsBottom = FixedPoint.high(originY, height, scaleY);
+		boundsDirty = false;
+	}
+
+	function refreshExact():Void {
 		var sizeX = width * worldScaleX;
 		var sizeY = height * worldScaleY;
 		var originX = worldX;
 		var originY = worldY;
 		if (sizeX < 0.0) {
-			boundsLeft = originX + sizeX;
-			boundsRight = originX;
+			exactLeft = originX + sizeX;
+			exactRight = originX;
 		} else {
-			boundsLeft = originX;
-			boundsRight = originX + sizeX;
+			exactLeft = originX;
+			exactRight = originX + sizeX;
 		}
 		if (sizeY < 0.0) {
-			boundsTop = originY + sizeY;
-			boundsBottom = originY;
+			exactTop = originY + sizeY;
+			exactBottom = originY;
 		} else {
-			boundsTop = originY;
-			boundsBottom = originY + sizeY;
+			exactTop = originY;
+			exactBottom = originY + sizeY;
 		}
-		boundsDirty = false;
+		exactDirty = false;
 	}
 
 	public function overlaps(other:Collider):Bool {
@@ -95,21 +116,20 @@ class Collider extends Node2D {
 	}
 
 	public function overlapsBox(x:Float, y:Float, width:Float, height:Float):Bool {
-		var boxLeft = width < 0.0 ? x + width : x;
-		var boxRight = width < 0.0 ? x : x + width;
-		var boxTop = height < 0.0 ? y + height : y;
-		var boxBottom = height < 0.0 ? y : y + height;
 		if (boundsDirty) {
 			refreshBounds();
 		}
-		return boundsLeft < boxRight && boundsRight > boxLeft && boundsTop < boxBottom && boundsBottom > boxTop;
+		return boundsLeft < FixedPoint.high(x, width, 1.0) && boundsRight > FixedPoint.low(x, width, 1.0) && boundsTop < FixedPoint.high(y, height, 1.0)
+			&& boundsBottom > FixedPoint.low(y, height, 1.0);
 	}
 
 	public function containsPoint(x:Float, y:Float):Bool {
 		if (boundsDirty) {
 			refreshBounds();
 		}
-		return x >= boundsLeft && x < boundsRight && y >= boundsTop && y < boundsBottom;
+		var pointX = FixedPoint.point(x);
+		var pointY = FixedPoint.point(y);
+		return pointX >= boundsLeft && pointX < boundsRight && pointY >= boundsTop && pointY < boundsBottom;
 	}
 
 	override function draw():Void {
@@ -133,41 +153,43 @@ class Collider extends Node2D {
 	function set_width(value:Float):Float {
 		width = value;
 		boundsDirty = true;
+		exactDirty = true;
 		return value;
 	}
 
 	function set_height(value:Float):Float {
 		height = value;
 		boundsDirty = true;
+		exactDirty = true;
 		return value;
 	}
 
 	function get_left():Float {
-		if (boundsDirty) {
-			refreshBounds();
+		if (exactDirty) {
+			refreshExact();
 		}
-		return boundsLeft;
+		return exactLeft;
 	}
 
 	function get_right():Float {
-		if (boundsDirty) {
-			refreshBounds();
+		if (exactDirty) {
+			refreshExact();
 		}
-		return boundsRight;
+		return exactRight;
 	}
 
 	function get_top():Float {
-		if (boundsDirty) {
-			refreshBounds();
+		if (exactDirty) {
+			refreshExact();
 		}
-		return boundsTop;
+		return exactTop;
 	}
 
 	function get_bottom():Float {
-		if (boundsDirty) {
-			refreshBounds();
+		if (exactDirty) {
+			refreshExact();
 		}
-		return boundsBottom;
+		return exactBottom;
 	}
 
 	function get_centerX():Float {

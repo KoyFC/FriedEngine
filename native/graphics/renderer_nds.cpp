@@ -7,6 +7,7 @@
 #include "graphics/mesh.h"
 #include "graphics/software_backend_nds.h"
 #include "graphics/texture.h"
+#include "math/fixed_point.h"
 #include "platform/window.h"
 
 #include <nds.h>
@@ -454,40 +455,10 @@ namespace
         return std::clamp((int)(value * 512.0), -512, 511);
     }
 
-    // A number times 2 to the power of fractionBits, truncated, worked out
-    // from the bits of the double rather than with a call into software
-    // floating point. It saturates far beyond anything a mesh is placed at.
-    int64_t toFixed(double value, int fractionBits)
-    {
-        uint64_t bits;
-        std::memcpy(&bits, &value, sizeof bits);
-        int exponent = (int)((bits >> 52) & 0x7ff);
-        if (exponent == 0)
-        {
-            return 0;
-        }
-        int64_t mantissa = (int64_t)((bits & 0xfffffffffffffull) | 0x10000000000000ull);
-        int shift = exponent - 1075 + fractionBits;
-        int64_t magnitude;
-        if (shift >= 10)
-        {
-            magnitude = INT64_MAX / 2;
-        }
-        else if (shift >= 0)
-        {
-            magnitude = mantissa << shift;
-        }
-        else
-        {
-            magnitude = shift > -64 ? mantissa >> -shift : 0;
-        }
-        return (bits >> 63) ? -magnitude : magnitude;
-    }
-
     // DEGREES_IN_CIRCLE is a whole turn, and any number of turns wraps.
     int toAngle(double degrees)
     {
-        return (int)(((toFixed(degrees, 12) * s_angleFactor) >> 24) & (DEGREES_IN_CIRCLE - 1));
+        return (int)(((fried_to_fixed(degrees, 12) * s_angleFactor) >> 24) & (DEGREES_IN_CIRCLE - 1));
     }
 
     // Word by word, as newlib's memcmp() goes a byte at a time.
@@ -542,9 +513,9 @@ namespace
         s_depth = nearest;
 
         auto number = [&view](FriedMeshPlacement index) { return view.m_placement[index - FRIED_MESH_CAMERA_X]; };
-        s_meshCameraX = toFixed(number(FRIED_MESH_CAMERA_X), 12);
-        s_meshCameraY = toFixed(number(FRIED_MESH_CAMERA_Y), 12);
-        s_meshCameraZ = toFixed(number(FRIED_MESH_CAMERA_Z), 12);
+        s_meshCameraX = fried_to_fixed(number(FRIED_MESH_CAMERA_X), 12);
+        s_meshCameraY = fried_to_fixed(number(FRIED_MESH_CAMERA_Y), 12);
+        s_meshCameraZ = fried_to_fixed(number(FRIED_MESH_CAMERA_Z), 12);
 
         // A logical pixel goes to (x - cameraX) * zoom + width / 2 under a 2D
         // camera, as DrawQueue moves the points of triangles.
@@ -665,7 +636,7 @@ namespace
 
     LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
     {
-        LogicalRect rect = {toFixed(values[0], 16), toFixed(values[1], 16), width, height};
+        LogicalRect rect = {fried_to_fixed(values[0], 16), fried_to_fixed(values[1], 16), width, height};
         if (view.m_hasCamera)
         {
             rect.m_x = ((rect.m_x * view.m_zoom) >> 16) + view.m_offsetX;
@@ -758,7 +729,7 @@ namespace
     void drawBatchRecords(const Renderer &renderer, const int *ints, const double *doubles, int count)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
-        BatchView view = {false, renderer.m_hasUnitScale, s_fixedOne, 0, 0, toFixed((double)layout.m_scaleX, 16), toFixed((double)layout.m_scaleY, 16),
+        BatchView view = {false, renderer.m_hasUnitScale, s_fixedOne, 0, 0, fried_to_fixed((double)layout.m_scaleX, 16), fried_to_fixed((double)layout.m_scaleY, 16),
                           layout.m_viewportX, layout.m_viewportY};
         int64_t halfWidth = (int64_t)layout.m_width << 15;
         int64_t halfHeight = (int64_t)layout.m_height << 15;
@@ -774,16 +745,16 @@ namespace
                 view.m_hasCamera = record[7] != 0;
                 if (view.m_hasCamera)
                 {
-                    view.m_zoom = toFixed(values[0], 16);
-                    view.m_offsetX = halfWidth - ((toFixed(values[1], 16) * view.m_zoom) >> 16);
-                    view.m_offsetY = halfHeight - ((toFixed(values[2], 16) * view.m_zoom) >> 16);
+                    view.m_zoom = fried_to_fixed(values[0], 16);
+                    view.m_offsetX = halfWidth - ((fried_to_fixed(values[1], 16) * view.m_zoom) >> 16);
+                    view.m_offsetY = halfHeight - ((fried_to_fixed(values[2], 16) * view.m_zoom) >> 16);
                 }
                 continue;
             }
 
             // A scale takes 32 bits of fraction so that a size times it is cut at the same place as the size worked out whole.
-            int64_t width = kind == s_scaledTextureRecord ? (toFixed(values[2], 32) * record[4]) >> 16 : toFixed(values[2], 16);
-            int64_t height = kind == s_scaledTextureRecord ? (toFixed(values[3], 32) * record[5]) >> 16 : toFixed(values[3], 16);
+            int64_t width = kind == s_scaledTextureRecord ? (fried_to_fixed(values[2], 32) * record[4]) >> 16 : fried_to_fixed(values[2], 16);
+            int64_t height = kind == s_scaledTextureRecord ? (fried_to_fixed(values[3], 32) * record[5]) >> 16 : fried_to_fixed(values[3], 16);
             LogicalRect rect = placeOf(view, values, width, height);
             if (kind == s_textureRecord || kind == s_scaledTextureRecord)
             {
@@ -1204,14 +1175,14 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
     }
     enterMeshes(placement, hasCamera, zoom, cameraX, cameraY, renderer->m_layout);
 
-    int64_t x = toFixed(placement[FRIED_MESH_X], 12) - s_meshCameraX;
-    int64_t y = toFixed(placement[FRIED_MESH_Y], 12) - s_meshCameraY;
-    int64_t z = toFixed(placement[FRIED_MESH_Z], 12) - s_meshCameraZ;
+    int64_t x = fried_to_fixed(placement[FRIED_MESH_X], 12) - s_meshCameraX;
+    int64_t y = fried_to_fixed(placement[FRIED_MESH_Y], 12) - s_meshCameraY;
+    int64_t z = fried_to_fixed(placement[FRIED_MESH_Z], 12) - s_meshCameraZ;
     if (std::abs(x) > s_farthestMesh || std::abs(y) > s_farthestMesh || std::abs(z) > s_farthestMesh)
     {
         return;
     }
-    int64_t scale = toFixed(placement[FRIED_MESH_SCALE], 12 + mesh->m_unitShift);
+    int64_t scale = fried_to_fixed(placement[FRIED_MESH_SCALE], 12 + mesh->m_unitShift);
     scale = std::clamp<int64_t>(scale, INT32_MIN, INT32_MAX);
 
     glPushMatrix();

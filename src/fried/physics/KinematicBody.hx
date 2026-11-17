@@ -17,6 +17,9 @@ class KinematicBody extends Node {
 	@:noSerialize public var isBlockedX(default, null):Bool;
 	@:noSerialize public var isBlockedY(default, null):Bool;
 
+	// A pixel is 4096 units of a collider's box (see FixedPoint).
+	static inline var UNIT:Float = 1.0 / 4096.0;
+
 	var target:Node2D;
 	var collider:Collider;
 
@@ -75,7 +78,7 @@ class KinematicBody extends Node {
 		var list = scene.activeColliders();
 		var count = list.length;
 		var index = 0;
-		var depth = 0.0;
+		var depth = 0;
 		while (index < count) {
 			var other = list[index];
 			index++;
@@ -89,7 +92,7 @@ class KinematicBody extends Node {
 				&& collider.boundsBottom > other.boundsTop)) {
 				continue;
 			}
-			var penetration:Float;
+			var penetration:Int;
 			if (isAxisX) {
 				penetration = isPositive ? collider.boundsRight - other.boundsLeft : other.boundsRight - collider.boundsLeft;
 			} else {
@@ -102,10 +105,10 @@ class KinematicBody extends Node {
 				contacts.push(other);
 			}
 		}
-		if (depth <= 0.0) {
+		if (depth <= 0) {
 			return false;
 		}
-		var back = isPositive ? -depth : depth;
+		var back = (isPositive ? -depth : depth) * UNIT;
 		if (isAxisX) {
 			target.x += back;
 		} else {

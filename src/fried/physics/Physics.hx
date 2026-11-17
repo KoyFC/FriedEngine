@@ -27,10 +27,10 @@ class Physics {
 		if (scene == null) {
 			return null;
 		}
-		var boxLeft = width < 0.0 ? x + width : x;
-		var boxRight = width < 0.0 ? x : x + width;
-		var boxTop = height < 0.0 ? y + height : y;
-		var boxBottom = height < 0.0 ? y : y + height;
+		var boxLeft = FixedPoint.low(x, width, 1.0);
+		var boxRight = FixedPoint.high(x, width, 1.0);
+		var boxTop = FixedPoint.low(y, height, 1.0);
+		var boxBottom = FixedPoint.high(y, height, 1.0);
 		var list = scene.activeColliders();
 		var count = list.length;
 		var index = 0;
@@ -85,10 +85,10 @@ class Physics {
 		if (scene == null) {
 			return 0;
 		}
-		var boxLeft = width < 0.0 ? x + width : x;
-		var boxRight = width < 0.0 ? x : x + width;
-		var boxTop = height < 0.0 ? y + height : y;
-		var boxBottom = height < 0.0 ? y : y + height;
+		var boxLeft = FixedPoint.low(x, width, 1.0);
+		var boxRight = FixedPoint.high(x, width, 1.0);
+		var boxTop = FixedPoint.low(y, height, 1.0);
+		var boxBottom = FixedPoint.high(y, height, 1.0);
 		var list = scene.activeColliders();
 		var count = list.length;
 		var index = 0;
@@ -136,22 +136,19 @@ class Physics {
 			if (!collider.activeInTree || collider == ignore) {
 				continue;
 			}
-			if (collider.boundsDirty) {
-				collider.refreshBounds();
-			}
 			var entryDistance = 0.0;
 			var exitDistance = maxDistance;
 			var normalX = 0.0;
 			var normalY = 0.0;
 
 			if (Math.abs(unitX) < PARALLEL_EPSILON) {
-				if (originX < collider.boundsLeft || originX >= collider.boundsRight) {
+				if (originX < collider.left || originX >= collider.right) {
 					continue;
 				}
 			} else {
 				var inverse = 1.0 / unitX;
-				var toLeft = (collider.boundsLeft - originX) * inverse;
-				var toRight = (collider.boundsRight - originX) * inverse;
+				var toLeft = (collider.left - originX) * inverse;
+				var toRight = (collider.right - originX) * inverse;
 				var axisEntry = toLeft < toRight ? toLeft : toRight;
 				var axisExit = toLeft < toRight ? toRight : toLeft;
 				if (axisEntry > entryDistance) {
@@ -168,13 +165,13 @@ class Physics {
 			}
 
 			if (Math.abs(unitY) < PARALLEL_EPSILON) {
-				if (originY < collider.boundsTop || originY >= collider.boundsBottom) {
+				if (originY < collider.top || originY >= collider.bottom) {
 					continue;
 				}
 			} else {
 				var inverse = 1.0 / unitY;
-				var toTop = (collider.boundsTop - originY) * inverse;
-				var toBottom = (collider.boundsBottom - originY) * inverse;
+				var toTop = (collider.top - originY) * inverse;
+				var toBottom = (collider.bottom - originY) * inverse;
 				var axisEntry = toTop < toBottom ? toTop : toBottom;
 				var axisExit = toTop < toBottom ? toBottom : toTop;
 				if (axisEntry > entryDistance) {
