@@ -4,13 +4,19 @@ import fried.Log;
 import fried.scene.Scene;
 
 class Physics {
-	static var queryColliders:Array<Collider> = [];
-
 	static inline var PARALLEL_EPSILON:Float = 0.000001;
 
 	public static function overlapPoint(scene:Scene, x:Float, y:Float, ?ignore:Collider):Null<Collider> {
-		for (collider in gather(scene, ignore)) {
-			if (collider.containsPoint(x, y)) {
+		if (scene == null) {
+			return null;
+		}
+		var list = scene.activeColliders();
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var collider = list[index];
+			index++;
+			if (collider.activeInTree && collider != ignore && collider.containsPoint(x, y)) {
 				return collider;
 			}
 		}
@@ -18,8 +24,26 @@ class Physics {
 	}
 
 	public static function overlapBox(scene:Scene, x:Float, y:Float, width:Float, height:Float, ?ignore:Collider):Null<Collider> {
-		for (collider in gather(scene, ignore)) {
-			if (collider.overlapsBox(x, y, width, height)) {
+		if (scene == null) {
+			return null;
+		}
+		var boxLeft = width < 0.0 ? x + width : x;
+		var boxRight = width < 0.0 ? x : x + width;
+		var boxTop = height < 0.0 ? y + height : y;
+		var boxBottom = height < 0.0 ? y : y + height;
+		var list = scene.activeColliders();
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var collider = list[index];
+			index++;
+			if (!collider.activeInTree || collider == ignore) {
+				continue;
+			}
+			if (collider.boundsDirty) {
+				collider.refreshBounds();
+			}
+			if (collider.boundsLeft < boxRight && collider.boundsRight > boxLeft && collider.boundsTop < boxBottom && collider.boundsBottom > boxTop) {
 				return collider;
 			}
 		}
@@ -27,11 +51,29 @@ class Physics {
 	}
 
 	public static function overlapCollider(scene:Scene, collider:Collider):Null<Collider> {
-		if (collider == null) {
+		if (collider == null || scene == null) {
 			return null;
 		}
-		for (other in gather(scene, collider)) {
-			if (other.overlaps(collider)) {
+		if (collider.boundsDirty) {
+			collider.refreshBounds();
+		}
+		var queryLeft = collider.boundsLeft;
+		var queryRight = collider.boundsRight;
+		var queryTop = collider.boundsTop;
+		var queryBottom = collider.boundsBottom;
+		var list = scene.activeColliders();
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var other = list[index];
+			index++;
+			if (!other.activeInTree || other == collider) {
+				continue;
+			}
+			if (other.boundsDirty) {
+				other.refreshBounds();
+			}
+			if (queryLeft < other.boundsRight && queryRight > other.boundsLeft && queryTop < other.boundsBottom && queryBottom > other.boundsTop) {
 				return other;
 			}
 		}
@@ -40,8 +82,26 @@ class Physics {
 
 	public static function overlapBoxAll(scene:Scene, x:Float, y:Float, width:Float, height:Float, results:Array<Collider>, ?ignore:Collider):Int {
 		results.resize(0);
-		for (collider in gather(scene, ignore)) {
-			if (collider.overlapsBox(x, y, width, height)) {
+		if (scene == null) {
+			return 0;
+		}
+		var boxLeft = width < 0.0 ? x + width : x;
+		var boxRight = width < 0.0 ? x : x + width;
+		var boxTop = height < 0.0 ? y + height : y;
+		var boxBottom = height < 0.0 ? y : y + height;
+		var list = scene.activeColliders();
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var collider = list[index];
+			index++;
+			if (!collider.activeInTree || collider == ignore) {
+				continue;
+			}
+			if (collider.boundsDirty) {
+				collider.refreshBounds();
+			}
+			if (collider.boundsLeft < boxRight && collider.boundsRight > boxLeft && collider.boundsTop < boxBottom && collider.boundsBottom > boxTop) {
 				results.push(collider);
 			}
 		}
@@ -55,7 +115,7 @@ class Physics {
 			Log.warn("A ray with no direction points nowhere, so the cast was skipped.");
 			return null;
 		}
-		if (maxDistance <= 0.0) {
+		if (maxDistance <= 0.0 || scene == null) {
 			return null;
 		}
 
@@ -67,20 +127,31 @@ class Physics {
 		var nearestNormalX = 0.0;
 		var nearestNormalY = 0.0;
 
-		for (collider in gather(scene, ignore)) {
+		var list = scene.activeColliders();
+		var count = list.length;
+		var cursor = 0;
+		while (cursor < count) {
+			var collider = list[cursor];
+			cursor++;
+			if (!collider.activeInTree || collider == ignore) {
+				continue;
+			}
+			if (collider.boundsDirty) {
+				collider.refreshBounds();
+			}
 			var entryDistance = 0.0;
 			var exitDistance = maxDistance;
 			var normalX = 0.0;
 			var normalY = 0.0;
 
 			if (Math.abs(unitX) < PARALLEL_EPSILON) {
-				if (originX < collider.left || originX >= collider.right) {
+				if (originX < collider.boundsLeft || originX >= collider.boundsRight) {
 					continue;
 				}
 			} else {
 				var inverse = 1.0 / unitX;
-				var toLeft = (collider.left - originX) * inverse;
-				var toRight = (collider.right - originX) * inverse;
+				var toLeft = (collider.boundsLeft - originX) * inverse;
+				var toRight = (collider.boundsRight - originX) * inverse;
 				var axisEntry = toLeft < toRight ? toLeft : toRight;
 				var axisExit = toLeft < toRight ? toRight : toLeft;
 				if (axisEntry > entryDistance) {
@@ -97,13 +168,13 @@ class Physics {
 			}
 
 			if (Math.abs(unitY) < PARALLEL_EPSILON) {
-				if (originY < collider.top || originY >= collider.bottom) {
+				if (originY < collider.boundsTop || originY >= collider.boundsBottom) {
 					continue;
 				}
 			} else {
 				var inverse = 1.0 / unitY;
-				var toTop = (collider.top - originY) * inverse;
-				var toBottom = (collider.bottom - originY) * inverse;
+				var toTop = (collider.boundsTop - originY) * inverse;
+				var toBottom = (collider.boundsBottom - originY) * inverse;
 				var axisEntry = toTop < toBottom ? toTop : toBottom;
 				var axisExit = toTop < toBottom ? toBottom : toTop;
 				if (axisEntry > entryDistance) {
@@ -132,20 +203,5 @@ class Physics {
 		}
 		return new RaycastHit(nearestCollider, nearestDistance, originX + unitX * nearestDistance, originY + unitY * nearestDistance, nearestNormalX,
 			nearestNormalY);
-	}
-
-	// The buffer is reused across calls, which is safe because no query hands
-	// control back to game code while it is iterating.
-	static function gather(scene:Scene, ignore:Collider):Array<Collider> {
-		queryColliders.resize(0);
-		if (scene == null) {
-			return queryColliders;
-		}
-		for (collider in scene.activeColliders()) {
-			if (collider.activeInTree && collider != ignore) {
-				queryColliders.push(collider);
-			}
-		}
-		return queryColliders;
 	}
 }
