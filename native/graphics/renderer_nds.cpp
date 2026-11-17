@@ -1027,21 +1027,18 @@ bool fried_renderer_draw_glyphs(int rendererId, int textureId, float x, float y,
         return true;
     }
     const FriedDisplayLayout &layout = renderer->m_layout;
-    if (layout.m_scaleX != 1.0f || layout.m_scaleY != 1.0f)
-    {
-        return false;
-    }
     const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
     if (!texture || count <= 0 || !beginPolygons(GL_QUADS, a, texture))
     {
         return true;
     }
 
-    // Whole pixels throughout, since every float operation is a call into
-    // the software floating point library.
+    // Whole pixels from here on, since every float operation is a call into
+    // the software floating point library: only the line's origin is placed
+    // by the display's scale, and its glyphs are already in output pixels.
     glColor(toVertexColor(r, g, b));
-    int left = layout.m_viewportX + toVertexUnits(x);
-    int top = layout.m_viewportY + toVertexUnits(y);
+    int left = outputEdge(x, layout.m_scaleX, layout.m_viewportX, renderer->m_hasUnitScale);
+    int top = outputEdge(y, layout.m_scaleY, layout.m_viewportY, renderer->m_hasUnitScale);
     for (int index = 0; index < count; ++index)
     {
         const FriedGlyphBlit &glyph = glyphs[index];

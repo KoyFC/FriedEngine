@@ -295,3 +295,9 @@ Where the 14.4 ms goes, from timers around each part: sorting 1 ms, writing the 
 Tried and left out: an opaque outline as one polygon of alpha zero, which the engine draws as a wireframe. It took no time off the flush (14.47 ms against 14.41) and drew the box without its fill, so outlines stay four quads in a list.
 
 Text is the biggest part left. The stress scene draws 640x480 on the 256x192 screen, and a line of glyphs is only blitted as rasterized at a scale of one (`fried_renderer_draw_glyphs()` returns false otherwise), so every glyph goes through `font_software.cpp`'s float arithmetic and `fried_renderer_draw_tinted()`: 22 lines cost 5.8 ms, about 260 µs a line.
+
+### Text at a display scale other than one
+
+The DS's `fried_renderer_draw_glyphs()` gave up, and the line went through `font_software.cpp`'s float arithmetic and `fried_renderer_draw_tinted()`, whenever the display's scale was not one, which is every game that draws more than 256x192: the stress scene's 22 lines took 5.8 ms. Nothing needed it. The atlas is rasterized at the size the text covers on the screen, and the software renderer places a line's origin by the scale and copies its glyphs as they are. The DS now does the same, which takes the stress scene's flush from 14.4 to 11.2 ms and a frame's work to the 16.6 ms of a 60 Hz frame: 59.83 frames a second in melonDS. The picture is the same to the eye, with the glyphs at the size they were rasterized at instead of resized.
+
+The frame now waits for the vertical blank, so the work it shows is capped at 16.6 ms and says nothing about how much is left. Without the text the flush is 11.1 ms and the native batch 6.3 of it.
