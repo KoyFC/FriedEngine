@@ -1,5 +1,7 @@
 package fried.graphics;
 
+import cpp.NativeArray;
+
 
 class DrawQueue {
 	public static var capacity(get, never):Int;
@@ -165,11 +167,11 @@ class DrawQueue {
 				case FillRect:
 					colorChanged = true;
 					var record = addRecord(command, RECORD_FILL);
-					batchInts[(record << 3) + 1] = cast command.color;
+					NativeArray.unsafeSet(batchInts, (record << 3) + 1, cast command.color);
 				case DrawRect:
 					colorChanged = true;
 					var record = addRecord(command, RECORD_OUTLINE);
-					batchInts[(record << 3) + 1] = cast command.color;
+					NativeArray.unsafeSet(batchInts, (record << 3) + 1, cast command.color);
 				case Text:
 					sendBatch(renderer);
 					computeView(command);
@@ -193,22 +195,23 @@ class DrawQueue {
 		var texture = command.texture;
 		var record = addRecord(command, kind);
 		var ints = record << 3;
-		batchInts[ints + 1] = texture.id;
+		NativeArray.unsafeSet(batchInts, ints + 1, texture.id);
 		if (command.hasSource) {
 			var source = command.source;
-			batchInts[ints + 2] = source.x;
-			batchInts[ints + 3] = source.y;
-			batchInts[ints + 4] = source.width;
-			batchInts[ints + 5] = source.height;
+			NativeArray.unsafeSet(batchInts, ints + 2, source.x);
+			NativeArray.unsafeSet(batchInts, ints + 3, source.y);
+			NativeArray.unsafeSet(batchInts, ints + 4, source.width);
+			NativeArray.unsafeSet(batchInts, ints + 5, source.height);
 		} else {
-			batchInts[ints + 2] = 0;
-			batchInts[ints + 3] = 0;
-			batchInts[ints + 4] = texture.width;
-			batchInts[ints + 5] = texture.height;
+			NativeArray.unsafeSet(batchInts, ints + 2, 0);
+			NativeArray.unsafeSet(batchInts, ints + 3, 0);
+			NativeArray.unsafeSet(batchInts, ints + 4, texture.width);
+			NativeArray.unsafeSet(batchInts, ints + 5, texture.height);
 		}
-		batchInts[ints + 6] = cast command.flip;
+		NativeArray.unsafeSet(batchInts, ints + 6, cast command.flip);
 	}
 
+	// The record arrays are written without the bounds check hxcpp makes at every access, which the DS pays for in software: addRecord() grows them before it writes.
 	// Appends a record for a sprite or a rectangle, after the one that says which camera it is placed by when that is not the camera of the record before it. Returns the record's place, with its numbers written.
 	static function addRecord(command:DrawCommand, kind:Int):Int {
 		if (batchCount + 2 > batchCapacity) {
@@ -221,25 +224,25 @@ class DrawQueue {
 			isBatchCameraKnown = true;
 			batchCamera = camera;
 			var cameraRecord = batchCount++;
-			batchInts[cameraRecord << 3] = RECORD_CAMERA;
+			NativeArray.unsafeSet(batchInts, cameraRecord << 3, RECORD_CAMERA);
 			if (camera == null) {
-				batchInts[(cameraRecord << 3) + 7] = 0;
+				NativeArray.unsafeSet(batchInts, (cameraRecord << 3) + 7, 0);
 			} else {
-				batchInts[(cameraRecord << 3) + 7] = 1;
+				NativeArray.unsafeSet(batchInts, (cameraRecord << 3) + 7, 1);
 				var cameraDoubles = cameraRecord * RECORD_DOUBLES;
-				batchDoubles[cameraDoubles] = camera.zoom;
-				batchDoubles[cameraDoubles + 1] = camera.x;
-				batchDoubles[cameraDoubles + 2] = camera.y;
+				NativeArray.unsafeSet(batchDoubles, cameraDoubles, camera.zoom);
+				NativeArray.unsafeSet(batchDoubles, cameraDoubles + 1, camera.x);
+				NativeArray.unsafeSet(batchDoubles, cameraDoubles + 2, camera.y);
 			}
 		}
 		var record = batchCount++;
-		batchInts[record << 3] = kind;
+		NativeArray.unsafeSet(batchInts, record << 3, kind);
 		var doubles = record * RECORD_DOUBLES;
-		batchDoubles[doubles] = command.x;
-		batchDoubles[doubles + 1] = command.y;
-		batchDoubles[doubles + 2] = command.width;
-		batchDoubles[doubles + 3] = command.height;
-		batchDoubles[doubles + 4] = command.angle;
+		NativeArray.unsafeSet(batchDoubles, doubles, command.x);
+		NativeArray.unsafeSet(batchDoubles, doubles + 1, command.y);
+		NativeArray.unsafeSet(batchDoubles, doubles + 2, command.width);
+		NativeArray.unsafeSet(batchDoubles, doubles + 3, command.height);
+		NativeArray.unsafeSet(batchDoubles, doubles + 4, command.angle);
 		return record;
 	}
 
