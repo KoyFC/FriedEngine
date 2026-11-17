@@ -6,21 +6,32 @@ import fried.scene.Scene;
 class Physics {
 	static inline var PARALLEL_EPSILON:Float = 0.000001;
 
+	// Every query asks the scene's grid for the colliders near it and tests those. A collider that overlaps is found whatever its place in the grid; where more than one does and a query returns one, it is the first in the scene's tree order, as it was when every collider was tested.
 	public static function overlapPoint(scene:Scene, x:Float, y:Float, ?ignore:Collider):Null<Collider> {
 		if (scene == null) {
 			return null;
 		}
-		var list = scene.activeColliders();
+		var pointX = FixedPoint.point(x);
+		var pointY = FixedPoint.point(y);
+		var list = scene.colliderCandidates(pointX, pointY, pointX + 1, pointY + 1);
 		var count = list.length;
 		var index = 0;
+		var found:Collider = null;
 		while (index < count) {
 			var collider = list[index];
 			index++;
-			if (collider.activeInTree && collider != ignore && collider.containsPoint(x, y)) {
-				return collider;
+			if (!collider.activeInTree || collider == ignore) {
+				continue;
+			}
+			if (collider.boundsDirty) {
+				collider.refreshBounds();
+			}
+			if (pointX >= collider.boundsLeft && pointX < collider.boundsRight && pointY >= collider.boundsTop && pointY < collider.boundsBottom
+				&& (found == null || collider.order < found.order)) {
+				found = collider;
 			}
 		}
-		return null;
+		return found;
 	}
 
 	public static function overlapBox(scene:Scene, x:Float, y:Float, width:Float, height:Float, ?ignore:Collider):Null<Collider> {
@@ -31,9 +42,10 @@ class Physics {
 		var boxRight = FixedPoint.high(x, width, 1.0);
 		var boxTop = FixedPoint.low(y, height, 1.0);
 		var boxBottom = FixedPoint.high(y, height, 1.0);
-		var list = scene.activeColliders();
+		var list = scene.colliderCandidates(boxLeft, boxTop, boxRight, boxBottom);
 		var count = list.length;
 		var index = 0;
+		var found:Collider = null;
 		while (index < count) {
 			var collider = list[index];
 			index++;
@@ -43,11 +55,12 @@ class Physics {
 			if (collider.boundsDirty) {
 				collider.refreshBounds();
 			}
-			if (collider.boundsLeft < boxRight && collider.boundsRight > boxLeft && collider.boundsTop < boxBottom && collider.boundsBottom > boxTop) {
-				return collider;
+			if (collider.boundsLeft < boxRight && collider.boundsRight > boxLeft && collider.boundsTop < boxBottom && collider.boundsBottom > boxTop
+				&& (found == null || collider.order < found.order)) {
+				found = collider;
 			}
 		}
-		return null;
+		return found;
 	}
 
 	public static function overlapCollider(scene:Scene, collider:Collider):Null<Collider> {
@@ -61,9 +74,10 @@ class Physics {
 		var queryRight = collider.boundsRight;
 		var queryTop = collider.boundsTop;
 		var queryBottom = collider.boundsBottom;
-		var list = scene.activeColliders();
+		var list = scene.colliderCandidates(queryLeft, queryTop, queryRight, queryBottom);
 		var count = list.length;
 		var index = 0;
+		var found:Collider = null;
 		while (index < count) {
 			var other = list[index];
 			index++;
@@ -73,11 +87,12 @@ class Physics {
 			if (other.boundsDirty) {
 				other.refreshBounds();
 			}
-			if (queryLeft < other.boundsRight && queryRight > other.boundsLeft && queryTop < other.boundsBottom && queryBottom > other.boundsTop) {
-				return other;
+			if (queryLeft < other.boundsRight && queryRight > other.boundsLeft && queryTop < other.boundsBottom && queryBottom > other.boundsTop
+				&& (found == null || other.order < found.order)) {
+				found = other;
 			}
 		}
-		return null;
+		return found;
 	}
 
 	public static function overlapBoxAll(scene:Scene, x:Float, y:Float, width:Float, height:Float, results:Array<Collider>, ?ignore:Collider):Int {
@@ -89,7 +104,7 @@ class Physics {
 		var boxRight = FixedPoint.high(x, width, 1.0);
 		var boxTop = FixedPoint.low(y, height, 1.0);
 		var boxBottom = FixedPoint.high(y, height, 1.0);
-		var list = scene.activeColliders();
+		var list = scene.colliderCandidates(boxLeft, boxTop, boxRight, boxBottom);
 		var count = list.length;
 		var index = 0;
 		while (index < count) {
@@ -105,6 +120,7 @@ class Physics {
 				results.push(collider);
 			}
 		}
+		ColliderGrid.sortByOrder(results);
 		return results.length;
 	}
 
@@ -127,7 +143,8 @@ class Physics {
 		var nearestNormalX = 0.0;
 		var nearestNormalY = 0.0;
 
-		var list = scene.activeColliders();
+		var list = scene.colliderCandidates(FixedPoint.low(originX, unitX * maxDistance, 1.0) - 1, FixedPoint.low(originY, unitY * maxDistance, 1.0) - 1,
+			FixedPoint.high(originX, unitX * maxDistance, 1.0) + 1, FixedPoint.high(originY, unitY * maxDistance, 1.0) + 1);
 		var count = list.length;
 		var cursor = 0;
 		while (cursor < count) {
@@ -187,7 +204,8 @@ class Physics {
 				}
 			}
 
-			if (entryDistance <= nearestDistance) {
+			if (entryDistance < nearestDistance
+				|| (entryDistance == nearestDistance && (nearestCollider == null || collider.order > nearestCollider.order))) {
 				nearestCollider = collider;
 				nearestDistance = entryDistance;
 				nearestNormalX = normalX;

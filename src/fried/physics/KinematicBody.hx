@@ -52,30 +52,41 @@ class KinematicBody extends Node {
 		contacts.resize(0);
 		isBlockedX = false;
 		isBlockedY = false;
-		var dx = velocityX * delta;
-		var dy = velocityY * delta;
-		if (collider.isTrigger) {
-			target.translate(dx, dy);
-			collectOverlaps(false);
-			return;
-		}
-		if (dx != 0.0) {
-			target.x += dx;
-			isBlockedX = stopAgainstSolids(true, dx > 0.0);
-		}
-		if (dy != 0.0) {
-			target.y += dy;
-			isBlockedY = stopAgainstSolids(false, dy > 0.0);
-		}
-		collectOverlaps(true);
-	}
-
-	// Backs the node out of the deepest solid it ran into along an axis, which leaves it touching and not short of it.
-	function stopAgainstSolids(isAxisX:Bool, isPositive:Bool):Bool {
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
-		var list = scene.activeColliders();
+		var dx = velocityX * delta;
+		var dy = velocityY * delta;
+
+		// Everything the box can reach in this step, a unit wider each way for the rounding of the move, asked for once: nothing else moves until the step is over.
+		var moveX = FixedPoint.point(dx);
+		var moveY = FixedPoint.point(dy);
+		var nearby = scene.colliderCandidates((moveX < 0 ? collider.boundsLeft + moveX : collider.boundsLeft) - 1,
+			(moveY < 0 ? collider.boundsTop + moveY : collider.boundsTop) - 1, (moveX > 0 ? collider.boundsRight + moveX : collider.boundsRight) + 1,
+			(moveY > 0 ? collider.boundsBottom + moveY : collider.boundsBottom) + 1);
+
+		if (collider.isTrigger) {
+			target.translate(dx, dy);
+			collectOverlaps(nearby, false);
+		} else {
+			if (dx != 0.0) {
+				target.x += dx;
+				isBlockedX = stopAgainstSolids(nearby, true, dx > 0.0);
+			}
+			if (dy != 0.0) {
+				target.y += dy;
+				isBlockedY = stopAgainstSolids(nearby, false, dy > 0.0);
+			}
+			collectOverlaps(nearby, true);
+		}
+		ColliderGrid.sortByOrder(contacts);
+	}
+
+	// Backs the node out of the deepest solid it ran into along an axis, which leaves it touching and not short of it.
+	function stopAgainstSolids(list:Array<Collider>, isAxisX:Bool, isPositive:Bool):Bool {
+		if (collider.boundsDirty) {
+			collider.refreshBounds();
+		}
 		var count = list.length;
 		var index = 0;
 		var depth = 0;
@@ -118,11 +129,10 @@ class KinematicBody extends Node {
 	}
 
 	// What the body overlaps once it has moved: the triggers for a solid body, and everything for a trigger one.
-	function collectOverlaps(onlyTriggers:Bool):Void {
+	function collectOverlaps(list:Array<Collider>, onlyTriggers:Bool):Void {
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
-		var list = scene.activeColliders();
 		var count = list.length;
 		var index = 0;
 		while (index < count) {

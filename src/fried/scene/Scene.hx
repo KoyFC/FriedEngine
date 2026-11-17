@@ -4,6 +4,7 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
 import fried.input.InputEvent;
 import fried.physics.Collider;
+import fried.physics.ColliderGrid;
 import fried.physics.KinematicBody;
 import haxe.ds.ArraySort;
 
@@ -34,6 +35,7 @@ class Scene {
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;
 	var colliders:Array<Collider>;
+	var colliderGrid:ColliderGrid;
 	var areListsDirty:Bool;
 	var areCollidersDirty:Bool;
 
@@ -50,6 +52,7 @@ class Scene {
 		eventTree = [];
 		eventList = [];
 		colliders = [];
+		colliderGrid = new ColliderGrid();
 		areListsDirty = false;
 		areCollidersDirty = false;
 		isEventOrderDirty = false;
@@ -201,9 +204,26 @@ class Scene {
 		if (areCollidersDirty) {
 			colliders.resize(0);
 			collectColliders(root);
+			colliderGrid.rebuild(colliders);
 			areCollidersDirty = false;
 		}
 		return colliders;
+	}
+
+	// The colliders that may touch a box, in the units of a collider's box and in no order, each once. A collider that moved or changed size earlier in the frame is where it is now.
+	@:allow(fried.physics)
+	function colliderCandidates(left:Int, top:Int, right:Int, bottom:Int):Array<Collider> {
+		if (areCollidersDirty) {
+			activeColliders();
+		}
+		return colliderGrid.collect(left, top, right, bottom);
+	}
+
+	@:allow(fried.physics)
+	function colliderMoved(collider:Collider):Void {
+		if (!areCollidersDirty) {
+			colliderGrid.queue(collider);
+		}
 	}
 
 	public function update(delta:Float):Void {
