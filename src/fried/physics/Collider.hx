@@ -5,12 +5,17 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
 import fried.scene.Node2D;
 
-// An axis aligned box that Physics finds. Its position is the box's top left corner, in its parent's space, so what used to be a collider's offset is where the node sits, and it follows a node it is a child of.
+// An axis aligned box that Physics finds. A body is stopped by the solid colliders whose layer its mask names, and a trigger is one that stops nothing and is only reported, so a zone or a shot can notice what it touches. Its position is the box's top left corner, in its parent's space, so what used to be a collider's offset is where the node sits, and it follows a node it is a child of.
 @:serializable
 @:allow(fried.physics)
 class Collider extends Node2D {
 	public var width(default, set):Float;
 	public var height(default, set):Float;
+
+	// The layers this collider is on, and the layers a body made of it is stopped by or told about. One bit each, and every collider starts on the first and sees the first.
+	public var collisionLayer:Int;
+	public var collisionMask:Int;
+	public var isTrigger:Bool;
 
 	public var isDebugVisible:Bool;
 	public var debugColor:Color;
@@ -36,6 +41,9 @@ class Collider extends Node2D {
 		name = "Collider";
 		this.width = width;
 		this.height = height;
+		collisionLayer = 1;
+		collisionMask = 1;
+		isTrigger = false;
 		isDebugVisible = false;
 		debugColor = Color.rgb(90, 230, 130);
 		boundsDirty = true;

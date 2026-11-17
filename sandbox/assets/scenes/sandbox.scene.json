@@ -186,6 +186,13 @@
 					"name": "Player hitbox",
 					"type": "Collider",
 					"width": 16
+				},
+				{
+					"id": "player-body",
+					"name": "Player body",
+					"type": "KinematicBody",
+					"velocityX": 0,
+					"velocityY": 0
 				}
 			],
 			"id": "player",

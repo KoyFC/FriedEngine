@@ -4,6 +4,7 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
 import fried.input.InputEvent;
 import fried.physics.Collider;
+import fried.physics.KinematicBody;
 import haxe.ds.ArraySort;
 
 // A tree of nodes and the lists a frame runs through. The lists hold only the nodes whose class overrides the hook, in tree order, and are filled again only when the tree changed, so a frame never walks the tree.
@@ -28,6 +29,7 @@ class Scene {
 	var byId:Map<String, Node>;
 	var updateList:Array<Node>;
 	var fixedUpdateList:Array<Node>;
+	var bodyList:Array<KinematicBody>;
 	var drawList:Array<Node>;
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;
@@ -43,6 +45,7 @@ class Scene {
 		byId = new Map();
 		updateList = [];
 		fixedUpdateList = [];
+		bodyList = [];
 		drawList = [];
 		eventTree = [];
 		eventList = [];
@@ -152,6 +155,7 @@ class Scene {
 	function rebuildLists():Void {
 		updateList.resize(0);
 		fixedUpdateList.resize(0);
+		bodyList.resize(0);
 		drawList.resize(0);
 		eventTree.resize(0);
 		collect(root);
@@ -173,6 +177,9 @@ class Scene {
 			}
 			if ((flags & 16) != 0) {
 				fixedUpdateList.push(node);
+			}
+			if ((flags & 32) != 0) {
+				bodyList.push(cast node);
 			}
 		}
 		for (child in node.children) {
@@ -226,6 +233,24 @@ class Scene {
 			var node = list[index];
 			if (node.activeInTree) {
 				node.fixedUpdate(delta);
+			}
+			index++;
+		}
+		simulate(delta);
+	}
+
+	// Moves every body by its velocity once the fixed updates have set them. A body that is switched off does not move, and one that moved earlier is an obstacle to the ones after it.
+	function simulate(delta:Float):Void {
+		if (areListsDirty) {
+			rebuildLists();
+		}
+		var list = bodyList;
+		var count = list.length;
+		var index = 0;
+		while (index < count) {
+			var body = list[index];
+			if (body.activeInTree) {
+				body.step(delta);
 			}
 			index++;
 		}
