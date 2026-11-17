@@ -32,6 +32,7 @@ class Scene {
 	var eventList:Array<Node>;
 	var colliders:Array<Collider>;
 	var areListsDirty:Bool;
+	var areCollidersDirty:Bool;
 
 	public function new(name:String = "Scene") {
 		this.name = name;
@@ -45,6 +46,7 @@ class Scene {
 		eventList = [];
 		colliders = [];
 		areListsDirty = false;
+		areCollidersDirty = false;
 		isEventOrderDirty = false;
 		root = new Node("Root");
 		root.enterScene(this);
@@ -121,6 +123,7 @@ class Scene {
 		}
 		nodeCount++;
 		areListsDirty = true;
+		areCollidersDirty = true;
 	}
 
 	@:allow(fried.scene.Node)
@@ -130,13 +133,13 @@ class Scene {
 		}
 		nodeCount--;
 		areListsDirty = true;
+		areCollidersDirty = true;
 	}
 
 	function rebuildLists():Void {
 		updateList.resize(0);
 		drawList.resize(0);
 		eventTree.resize(0);
-		colliders.resize(0);
 		collect(root);
 		areListsDirty = false;
 		isEventOrderDirty = true;
@@ -154,19 +157,27 @@ class Scene {
 			if ((flags & 4) != 0) {
 				eventTree.push(node);
 			}
-			if ((flags & 8) != 0) {
-				colliders.push(cast node);
-			}
 		}
 		for (child in node.children) {
 			collect(child);
 		}
 	}
 
-	// Every collider of the scene, in tree order, for Physics to test. Whether each is active is for the caller.
+	function collectColliders(node:Node):Void {
+		if ((node.hooks & 8) != 0) {
+			colliders.push(cast node);
+		}
+		for (child in node.children) {
+			collectColliders(child);
+		}
+	}
+
+	// Every collider of the scene, in tree order, for Physics to test. Whether each is active is for the caller. It is kept apart from the lists of the frame, which are never rebuilt while a phase is running, as a node asking Physics a question in its update is common.
 	public function activeColliders():Array<Collider> {
-		if (areListsDirty) {
-			rebuildLists();
+		if (areCollidersDirty) {
+			colliders.resize(0);
+			collectColliders(root);
+			areCollidersDirty = false;
 		}
 		return colliders;
 	}
