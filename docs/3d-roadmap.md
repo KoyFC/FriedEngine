@@ -9,16 +9,11 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 - [x] `SceneManager`, with the sandbox split into a 2D and a 3D scene
 - [x] 3D stress test scene
 - [x] Meshes drawn by the DS's 3D engine on its top screen
+- [x] Node3D: position, rotation about each axis in Unity's order and scale on each, its world values cached like a Node2D's
 
 ## Next
 
-### 1. Node3D
-
-- `Node3D` is its own branch of the node tree beside `Node2D`, under `CanvasItem`, with `x`, `y`, `z`, a rotation about each axis and a scale on each
-- Its world values are cached and marked dirty like a `Node2D`'s, and a `Node3D` under a `Node2D` is not a supported parent
-- 2D keeps y down; 3D is left handed with y up and z forward
-
-### 2. Free camera
+### 1. Free camera
 
 - `Camera3D` is a `Node3D` that reads its own world position and rotation
 - `fieldOfView`, `near`, `far` and `lookAt(x, y, z)`
@@ -26,14 +21,14 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 - `Scene.camera3D`, with the same rules as `Scene.camera`
 - Remove `Transform3D` and `Vec3`
 
-### 3. Mesh instance and global sort
+### 2. Mesh instance and global sort
 
 - `MeshInstance` node; meshes can be shared
 - Directional light as a node, direction from its rotation
 - The scene sorts the triangles of all its meshes together and submits one batch
 - Port the stress test from the sandbox's `CubeField` to nodes
 
-### 4. Clipping
+### 3. Clipping
 
 - Clip triangles against the near plane instead of dropping them
 - Skip meshes outside the frustum by bounding sphere

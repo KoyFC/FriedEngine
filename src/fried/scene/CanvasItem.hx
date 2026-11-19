@@ -56,8 +56,10 @@ class CanvasItem extends Node {
 		markWorldDirty();
 	}
 
+	// A 2D node is placed in the plane of the screen, so a Node3D above it places it as no parent would.
 	override function parentChanged():Void {
-		parentItem = Std.downcast(parent, CanvasItem);
+		var item = Std.downcast(parent, CanvasItem);
+		parentItem = item != null && !Std.isOfType(item, Node3D) ? item : null;
 		markWorldDirty();
 	}
 
