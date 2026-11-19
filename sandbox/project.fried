@@ -6,16 +6,8 @@
 	},
 	"name": "Fried Sandbox",
 	"organization": "Fried Engine",
-	"switch": {
-		"display": {
-			"filter": "nearest"
-		}
-	},
 	"version": "01.00",
 	"vita": {
-		"display": {
-			"filter": "nearest"
-		},
 		"titleId": "FRIE00001"
 	},
 	"window": {
