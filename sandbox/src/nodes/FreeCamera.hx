@@ -47,7 +47,7 @@ class FreeCamera extends Node {
 
 	// A key pair or a stick as a number from -1 to 1.
 	function axis(positive:Key, negative:Key, stick:GamepadAxis, stickSign:Float):Float {
-		var value = (Input.isKeyDown(positive) ? 1.0 : 0.0) - (Input.isKeyDown(negative) ? 1.0 : 0.0);
+		var value = (Input.isKeyPressed(positive) ? 1.0 : 0.0) - (Input.isKeyPressed(negative) ? 1.0 : 0.0);
 		var pad = Input.getGamepadAxis(stick) * stickSign;
 		if (Math.abs(pad) > DEADZONE) {
 			value += pad;
