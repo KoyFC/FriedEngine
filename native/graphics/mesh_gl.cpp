@@ -1,5 +1,5 @@
 #include "graphics/mesh.h"
-#include "graphics/mesh_gl.h"
+#include "graphics/mesh_sdl.h"
 
 #include "graphics/display.h"
 #include "graphics/mesh_geometry.h"
@@ -269,7 +269,7 @@ namespace
     // renderer has drawn since.
     bool prepareContext()
     {
-        fried_mesh_gl_leave();
+        fried_mesh_sdl_leave();
         SDL_RenderFlush(s_renderer);
         if (!isContextCurrent())
         {
@@ -348,7 +348,7 @@ namespace
         }
     }
 
-    // The state a mesh is drawn with stays set from here until fried_mesh_gl_leave().
+    // The state a mesh is drawn with stays set from here until fried_mesh_sdl_leave().
     bool enterMeshMode(const FriedDisplayLayout &layout, int outputHeight)
     {
         if (!prepareContext())
@@ -394,7 +394,7 @@ namespace
     }
 }
 
-bool fried_mesh_gl_attach(int rendererId, void *sdlRenderer)
+bool fried_mesh_sdl_attach(int rendererId, void *sdlRenderer)
 {
     SDL_Renderer *renderer = static_cast<SDL_Renderer *>(sdlRenderer);
     if (s_rendererId >= 0 || !renderer)
@@ -440,7 +440,7 @@ bool fried_mesh_gl_attach(int rendererId, void *sdlRenderer)
     return true;
 }
 
-void fried_mesh_gl_detach(int rendererId)
+void fried_mesh_sdl_detach(int rendererId)
 {
     if (rendererId != s_rendererId)
     {
@@ -458,7 +458,7 @@ void fried_mesh_gl_detach(int rendererId)
     s_context = nullptr;
 }
 
-void fried_mesh_gl_end_frame(int rendererId)
+void fried_mesh_sdl_end_frame(int rendererId)
 {
     if (rendererId == s_rendererId)
     {
@@ -466,7 +466,7 @@ void fried_mesh_gl_end_frame(int rendererId)
     }
 }
 
-void fried_mesh_gl_leave()
+void fried_mesh_sdl_leave()
 {
     if (s_isInMeshMode)
     {

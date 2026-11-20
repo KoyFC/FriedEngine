@@ -1,4 +1,4 @@
-# SDL2 for the Vita, built once from source with Piglet's OpenGL ES 2 (see vita_sdl2/CMakeLists.txt) and found where it installs.
+# SDL2 for the Vita, built once from source with a patch that lets meshes be drawn inside its GXM renderer (see vita_sdl2/CMakeLists.txt) and found where it installs.
 
 set(_fried_vita_sdl2_dir "${CMAKE_CURRENT_LIST_DIR}/vita_sdl2")
 
@@ -13,7 +13,7 @@ set(FRIED_DEPS_CACHE "${_fried_default_deps_cache}" CACHE PATH
 # Named after everything that changes what gets built, so a folder is never reused for a build it does not match.
 function(_fried_vita_sdl2_prefix out_prefix)
     file(SHA256 "${_fried_vita_sdl2_dir}/CMakeLists.txt" _recipe_hash)
-    file(SHA256 "${_fried_vita_sdl2_dir}/sdl2-pib.patch" _patch_hash)
+    file(SHA256 "${_fried_vita_sdl2_dir}/sdl2-vita.patch" _patch_hash)
     string(SHA256 _identity_hash "${_recipe_hash};${_patch_hash};${CMAKE_C_COMPILER_VERSION};${CMAKE_BUILD_TYPE}")
     string(SUBSTRING "${_identity_hash}" 0 16 _short_hash)
     if(FRIED_DEPS_CACHE)

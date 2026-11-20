@@ -13,14 +13,14 @@ Software 3D in Haxe, drawn with `fillTriangles()`, or meshes drawn by the render
 - [x] Clipping at the near plane, skipping meshes outside the view by bounding sphere, and a free camera in the sandbox's 3D scene
 - [x] Built-in shapes for MeshInstance
 - [x] Camera rotation on the DS's 3D engine
-- [x] OpenGL depth buffer backend on PC, the Switch and the Vita (SDL's `opengl` and `opengles2` drivers), the Vita through Piglet, and citro3d on the 3DS, with the far plane passed to every renderer that draws meshes
+- [x] OpenGL depth buffer backend on PC and the Switch (SDL's `opengl` and `opengles2` drivers), GXM inside SDL's renderer on the Vita, and citro3d on the 3DS, with the far plane passed to every renderer that draws meshes
 - [x] Node3D: position, rotation about each axis in Unity's order and scale on each, its world values cached like a Node2D's
 
 ## Constraints
 
 - `Camera3D.far` is not enforced on the DS, whose 3D engine orders meshes without a far plane
-- Meshes are drawn as triangles, in painter's order, wherever the renderer draws none: the web build, the Vita without `libScePiglet.suprx` and `libshacccg.suprx` in `ur0:data/external/`, and PC and the Switch when SDL has no OpenGL context with a depth buffer
-- The Vita's backend needs `libScePiglet.suprx` and `libshacccg.suprx` in `ur0:data/external/`, taiHEN, which HENkaku has, and an app with extended permissions
+- Meshes are drawn as triangles, in painter's order, wherever the renderer draws none: the web build, the Vita without `libshacccg.suprx` in `ur0:data/`, and PC and the Switch when SDL has no OpenGL context with a depth buffer
+- The Vita's backend needs `libshacccg.suprx` in `ur0:data/`, which vitaGL games already require
 - The Switch's backend has only been built, not run, and the 3DS's has only run in Azahar, not on a console
 - The 3DS sorts meshes in the 16 bit depth buffer of its screens, so far-off meshes can flicker where they nearly touch
 - Works on every platform except the fx-CG50, which keeps the `fillTriangles()` it has now and gets no further 3D support

@@ -1,0 +1,41 @@
+--- a/src/render/vitagxm/SDL_render_vita_gxm.c
++++ b/src/render/vitagxm/SDL_render_vita_gxm.c
+@@ -1272,6 +1272,38 @@
+     }
+ }
+ 
++int FRIED_VITA_GXM_GetContext(SDL_Renderer *renderer, SceGxmContext **context, SceGxmShaderPatcher **shaderPatcher)
++{
++    VITA_GXM_RenderData *data;
++    if (!renderer || renderer->RenderPresent != VITA_GXM_RenderPresent) {
++        return -1;
++    }
++    data = (VITA_GXM_RenderData *)renderer->driverdata;
++    if (!data || !data->initialized) {
++        return -1;
++    }
++    *context = data->gxm_context;
++    *shaderPatcher = data->shaderPatcher;
++    return 0;
++}
++
++void FRIED_VITA_GXM_BeginScene(SDL_Renderer *renderer)
++{
++    StartDrawing(renderer);
++}
++
++void FRIED_VITA_GXM_EndScene(SDL_Renderer *renderer)
++{
++    VITA_GXM_RenderData *data = (VITA_GXM_RenderData *)renderer->driverdata;
++    if (!data->drawing) {
++        return;
++    }
++    sceGxmEndScene(data->gxm_context, NULL, NULL);
++    data->drawing = SDL_FALSE;
++    data->drawstate.cliprect_dirty = SDL_TRUE;
++    data->drawstate.cliprect_enabled_dirty = SDL_TRUE;
++}
++
+ #endif /* SDL_VIDEO_RENDER_VITA_GXM */
+ 
+ /* vi: set ts=4 sw=4 expandtab: */

@@ -103,9 +103,11 @@ else()
     set(_fried_graphics_backend sdl)
 endif()
 
-# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC, the Switch and the Vita, and the 3DS's GPU through citro3d. The web build has no such renderer, and its meshes are drawn as triangles.
+# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC and the Switch, inside the Vita's GXM renderer, and on the 3DS's GPU through citro3d. The web build has no such renderer, and its meshes are drawn as triangles.
 if(NINTENDO_3DS)
     set(_fried_mesh_backend citro)
+elseif(VITA)
+    set(_fried_mesh_backend gxm)
 elseif(FRIED_WEB)
     set(_fried_mesh_backend none)
 else()
@@ -227,6 +229,10 @@ if(NOT TARGET fried_engine)
             SDL2_ttf::SDL2_ttf-static
             ${_fried_sdl2_target}
         )
+        if(VITA)
+            # The shader compiler is a module loaded at run time, so its stub is weak and the app starts without it.
+            target_link_libraries(fried_engine PUBLIC SceGxm_stub SceShaccCg_stub_weak)
+        endif()
     elseif(NINTENDO_SWITCH)
         target_link_libraries(fried_engine PUBLIC
             fried::sdl2_image

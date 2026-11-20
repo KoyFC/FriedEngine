@@ -4,15 +4,11 @@
 #include "last_error.h"
 #include "graphics/display.h"
 #include "graphics/font.h"
-#include "graphics/mesh_gl.h"
+#include "graphics/mesh_sdl.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
 #include <SDL.h>
-
-#ifdef __vita__
-#include <pib.h>
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -69,27 +65,6 @@ namespace
     }
 
 #ifdef __vita__
-    // Piglet and the shader compiler it uses on the console are modules Sony's firmware does not carry, libScePiglet.suprx and libshacccg.suprx, which pib loads from ur0:data/external only. Starting pib here, where SDL would start it, says whether it all loaded, instead of SDL's calls into a Piglet that did not. SDL's own call then finds it started.
-    bool startPiglet()
-    {
-        static int s_state = 0;
-        if (s_state == 0)
-        {
-            PibError error = pibInit((PibOptions)(PIB_SHACCCG | PIB_GET_PROC_ADDR_CORE));
-            if (error == PIB_SUCCESS)
-            {
-                s_state = 1;
-            }
-            else
-            {
-                SDL_Log("pibInit failed with %d, so meshes are drawn without the GPU", (int)error);
-                pibTerm();
-                s_state = -1;
-            }
-        }
-        return s_state > 0;
-    }
-
     constexpr const char *s_driverWithoutGl = "VITA gxm";
 #else
     constexpr const char *s_driverWithoutGl = "";
@@ -110,7 +85,7 @@ SDL_Renderer *fried_renderer_get_sdl(int rendererId)
 
 int fried_renderer_create(int windowId, bool vsync)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Window *window = fried_window_get_sdl(windowId);
     if (!window)
     {
@@ -127,7 +102,7 @@ int fried_renderer_create(int windowId, bool vsync)
         flags |= SDL_RENDERER_PRESENTVSYNC;
     }
 
-    // Meshes are drawn with GL between SDL's own calls, which needs SDL's
+    // Meshes are drawn with GL or GXM between SDL's own calls, which needs SDL's
     // queue flushed by hand rather than behind the application's back.
     // Neither hint beats the environment, so the driver can still be named from outside.
 #if defined(__SWITCH__)
@@ -136,14 +111,7 @@ int fried_renderer_create(int windowId, bool vsync)
 #elif defined(__vita__)
     // Naming a driver turns SDL's batching off, and unbatched, SDL's gxm renderer runs a whole GPU scene for every draw.
     SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
-    if (startPiglet())
-    {
-        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengles2", SDL_HINT_DEFAULT);
-    }
-    else
-    {
-        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, s_driverWithoutGl, SDL_HINT_DEFAULT);
-    }
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, s_driverWithoutGl, SDL_HINT_DEFAULT);
 #elif !defined(__3DS__) && !defined(__EMSCRIPTEN__)
     SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_DEFAULT);
     SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
@@ -173,20 +141,20 @@ int fried_renderer_create(int windowId, bool vsync)
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     applyLayout(renderer);
     int rendererId = s_renderers.store(renderer);
-    fried_mesh_gl_attach(rendererId, renderer);
+    fried_mesh_sdl_attach(rendererId, renderer);
     return rendererId;
 }
 
 void fried_renderer_destroy(int rendererId)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
     {
         return;
     }
     fried_font_release_renderer(rendererId);
-    fried_mesh_gl_detach(rendererId);
+    fried_mesh_sdl_detach(rendererId);
     s_renderers.release(rendererId);
     SDL_DestroyRenderer(renderer);
 }
@@ -239,7 +207,7 @@ void fried_renderer_set_draw_color(int rendererId, int r, int g, int b, int a)
 
 void fried_renderer_clear(int rendererId)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
     {
@@ -266,19 +234,19 @@ void fried_renderer_clear(int rendererId)
 
 void fried_renderer_present(int rendererId)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
     {
         return;
     }
     SDL_RenderPresent(renderer);
-    fried_mesh_gl_end_frame(rendererId);
+    fried_mesh_sdl_end_frame(rendererId);
 }
 
 bool fried_renderer_read_pixels(int rendererId, unsigned char *rgba, int width, int height)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer || !rgba)
     {
@@ -297,7 +265,7 @@ bool fried_renderer_read_pixels(int rendererId, unsigned char *rgba, int width, 
 
 void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     SDL_Texture *texture = fried_texture_get_sdl(textureId);
     if (!renderer || !texture)
@@ -311,7 +279,7 @@ void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y
 
 void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     SDL_Texture *texture = fried_texture_get_sdl(textureId);
     if (!renderer || !texture)
@@ -326,7 +294,7 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
 
 void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *quads, int count, int r, int g, int b, int a)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     SDL_Texture *texture = fried_texture_get_sdl(textureId);
     if (!renderer || !texture)
@@ -348,7 +316,7 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
 
 void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
     {
@@ -361,7 +329,7 @@ void fried_renderer_fill_rect(int rendererId, float x, float y, float width, flo
 
 void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
     {
@@ -374,7 +342,7 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
 
 void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
 {
-    fried_mesh_gl_leave();
+    fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer || triangleCount <= 0)
     {

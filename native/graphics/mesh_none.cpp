@@ -21,22 +21,22 @@ void fried_renderer_draw_mesh(int, int, const double *, bool, double, double, do
 }
 
 #ifndef FRIED_SOFTWARE_RENDERER
-#include "graphics/mesh_gl.h"
+#include "graphics/mesh_sdl.h"
 
-bool fried_mesh_gl_attach(int, void *)
+bool fried_mesh_sdl_attach(int, void *)
 {
     return false;
 }
 
-void fried_mesh_gl_detach(int)
+void fried_mesh_sdl_detach(int)
 {
 }
 
-void fried_mesh_gl_end_frame(int)
+void fried_mesh_sdl_end_frame(int)
 {
 }
 
-void fried_mesh_gl_leave()
+void fried_mesh_sdl_leave()
 {
 }
 #endif
