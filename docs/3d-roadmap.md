@@ -17,6 +17,8 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 
 ## Constraints
 
+- `Camera3D.far` is not enforced on the DS, whose 3D engine orders meshes without a far plane
+
 - Works on every platform except the fx-CG50, which keeps the `fillTriangles()` it has now and gets no further 3D support
 - Games only use nodes, so a GPU backend can replace the pipeline later
 - No per-frame allocations

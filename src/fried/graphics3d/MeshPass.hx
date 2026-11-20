@@ -40,7 +40,8 @@ class MeshPass {
 	static var tanY:Float = 1.0;
 	static var sideX:Float = 1.0;
 	static var sideY:Float = 1.0;
-	static var clipped:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+	static var clipped:Array<Float> = [for (index in 0...18) 0.0];
+	static var clippedOther:Array<Float> = [for (index in 0...18) 0.0];
 	static var ambient:Float = 1.0;
 
 	public static function draw(camera:Camera3D, light:Null<DirectionalLight>, meshes:Array<MeshInstance>, width:Float, height:Float):Void {
@@ -160,6 +161,7 @@ class MeshPass {
 
 	static function collect(instance:MeshInstance, mesh:Mesh, camera:Camera3D):Void {
 		var near = camera.near;
+		var far = camera.far;
 		Rotation.toMatrix(instance.worldRotationX, instance.worldRotationY, instance.worldRotationZ, meshTurn);
 		var scaleX = instance.worldScaleX;
 		var scaleY = instance.worldScaleY;
@@ -181,7 +183,7 @@ class MeshPass {
 
 		// A mesh whose bounding sphere is wholly behind the near plane or outside a side of the view is not worth turning.
 		var radius = mesh.radius * Math.max(Math.abs(scaleX), Math.max(Math.abs(scaleY), Math.abs(scaleZ)));
-		if (shiftZ + radius < near || shiftX - tanX * shiftZ > radius * sideX || -shiftX - tanX * shiftZ > radius * sideX
+		if (shiftZ + radius < near || shiftZ - radius > far || shiftX - tanX * shiftZ > radius * sideX || -shiftX - tanX * shiftZ > radius * sideX
 			|| shiftY - tanY * shiftZ > radius * sideY || -shiftY - tanY * shiftZ > radius * sideY) {
 			return;
 		}
@@ -210,10 +212,10 @@ class MeshPass {
 			var az = viewVertices[a + 2];
 			var bz = viewVertices[b + 2];
 			var cz = viewVertices[c + 2];
-			var inside = (az >= near ? 1 : 0) + (bz >= near ? 1 : 0) + (cz >= near ? 1 : 0);
-			if (inside == 0) {
+			if ((az < near && bz < near && cz < near) || (az > far && bz > far && cz > far)) {
 				continue;
 			}
+			var isCut = az < near || bz < near || cz < near || az > far || bz > far || cz > far;
 
 			var abX = viewVertices[b] - ax;
 			var abY = viewVertices[b + 1] - ay;
@@ -236,8 +238,8 @@ class MeshPass {
 			var brightness = ambient + (1.0 - ambient) * Math.max(facing, 0.0);
 			var color = mesh.triangleColors[triangle];
 			var shade = Color.rgba(Std.int(color.red * brightness), Std.int(color.green * brightness), Std.int(color.blue * brightness), color.alpha);
-			if (inside < 3) {
-				emitClipped(shade, ax, ay, az, viewVertices[b], viewVertices[b + 1], bz, viewVertices[c], viewVertices[c + 1], cz, near);
+			if (isCut) {
+				emitClipped(shade, ax, ay, az, viewVertices[b], viewVertices[b + 1], bz, viewVertices[c], viewVertices[c + 1], cz, near, far);
 				continue;
 			}
 			var slot = triangleTotal++;
@@ -258,39 +260,60 @@ class MeshPass {
 		}
 	}
 
-	// A triangle with a corner nearer than the near plane is cut at it, which leaves a triangle or a quad, and the quad goes as two triangles.
-	static function emitClipped(shade:Color, ax:Float, ay:Float, az:Float, bx:Float, by:Float, bz:Float, cx:Float, cy:Float, cz:Float, near:Float):Void {
-		var count = clipEdge(ax, ay, az, bx, by, bz, near, 0);
-		count = clipEdge(bx, by, bz, cx, cy, cz, near, count);
-		count = clipEdge(cx, cy, cz, ax, ay, az, near, count);
+	// A triangle with a corner outside the near or the far plane is cut at them, which leaves a polygon of up to five corners that goes as a fan of triangles.
+	static function emitClipped(shade:Color, ax:Float, ay:Float, az:Float, bx:Float, by:Float, bz:Float, cx:Float, cy:Float, cz:Float, near:Float, far:Float):Void {
+		clipped[0] = ax;
+		clipped[1] = ay;
+		clipped[2] = az;
+		clipped[3] = bx;
+		clipped[4] = by;
+		clipped[5] = bz;
+		clipped[6] = cx;
+		clipped[7] = cy;
+		clipped[8] = cz;
+		var count = clipPlane(clipped, 3, clippedOther, near, true);
+		count = clipPlane(clippedOther, count, clipped, far, false);
+		if (count < 3) {
+			return;
+		}
 		var depth = 0.0;
 		for (corner in 0...count) {
 			depth += clipped[corner * 3 + 2];
 		}
 		depth = depth * 3.0 / count;
-		emitFan(shade, depth, 0, 1, 2);
-		if (count == 4) {
-			emitFan(shade, depth, 0, 2, 3);
+		for (corner in 1...count - 1) {
+			emitFan(shade, depth, 0, corner, corner + 1);
 		}
 	}
 
-	// Adds to clipped, which holds up to four corners, the start of an edge if it is in front of the near plane and the place the edge crosses it.
-	static function clipEdge(px:Float, py:Float, pz:Float, qx:Float, qy:Float, qz:Float, near:Float, count:Int):Int {
-		var isPInside = pz >= near;
-		if (isPInside) {
-			clipped[count * 3] = px;
-			clipped[count * 3 + 1] = py;
-			clipped[count * 3 + 2] = pz;
-			count++;
+	// Copies the corners of a polygon that are on the kept side of a plane of constant depth, and the places its edges cross it, so the polygon goes round the same way.
+	static function clipPlane(source:Array<Float>, count:Int, destination:Array<Float>, plane:Float, isKeepingFarther:Bool):Int {
+		var written = 0;
+		for (corner in 0...count) {
+			var next = corner + 1 == count ? 0 : corner + 1;
+			var px = source[corner * 3];
+			var py = source[corner * 3 + 1];
+			var pz = source[corner * 3 + 2];
+			var qx = source[next * 3];
+			var qy = source[next * 3 + 1];
+			var qz = source[next * 3 + 2];
+			var isPInside = isKeepingFarther ? pz >= plane : pz <= plane;
+			var isQInside = isKeepingFarther ? qz >= plane : qz <= plane;
+			if (isPInside) {
+				destination[written * 3] = px;
+				destination[written * 3 + 1] = py;
+				destination[written * 3 + 2] = pz;
+				written++;
+			}
+			if (isPInside != isQInside) {
+				var along = (plane - pz) / (qz - pz);
+				destination[written * 3] = px + (qx - px) * along;
+				destination[written * 3 + 1] = py + (qy - py) * along;
+				destination[written * 3 + 2] = plane;
+				written++;
+			}
 		}
-		if (isPInside != (qz >= near)) {
-			var along = (near - pz) / (qz - pz);
-			clipped[count * 3] = px + (qx - px) * along;
-			clipped[count * 3 + 1] = py + (qy - py) * along;
-			clipped[count * 3 + 2] = near;
-			count++;
-		}
-		return count;
+		return written;
 	}
 
 	static function emitFan(shade:Color, depth:Float, first:Int, second:Int, third:Int):Void {

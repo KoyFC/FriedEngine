@@ -12,6 +12,9 @@ class Camera3D extends Node3D {
 	// Anything nearer than this to the camera is not drawn.
 	public var near:Float;
 
+	// Nor is anything farther than this, on every renderer that does not draw meshes itself. The DS's 3D engine has no far plane in the way it orders meshes, so it draws them to any distance.
+	public var far:Float;
+
 	// How many triangles the last frame sent, which for a renderer that draws meshes itself is every triangle of every mesh, since it leaves out the ones facing away.
 	@:noSerialize public var trianglesDrawn(default, null):Int;
 
@@ -29,6 +32,7 @@ class Camera3D extends Node3D {
 		name = "Camera3D";
 		fieldOfView = 60.0;
 		near = 0.1;
+		far = 100.0;
 		trianglesDrawn = 0;
 		projectedX = 0.0;
 		projectedY = 0.0;

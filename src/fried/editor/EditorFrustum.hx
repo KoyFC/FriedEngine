@@ -4,10 +4,8 @@ package fried.editor;
 import fried.graphics3d.Rotation;
 import fried.scene.Camera3D;
 
-// The volume a Camera3D sees, as eight corners in the world: the near plane's, then a plane DISTANCE in front of the camera, which stands for the far end since a camera has no far plane. The view's own aspect shapes it, whatever the editor's panel looks like.
+// The volume a Camera3D sees, as eight corners in the world: those of its near plane and then those of its far plane. The view's own aspect shapes it, whatever the editor's panel looks like.
 class EditorFrustum {
-	public static inline var DISTANCE:Float = 5.0;
-
 	static var turn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
 	public static function of(camera:Camera3D, aspect:Float):Dynamic {
@@ -15,7 +13,7 @@ class EditorFrustum {
 		var tangent = Math.tan(camera.fieldOfView * Math.PI / 360.0);
 		var corners:Array<Float> = [];
 		for (plane in 0...2) {
-			var distance = plane == 0 ? camera.near : DISTANCE;
+			var distance = plane == 0 ? camera.near : camera.far;
 			var halfHeight = distance * tangent;
 			var halfWidth = halfHeight * aspect;
 			for (corner in 0...4) {
