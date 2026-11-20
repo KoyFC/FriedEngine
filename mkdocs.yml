@@ -44,6 +44,8 @@ nav:
       - architecture/ownership.md
       - architecture/input.md
       - architecture/nodes.md
+      - architecture/draw-queue.md
+      - architecture/text.md
       - architecture/cameras.md
       - architecture/layers.md
       - architecture/scene-switching.md
