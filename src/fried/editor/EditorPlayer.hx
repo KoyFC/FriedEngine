@@ -132,11 +132,13 @@ class EditorPlayer {
 		layer.isEnabled = false;
 		var bounds = [];
 		var bounds3D = [];
+		var frusta = [];
 		if (scene != null) {
 			collectBounds(scene.root, bounds);
 			collectBounds3D(scene.root, bounds3D);
+			collectFrusta(scene.root, frusta);
 		}
-		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds, bounds3D: bounds3D}, renderer.readPixels());
+		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds, bounds3D: bounds3D, frusta: frusta}, renderer.readPixels());
 	}
 
 	// Every node that is drawn, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the node's own coordinates.
@@ -168,6 +170,17 @@ class EditorPlayer {
 				}
 			}
 			collectBounds3D(node, bounds);
+		}
+	}
+
+	// The view of every Camera3D the scene file has, shaped by the size of the screen the scene is laid out for.
+	function collectFrusta(parent:Node, frusta:Array<Dynamic>):Void {
+		for (node in parent.children) {
+			var item = Std.downcast(node, Camera3D);
+			if (item != null && item.id != "" && scene.viewHeight > 0) {
+				frusta.push(EditorFrustum.of(item, scene.viewWidth / scene.viewHeight));
+			}
+			collectFrusta(node, frusta);
 		}
 	}
 
