@@ -60,8 +60,8 @@ class FreeCamera extends Node {
 		lastPointerX = pointerX;
 		lastPointerY = pointerY;
 
-		var forward = axis(Key.W, Key.S, GamepadAxis.LeftY, -1.0);
-		var across = axis(Key.D, Key.A, GamepadAxis.LeftX, 1.0);
+		var forward = clampUnit(axis(Key.W, Key.S, GamepadAxis.LeftY, -1.0) + buttons(GamepadButton.DpadUp, GamepadButton.DpadDown));
+		var across = clampUnit(axis(Key.D, Key.A, GamepadAxis.LeftX, 1.0) + buttons(GamepadButton.DpadRight, GamepadButton.DpadLeft));
 
 		target.rotationY += turn * TURN_SPEED * delta + pointerTurn;
 		target.rotationX = Math.max(-MAX_TILT, Math.min(MAX_TILT, target.rotationX + tilt * TURN_SPEED * delta + pointerTilt));
@@ -72,6 +72,10 @@ class FreeCamera extends Node {
 		target.x += (Math.sin(yaw) * Math.cos(pitch) * forward + Math.cos(yaw) * across) * step;
 		target.y += -Math.sin(pitch) * forward * step;
 		target.z += (Math.cos(yaw) * Math.cos(pitch) * forward - Math.sin(yaw) * across) * step;
+	}
+
+	function clampUnit(value:Float):Float {
+		return Math.max(-1.0, Math.min(1.0, value));
 	}
 
 	function buttons(positive:GamepadButton, negative:GamepadButton):Float {

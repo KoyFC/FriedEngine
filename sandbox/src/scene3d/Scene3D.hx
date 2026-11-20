@@ -4,7 +4,6 @@ import nodes.CubeField;
 import debug.DebugOverlay;
 import fried.graphics.Font;
 import fried.graphics.Renderer;
-import fried.input.GamepadButton;
 import fried.input.InputAction;
 import fried.input.Key;
 import fried.scene.SceneContext;
@@ -34,10 +33,10 @@ class Scene3D {
 			field.setCubeCount(Std.int(field.cubeCount / 2));
 		}
 
-		var more = new InputAction("More cubes", Button).addKey(Key.Up).addGamepadButton(GamepadButton.DpadUp);
+		var more = new InputAction("More cubes", Button).addKey(Key.Up);
 		more.onPressed = doubleCubes;
 		more.enable();
-		var fewer = new InputAction("Fewer cubes", Button).addKey(Key.Down).addGamepadButton(GamepadButton.DpadDown);
+		var fewer = new InputAction("Fewer cubes", Button).addKey(Key.Down);
 		fewer.onPressed = halveCubes;
 		fewer.enable();
 		context.onUnload(function() {
