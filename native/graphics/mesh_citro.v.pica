@@ -1,0 +1,52 @@
+; Turns a corner of a mesh into clip space and lights its face as MeshPass does.
+
+.fvec clip[4], normalMatrix[3], light, ambient
+
+.constf constants(0.0, 1.0, 0.001, 0.00392156862745098)
+.alias zeros constants.xxxx
+.alias ones constants.yyyy
+.alias rounding constants.zzzz
+.alias byteToUnit constants.wwww
+
+.out outPosition position
+.out outColor color
+
+.alias inPosition v0
+.alias inColor v1
+.alias inNormal v2
+
+.proc main
+	mov r0.xyz, inPosition
+	mov r0.w, ones
+	dp4 outPosition.x, clip[0], r0
+	dp4 outPosition.y, clip[1], r0
+	dp4 outPosition.z, clip[2], r0
+	dp4 outPosition.w, clip[3], r0
+
+	; The face's normal in the camera's space, as a unit vector.
+	dp3 r1.x, normalMatrix[0], inNormal
+	dp3 r1.y, normalMatrix[1], inNormal
+	dp3 r1.z, normalMatrix[2], inNormal
+	dp3 r2.x, r1, r1
+	rsq r2.x, r2.x
+	mul r1.xyz, r1.xyz, r2.xxx
+
+	; brightness = ambient + (1 - ambient) * max(-(normal . light), 0)
+	dp3 r3.x, light, r1
+	mov r3.x, -r3.x
+	max r3.x, zeros, r3.x
+	mov r6, ambient
+	add r4.x, ones, -r6.x
+	mul r4.x, r4.x, r3.x
+	add r4.x, r6.x, r4.x
+
+	; The color bytes come in as 0 to 255, and are cut to whole bytes as the CPU does.
+	mul r5.xyz, inColor.xyz, r4.xxx
+	add r5.xyz, rounding, r5.xyz
+	flr r5.xyz, r5.xyz
+	mul r5.xyz, byteToUnit, r5.xyz
+	mul r5.w, byteToUnit, inColor.w
+	mov outColor, r5
+
+	end
+.end

@@ -2,6 +2,7 @@
 #include "graphics/mesh_gl.h"
 
 #include "graphics/display.h"
+#include "graphics/mesh_geometry.h"
 
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -20,19 +21,12 @@
 
 namespace
 {
-    constexpr double s_degreesToRadians = 0.017453292519943295;
-
     constexpr GLuint s_positionAttribute = 0;
     constexpr GLuint s_colorAttribute = 1;
     constexpr GLuint s_normalAttribute = 2;
     constexpr int s_attributeCount = 3;
 
-    struct Vertex
-    {
-        float m_position[3];
-        uint8_t m_color[4];
-        float m_normal[3];
-    };
+    using Vertex = fried_mesh::Vertex;
 
     struct Mesh
     {
@@ -261,26 +255,6 @@ namespace
         s_uniforms.m_light = s_gl.m_getUniformLocation(s_program, "u_light");
         s_uniforms.m_ambient = s_gl.m_getUniformLocation(s_program, "u_ambient");
         return true;
-    }
-
-    // Matrices are 3x3 and row-major, the same as Rotation.hx has them.
-    void rotationMatrix(double x, double y, double z, double *out)
-    {
-        double sinX = std::sin(x * s_degreesToRadians);
-        double cosX = std::cos(x * s_degreesToRadians);
-        double sinY = std::sin(y * s_degreesToRadians);
-        double cosY = std::cos(y * s_degreesToRadians);
-        double sinZ = std::sin(z * s_degreesToRadians);
-        double cosZ = std::cos(z * s_degreesToRadians);
-        out[0] = cosY * cosZ + sinY * sinX * sinZ;
-        out[1] = sinY * sinX * cosZ - cosY * sinZ;
-        out[2] = sinY * cosX;
-        out[3] = cosX * sinZ;
-        out[4] = cosX * cosZ;
-        out[5] = -sinX;
-        out[6] = cosY * sinX * sinZ - sinY * cosZ;
-        out[7] = sinY * sinZ + cosY * sinX * cosZ;
-        out[8] = cosY * cosX;
     }
 
     bool isContextCurrent()
@@ -518,57 +492,13 @@ int fried_mesh_create(const double *vertices, int vertexCount, const int *indice
     }
 
     Mesh &mesh = s_meshes[id];
-    mesh.m_isUsed = true;
     mesh.m_buffer = 0;
-    mesh.m_vertices.resize((size_t)triangleCount * 3);
-    for (int triangle = 0; triangle < triangleCount; ++triangle)
+    mesh.m_isUsed = fried_mesh::expand(vertices, vertexCount, indices, argbColors, triangleCount, mesh.m_vertices);
+    if (!mesh.m_isUsed)
     {
-        const double *corner[3];
-        for (int index = 0; index < 3; ++index)
-        {
-            int vertex = indices[triangle * 3 + index];
-            if (vertex < 0 || vertex >= vertexCount)
-            {
-                mesh.m_isUsed = false;
-                mesh.m_vertices.clear();
-                s_freeMeshes.push_back(id);
-                return -1;
-            }
-            corner[index] = vertices + vertex * 3;
-        }
-
-        double abX = corner[1][0] - corner[0][0];
-        double abY = corner[1][1] - corner[0][1];
-        double abZ = corner[1][2] - corner[0][2];
-        double acX = corner[2][0] - corner[0][0];
-        double acY = corner[2][1] - corner[0][1];
-        double acZ = corner[2][2] - corner[0][2];
-        double normalX = abY * acZ - abZ * acY;
-        double normalY = abZ * acX - abX * acZ;
-        double normalZ = abX * acY - abY * acX;
-        double length = std::sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
-        if (length > 0.0)
-        {
-            normalX /= length;
-            normalY /= length;
-            normalZ /= length;
-        }
-
-        uint32_t color = (uint32_t)argbColors[triangle];
-        for (int index = 0; index < 3; ++index)
-        {
-            Vertex &out = mesh.m_vertices[(size_t)triangle * 3 + index];
-            out.m_position[0] = (float)corner[index][0];
-            out.m_position[1] = (float)corner[index][1];
-            out.m_position[2] = (float)corner[index][2];
-            out.m_color[0] = (uint8_t)(color >> 16);
-            out.m_color[1] = (uint8_t)(color >> 8);
-            out.m_color[2] = (uint8_t)color;
-            out.m_color[3] = (uint8_t)(color >> 24);
-            out.m_normal[0] = (float)normalX;
-            out.m_normal[1] = (float)normalY;
-            out.m_normal[2] = (float)normalZ;
-        }
+        mesh.m_vertices.clear();
+        s_freeMeshes.push_back(id);
+        return -1;
     }
     return id;
 }
@@ -612,81 +542,11 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
         return;
     }
 
-    double nearPlane = std::max(placement[FRIED_MESH_NEAR], 1e-6);
-    double farPlane = placement[FRIED_MESH_FAR];
-    if (!(farPlane > nearPlane))
+    fried_mesh::Transform transform;
+    if (!fried_mesh::place(placement, hasCamera, zoom, cameraX, cameraY, layout, layout.m_viewportX, layout.m_viewportY, layout.m_viewportWidth, layout.m_viewportHeight, transform))
     {
         return;
     }
-
-    // The camera's turn undone, then the mesh's turn and scale, as MeshPass
-    // does it for a mesh it draws itself.
-    double cameraTurn[9], meshTurn[9];
-    rotationMatrix(placement[FRIED_MESH_CAMERA_ROTATION_X], placement[FRIED_MESH_CAMERA_ROTATION_Y], placement[FRIED_MESH_CAMERA_ROTATION_Z], cameraTurn);
-    rotationMatrix(placement[FRIED_MESH_ROTATION_X], placement[FRIED_MESH_ROTATION_Y], placement[FRIED_MESH_ROTATION_Z], meshTurn);
-
-    double scale[3] = {placement[FRIED_MESH_SCALE_X], placement[FRIED_MESH_SCALE_Y], placement[FRIED_MESH_SCALE_Z]};
-    // A face's normal turns with the cofactor matrix of its transform, which
-    // for a turn and a scale is the turn with each axis scaled by the other two.
-    double cofactor[3] = {scale[1] * scale[2], scale[0] * scale[2], scale[0] * scale[1]};
-
-    double modelView[3][4];
-    float normalMatrix[9];
-    for (int row = 0; row < 3; ++row)
-    {
-        for (int column = 0; column < 3; ++column)
-        {
-            double turned = cameraTurn[row] * meshTurn[column] + cameraTurn[3 + row] * meshTurn[3 + column] + cameraTurn[6 + row] * meshTurn[6 + column];
-            modelView[row][column] = turned * scale[column];
-            normalMatrix[column * 3 + row] = (float)(turned * cofactor[column]);
-        }
-    }
-    double offsetX = placement[FRIED_MESH_X] - placement[FRIED_MESH_CAMERA_X];
-    double offsetY = placement[FRIED_MESH_Y] - placement[FRIED_MESH_CAMERA_Y];
-    double offsetZ = placement[FRIED_MESH_Z] - placement[FRIED_MESH_CAMERA_Z];
-    for (int row = 0; row < 3; ++row)
-    {
-        modelView[row][3] = cameraTurn[row] * offsetX + cameraTurn[3 + row] * offsetY + cameraTurn[6 + row] * offsetZ;
-    }
-
-    double lightX = placement[FRIED_MESH_LIGHT_X];
-    double lightY = placement[FRIED_MESH_LIGHT_Y];
-    double lightZ = placement[FRIED_MESH_LIGHT_Z];
-    double light[3];
-    for (int row = 0; row < 3; ++row)
-    {
-        light[row] = cameraTurn[row] * lightX + cameraTurn[3 + row] * lightY + cameraTurn[6 + row] * lightZ;
-    }
-    double lightLength = std::sqrt(light[0] * light[0] + light[1] * light[1] + light[2] * light[2]);
-    if (lightLength > 0.0)
-    {
-        for (double &value : light)
-        {
-            value /= lightLength;
-        }
-    }
-    double ambient = placement[FRIED_MESH_AMBIENT];
-
-    // The screen's pixel of a point is its x and y over its depth, times the
-    // focal length, from the viewport's center, which a 2D camera moves and
-    // zooms as it does the points of triangles.
-    double zoomOfCamera = hasCamera ? zoom : 1.0;
-    double shiftX = hasCamera ? layout.m_width / 2.0 - cameraX * zoom : 0.0;
-    double shiftY = hasCamera ? layout.m_height / 2.0 - cameraY * zoom : 0.0;
-    double viewportHeight = placement[FRIED_MESH_VIEWPORT_HEIGHT];
-    double focal = (viewportHeight / 2.0) / std::tan(placement[FRIED_MESH_FIELD_OF_VIEW] * M_PI / 360.0);
-    double focalX = layout.m_scaleX * zoomOfCamera * focal;
-    double focalY = layout.m_scaleY * zoomOfCamera * focal;
-    double centerX = layout.m_scaleX * (zoomOfCamera * (placement[FRIED_MESH_VIEWPORT_X] + placement[FRIED_MESH_VIEWPORT_WIDTH] / 2.0) + shiftX);
-    double centerY = layout.m_scaleY * (zoomOfCamera * (placement[FRIED_MESH_VIEWPORT_Y] + viewportHeight / 2.0) + shiftY);
-    double width = layout.m_viewportWidth;
-    double height = layout.m_viewportHeight;
-
-    double projection[4][4] = {
-        {2.0 * focalX / width, 0.0, 2.0 * centerX / width - 1.0, 0.0},
-        {0.0, 2.0 * focalY / height, 1.0 - 2.0 * centerY / height, 0.0},
-        {0.0, 0.0, (farPlane + nearPlane) / (farPlane - nearPlane), -2.0 * farPlane * nearPlane / (farPlane - nearPlane)},
-        {0.0, 0.0, 1.0, 0.0}};
 
     // Column-major, as GL takes it.
     float modelViewProjection[16];
@@ -694,16 +554,15 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
     {
         for (int column = 0; column < 4; ++column)
         {
-            double sum = 0.0;
-            for (int inner = 0; inner < 3; ++inner)
-            {
-                sum += projection[row][inner] * modelView[inner][column];
-            }
-            if (column == 3)
-            {
-                sum += projection[row][3];
-            }
-            modelViewProjection[column * 4 + row] = (float)sum;
+            modelViewProjection[column * 4 + row] = (float)transform.m_clip[row][column];
+        }
+    }
+    float normalMatrix[9];
+    for (int row = 0; row < 3; ++row)
+    {
+        for (int column = 0; column < 3; ++column)
+        {
+            normalMatrix[column * 3 + row] = transform.m_normal[row][column];
         }
     }
 
@@ -725,8 +584,8 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
     if (!s_isDepthCleared || std::memcmp(view, s_lastView, sizeof(view)) != 0)
     {
         s_gl.m_clear(GL_DEPTH_BUFFER_BIT);
-        s_gl.m_uniform3f(s_uniforms.m_light, (float)light[0], (float)light[1], (float)light[2]);
-        s_gl.m_uniform1f(s_uniforms.m_ambient, (float)ambient);
+        s_gl.m_uniform3f(s_uniforms.m_light, transform.m_light[0], transform.m_light[1], transform.m_light[2]);
+        s_gl.m_uniform1f(s_uniforms.m_ambient, transform.m_ambient);
         std::memcpy(s_lastView, view, sizeof(view));
         s_isDepthCleared = true;
     }

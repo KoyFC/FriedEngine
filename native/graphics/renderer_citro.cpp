@@ -4,6 +4,8 @@
 #include "last_error.h"
 #include "graphics/display.h"
 #include "graphics/font.h"
+#include "graphics/mesh.h"
+#include "graphics/mesh_citro.h"
 #include "graphics/texture.h"
 #include "platform/window.h"
 
@@ -59,6 +61,7 @@ namespace
 
     void stopCitro()
     {
+        fried_mesh_citro_stop();
         C2D_Fini();
         C3D_Fini();
     }
@@ -120,6 +123,7 @@ namespace
         }
         if (s_sceneRenderer != renderer)
         {
+            fried_mesh_citro_leave();
             C2D_SceneBegin(renderer->target);
             const FriedDisplayLayout &layout = renderer->layout;
             C2D_ViewReset();
@@ -134,6 +138,7 @@ namespace
         CitroRenderer *renderer = s_renderers.get(rendererId);
         if (renderer)
         {
+            fried_mesh_citro_leave();
             beginScene(renderer);
         }
         return renderer;
@@ -301,6 +306,7 @@ void fried_renderer_present(int rendererId)
     {
         return;
     }
+    fried_mesh_citro_leave();
     for (int id = 0; id < s_renderers.capacity(); ++id)
     {
         CitroRenderer *renderer = s_renderers.get(id);
@@ -463,4 +469,16 @@ float fried_renderer_get_pixel_scale(int rendererId)
         return 1.0f;
     }
     return std::min(renderer->layout.m_scaleX, renderer->layout.m_scaleY);
+}
+
+void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
+{
+    CitroRenderer *renderer = s_renderers.get(rendererId);
+    if (!renderer)
+    {
+        return;
+    }
+    // A run of meshes goes on drawing on the screen it began on.
+    beginScene(renderer);
+    fried_mesh_citro_draw(meshId, placement, hasCamera, zoom, cameraX, cameraY, renderer->layout, screenWidth(renderer->screen), s_screenHeight);
 }

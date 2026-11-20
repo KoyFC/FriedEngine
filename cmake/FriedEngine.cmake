@@ -98,8 +98,10 @@ else()
     set(_fried_graphics_backend sdl)
 endif()
 
-# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC and the Switch. The other platforms have no such renderer yet, and their meshes are drawn as triangles.
-if(VITA OR NINTENDO_3DS OR FRIED_WEB)
+# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC and the Switch, and the 3DS's GPU through citro3d. The other platforms have no such renderer yet, and their meshes are drawn as triangles.
+if(NINTENDO_3DS)
+    set(_fried_mesh_backend citro)
+elseif(VITA OR FRIED_WEB)
     set(_fried_mesh_backend none)
 else()
     set(_fried_mesh_backend gl)
@@ -235,6 +237,12 @@ if(NOT TARGET fried_engine)
 
     if(NINTENDO_3DS)
         target_link_libraries(fried_engine PUBLIC citro2d citro3d)
+
+        # The vertex shader meshes are drawn with, built by picasso and linked in.
+        ctr_add_shader_library(mesh_citro ${FRIED_ENGINE_DIR}/native/graphics/mesh_citro.v.pica)
+        enable_language(ASM)
+        dkp_add_embedded_binary_library(mesh_citro_shader mesh_citro)
+        target_link_libraries(fried_engine PUBLIC mesh_citro_shader)
     endif()
 
     add_library(fried::engine ALIAS fried_engine)
