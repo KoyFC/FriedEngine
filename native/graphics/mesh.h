@@ -4,14 +4,16 @@
 
 // A mesh a renderer turns, lights and depth tests itself, on a GPU that does
 // 3D. Only the DS's top screen has such a renderer; everywhere else a mesh
-// cannot be created, and Camera3D draws one as triangles it works out itself.
+// cannot be created, and MeshPass draws one as triangles it works out itself.
 
-// The numbers Camera3D places a mesh with, in this order: the mesh's position,
-// its rotation in degrees about x, y and z and its scale, then the camera's
-// position, field of view, viewport and near plane, and the light's direction
-// and ambient level. They are passed as they are, since every sum on them is
-// a call into software floating point on the DS, and what the camera and the
-// light give is worked out once for all the meshes they are the same for.
+// The numbers MeshPass places a mesh with, in this order: the mesh's
+// position, its rotation in degrees about x, y and z (turned about z, then x,
+// then y, as Unity does) and its scale on each axis, then the camera's
+// position, rotation, field of view, viewport and near plane, and the light's
+// direction in the world and ambient level. They are passed as they are, since
+// every sum on them is a call into software floating point on the DS, and what
+// the camera and the light give is worked out once for all the meshes they are
+// the same for.
 enum FriedMeshPlacement
 {
     FRIED_MESH_X,
@@ -20,10 +22,15 @@ enum FriedMeshPlacement
     FRIED_MESH_ROTATION_X,
     FRIED_MESH_ROTATION_Y,
     FRIED_MESH_ROTATION_Z,
-    FRIED_MESH_SCALE,
+    FRIED_MESH_SCALE_X,
+    FRIED_MESH_SCALE_Y,
+    FRIED_MESH_SCALE_Z,
     FRIED_MESH_CAMERA_X,
     FRIED_MESH_CAMERA_Y,
     FRIED_MESH_CAMERA_Z,
+    FRIED_MESH_CAMERA_ROTATION_X,
+    FRIED_MESH_CAMERA_ROTATION_Y,
+    FRIED_MESH_CAMERA_ROTATION_Z,
     FRIED_MESH_FIELD_OF_VIEW,
     FRIED_MESH_VIEWPORT_X,
     FRIED_MESH_VIEWPORT_Y,

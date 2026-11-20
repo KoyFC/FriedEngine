@@ -241,6 +241,7 @@ namespace
         glMatrixMode(GL_PROJECTION);
         glPopMatrix(1);
         glMatrixMode(GL_MODELVIEW);
+        glPopMatrix(1);
         s_drawingMeshes = false;
     }
 
@@ -461,6 +462,11 @@ namespace
         return (int)(((fried_to_fixed(degrees, 12) * s_angleFactor) >> 24) & (DEGREES_IN_CIRCLE - 1));
     }
 
+    int toInverseAngle(double degrees)
+    {
+        return (DEGREES_IN_CIRCLE - toAngle(degrees)) & (DEGREES_IN_CIRCLE - 1);
+    }
+
     // Word by word, as newlib's memcmp() goes a byte at a time.
     bool isSameWords(const void *a, const void *b, size_t bytes)
     {
@@ -546,10 +552,20 @@ namespace
         glLoadMatrix4x4(&projection);
         glMatrixMode(GL_MODELVIEW);
 
-        // Set while the modelview matrix is the identity, so the light points
-        // the same way in the camera's space whatever a mesh is turned by.
+        // The camera's turn undone, which every mesh of the band is drawn
+        // under, and which turns the light into the camera's space as it is
+        // set. The camera is turned about z, then x, then y, so undoing it
+        // goes the other way round, and each call lands on the right.
+        glPushMatrix();
+        glLoadIdentity();
+        glRotateZi(toInverseAngle(number(FRIED_MESH_CAMERA_ROTATION_Z)));
+        glRotateXi(toInverseAngle(number(FRIED_MESH_CAMERA_ROTATION_X)));
+        glRotateYi(toInverseAngle(number(FRIED_MESH_CAMERA_ROTATION_Y)));
+
+        // Set under the camera's turn, so the light points the same way in
+        // the camera's space whatever a mesh is turned by.
         // A polygon gives out its ambient share of its color unlit, and the
-        // light the rest as it faces into it, as Camera3D shades one.
+        // light the rest as it faces into it, as MeshPass shades one.
         double ambient = std::clamp(number(FRIED_MESH_AMBIENT), 0.0, 1.0);
         double lightX = number(FRIED_MESH_LIGHT_X);
         double lightY = number(FRIED_MESH_LIGHT_Y);
@@ -1162,7 +1178,7 @@ bool fried_renderer_draws_meshes(int rendererId)
     return !isSoftware(rendererId) && s_renderers.get(rendererId) != nullptr;
 }
 
-// Rotation goes about x, then y, then z, as Camera3D turns a mesh. The engine
+// Rotation goes about z, then x, then y, as MeshPass turns a mesh. The engine
 // leaves out the triangles that face away from the camera. All of it is in
 // integers once the view is set, as it is the same for every mesh in a band.
 void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
@@ -1182,15 +1198,16 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
     {
         return;
     }
-    int64_t scale = fried_to_fixed(placement[FRIED_MESH_SCALE], 12 + mesh->m_unitShift);
-    scale = std::clamp<int64_t>(scale, INT32_MIN, INT32_MAX);
+    int64_t scaleX = std::clamp<int64_t>(fried_to_fixed(placement[FRIED_MESH_SCALE_X], 12 + mesh->m_unitShift), INT32_MIN, INT32_MAX);
+    int64_t scaleY = std::clamp<int64_t>(fried_to_fixed(placement[FRIED_MESH_SCALE_Y], 12 + mesh->m_unitShift), INT32_MIN, INT32_MAX);
+    int64_t scaleZ = std::clamp<int64_t>(fried_to_fixed(placement[FRIED_MESH_SCALE_Z], 12 + mesh->m_unitShift), INT32_MIN, INT32_MAX);
 
     glPushMatrix();
     glTranslatef32((int)x, (int)y, (int)z);
-    glRotateZi(toAngle(placement[FRIED_MESH_ROTATION_Z]));
     glRotateYi(toAngle(placement[FRIED_MESH_ROTATION_Y]));
     glRotateXi(toAngle(placement[FRIED_MESH_ROTATION_X]));
-    glScalef32((int)scale, (int)scale, (int)scale);
+    glRotateZi(toAngle(placement[FRIED_MESH_ROTATION_Z]));
+    glScalef32((int)scaleX, (int)scaleY, (int)scaleZ);
 
     int alpha = -1;
     int cornerCount = 0;

@@ -1,6 +1,6 @@
 #include "graphics/mesh.h"
 
-// No renderer here draws meshes, so Camera3D draws them as triangles.
+// No renderer here draws meshes, so MeshPass draws them as triangles.
 
 int fried_mesh_create(const double *, int, const int *, const int *, int)
 {

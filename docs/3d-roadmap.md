@@ -10,15 +10,12 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 - [x] 3D stress test scene
 - [x] Meshes drawn by the DS's 3D engine on its top screen
 - [x] Camera3D, DirectionalLight and MeshInstance nodes; a scene sorts the triangles of all its meshes together and submits one batch
+- [x] Camera rotation on the DS's 3D engine
 - [x] Node3D: position, rotation about each axis in Unity's order and scale on each, its world values cached like a Node2D's
 
 ## Next
 
-### 1. Free camera
-
-- Rotation of the camera on the DS's 3D engine
-
-### 2. Clipping
+### 1. Clipping
 
 - Clip triangles against the near plane instead of dropping them
 - Skip meshes outside the frustum by bounding sphere

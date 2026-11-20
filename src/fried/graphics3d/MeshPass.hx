@@ -11,7 +11,7 @@ import fried.scene.MeshInstance;
 // Where a renderer draws meshes itself, each one is sent as the numbers that place it. Everywhere else the triangles of all the meshes are worked out here and sorted together, farthest first, as one batch.
 class MeshPass {
 	// In the order graphics/mesh.h lists them.
-	static inline var PLACEMENT_SIZE = 20;
+	static inline var PLACEMENT_SIZE = 25;
 
 	static var cameraTurn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 	static var meshTurn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
@@ -129,19 +129,24 @@ class MeshPass {
 		placement[4] = instance.worldRotationY;
 		placement[5] = instance.worldRotationZ;
 		placement[6] = instance.worldScaleX;
-		placement[7] = camera.worldX;
-		placement[8] = camera.worldY;
-		placement[9] = camera.worldZ;
-		placement[10] = camera.fieldOfView;
-		placement[11] = 0.0;
-		placement[12] = 0.0;
-		placement[13] = width;
-		placement[14] = height;
-		placement[15] = camera.near;
-		placement[16] = lightX;
-		placement[17] = lightY;
-		placement[18] = lightZ;
-		placement[19] = ambient;
+		placement[7] = instance.worldScaleY;
+		placement[8] = instance.worldScaleZ;
+		placement[9] = camera.worldX;
+		placement[10] = camera.worldY;
+		placement[11] = camera.worldZ;
+		placement[12] = camera.worldRotationX;
+		placement[13] = camera.worldRotationY;
+		placement[14] = camera.worldRotationZ;
+		placement[15] = camera.fieldOfView;
+		placement[16] = 0.0;
+		placement[17] = 0.0;
+		placement[18] = width;
+		placement[19] = height;
+		placement[20] = camera.near;
+		placement[21] = lightX;
+		placement[22] = lightY;
+		placement[23] = lightZ;
+		placement[24] = ambient;
 	}
 
 	static function collect(instance:MeshInstance, mesh:Mesh, camera:Camera3D):Void {

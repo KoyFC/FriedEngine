@@ -12,7 +12,7 @@
 
 // A mesh is turned into what the geometry engine takes once, when it is
 // created: each triangle's normal, worked out from its corners the way
-// Camera3D does, and its corners in fixed point. Two triangles in a row that
+// MeshPass does, and its corners in fixed point. Two triangles in a row that
 // make a flat, convex quad of one color, as a fan of two does, go as that
 // quad: the engine keeps at most 6144 vertices a frame, and a quad takes four
 // of them where two triangles take six. Drawing it is then a few writes per
