@@ -1,11 +1,26 @@
 {
+	"camera": "camera",
 	"name": "Sandbox 3D",
 	"nodes": [
+		{
+			"id": "camera",
+			"name": "Camera",
+			"type": "Camera3D"
+		},
+		{
+			"ambient": 0.3,
+			"id": "light",
+			"name": "Light",
+			"rotationX": 33,
+			"rotationY": -21.8,
+			"type": "DirectionalLight"
+		},
 		{
 			"cubeCount": 16,
 			"id": "cube-field",
 			"name": "Cube field",
-			"type": "CubeField"
+			"type": "CubeField",
+			"z": 10
 		},
 		{
 			"color": {

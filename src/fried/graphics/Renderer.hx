@@ -24,7 +24,7 @@ class Renderer {
 
 	public var drawColor(default, set):Color;
 
-	@:allow(fried.graphics3d.Camera3D)
+	@:allow(fried.graphics3d.MeshPass)
 	var drawsMeshes:Bool;
 
 	var texturesByPath:Map<String, Texture>;

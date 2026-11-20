@@ -2,6 +2,7 @@ package fried.scene;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
+import fried.graphics3d.MeshPass;
 import fried.input.InputEvent;
 import fried.physics.Collider;
 import fried.physics.ColliderGrid;
@@ -14,6 +15,9 @@ class Scene {
 	public var name:String;
 
 	public var camera(default, set):Null<Camera>;
+
+	// What the scene's meshes are drawn through. A scene has a camera or a camera3D, and two scenes loaded together give a game both.
+	public var camera3D:Null<Camera3D>;
 
 	public var nodeCount(default, null):Int;
 
@@ -32,6 +36,8 @@ class Scene {
 	var fixedUpdateList:Array<Node>;
 	var bodyList:Array<KinematicBody>;
 	var drawList:Array<Node>;
+	var meshList:Array<MeshInstance>;
+	var lightList:Array<DirectionalLight>;
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;
 	var colliders:Array<Collider>;
@@ -49,6 +55,8 @@ class Scene {
 		fixedUpdateList = [];
 		bodyList = [];
 		drawList = [];
+		meshList = [];
+		lightList = [];
 		eventTree = [];
 		eventList = [];
 		colliders = [];
@@ -160,6 +168,8 @@ class Scene {
 		fixedUpdateList.resize(0);
 		bodyList.resize(0);
 		drawList.resize(0);
+		meshList.resize(0);
+		lightList.resize(0);
 		eventTree.resize(0);
 		collect(root);
 		areListsDirty = false;
@@ -183,6 +193,12 @@ class Scene {
 			}
 			if ((flags & 32) != 0) {
 				bodyList.push(cast node);
+			}
+			if ((flags & 64) != 0) {
+				meshList.push(cast node);
+			}
+			if ((flags & 128) != 0) {
+				lightList.push(cast node);
 			}
 		}
 		for (child in node.children) {
@@ -295,6 +311,21 @@ class Scene {
 			}
 			index++;
 		}
+		if (camera3D != null && camera3D.shownInTree && meshList.length > 0) {
+			var camera2D = DrawQueue.currentCamera;
+			DrawQueue.currentCamera = null;
+			MeshPass.draw(camera3D, firstLight(), meshList, renderer.width, renderer.height);
+			DrawQueue.currentCamera = camera2D;
+		}
+	}
+
+	function firstLight():Null<DirectionalLight> {
+		for (light in lightList) {
+			if (light.shownInTree) {
+				return light;
+			}
+		}
+		return null;
 	}
 
 	// Top first, the reverse of the order things are drawn in, and a higher priority before a lower one.
@@ -333,6 +364,7 @@ class Scene {
 			child.destroyTree();
 		}
 		camera = null;
+		camera3D = null;
 	}
 
 	static function byPriorityDescending(first:Node, second:Node):Int {

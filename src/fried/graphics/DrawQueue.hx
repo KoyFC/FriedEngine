@@ -115,9 +115,9 @@ class DrawQueue {
 	}
 
 	// A mesh the renderer draws itself. Returns the numbers that place it, for
-	// Camera3D to fill in the order graphics/mesh.h lists them: they are
+	// MeshPass to fill in the order graphics/mesh.h lists them: they are
 	// written straight into the command, as copying them takes as long again.
-	@:allow(fried.graphics3d.Camera3D)
+	@:allow(fried.graphics3d.MeshPass)
 	static function submitMesh(priority:Int, meshId:Int, placementSize:Int):Array<Float> {
 		var command = next(priority);
 		command.type = DrawMesh;

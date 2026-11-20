@@ -83,11 +83,16 @@ class SceneLoader {
 
 		var cameraId:Null<String> = FieldCodec.get(data, "camera");
 		if (cameraId != null) {
-			var camera = Std.downcast(scene.findById(cameraId), Camera);
-			if (camera == null) {
-				throw 'The scene camera "$cameraId" is not a Camera node.';
+			var node = scene.findById(cameraId);
+			var camera = Std.downcast(node, Camera);
+			var camera3D = Std.downcast(node, Camera3D);
+			if (camera != null) {
+				scene.camera = camera;
+			} else if (camera3D != null) {
+				scene.camera3D = camera3D;
+			} else {
+				throw 'The scene camera "$cameraId" is not a Camera or a Camera3D node.';
 			}
-			scene.camera = camera;
 		}
 		return scene;
 	}

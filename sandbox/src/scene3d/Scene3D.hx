@@ -45,7 +45,7 @@ class Scene3D {
 			fewer.disable();
 		});
 
-		overlay.setSceneDetails(context, () -> ['cubes ${field.cubeCount}', 'triangles ${field.trianglesDrawn}']);
+		overlay.setSceneDetails(context, () -> ['cubes ${field.cubeCount}', 'triangles ${scene.camera3D.trianglesDrawn}']);
 		overlay.addSceneButton(context, () -> "Cubes x2", doubleCubes);
 		overlay.addSceneButton(context, () -> "Cubes /2", halveCubes);
 	}

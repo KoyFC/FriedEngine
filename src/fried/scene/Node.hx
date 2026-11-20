@@ -14,6 +14,8 @@ class Node {
 	static inline var DRAW:Int = 2;
 	static inline var EVENT:Int = 4;
 	static inline var COLLIDER:Int = 8;
+	static inline var MESH:Int = 64;
+	static inline var LIGHT:Int = 128;
 
 	// While a scene file is being built, nodes wait here instead of becoming ready, since what they start with may not exist yet.
 	@:allow(fried.scene.serialization.SceneLoader)

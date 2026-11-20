@@ -9,6 +9,7 @@ import fried.io.Filesystem;
 import fried.scene.Camera;
 import fried.scene.CanvasItem;
 import fried.scene.Node;
+import fried.scene.Node3D;
 import fried.scene.Scene;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.LoadContext;
@@ -134,7 +135,8 @@ class EditorPlayer {
 	function collectBounds(parent:Node, bounds:Array<Dynamic>):Void {
 		for (node in parent.children) {
 			var item = Std.downcast(node, CanvasItem);
-			if (item != null) {
+			// A node of the game that code made has no id, and a Node3D is not in the plane the editor shows.
+			if (item != null && !Std.isOfType(item, Node3D) && item.id != "") {
 				var box = EditorBounds.of(item);
 				var entry:Dynamic = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: item.worldX, originY: item.worldY};
 				var around = EditorBounds.parentOf(item);

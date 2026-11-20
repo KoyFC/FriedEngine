@@ -41,7 +41,7 @@ class Mesh {
 	}
 
 	// -1 where no renderer draws meshes, or the copy did not fit in memory.
-	@:allow(fried.graphics3d.Camera3D)
+	@:allow(fried.graphics3d.MeshPass)
 	function copyForRenderer():Int {
 		if (nativeId < 0) {
 			nativeId = MeshNative.create(cpp.Pointer.ofArray(vertices).constRaw, Std.int(vertices.length / 3), cpp.Pointer.ofArray(indices).constRaw,
