@@ -1,5 +1,9 @@
 # Installing
 
+## Supported systems
+
+A build runs on Linux or on Windows. macOS is not supported, and there are no instructions for it here.
+
 What a build needs depends on the system it runs on and the platform it builds for. Find your system below and install everything its section lists, then the section for each console you want to build for, if any. Nothing else is needed: SDL2 and its companion libraries are downloaded and built by CMake itself for PC, so they are never installed by hand. Fedora is the Linux distribution everything here is verified on; the Debian, Ubuntu and Arch commands name the same software and are not verified.
 
 ## On Linux, for Linux
