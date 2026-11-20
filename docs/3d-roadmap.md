@@ -13,13 +13,13 @@ Software 3D in Haxe, drawn with `fillTriangles()`, or meshes drawn by the render
 - [x] Clipping at the near plane, skipping meshes outside the view by bounding sphere, and a free camera in the sandbox's 3D scene
 - [x] Built-in shapes for MeshInstance
 - [x] Camera rotation on the DS's 3D engine
-- [x] OpenGL depth buffer backend on PC (SDL's `opengl` driver), with the far plane passed to every renderer that draws meshes
+- [x] OpenGL depth buffer backend on PC and the Switch (SDL's `opengl` and `opengles2` drivers), with the far plane passed to every renderer that draws meshes
 - [x] Node3D: position, rotation about each axis in Unity's order and scale on each, its world values cached like a Node2D's
 
 ## Constraints
 
 - `Camera3D.far` is not enforced on the DS, whose 3D engine orders meshes without a far plane
-- Meshes are drawn as triangles, in painter's order, wherever the renderer draws none: every platform but the DS and PC, and PC when SDL has no OpenGL context with a depth buffer
+- Meshes are drawn as triangles, in painter's order, wherever the renderer draws none: every platform but the DS, PC and Switch, and those two when SDL has no OpenGL context with a depth buffer
 
 - Works on every platform except the fx-CG50, which keeps the `fillTriangles()` it has now and gets no further 3D support
 - Games only use nodes, so a GPU backend can replace the pipeline later
@@ -32,4 +32,4 @@ Software 3D in Haxe, drawn with `fillTriangles()`, or meshes drawn by the render
 - Textures
 - Point lights, vertex colors
 - Parenting a mesh under another mesh
-- GPU backends for the Switch, the Vita and the 3DS
+- GPU backends for the Vita and the 3DS

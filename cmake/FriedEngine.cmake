@@ -98,8 +98,8 @@ else()
     set(_fried_graphics_backend sdl)
 endif()
 
-# Meshes drawn with the depth buffer of the GL context SDL's renderer makes. The other platforms have no such renderer yet, and their meshes are drawn as triangles.
-if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_WEB)
+# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC and the Switch. The other platforms have no such renderer yet, and their meshes are drawn as triangles.
+if(VITA OR NINTENDO_3DS OR FRIED_WEB)
     set(_fried_mesh_backend none)
 else()
     set(_fried_mesh_backend gl)

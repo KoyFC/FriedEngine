@@ -99,7 +99,10 @@ int fried_renderer_create(int windowId, bool vsync)
     // Meshes are drawn with GL between SDL's own calls, which needs SDL's
     // queue flushed by hand rather than behind the application's back.
     // Neither hint beats the environment, so the driver can still be named from outside.
-#if !defined(__vita__) && !defined(__SWITCH__) && !defined(__3DS__) && !defined(__EMSCRIPTEN__)
+#if defined(__SWITCH__)
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengles2", SDL_HINT_DEFAULT);
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
+#elif !defined(__vita__) && !defined(__3DS__) && !defined(__EMSCRIPTEN__)
     SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_DEFAULT);
     SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
 #endif
