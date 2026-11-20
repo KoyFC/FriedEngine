@@ -110,9 +110,13 @@ int fried_renderer_create(int windowId, bool vsync)
     }
     if (!renderer)
     {
-        // No GL here, so SDL chooses a driver of its own.
+        // No GL here, so SDL chooses a driver of its own, down to the software one a window with no GPU behind it, such as the editor player's, can still have.
         SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "", SDL_HINT_DEFAULT);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        if (!renderer)
+        {
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+        }
     }
     if (!renderer)
     {
