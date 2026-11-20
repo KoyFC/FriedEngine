@@ -8,7 +8,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 - A scene is a JSON file under `assets/scenes/`, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a component that differs on a platform decides so in its own code.
 - The reference resolution is the project's `display` block, not a field of the scene.
 - Components are serialized through a build macro on `Component`, with no runtime reflection and an explicit registry of the built-ins.
-- The viewport is a separate engine process, driven by a small protocol (see the editor player section of `ARCHITECTURE.md`): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User components cannot be shown in it until a per-project player exists, because they are compiled Haxe.
+- The viewport is a separate engine process, driven by a small protocol (see [the editor player page](../architecture/editor-player.md)): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User components cannot be shown in it until a per-project player exists, because they are compiled Haxe.
 - The editor is split into a UI-independent core and swappable UI backends: Dear ImGui is the one in use, and Qt stays as a second backend.
 
 ## Phases

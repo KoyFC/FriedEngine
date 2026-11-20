@@ -106,7 +106,7 @@ The risk that the next phases have to measure is CPU, not memory: software `doub
 
 ## Phase 2: the sandbox on the DS
 
-The proof of concept went on into a port, with the goal of running the sandbox. The drawing the fx-CG50 does on the CPU was first taken out of its gint files into `renderer_software.cpp`, `texture_software.cpp` and `font_software.cpp`, so the DS shares it instead of copying it; `ARCHITECTURE.md` describes how the DS platform sits on top of them.
+The proof of concept went on into a port, with the goal of running the sandbox. The drawing the fx-CG50 does on the CPU was first taken out of its gint files into `renderer_software.cpp`, `texture_software.cpp` and `font_software.cpp`, so the DS shares it instead of copying it; [the Nintendo DS page](../platforms/nds.md) describes how the DS platform sits on top of them.
 
 The sandbox builds with `-DCMAKE_BUILD_TYPE=MinSizeRel` into 1,019,120 bytes of ARM9 `.text`, 22,316 of `.data` and 123,668 of `.bss`, the last being mostly the 96 KB frame, and a 1,888,256 byte `.nds` holding its 747 KB of assets in NitroFS. It boots, loads its PNG and the 569 KB TrueType font, which fits in memory here where it does not on the calculator, and draws its 2D scene and debug overlay on the top screen with the log on the bottom one. With nothing tuned yet, it runs at 12 frames a second in melonDS.
 
@@ -116,7 +116,7 @@ The first build seemed slower still: the overlay's frame counter crept, and what
 
 Timed with the system tick counter over 64 frames in melonDS, a frame of the CPU renderer took 83.5 ms at `-Oz` and 66.8 ms at `-O2`, and Haxe was 2 to 3 ms of it. Clearing the screen alone took 7 to 9 ms: main RAM takes writes slowly, and the ARM946E-S's data cache does not allocate on a write, so the renderer the calculator uses has little left to gain here. Another 9 to 11 ms went to waiting for the vertical blank, since every frame was longer than one.
 
-The top screen is now drawn by the 3D engine instead (`ARCHITECTURE.md` describes how). Its first build ran at 30 frames a second: sending the sandbox's 318 glyphs a frame took 11.5 ms, 36 µs each, because their corners went through floats and `lround()`, all of it software floating point. In integers it takes 1.2 ms, and the sandbox runs at 60 frames a second. What remains of a frame is mostly laying out the text, about 6 ms in `font_software.cpp`, and the Haxe side of the draw queue, about 5 ms.
+The top screen is now drawn by the 3D engine instead ([the Nintendo DS page](../platforms/nds.md) describes how). Its first build ran at 30 frames a second: sending the sandbox's 318 glyphs a frame took 11.5 ms, 36 µs each, because their corners went through floats and `lround()`, all of it software floating point. In integers it takes 1.2 ms, and the sandbox runs at 60 frames a second. What remains of a frame is mostly laying out the text, about 6 ms in `font_software.cpp`, and the Haxe side of the draw queue, about 5 ms.
 
 | | CPU renderer, `-Oz` | 3D engine |
 |---|---|---|
@@ -147,7 +147,7 @@ Images could be converted the same way, into the 3D engine's texel format, which
 
 ### The bottom screen
 
-The 3D engine draws one screen at a time, so when a game opens a second window, the bottom screen's, it is drawn by the software renderer the calculator uses, behind `renderer_nds.cpp` (`ARCHITECTURE.md` describes how both are linked in). The sandbox puts its debug overlay there, translucent panels and twenty lines of text, which is what cost the most on the CPU, and it ran at 20 frames a second in melonDS with it, against 60 with one window. A frame took 50 ms, 42 of them on the bottom screen: clearing it took 10.3 ms, the six translucent panels and buttons 22 ms, the glyphs 2.7 ms, and waiting for the vertical blank and copying the frame 6.1 ms.
+The 3D engine draws one screen at a time, so when a game opens a second window, the bottom screen's, it is drawn by the software renderer the calculator uses, behind `renderer_nds.cpp` ([the Nintendo DS page](../platforms/nds.md) describes how both are linked in). The sandbox puts its debug overlay there, translucent panels and twenty lines of text, which is what cost the most on the CPU, and it ran at 20 frames a second in melonDS with it, against 60 with one window. A frame took 50 ms, 42 of them on the bottom screen: clearing it took 10.3 ms, the six translucent panels and buttons 22 ms, the glyphs 2.7 ms, and waiting for the vertical blank and copying the frame 6.1 ms.
 
 Nearly all of that screen is the same from one frame to the next, the panels and the buttons, with only a few numbers changing. So the software renderer now records each frame as commands in output pixels, with the bounds each covers, compares them with the last frame's, and draws again, clipped, only where they differ, sending only those rows to the screen. A frame of the sandbox takes 16.5 ms with the overlay on the bottom screen, back at 60 frames a second, and the bottom screen costs it 1 to 2 ms. What it draws is the same: the bottom screen's frame, read back from memory at the same frame, matches the one the previous renderer drew everywhere but the counter line, whose numbers differ between the two runs. The calculator shares the renderer, so it draws only what changes too.
 
@@ -159,7 +159,7 @@ Left for later: the 3D engine can draw both screens by turning to the other one 
 
 ### Meshes on the 3D engine
 
-The 3D stress test ran on the CPU path every other platform uses, at about 2 ms a cube: 60 frames a second with 4 cubes, 28 with 16, 4 with 128, 1 with 512, where it then crashed. Every float in it is a call into software floating point. The top screen now hands meshes to the 3D engine, which turns, lights, culls and depth tests them itself (`ARCHITECTURE.md` describes how), so the CPU only places each one.
+The 3D stress test ran on the CPU path every other platform uses, at about 2 ms a cube: 60 frames a second with 4 cubes, 28 with 16, 4 with 128, 1 with 512, where it then crashed. Every float in it is a call into software floating point. The top screen now hands meshes to the 3D engine, which turns, lights, culls and depth tests them itself ([the Nintendo DS page](../platforms/nds.md) describes how), so the CPU only places each one.
 
 | Cubes | Before, frames a second | Now, ms a frame | Frames a second | Polygons | Vertices |
 |---|---|---|---|---|---|
@@ -288,7 +288,7 @@ Also open, not tried: skipping repeated polygon state between draws of the same 
 
 ### One call a frame for sprites and rectangles
 
-The draw queue's Haxe wrappers were most of the flush: placing a command, then converting its five doubles to the floats a native call takes, cost about 25 µs a command in software floating point, 10 ms for the stress scene's 400 sprites, boxes and outlines. They now write each command as a record, the doubles as they are, and the DS decodes the batch in fixed point (`ARCHITECTURE.md`). On the stress scene in melonDS the flush went from 19.57 to 15.3 ms, and from there to 14.4 ms when quads of one state share a polygon list. A frame's work is 19.96 ms, 50 frames a second, from 24.97 and 40.
+The draw queue's Haxe wrappers were most of the flush: placing a command, then converting its five doubles to the floats a native call takes, cost about 25 µs a command in software floating point, 10 ms for the stress scene's 400 sprites, boxes and outlines. They now write each command as a record, the doubles as they are, and the DS decodes the batch in fixed point ([Nintendo DS](../platforms/nds.md)). On the stress scene in melonDS the flush went from 19.57 to 15.3 ms, and from there to 14.4 ms when quads of one state share a polygon list. A frame's work is 19.96 ms, 50 frames a second, from 24.97 and 40.
 
 Where the 14.4 ms goes, from timers around each part: sorting 1 ms, writing the records 2 ms, the native batch 6.3 ms and text 5.8 ms. Decoding the batch takes 0.84 ms of the native 7.2, so the rest is handing polygons to the engine: leaving out the 100 outlines takes 2.5 ms off it, the 200 sprites 3.2 ms.
 

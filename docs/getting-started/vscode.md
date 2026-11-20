@@ -22,7 +22,7 @@ The Flatpak build of VS Code (`com.visualstudio.code`) runs inside a sandbox bas
 
 ### Requirements
 
-- The host toolchain from the README (Haxe, hxcpp, CMake, a C++17 compiler, SDL2), installed on the host, not in the sandbox.
+- The host toolchain from [Installing](installing.md) (Haxe, hxcpp, CMake, a C++17 compiler, SDL2), installed on the host, not in the sandbox.
 - `gdb` on the host, for debugging.
 - The Flathub package's default permissions: `--filesystem=host` and `--talk-name=org.freedesktop.Flatpak`. If they were removed, restore them with:
 

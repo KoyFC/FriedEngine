@@ -1,0 +1,9 @@
+# Scene switching
+
+`fried.scene.SceneManager` switches between named scenes the way Unity's does. A game registers a load function per name, and `load(name)` takes down everything the previous load built before calling the next one. What counts as built is what went through the `SceneContext` the function is handed: the layers it pushed come off their renderers, the scenes it added are destroyed, and the callbacks it registered run, last first. Anything the game set up outside a load is untouched, which is Unity's `DontDestroyOnLoad` without a call to make: the sandbox's debug overlay, music and window are created once in `Main` and outlive every scene.
+
+A "scene" here is therefore what a load builds, not one `fried.scene.Scene`. The sandbox's 2D scene is a world and an interface, two `Scene` objects on two layers, because the camera belongs to the `Scene` and an interface is a scene without one. Making the switchable unit a single `Scene` would have forced the interface into the world.
+
+A load takes effect at the start of the next frame, before events are pumped. The frame that asked, often from inside a button's click in the middle of the event walk, finishes over the layers it started with, and the new scene receives the next frame's input and is updated and drawn in the same frame it is built. No walk is ever in progress when the layers change, so the deferral rules of the stack never come into it. `Application.shutdown()` unloads whatever is active before the renderers go.
+
+A layer pushed through the context goes above the layers that load already has on that renderer and below all the others, which needs `Renderer` to insert as well as push. The alternative, pushing on top, would put each new scene above an overlay the game created first, so a debug readout would vanish behind the first scene loaded after it.

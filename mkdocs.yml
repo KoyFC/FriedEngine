@@ -35,8 +35,26 @@ nav:
       - getting-started/building.md
       - getting-started/using-in-a-game.md
       - getting-started/vscode.md
+  - Architecture:
+      - architecture/index.md
+      - architecture/consuming.md
+      - architecture/native-layer.md
+      - architecture/ownership.md
+      - architecture/input.md
+      - architecture/nodes.md
+      - architecture/cameras.md
+      - architecture/layers.md
+      - architecture/scene-switching.md
+      - architecture/scene-files.md
+      - architecture/starting-a-game.md
+      - architecture/editor-player.md
+      - architecture/3d.md
+      - architecture/collisions.md
+      - architecture/asset-roots.md
+      - architecture/project-file.md
   - Platforms:
       - platforms/index.md
+      - platforms/windows.md
       - platforms/vita.md
       - platforms/switch.md
       - platforms/3ds.md

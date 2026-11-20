@@ -60,7 +60,7 @@ class SceneLoader {
 	static function assemble(data:Dynamic, renderer:Renderer):Scene {
 		var version = FieldCodec.get(data, "version");
 		if (version != FORMAT_VERSION) {
-			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION. Scenes are rewritten by hand: see ARCHITECTURE.md.';
+			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION. Scenes are rewritten by hand: see https://koyfc.github.io/FriedEngine/architecture/scene-files/.';
 		}
 
 		var scene = new Scene(FieldCodec.toText(FieldCodec.get(data, "name"), "name"));
