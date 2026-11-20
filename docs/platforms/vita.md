@@ -1,5 +1,12 @@
 # PlayStation Vita
 
+## Requirements
+
+- [VitaSDK](https://vitasdk.org/), following its install instructions, with `$VITASDK` set and its `bin/` on `PATH`. VitaSDK has no native Windows install of its own.
+- SDL2's companions from its package manager: `vdpm sdl2 sdl2_image sdl2_mixer sdl2_ttf`.
+- The engine builds its own SDL2 for the Vita once, into `~/.cache/fried-engine/deps`, with a patch that lets the 3D draw inside SDL's GXM renderer (see [3D](../architecture/3d.md)).
+- The 3D compiles its shaders on the console with `libshacccg.suprx` in `ur0:data/`, where vitaGL games already require it, and without it meshes are drawn by the CPU. Extracting it is covered by these guides: <https://samilops2.gitbook.io/vita-troubleshooting-guide/shader-compiler/extract-libshacccg.suprx> and <https://cimmerian.gitbook.io/vita-troubleshooting-guide/shader-compiler/extract-libshacccg.suprx>.
+
 ## Building
 
 ```sh

@@ -1,5 +1,10 @@
 # Nintendo DS
 
+## Requirements
+
+- devkitPro, installed as described in [Installing](../getting-started/installing.md#devkitpro), with `dkp-pacman -S nds-dev`.
+- No SDL2 is involved: libnds is the whole platform there.
+
 ## Building
 
 ```sh

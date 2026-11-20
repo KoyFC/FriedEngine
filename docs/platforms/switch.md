@@ -1,5 +1,10 @@
 # Nintendo Switch
 
+## Requirements
+
+- devkitPro, installed as described in [Installing](../getting-started/installing.md#devkitpro), with `dkp-pacman -S switch-dev switch-pkg-config switch-sdl2 switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf`.
+- `switch-pkg-config` is not optional: devkitPro's toolchain file refuses to configure without it, and it is how SDL2_image and SDL2_mixer are found, since devkitPro ships no CMake package config for either.
+
 ## Building
 
 ```sh

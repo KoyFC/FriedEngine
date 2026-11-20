@@ -1,5 +1,11 @@
 # Web
 
+## Requirements
+
+- The [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html), activated in the shell (`source emsdk_env.sh`).
+- Python 3 to serve the result locally.
+- SDL2 and its companions are Emscripten ports that emcc fetches itself.
+
 ## Building
 
 ```sh

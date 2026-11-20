@@ -1,5 +1,10 @@
 # Nintendo 3DS
 
+## Requirements
+
+- devkitPro, installed as described in [Installing](../getting-started/installing.md#devkitpro), with `dkp-pacman -S 3ds-dev`.
+- SDL2 and its companions built from [`packaging/3ds/`](https://github.com/KoyFC/FriedEngine/tree/main/packaging/3ds), since devkitPro ships no SDL2 for the 3DS.
+
 ## Building
 
 ```sh

@@ -1,6 +1,6 @@
 # Platforms
 
-Linux is the default build, described in [Building](../getting-started/building.md); each page here covers one other platform.
+Linux is the default build, described in [Building](../getting-started/building.md); each page here covers one other platform. Each page starts with what to install for it, then how to build.
 
 | Platform | Built from | Drawing | 3D meshes | Verified on |
 |---|---|---|---|---|
