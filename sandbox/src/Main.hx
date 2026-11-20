@@ -137,6 +137,8 @@ class Main {
 		overlay.addButton(() -> "Sound", playSound);
 
 		var gameplay = new InputActionMap("Gameplay");
+		var was3D = false;
+		var gameplayWasOn = false;
 		var zoom = gameplay.addAction("Zoom", Value);
 		zoom.addBinding(Axis(Keyboard(Key.Q), Keyboard(Key.E)));
 		zoom.addBinding(Axis(PadButton(GamepadButton.L1), PadButton(GamepadButton.R1)));
@@ -210,7 +212,19 @@ class Main {
 				windowMoving = false;
 			}
 
-			if (Input.isKeyDown(Key.F2) || Input.isGamepadButtonDown(GamepadButton.North)) {
+			// The face buttons turn the camera of the 3D scene, so R1 changes scene there, and the actions the buttons are bound to are left off while it is shown.
+			var is3D = SceneManager.activeName == "3D";
+			if (is3D != was3D) {
+				was3D = is3D;
+				if (is3D) {
+					gameplayWasOn = zoom.isEnabled;
+					gameplay.disable();
+				} else if (gameplayWasOn) {
+					gameplay.enable();
+				}
+			}
+			var nextButton = is3D ? GamepadButton.R1 : GamepadButton.North;
+			if (Input.isKeyDown(Key.F2) || Input.isGamepadButtonDown(nextButton)) {
 				loadNextScene();
 			}
 
