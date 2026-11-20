@@ -7,6 +7,7 @@ import fried.graphics.Color;
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
 import fried.scene.Camera;
+import fried.scene.Camera3D;
 import fried.scene.CanvasItem;
 import fried.scene.Node;
 import fried.scene.Node3D;
@@ -30,6 +31,7 @@ class EditorPlayer {
 	var layer:EditorSceneLayer;
 	var scene:Scene;
 	var camera:Camera;
+	var camera3D:Camera3D;
 	var isRenderRequested:Bool;
 	var isJustResized:Bool;
 	var window:Window;
@@ -91,6 +93,10 @@ class EditorPlayer {
 		camera.x = renderer.width / 2;
 		camera.y = renderer.height / 2;
 
+		// The editor's view of a 3D scene, which replaces whatever camera the scene names.
+		camera3D = new Camera3D();
+		camera3D.z = -10.0;
+
 		connection.send({type: "hello", protocol: EditorConnection.PROTOCOL, platform: Application.platformName});
 	}
 
@@ -125,10 +131,12 @@ class EditorPlayer {
 		isRenderRequested = false;
 		layer.isEnabled = false;
 		var bounds = [];
+		var bounds3D = [];
 		if (scene != null) {
 			collectBounds(scene.root, bounds);
+			collectBounds3D(scene.root, bounds3D);
 		}
-		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds}, renderer.readPixels());
+		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds, bounds3D: bounds3D}, renderer.readPixels());
 	}
 
 	// Every node that is drawn, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the node's own coordinates.
@@ -146,6 +154,20 @@ class EditorPlayer {
 				bounds.push(entry);
 			}
 			collectBounds(node, bounds);
+		}
+	}
+
+	// Every Node3D that code did not make, in tree order, where the editor's camera sees it.
+	function collectBounds3D(parent:Node, bounds:Array<Dynamic>):Void {
+		for (node in parent.children) {
+			var item = Std.downcast(node, Node3D);
+			if (item != null && item.id != "") {
+				var entry = EditorBounds3D.of(item, camera3D, renderer.width, renderer.height);
+				if (entry != null) {
+					bounds.push(entry);
+				}
+			}
+			collectBounds3D(node, bounds);
 		}
 	}
 
@@ -168,6 +190,14 @@ class EditorPlayer {
 				camera.x = message.x;
 				camera.y = message.y;
 				camera.zoom = message.zoom;
+			case "setEditorCamera3D":
+				camera3D.x = message.x;
+				camera3D.y = message.y;
+				camera3D.z = message.z;
+				camera3D.rotationX = message.rotationX;
+				camera3D.rotationY = message.rotationY;
+				camera3D.rotationZ = 0.0;
+				camera3D.fieldOfView = message.fieldOfView;
 			case "resize":
 				window.setSize(Std.int(message.width), Std.int(message.height));
 				isJustResized = true;
@@ -188,10 +218,12 @@ class EditorPlayer {
 		next.setView(viewWidth != null ? viewWidth : Project.displayWidth(), viewHeight != null ? viewHeight : Project.displayHeight());
 		if (scene != null) {
 			scene.camera = null;
+			scene.camera3D = null;
 			scene.destroy();
 		}
 		scene = next;
 		scene.camera = camera;
+		scene.camera3D = camera3D;
 		layer.scene = scene;
 	}
 

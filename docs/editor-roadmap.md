@@ -119,6 +119,13 @@ The editor lays a scene out against the project's display size, not the panel's,
 - [ ] The editor on nodes: a tree in the hierarchy panel, one inspector section per class, and structural changes sent as `addNode`, `removeNode` and `moveNode`
 - [ ] The Project Manager's template and WhiteCellSimulator on nodes
 
+### 15. 3D scenes (FriedEngine and FriedEditor)
+
+- [x] `Node3D`, `Camera3D`, `DirectionalLight` and `MeshInstance` with built-in shapes; a scene's `camera` names a `Camera` or a `Camera3D`
+- [x] Protocol 3: a frame gives each `Node3D`'s box, depth, origin and axes on the frame, and the editor sends its own 3D camera
+- [ ] A 2D/3D switch chosen by the scene's nodes, with an orbit camera, pan, dolly, focus, a ground grid and selection by click
+- [ ] A move gizmo for a `Node3D` along its parent's axes; rotation and scale are edited in the inspector
+
 ## Later
 
-A second UI backend (Dear ImGui), a binary cooked scene format, prefabs, a `screen` field for dual-screen platforms, 3D nodes, per-platform asset variants.
+A second UI backend (Dear ImGui), a binary cooked scene format, prefabs, a `screen` field for dual-screen platforms, per-platform asset variants.
