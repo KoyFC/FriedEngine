@@ -123,8 +123,8 @@ The editor lays a scene out against the project's display size, not the panel's,
 
 - [x] `Node3D`, `Camera3D`, `DirectionalLight` and `MeshInstance` with built-in shapes; a scene's `camera` names a `Camera` or a `Camera3D`
 - [x] Protocol 3: a frame gives each `Node3D`'s box, depth, origin and axes on the frame, and the editor sends its own 3D camera
-- [ ] A 2D/3D switch chosen by the scene's nodes, with an orbit camera, pan, dolly, focus, a ground grid and selection by click
-- [ ] A move gizmo for a `Node3D` along its parent's axes; rotation and scale are edited in the inspector
+- [x] A 2D/3D switch, chosen by the scene's nodes, with a free camera (hold the right button, then WASD), pan, dolly, focus, a ground grid and selection by click
+- [x] A move gizmo for a `Node3D` along its parent's axes; rotation and scale are edited in the inspector
 
 ## Later
 
