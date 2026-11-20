@@ -9,11 +9,11 @@
 // The numbers MeshPass places a mesh with, in this order: the mesh's
 // position, its rotation in degrees about x, y and z (turned about z, then x,
 // then y, as Unity does) and its scale on each axis, then the camera's
-// position, rotation, field of view, viewport and near plane, and the light's
-// direction in the world and ambient level. They are passed as they are, since
-// every sum on them is a call into software floating point on the DS, and what
-// the camera and the light give is worked out once for all the meshes they are
-// the same for.
+// position, rotation, field of view, viewport and near plane, the light's
+// direction in the world and ambient level, and the camera's far plane. They
+// are passed as they are, since every sum on them is a call into software
+// floating point on the DS, and what the camera and the light give is worked
+// out once for all the meshes they are the same for.
 enum FriedMeshPlacement
 {
     FRIED_MESH_X,
@@ -41,6 +41,7 @@ enum FriedMeshPlacement
     FRIED_MESH_LIGHT_Y,
     FRIED_MESH_LIGHT_Z,
     FRIED_MESH_AMBIENT,
+    FRIED_MESH_FAR,
     FRIED_MESH_PLACEMENT_SIZE
 };
 
