@@ -19,3 +19,24 @@ bool fried_renderer_draws_meshes(int)
 void fried_renderer_draw_mesh(int, int, const double *, bool, double, double, double)
 {
 }
+
+#ifndef FRIED_SOFTWARE_RENDERER
+#include "graphics/mesh_gl.h"
+
+bool fried_mesh_gl_attach(int, void *)
+{
+    return false;
+}
+
+void fried_mesh_gl_detach(int)
+{
+}
+
+void fried_mesh_gl_end_frame(int)
+{
+}
+
+void fried_mesh_gl_leave()
+{
+}
+#endif

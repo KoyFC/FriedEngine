@@ -1,0 +1,744 @@
+#include "graphics/mesh.h"
+#include "graphics/mesh_gl.h"
+
+#include "graphics/display.h"
+
+#include <SDL.h>
+#include <SDL_opengl.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <vector>
+
+// Meshes drawn with the GL context SDL's renderer made, in the middle of its
+// own drawing. SDL's queue is flushed first and the few pieces of state both
+// sides use are put back as they were found, so SDL goes on knowing what it
+// last set. The mesh's corners are turned and lit by the vertex shader, one
+// shade for each face, in the arithmetic MeshPass has on the CPU.
+
+namespace
+{
+    constexpr double s_degreesToRadians = 0.017453292519943295;
+
+    constexpr GLuint s_positionAttribute = 0;
+    constexpr GLuint s_colorAttribute = 1;
+    constexpr GLuint s_normalAttribute = 2;
+    constexpr int s_attributeCount = 3;
+
+    struct Vertex
+    {
+        float m_position[3];
+        uint8_t m_color[4];
+        float m_normal[3];
+    };
+
+    struct Mesh
+    {
+        std::vector<Vertex> m_vertices;
+        GLuint m_buffer;
+        bool m_isUsed;
+    };
+
+    struct Functions
+    {
+        void (APIENTRY *m_enable)(GLenum);
+        void (APIENTRY *m_disable)(GLenum);
+        GLboolean (APIENTRY *m_isEnabled)(GLenum);
+        void (APIENTRY *m_getIntegerv)(GLenum, GLint *);
+        void (APIENTRY *m_viewport)(GLint, GLint, GLsizei, GLsizei);
+        void (APIENTRY *m_clear)(GLbitfield);
+        void (APIENTRY *m_depthFunc)(GLenum);
+        void (APIENTRY *m_depthMask)(GLboolean);
+        void (APIENTRY *m_cullFace)(GLenum);
+        void (APIENTRY *m_frontFace)(GLenum);
+        void (APIENTRY *m_drawArrays)(GLenum, GLint, GLsizei);
+        GLenum (APIENTRY *m_getError)();
+        GLuint (APIENTRY *m_createShader)(GLenum);
+        void (APIENTRY *m_shaderSource)(GLuint, GLsizei, const GLchar *const *, const GLint *);
+        void (APIENTRY *m_compileShader)(GLuint);
+        void (APIENTRY *m_getShaderiv)(GLuint, GLenum, GLint *);
+        void (APIENTRY *m_deleteShader)(GLuint);
+        GLuint (APIENTRY *m_createProgram)();
+        void (APIENTRY *m_attachShader)(GLuint, GLuint);
+        void (APIENTRY *m_bindAttribLocation)(GLuint, GLuint, const GLchar *);
+        void (APIENTRY *m_linkProgram)(GLuint);
+        void (APIENTRY *m_getProgramiv)(GLuint, GLenum, GLint *);
+        void (APIENTRY *m_deleteProgram)(GLuint);
+        void (APIENTRY *m_useProgram)(GLuint);
+        GLint (APIENTRY *m_getUniformLocation)(GLuint, const GLchar *);
+        void (APIENTRY *m_uniformMatrix4fv)(GLint, GLsizei, GLboolean, const GLfloat *);
+        void (APIENTRY *m_uniformMatrix3fv)(GLint, GLsizei, GLboolean, const GLfloat *);
+        void (APIENTRY *m_uniform3f)(GLint, GLfloat, GLfloat, GLfloat);
+        void (APIENTRY *m_uniform1f)(GLint, GLfloat);
+        void (APIENTRY *m_genBuffers)(GLsizei, GLuint *);
+        void (APIENTRY *m_deleteBuffers)(GLsizei, const GLuint *);
+        void (APIENTRY *m_bindBuffer)(GLenum, GLuint);
+        void (APIENTRY *m_bufferData)(GLenum, GLsizeiptr, const void *, GLenum);
+        void (APIENTRY *m_enableVertexAttribArray)(GLuint);
+        void (APIENTRY *m_disableVertexAttribArray)(GLuint);
+        void (APIENTRY *m_vertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void *);
+        void (APIENTRY *m_getVertexAttribiv)(GLuint, GLenum, GLint *);
+        void (APIENTRY *m_enableClientState)(GLenum);
+        void (APIENTRY *m_disableClientState)(GLenum);
+    };
+
+    struct Uniforms
+    {
+        GLint m_modelViewProjection;
+        GLint m_normalMatrix;
+        GLint m_light;
+        GLint m_ambient;
+    };
+
+    // What SDL had set that a mesh draws over.
+    struct SavedState
+    {
+        GLint m_program;
+        GLint m_arrayBuffer;
+        GLint m_viewport[4];
+        bool m_isScissorEnabled;
+        bool m_isAttributeEnabled[s_attributeCount];
+        bool m_isClientStateEnabled[s_attributeCount];
+    };
+
+    std::vector<Mesh> s_meshes;
+    std::vector<int> s_freeMeshes;
+
+    Functions s_gl;
+    Uniforms s_uniforms;
+    GLuint s_program = 0;
+    int s_rendererId = -1;
+    SDL_Renderer *s_renderer = nullptr;
+    SDL_Window *s_window = nullptr;
+    SDL_GLContext s_context = nullptr;
+    bool s_isEs = false;
+    bool s_isDepthCleared = false;
+    bool s_isStateSet = false;
+    bool s_isInMeshMode = false;
+    SavedState s_saved;
+    double s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
+
+    const char *s_vertexSource =
+        "attribute vec3 a_position;\n"
+        "attribute vec4 a_color;\n"
+        "attribute vec3 a_normal;\n"
+        "uniform mat4 u_modelViewProjection;\n"
+        "uniform mat3 u_normalMatrix;\n"
+        "uniform vec3 u_light;\n"
+        "uniform float u_ambient;\n"
+        "varying vec4 v_color;\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position = u_modelViewProjection * vec4(a_position, 1.0);\n"
+        "    vec3 normal = normalize(u_normalMatrix * a_normal);\n"
+        "    float facing = -dot(normal, u_light);\n"
+        "    float brightness = u_ambient + (1.0 - u_ambient) * max(facing, 0.0);\n"
+        "    vec3 shade = floor(a_color.rgb * 255.0 * brightness + 0.001) / 255.0;\n"
+        "    v_color = vec4(shade, a_color.a);\n"
+        "}\n";
+
+    const char *s_fragmentSource =
+        "varying vec4 v_color;\n"
+        "void main()\n"
+        "{\n"
+        "    gl_FragColor = v_color;\n"
+        "}\n";
+
+    template <typename Function>
+    bool load(Function &function, const char *name)
+    {
+        function = reinterpret_cast<Function>(SDL_GL_GetProcAddress(name));
+        return function != nullptr;
+    }
+
+    bool loadFunctions()
+    {
+        bool ok = true;
+        ok &= load(s_gl.m_enable, "glEnable");
+        ok &= load(s_gl.m_disable, "glDisable");
+        ok &= load(s_gl.m_isEnabled, "glIsEnabled");
+        ok &= load(s_gl.m_getIntegerv, "glGetIntegerv");
+        ok &= load(s_gl.m_viewport, "glViewport");
+        ok &= load(s_gl.m_clear, "glClear");
+        ok &= load(s_gl.m_depthFunc, "glDepthFunc");
+        ok &= load(s_gl.m_depthMask, "glDepthMask");
+        ok &= load(s_gl.m_cullFace, "glCullFace");
+        ok &= load(s_gl.m_frontFace, "glFrontFace");
+        ok &= load(s_gl.m_drawArrays, "glDrawArrays");
+        ok &= load(s_gl.m_getError, "glGetError");
+        ok &= load(s_gl.m_createShader, "glCreateShader");
+        ok &= load(s_gl.m_shaderSource, "glShaderSource");
+        ok &= load(s_gl.m_compileShader, "glCompileShader");
+        ok &= load(s_gl.m_getShaderiv, "glGetShaderiv");
+        ok &= load(s_gl.m_deleteShader, "glDeleteShader");
+        ok &= load(s_gl.m_createProgram, "glCreateProgram");
+        ok &= load(s_gl.m_attachShader, "glAttachShader");
+        ok &= load(s_gl.m_bindAttribLocation, "glBindAttribLocation");
+        ok &= load(s_gl.m_linkProgram, "glLinkProgram");
+        ok &= load(s_gl.m_getProgramiv, "glGetProgramiv");
+        ok &= load(s_gl.m_deleteProgram, "glDeleteProgram");
+        ok &= load(s_gl.m_useProgram, "glUseProgram");
+        ok &= load(s_gl.m_getUniformLocation, "glGetUniformLocation");
+        ok &= load(s_gl.m_uniformMatrix4fv, "glUniformMatrix4fv");
+        ok &= load(s_gl.m_uniformMatrix3fv, "glUniformMatrix3fv");
+        ok &= load(s_gl.m_uniform3f, "glUniform3f");
+        ok &= load(s_gl.m_uniform1f, "glUniform1f");
+        ok &= load(s_gl.m_genBuffers, "glGenBuffers");
+        ok &= load(s_gl.m_deleteBuffers, "glDeleteBuffers");
+        ok &= load(s_gl.m_bindBuffer, "glBindBuffer");
+        ok &= load(s_gl.m_bufferData, "glBufferData");
+        ok &= load(s_gl.m_enableVertexAttribArray, "glEnableVertexAttribArray");
+        ok &= load(s_gl.m_disableVertexAttribArray, "glDisableVertexAttribArray");
+        ok &= load(s_gl.m_vertexAttribPointer, "glVertexAttribPointer");
+        ok &= load(s_gl.m_getVertexAttribiv, "glGetVertexAttribiv");
+        if (!s_isEs)
+        {
+            ok &= load(s_gl.m_enableClientState, "glEnableClientState");
+            ok &= load(s_gl.m_disableClientState, "glDisableClientState");
+        }
+        return ok;
+    }
+
+    GLuint compile(GLenum type, const char *body)
+    {
+        const char *prefix = s_isEs
+            ? (type == GL_VERTEX_SHADER ? "#version 100\nprecision highp float;\n" : "#version 100\nprecision mediump float;\n")
+            : "#version 110\n";
+        const char *sources[2] = {prefix, body};
+        GLuint shader = s_gl.m_createShader(type);
+        s_gl.m_shaderSource(shader, 2, sources, nullptr);
+        s_gl.m_compileShader(shader);
+        GLint isCompiled = 0;
+        s_gl.m_getShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+        if (!isCompiled)
+        {
+            s_gl.m_deleteShader(shader);
+            return 0;
+        }
+        return shader;
+    }
+
+    bool buildProgram()
+    {
+        GLuint vertex = compile(GL_VERTEX_SHADER, s_vertexSource);
+        GLuint fragment = compile(GL_FRAGMENT_SHADER, s_fragmentSource);
+        if (!vertex || !fragment)
+        {
+            if (vertex)
+            {
+                s_gl.m_deleteShader(vertex);
+            }
+            if (fragment)
+            {
+                s_gl.m_deleteShader(fragment);
+            }
+            return false;
+        }
+
+        s_program = s_gl.m_createProgram();
+        s_gl.m_attachShader(s_program, vertex);
+        s_gl.m_attachShader(s_program, fragment);
+        s_gl.m_bindAttribLocation(s_program, s_positionAttribute, "a_position");
+        s_gl.m_bindAttribLocation(s_program, s_colorAttribute, "a_color");
+        s_gl.m_bindAttribLocation(s_program, s_normalAttribute, "a_normal");
+        s_gl.m_linkProgram(s_program);
+        s_gl.m_deleteShader(vertex);
+        s_gl.m_deleteShader(fragment);
+
+        GLint isLinked = 0;
+        s_gl.m_getProgramiv(s_program, GL_LINK_STATUS, &isLinked);
+        if (!isLinked)
+        {
+            s_gl.m_deleteProgram(s_program);
+            s_program = 0;
+            return false;
+        }
+
+        s_uniforms.m_modelViewProjection = s_gl.m_getUniformLocation(s_program, "u_modelViewProjection");
+        s_uniforms.m_normalMatrix = s_gl.m_getUniformLocation(s_program, "u_normalMatrix");
+        s_uniforms.m_light = s_gl.m_getUniformLocation(s_program, "u_light");
+        s_uniforms.m_ambient = s_gl.m_getUniformLocation(s_program, "u_ambient");
+        return true;
+    }
+
+    // Matrices are 3x3 and row-major, the same as Rotation.hx has them.
+    void rotationMatrix(double x, double y, double z, double *out)
+    {
+        double sinX = std::sin(x * s_degreesToRadians);
+        double cosX = std::cos(x * s_degreesToRadians);
+        double sinY = std::sin(y * s_degreesToRadians);
+        double cosY = std::cos(y * s_degreesToRadians);
+        double sinZ = std::sin(z * s_degreesToRadians);
+        double cosZ = std::cos(z * s_degreesToRadians);
+        out[0] = cosY * cosZ + sinY * sinX * sinZ;
+        out[1] = sinY * sinX * cosZ - cosY * sinZ;
+        out[2] = sinY * cosX;
+        out[3] = cosX * sinZ;
+        out[4] = cosX * cosZ;
+        out[5] = -sinX;
+        out[6] = cosY * sinX * sinZ - sinY * cosZ;
+        out[7] = sinY * sinZ + cosY * sinX * cosZ;
+        out[8] = cosY * cosX;
+    }
+
+    bool isContextCurrent()
+    {
+        return s_context && SDL_GL_GetCurrentContext() == s_context;
+    }
+
+    // SDL's own calls make its context current when they need it, so after
+    // flushing the queue it is the current one unless another window's
+    // renderer has drawn since.
+    bool prepareContext()
+    {
+        fried_mesh_gl_leave();
+        SDL_RenderFlush(s_renderer);
+        if (!isContextCurrent())
+        {
+            return SDL_GL_MakeCurrent(s_window, s_context) == 0;
+        }
+        return true;
+    }
+
+    void uploadIfNeeded(Mesh &mesh)
+    {
+        if (mesh.m_buffer)
+        {
+            return;
+        }
+        s_gl.m_genBuffers(1, &mesh.m_buffer);
+        s_gl.m_bindBuffer(GL_ARRAY_BUFFER, mesh.m_buffer);
+        s_gl.m_bufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(mesh.m_vertices.size() * sizeof(Vertex)), mesh.m_vertices.data(), GL_STATIC_DRAW);
+    }
+
+    void saveState(SavedState &state)
+    {
+        s_gl.m_getIntegerv(GL_CURRENT_PROGRAM, &state.m_program);
+        s_gl.m_getIntegerv(GL_ARRAY_BUFFER_BINDING, &state.m_arrayBuffer);
+        s_gl.m_getIntegerv(GL_VIEWPORT, state.m_viewport);
+        state.m_isScissorEnabled = s_gl.m_isEnabled(GL_SCISSOR_TEST) != GL_FALSE;
+        for (int attribute = 0; attribute < s_attributeCount; ++attribute)
+        {
+            GLint isEnabled = 0;
+            s_gl.m_getVertexAttribiv((GLuint)attribute, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &isEnabled);
+            state.m_isAttributeEnabled[attribute] = isEnabled != 0;
+        }
+        if (!s_isEs)
+        {
+            state.m_isClientStateEnabled[0] = s_gl.m_isEnabled(GL_VERTEX_ARRAY) != GL_FALSE;
+            state.m_isClientStateEnabled[1] = s_gl.m_isEnabled(GL_COLOR_ARRAY) != GL_FALSE;
+            state.m_isClientStateEnabled[2] = s_gl.m_isEnabled(GL_TEXTURE_COORD_ARRAY) != GL_FALSE;
+        }
+    }
+
+    void restoreState(const SavedState &state)
+    {
+        s_gl.m_disable(GL_DEPTH_TEST);
+        s_gl.m_disable(GL_CULL_FACE);
+        for (int attribute = 0; attribute < s_attributeCount; ++attribute)
+        {
+            if (state.m_isAttributeEnabled[attribute])
+            {
+                s_gl.m_enableVertexAttribArray((GLuint)attribute);
+            }
+            else
+            {
+                s_gl.m_disableVertexAttribArray((GLuint)attribute);
+            }
+        }
+        if (!s_isEs)
+        {
+            static const GLenum clientStates[s_attributeCount] = {GL_VERTEX_ARRAY, GL_COLOR_ARRAY, GL_TEXTURE_COORD_ARRAY};
+            for (int index = 0; index < s_attributeCount; ++index)
+            {
+                if (state.m_isClientStateEnabled[index])
+                {
+                    s_gl.m_enableClientState(clientStates[index]);
+                }
+                else
+                {
+                    s_gl.m_disableClientState(clientStates[index]);
+                }
+            }
+        }
+        s_gl.m_bindBuffer(GL_ARRAY_BUFFER, (GLuint)state.m_arrayBuffer);
+        s_gl.m_useProgram((GLuint)state.m_program);
+        s_gl.m_viewport(state.m_viewport[0], state.m_viewport[1], state.m_viewport[2], state.m_viewport[3]);
+        if (state.m_isScissorEnabled)
+        {
+            s_gl.m_enable(GL_SCISSOR_TEST);
+        }
+    }
+
+    // The state a mesh is drawn with stays set from here until fried_mesh_gl_leave().
+    bool enterMeshMode(const FriedDisplayLayout &layout, int outputHeight)
+    {
+        if (!prepareContext())
+        {
+            return false;
+        }
+        saveState(s_saved);
+
+        s_gl.m_viewport(layout.m_viewportX, outputHeight - layout.m_viewportY - layout.m_viewportHeight, layout.m_viewportWidth, layout.m_viewportHeight);
+        s_gl.m_disable(GL_SCISSOR_TEST);
+        if (!s_isStateSet)
+        {
+            s_gl.m_depthFunc(GL_LESS);
+            s_gl.m_depthMask(GL_TRUE);
+            s_gl.m_cullFace(GL_BACK);
+            s_gl.m_frontFace(GL_CW);
+            s_isStateSet = true;
+        }
+        s_gl.m_useProgram(s_program);
+        for (int attribute = 0; attribute < s_attributeCount; ++attribute)
+        {
+            s_gl.m_enableVertexAttribArray((GLuint)attribute);
+        }
+        s_gl.m_enable(GL_DEPTH_TEST);
+        s_gl.m_enable(GL_CULL_FACE);
+
+        // The light is set again with the first mesh of the run.
+        s_isDepthCleared = false;
+        s_isInMeshMode = true;
+        return true;
+    }
+
+    void releaseBuffers()
+    {
+        for (Mesh &mesh : s_meshes)
+        {
+            if (mesh.m_buffer)
+            {
+                s_gl.m_deleteBuffers(1, &mesh.m_buffer);
+                mesh.m_buffer = 0;
+            }
+        }
+    }
+}
+
+bool fried_mesh_gl_attach(int rendererId, void *sdlRenderer)
+{
+    SDL_Renderer *renderer = static_cast<SDL_Renderer *>(sdlRenderer);
+    if (s_rendererId >= 0 || !renderer)
+    {
+        return false;
+    }
+
+    SDL_RendererInfo info;
+    if (SDL_GetRendererInfo(renderer, &info) != 0)
+    {
+        return false;
+    }
+    bool isOpenGl = SDL_strcmp(info.name, "opengl") == 0;
+    bool isOpenGlEs = SDL_strcmp(info.name, "opengles2") == 0;
+    if (!isOpenGl && !isOpenGlEs)
+    {
+        return false;
+    }
+
+    SDL_Window *window = SDL_RenderGetWindow(renderer);
+    SDL_GLContext context = SDL_GL_GetCurrentContext();
+    int depthBits = 0;
+    if (!window || !context || SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depthBits) != 0 || depthBits <= 0)
+    {
+        return false;
+    }
+
+    s_isEs = isOpenGlEs;
+    s_context = context;
+    if (!loadFunctions() || !buildProgram())
+    {
+        s_context = nullptr;
+        return false;
+    }
+
+    s_renderer = renderer;
+    s_window = window;
+    s_rendererId = rendererId;
+    s_isDepthCleared = false;
+    s_isStateSet = false;
+    std::memset(s_lastView, 0, sizeof(s_lastView));
+    return true;
+}
+
+void fried_mesh_gl_detach(int rendererId)
+{
+    if (rendererId != s_rendererId)
+    {
+        return;
+    }
+    if (prepareContext())
+    {
+        releaseBuffers();
+        s_gl.m_deleteProgram(s_program);
+    }
+    s_program = 0;
+    s_rendererId = -1;
+    s_renderer = nullptr;
+    s_window = nullptr;
+    s_context = nullptr;
+}
+
+void fried_mesh_gl_end_frame(int rendererId)
+{
+    if (rendererId == s_rendererId)
+    {
+        s_isDepthCleared = false;
+    }
+}
+
+void fried_mesh_gl_leave()
+{
+    if (s_isInMeshMode)
+    {
+        s_isInMeshMode = false;
+        restoreState(s_saved);
+    }
+}
+
+int fried_mesh_create(const double *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
+{
+    if (s_rendererId < 0 || !vertices || !indices || !argbColors || triangleCount <= 0)
+    {
+        return -1;
+    }
+
+    int id;
+    if (!s_freeMeshes.empty())
+    {
+        id = s_freeMeshes.back();
+        s_freeMeshes.pop_back();
+    }
+    else
+    {
+        id = (int)s_meshes.size();
+        s_meshes.emplace_back();
+    }
+
+    Mesh &mesh = s_meshes[id];
+    mesh.m_isUsed = true;
+    mesh.m_buffer = 0;
+    mesh.m_vertices.resize((size_t)triangleCount * 3);
+    for (int triangle = 0; triangle < triangleCount; ++triangle)
+    {
+        const double *corner[3];
+        for (int index = 0; index < 3; ++index)
+        {
+            int vertex = indices[triangle * 3 + index];
+            if (vertex < 0 || vertex >= vertexCount)
+            {
+                mesh.m_isUsed = false;
+                mesh.m_vertices.clear();
+                s_freeMeshes.push_back(id);
+                return -1;
+            }
+            corner[index] = vertices + vertex * 3;
+        }
+
+        double abX = corner[1][0] - corner[0][0];
+        double abY = corner[1][1] - corner[0][1];
+        double abZ = corner[1][2] - corner[0][2];
+        double acX = corner[2][0] - corner[0][0];
+        double acY = corner[2][1] - corner[0][1];
+        double acZ = corner[2][2] - corner[0][2];
+        double normalX = abY * acZ - abZ * acY;
+        double normalY = abZ * acX - abX * acZ;
+        double normalZ = abX * acY - abY * acX;
+        double length = std::sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+        if (length > 0.0)
+        {
+            normalX /= length;
+            normalY /= length;
+            normalZ /= length;
+        }
+
+        uint32_t color = (uint32_t)argbColors[triangle];
+        for (int index = 0; index < 3; ++index)
+        {
+            Vertex &out = mesh.m_vertices[(size_t)triangle * 3 + index];
+            out.m_position[0] = (float)corner[index][0];
+            out.m_position[1] = (float)corner[index][1];
+            out.m_position[2] = (float)corner[index][2];
+            out.m_color[0] = (uint8_t)(color >> 16);
+            out.m_color[1] = (uint8_t)(color >> 8);
+            out.m_color[2] = (uint8_t)color;
+            out.m_color[3] = (uint8_t)(color >> 24);
+            out.m_normal[0] = (float)normalX;
+            out.m_normal[1] = (float)normalY;
+            out.m_normal[2] = (float)normalZ;
+        }
+    }
+    return id;
+}
+
+void fried_mesh_destroy(int meshId)
+{
+    if (meshId < 0 || meshId >= (int)s_meshes.size() || !s_meshes[meshId].m_isUsed)
+    {
+        return;
+    }
+
+    Mesh &mesh = s_meshes[meshId];
+    if (mesh.m_buffer && s_rendererId >= 0 && prepareContext())
+    {
+        s_gl.m_deleteBuffers(1, &mesh.m_buffer);
+    }
+    mesh.m_buffer = 0;
+    mesh.m_isUsed = false;
+    std::vector<Vertex>().swap(mesh.m_vertices);
+    s_freeMeshes.push_back(meshId);
+}
+
+bool fried_renderer_draws_meshes(int rendererId)
+{
+    return s_rendererId >= 0 && rendererId == s_rendererId;
+}
+
+void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
+{
+    if (rendererId != s_rendererId || !placement || meshId < 0 || meshId >= (int)s_meshes.size() || !s_meshes[meshId].m_isUsed)
+    {
+        return;
+    }
+    Mesh &mesh = s_meshes[meshId];
+
+    int outputWidth = 0, outputHeight = 0;
+    SDL_GetRendererOutputSize(s_renderer, &outputWidth, &outputHeight);
+    FriedDisplayLayout layout = fried_display_layout(outputWidth, outputHeight);
+    if (layout.m_viewportWidth <= 0 || layout.m_viewportHeight <= 0)
+    {
+        return;
+    }
+
+    double nearPlane = std::max(placement[FRIED_MESH_NEAR], 1e-6);
+    double farPlane = placement[FRIED_MESH_FAR];
+    if (!(farPlane > nearPlane))
+    {
+        return;
+    }
+
+    // The camera's turn undone, then the mesh's turn and scale, as MeshPass
+    // does it for a mesh it draws itself.
+    double cameraTurn[9], meshTurn[9];
+    rotationMatrix(placement[FRIED_MESH_CAMERA_ROTATION_X], placement[FRIED_MESH_CAMERA_ROTATION_Y], placement[FRIED_MESH_CAMERA_ROTATION_Z], cameraTurn);
+    rotationMatrix(placement[FRIED_MESH_ROTATION_X], placement[FRIED_MESH_ROTATION_Y], placement[FRIED_MESH_ROTATION_Z], meshTurn);
+
+    double scale[3] = {placement[FRIED_MESH_SCALE_X], placement[FRIED_MESH_SCALE_Y], placement[FRIED_MESH_SCALE_Z]};
+    // A face's normal turns with the cofactor matrix of its transform, which
+    // for a turn and a scale is the turn with each axis scaled by the other two.
+    double cofactor[3] = {scale[1] * scale[2], scale[0] * scale[2], scale[0] * scale[1]};
+
+    double modelView[3][4];
+    float normalMatrix[9];
+    for (int row = 0; row < 3; ++row)
+    {
+        for (int column = 0; column < 3; ++column)
+        {
+            double turned = cameraTurn[row] * meshTurn[column] + cameraTurn[3 + row] * meshTurn[3 + column] + cameraTurn[6 + row] * meshTurn[6 + column];
+            modelView[row][column] = turned * scale[column];
+            normalMatrix[column * 3 + row] = (float)(turned * cofactor[column]);
+        }
+    }
+    double offsetX = placement[FRIED_MESH_X] - placement[FRIED_MESH_CAMERA_X];
+    double offsetY = placement[FRIED_MESH_Y] - placement[FRIED_MESH_CAMERA_Y];
+    double offsetZ = placement[FRIED_MESH_Z] - placement[FRIED_MESH_CAMERA_Z];
+    for (int row = 0; row < 3; ++row)
+    {
+        modelView[row][3] = cameraTurn[row] * offsetX + cameraTurn[3 + row] * offsetY + cameraTurn[6 + row] * offsetZ;
+    }
+
+    double lightX = placement[FRIED_MESH_LIGHT_X];
+    double lightY = placement[FRIED_MESH_LIGHT_Y];
+    double lightZ = placement[FRIED_MESH_LIGHT_Z];
+    double light[3];
+    for (int row = 0; row < 3; ++row)
+    {
+        light[row] = cameraTurn[row] * lightX + cameraTurn[3 + row] * lightY + cameraTurn[6 + row] * lightZ;
+    }
+    double lightLength = std::sqrt(light[0] * light[0] + light[1] * light[1] + light[2] * light[2]);
+    if (lightLength > 0.0)
+    {
+        for (double &value : light)
+        {
+            value /= lightLength;
+        }
+    }
+    double ambient = placement[FRIED_MESH_AMBIENT];
+
+    // The screen's pixel of a point is its x and y over its depth, times the
+    // focal length, from the viewport's center, which a 2D camera moves and
+    // zooms as it does the points of triangles.
+    double zoomOfCamera = hasCamera ? zoom : 1.0;
+    double shiftX = hasCamera ? layout.m_width / 2.0 - cameraX * zoom : 0.0;
+    double shiftY = hasCamera ? layout.m_height / 2.0 - cameraY * zoom : 0.0;
+    double viewportHeight = placement[FRIED_MESH_VIEWPORT_HEIGHT];
+    double focal = (viewportHeight / 2.0) / std::tan(placement[FRIED_MESH_FIELD_OF_VIEW] * M_PI / 360.0);
+    double focalX = layout.m_scaleX * zoomOfCamera * focal;
+    double focalY = layout.m_scaleY * zoomOfCamera * focal;
+    double centerX = layout.m_scaleX * (zoomOfCamera * (placement[FRIED_MESH_VIEWPORT_X] + placement[FRIED_MESH_VIEWPORT_WIDTH] / 2.0) + shiftX);
+    double centerY = layout.m_scaleY * (zoomOfCamera * (placement[FRIED_MESH_VIEWPORT_Y] + viewportHeight / 2.0) + shiftY);
+    double width = layout.m_viewportWidth;
+    double height = layout.m_viewportHeight;
+
+    double projection[4][4] = {
+        {2.0 * focalX / width, 0.0, 2.0 * centerX / width - 1.0, 0.0},
+        {0.0, 2.0 * focalY / height, 1.0 - 2.0 * centerY / height, 0.0},
+        {0.0, 0.0, (farPlane + nearPlane) / (farPlane - nearPlane), -2.0 * farPlane * nearPlane / (farPlane - nearPlane)},
+        {0.0, 0.0, 1.0, 0.0}};
+
+    // Column-major, as GL takes it.
+    float modelViewProjection[16];
+    for (int row = 0; row < 4; ++row)
+    {
+        for (int column = 0; column < 4; ++column)
+        {
+            double sum = 0.0;
+            for (int inner = 0; inner < 3; ++inner)
+            {
+                sum += projection[row][inner] * modelView[inner][column];
+            }
+            if (column == 3)
+            {
+                sum += projection[row][3];
+            }
+            modelViewProjection[column * 4 + row] = (float)sum;
+        }
+    }
+
+    if (!s_isInMeshMode)
+    {
+        if (!enterMeshMode(layout, outputHeight))
+        {
+            return;
+        }
+    }
+
+    // Meshes of one view share a depth buffer, which starts again each frame
+    // and whenever the view changes, as another scene's meshes begin.
+    double view[sizeof(s_lastView) / sizeof(double)];
+    std::memcpy(view, placement + FRIED_MESH_CAMERA_X, (FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X) * sizeof(double));
+    view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X] = hasCamera ? zoom : 0.0;
+    view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 1] = hasCamera ? cameraX : 0.0;
+    view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 2] = hasCamera ? cameraY : 0.0;
+    if (!s_isDepthCleared || std::memcmp(view, s_lastView, sizeof(view)) != 0)
+    {
+        s_gl.m_clear(GL_DEPTH_BUFFER_BIT);
+        s_gl.m_uniform3f(s_uniforms.m_light, (float)light[0], (float)light[1], (float)light[2]);
+        s_gl.m_uniform1f(s_uniforms.m_ambient, (float)ambient);
+        std::memcpy(s_lastView, view, sizeof(view));
+        s_isDepthCleared = true;
+    }
+
+    uploadIfNeeded(mesh);
+    s_gl.m_bindBuffer(GL_ARRAY_BUFFER, mesh.m_buffer);
+    s_gl.m_uniformMatrix4fv(s_uniforms.m_modelViewProjection, 1, GL_FALSE, modelViewProjection);
+    s_gl.m_uniformMatrix3fv(s_uniforms.m_normalMatrix, 1, GL_FALSE, normalMatrix);
+
+    s_gl.m_vertexAttribPointer(s_positionAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void *)offsetof(Vertex, m_position));
+    s_gl.m_vertexAttribPointer(s_colorAttribute, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (const void *)offsetof(Vertex, m_color));
+    s_gl.m_vertexAttribPointer(s_normalAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void *)offsetof(Vertex, m_normal));
+
+    s_gl.m_drawArrays(GL_TRIANGLES, 0, (GLsizei)mesh.m_vertices.size());
+}

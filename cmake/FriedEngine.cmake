@@ -98,6 +98,13 @@ else()
     set(_fried_graphics_backend sdl)
 endif()
 
+# Meshes drawn with the depth buffer of the GL context SDL's renderer makes. The other platforms have no such renderer yet, and their meshes are drawn as triangles.
+if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR FRIED_WEB)
+    set(_fried_mesh_backend none)
+else()
+    set(_fried_mesh_backend gl)
+endif()
+
 # The calculator has no SDL2 under any of it, so every file that calls SDL has
 # a gint sibling there, apart from the renderer, the textures and the fonts,
 # which are drawn by the CPU into a frame software_frame_gint.cpp hands them.
@@ -160,7 +167,7 @@ else()
         native/graphics/renderer_${_fried_graphics_backend}.cpp
         native/graphics/texture_${_fried_graphics_backend}.cpp
         native/graphics/font.cpp
-        native/graphics/mesh_none.cpp
+        native/graphics/mesh_${_fried_mesh_backend}.cpp
         native/audio/sound.cpp
         native/audio/music.cpp
     )

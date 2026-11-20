@@ -1,4 +1,5 @@
 #include "graphics/texture.h"
+#include "graphics/mesh_gl.h"
 
 #include "handle_pool.h"
 #include "last_error.h"
@@ -28,6 +29,7 @@ SDL_Texture *fried_texture_get_sdl(int textureId)
 
 int fried_texture_load(int rendererId, const char *path)
 {
+    fried_mesh_gl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer || !path)
     {
@@ -47,6 +49,7 @@ int fried_texture_load(int rendererId, const char *path)
 
 int fried_texture_create_blank(int rendererId, int width, int height)
 {
+    fried_mesh_gl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
     if (!renderer)
     {
@@ -75,6 +78,7 @@ int fried_texture_create_blank(int rendererId, int width, int height)
 
 bool fried_texture_write(int textureId, int x, int y, SDL_Surface *surface, const SDL_Rect *sourceRect)
 {
+    fried_mesh_gl_leave();
     SDL_Texture *texture = fried_texture_get_sdl(textureId);
     if (!texture || !surface || !sourceRect)
     {
@@ -104,6 +108,7 @@ bool fried_texture_write(int textureId, int x, int y, SDL_Surface *surface, cons
 
 void fried_texture_destroy(int textureId)
 {
+    fried_mesh_gl_leave();
     SDL_Texture *texture = s_textures.release(textureId);
     if (!texture)
     {
