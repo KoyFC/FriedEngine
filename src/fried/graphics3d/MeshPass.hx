@@ -57,25 +57,20 @@ class MeshPass {
 		}
 		isViewReady = false;
 		triangleTotal = 0;
-		var capacity = 0;
-		for (instance in meshes) {
-			if (instance.mesh != null) {
-				capacity += instance.mesh.triangleColors.length;
+		var target = DrawQueue.currentRenderTarget;
+		var drawsMeshes = target != null && target.drawsMeshes;
+		// Where the renderer draws the meshes, none of these arrays is used, and a mesh it could not take grows them when it is reached.
+		if (!drawsMeshes) {
+			var capacity = 0;
+			for (instance in meshes) {
+				if (instance.mesh != null) {
+					capacity += instance.mesh.triangleColors.length;
+				}
 			}
-		}
-		// The arrays only grow, and are written by index: a push per corner of every triangle costs more than the sums on them.
-		if (depths.length < capacity) {
-			depths.resize(capacity);
-			shades.resize(capacity);
-			corners.resize(capacity * 6);
-			drawOrder.resize(capacity);
-			keys.resize(capacity);
-			halfSorted.resize(capacity);
+			reserve(capacity);
 		}
 
 		var total = 0;
-		var target = DrawQueue.currentRenderTarget;
-		var drawsMeshes = target != null && target.drawsMeshes;
 		for (instance in meshes) {
 			var mesh = instance.mesh;
 			if (!instance.shownInTree || mesh == null) {
@@ -88,6 +83,9 @@ class MeshPass {
 					total += mesh.triangleColors.length;
 					continue;
 				}
+			}
+			if (drawsMeshes) {
+				reserve(triangleTotal + mesh.triangleColors.length);
 			}
 			if (!isViewReady) {
 				prepareView(camera, lightX, lightY, lightZ, width, height);
@@ -111,6 +109,18 @@ class MeshPass {
 			total += count;
 		}
 		camera.trianglesDrawn = total;
+	}
+
+	// The arrays only grow, and are written by index: a push per corner of every triangle costs more than the sums on them.
+	static function reserve(capacity:Int):Void {
+		if (depths.length < capacity) {
+			depths.resize(capacity);
+			shades.resize(capacity);
+			corners.resize(capacity * 6);
+			drawOrder.resize(capacity);
+			keys.resize(capacity);
+			halfSorted.resize(capacity);
+		}
 	}
 
 	// The camera's turn and the light in the camera's space, which only a mesh drawn here needs: where every mesh is drawn by the renderer, none of the trigonometry in them is done.
