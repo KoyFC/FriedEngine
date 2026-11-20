@@ -37,6 +37,7 @@ namespace
 
     struct Functions
     {
+        const GLubyte *(APIENTRY *m_getString)(GLenum);
         void (APIENTRY *m_enable)(GLenum);
         void (APIENTRY *m_disable)(GLenum);
         GLboolean (APIENTRY *m_isEnabled)(GLenum);
@@ -150,6 +151,7 @@ namespace
     bool loadFunctions()
     {
         bool ok = true;
+        ok &= load(s_gl.m_getString, "glGetString");
         ok &= load(s_gl.m_enable, "glEnable");
         ok &= load(s_gl.m_disable, "glDisable");
         ok &= load(s_gl.m_isEnabled, "glIsEnabled");
@@ -428,6 +430,7 @@ bool fried_mesh_gl_attach(int rendererId, void *sdlRenderer)
         return false;
     }
 
+    SDL_Log("Meshes are drawn by %s, %s, with %d depth bits", s_gl.m_getString(GL_RENDERER), s_gl.m_getString(GL_VERSION), depthBits);
     s_renderer = renderer;
     s_window = window;
     s_rendererId = rendererId;

@@ -86,7 +86,7 @@ int fried_window_create(const char *title, int width, int height)
     height = screen.h;
 #endif
 
-#if !defined(__vita__) && !defined(__3DS__)
+#if !defined(__3DS__)
     // The depth buffer a GL renderer draws meshes with is asked for here, as a window's pixel format is fixed when it is made.
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 #endif

@@ -17,7 +17,8 @@ function(fried_add_vita_vpk target_name)
         ${ARGN}
     )
 
-    vita_create_self(${target_name}.self ${target_name})
+    # pib loads Sony's libc and libfios2 from vs0, which only an app with extended permissions may.
+    vita_create_self(${target_name}.self ${target_name} UNSAFE)
 
     set(_vpk_files "")
 

@@ -10,6 +10,10 @@
 
 #include <SDL.h>
 
+#ifdef __vita__
+#include <pib.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -64,6 +68,33 @@ namespace
         return std::clamp(value, 0, std::max(0, size - 1));
     }
 
+#ifdef __vita__
+    // Piglet and the shader compiler it uses on the console are modules Sony's firmware does not carry, libScePiglet.suprx and libshacccg.suprx, which pib loads from ur0:data/external only. Starting pib here, where SDL would start it, says whether it all loaded, instead of SDL's calls into a Piglet that did not. SDL's own call then finds it started.
+    bool startPiglet()
+    {
+        static int s_state = 0;
+        if (s_state == 0)
+        {
+            PibError error = pibInit((PibOptions)(PIB_SHACCCG | PIB_GET_PROC_ADDR_CORE));
+            if (error == PIB_SUCCESS)
+            {
+                s_state = 1;
+            }
+            else
+            {
+                SDL_Log("pibInit failed with %d, so meshes are drawn without the GPU", (int)error);
+                pibTerm();
+                s_state = -1;
+            }
+        }
+        return s_state > 0;
+    }
+
+    constexpr const char *s_driverWithoutGl = "VITA gxm";
+#else
+    constexpr const char *s_driverWithoutGl = "";
+#endif
+
     bool isUnderXWayland()
     {
         const char *driver = SDL_GetCurrentVideoDriver();
@@ -102,7 +133,18 @@ int fried_renderer_create(int windowId, bool vsync)
 #if defined(__SWITCH__)
     SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengles2", SDL_HINT_DEFAULT);
     SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
-#elif !defined(__vita__) && !defined(__3DS__) && !defined(__EMSCRIPTEN__)
+#elif defined(__vita__)
+    // Naming a driver turns SDL's batching off, and unbatched, SDL's gxm renderer runs a whole GPU scene for every draw.
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
+    if (startPiglet())
+    {
+        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengles2", SDL_HINT_DEFAULT);
+    }
+    else
+    {
+        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, s_driverWithoutGl, SDL_HINT_DEFAULT);
+    }
+#elif !defined(__3DS__) && !defined(__EMSCRIPTEN__)
     SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_DEFAULT);
     SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
 #endif
@@ -114,7 +156,7 @@ int fried_renderer_create(int windowId, bool vsync)
     if (!renderer)
     {
         // No GL here, so SDL chooses a driver of its own, down to the software one a window with no GPU behind it, such as the editor player's, can still have.
-        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "", SDL_HINT_DEFAULT);
+        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, s_driverWithoutGl, SDL_HINT_DEFAULT);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         if (!renderer)
         {

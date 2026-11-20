@@ -56,7 +56,12 @@ endif()
 # gint is the whole platform on the calculator, and libnds on the DS, with no
 # SDL2 on top of either.
 if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
-    find_package(SDL2 REQUIRED CONFIG)
+    if(VITA)
+        include("${CMAKE_CURRENT_LIST_DIR}/VitaDependencies.cmake")
+        fried_add_vita_sdl2()
+    else()
+        find_package(SDL2 REQUIRED CONFIG)
+    endif()
     find_package(SDL2_ttf REQUIRED CONFIG)
 
     if(NINTENDO_SWITCH)
@@ -98,10 +103,10 @@ else()
     set(_fried_graphics_backend sdl)
 endif()
 
-# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC and the Switch, and the 3DS's GPU through citro3d. The other platforms have no such renderer yet, and their meshes are drawn as triangles.
+# Meshes drawn with the depth buffer of the GL context SDL's renderer makes, on PC, the Switch and the Vita, and the 3DS's GPU through citro3d. The web build has no such renderer, and its meshes are drawn as triangles.
 if(NINTENDO_3DS)
     set(_fried_mesh_backend citro)
-elseif(VITA OR FRIED_WEB)
+elseif(FRIED_WEB)
     set(_fried_mesh_backend none)
 else()
     set(_fried_mesh_backend gl)
@@ -211,11 +216,16 @@ if(NOT TARGET fried_engine)
     elseif(FRIED_WEB)
         target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
     elseif(VITA OR NINTENDO_3DS)
+        if(VITA)
+            set(_fried_sdl2_target SDL2::SDL2-static)
+        else()
+            set(_fried_sdl2_target SDL2::SDL2)
+        endif()
         target_link_libraries(fried_engine PUBLIC
             SDL2_image::SDL2_image-static
             SDL2_mixer::SDL2_mixer-static
             SDL2_ttf::SDL2_ttf-static
-            SDL2::SDL2
+            ${_fried_sdl2_target}
         )
     elseif(NINTENDO_SWITCH)
         target_link_libraries(fried_engine PUBLIC
