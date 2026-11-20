@@ -23,6 +23,57 @@
 			"z": 10
 		},
 		{
+			"children": [
+				{
+					"color": {
+						"a": 255,
+						"b": 110,
+						"g": 90,
+						"r": 90
+					},
+					"id": "floor",
+					"name": "Floor",
+					"scaleX": 6,
+					"scaleZ": 3,
+					"shape": "Plane",
+					"type": "MeshInstance"
+				},
+				{
+					"color": {
+						"a": 255,
+						"b": 80,
+						"g": 200,
+						"r": 240
+					},
+					"id": "pyramid",
+					"name": "Pyramid",
+					"shape": "Pyramid",
+					"type": "MeshInstance",
+					"x": -1.5,
+					"y": 0.5
+				},
+				{
+					"color": {
+						"a": 255,
+						"b": 240,
+						"g": 160,
+						"r": 80
+					},
+					"id": "ball",
+					"name": "Ball",
+					"shape": "Sphere",
+					"type": "MeshInstance",
+					"x": 1.5,
+					"y": 0.5
+				}
+			],
+			"id": "shapes",
+			"name": "Shapes",
+			"type": "Node3D",
+			"y": -2.2,
+			"z": 6
+		},
+		{
 			"color": {
 				"a": 255,
 				"b": 230,

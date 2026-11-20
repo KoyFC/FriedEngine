@@ -4,12 +4,14 @@ import fried.graphics.Color;
 import fried.graphics.Font;
 import fried.graphics.FlipMode;
 import fried.graphics.Rect;
+import fried.graphics3d.MeshShape;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
 
 // Converts between the data of a scene file and the values of node fields. The code a node's build macro generates calls these.
 class FieldCodec {
 	static var flipNames:Array<String> = ["None", "Horizontal", "Vertical", "Both"];
+	static var shapeNames:Array<String> = ["Cube", "Plane", "Pyramid", "Sphere"];
 
 	public static function has(data:Dynamic, name:String):Bool {
 		return data != null && Reflect.hasField(data, name);
@@ -24,7 +26,11 @@ class FieldCodec {
 	}
 
 	public static function enumValues(kind:FieldKind):Array<String> {
-		return kind == Flip ? flipNames.copy() : [];
+		return switch (kind) {
+			case Flip: flipNames.copy();
+			case Shape: shapeNames.copy();
+			case _: [];
+		}
 	}
 
 	public static function toInt(value:Dynamic, field:String):Int {
@@ -73,6 +79,16 @@ class FieldCodec {
 			case "Vertical": FlipMode.Vertical;
 			case "Both": FlipMode.Both;
 			case _: invalid(field, "one of " + flipNames.join(", "));
+		}
+	}
+
+	public static function toShape(value:Dynamic, field:String):MeshShape {
+		return switch (value) {
+			case "Cube": MeshShape.Cube;
+			case "Plane": MeshShape.Plane;
+			case "Pyramid": MeshShape.Pyramid;
+			case "Sphere": MeshShape.Sphere;
+			case _: invalid(field, "one of " + shapeNames.join(", "));
 		}
 	}
 
@@ -156,6 +172,10 @@ class FieldCodec {
 		return flipNames[cast value];
 	}
 
+	public static function fromShape(value:MeshShape):Dynamic {
+		return shapeNames[cast value];
+	}
+
 	public static function fromRect(value:Rect):Dynamic {
 		return value == null ? null : {x: value.x, y: value.y, width: value.width, height: value.height};
 	}
@@ -191,6 +211,10 @@ class FieldCodec {
 
 	public static function zeroFlip():FlipMode {
 		return FlipMode.None;
+	}
+
+	public static function zeroShape():MeshShape {
+		return MeshShape.Cube;
 	}
 
 	public static function zeroRect():Rect {

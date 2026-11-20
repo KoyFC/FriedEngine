@@ -11,5 +11,6 @@ enum abstract FieldKind(String) to String {
 	var Region = "rect";
 	var TextureRef = "texture";
 	var FontRef = "font";
+	var Shape = "shape";
 	var ObjectRef = "object";
 }

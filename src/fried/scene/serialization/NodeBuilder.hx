@@ -238,6 +238,7 @@ class NodeBuilder {
 			case "String": {name: "", codec: "Text", kind: "Text", needsContext: false};
 			case "Color": {name: "", codec: "Color", kind: "Rgba", needsContext: false};
 			case "FlipMode": {name: "", codec: "Flip", kind: "Flip", needsContext: false};
+			case "MeshShape": {name: "", codec: "Shape", kind: "Shape", needsContext: false};
 			case "Rect": {name: "", codec: "Rect", kind: "Region", needsContext: false};
 			case "Texture": {name: "", codec: "Texture", kind: "TextureRef", needsContext: true};
 			case "Font": {name: "", codec: "Font", kind: "FontRef", needsContext: true};

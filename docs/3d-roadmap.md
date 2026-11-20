@@ -10,6 +10,7 @@ Software 3D in Haxe, drawn with `fillTriangles()`. See the 3D section of [`ARCHI
 - [x] 3D stress test scene
 - [x] Meshes drawn by the DS's 3D engine on its top screen
 - [x] Camera3D, DirectionalLight and MeshInstance nodes; a scene sorts the triangles of all its meshes together and submits one batch
+- [x] Built-in shapes for MeshInstance
 - [x] Camera rotation on the DS's 3D engine
 - [x] Node3D: position, rotation about each axis in Unity's order and scale on each, its world values cached like a Node2D's
 
