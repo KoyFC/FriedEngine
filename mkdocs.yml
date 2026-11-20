@@ -39,6 +39,15 @@ nav:
       - getting-started/using-in-a-game.md
       - getting-started/vscode.md
       - getting-started/troubleshooting.md
+  - Platforms:
+      - platforms/index.md
+      - platforms/windows.md
+      - platforms/vita.md
+      - platforms/switch.md
+      - platforms/3ds.md
+      - platforms/nds.md
+      - platforms/cg50.md
+      - platforms/web.md
   - Architecture:
       - architecture/index.md
       - architecture/consuming.md
@@ -58,15 +67,6 @@ nav:
       - architecture/collisions.md
       - architecture/asset-roots.md
       - architecture/project-file.md
-  - Platforms:
-      - platforms/index.md
-      - platforms/windows.md
-      - platforms/vita.md
-      - platforms/switch.md
-      - platforms/3ds.md
-      - platforms/nds.md
-      - platforms/cg50.md
-      - platforms/web.md
   - Reference:
       - reference/project-file.md
   - API reference: https://koyfc.github.io/FriedEngine/api/
