@@ -1,0 +1,50 @@
+site_name: Fried Engine
+site_url: https://koyfc.github.io/FriedEngine/
+site_description: A game engine in Haxe, compiled to C++ through hxcpp, built with CMake for PC, consoles, a calculator and the web.
+repo_url: https://github.com/KoyFC/FriedEngine
+repo_name: KoyFC/FriedEngine
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: { icon: material/brightness-7, name: Dark mode }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: { icon: material/brightness-4, name: Light mode }
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - toc: { permalink: true }
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/installing.md
+      - getting-started/building.md
+      - getting-started/using-in-a-game.md
+      - getting-started/vscode.md
+  - Platforms:
+      - platforms/index.md
+      - platforms/vita.md
+      - platforms/switch.md
+      - platforms/3ds.md
+      - platforms/nds.md
+      - platforms/cg50.md
+      - platforms/web.md
+  - Development:
+      - development/index.md
+      - development/3d-roadmap.md
+      - development/editor-roadmap.md
+      - development/nds-port.md

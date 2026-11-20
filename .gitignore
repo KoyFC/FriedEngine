@@ -404,6 +404,7 @@ FodyWeavers.xsd
 ## Fried Engine (Haxe / hxcpp / CMake)
 # CMake build trees and hxcpp -cpp output (e.g. sandbox/build/, sandbox/build/cpp/)
 build/
+site/
 *.ndll
 haxe_*.log
 
