@@ -12,5 +12,6 @@ This repository is the engine alone, and it is not the starting point for a game
 
 - [Getting started](getting-started/installing.md): what to install, how to build and how a game uses the engine.
 - [Architecture](architecture/index.md): the decisions behind what is implemented, and why.
+- [API reference](https://koyfc.github.io/FriedEngine/api/): every public type in `src/fried/`, generated from the source.
 - [Platforms](platforms/index.md): building for each platform and how each port works.
 - [Development](development/index.md): roadmaps and the investigations behind the ports.

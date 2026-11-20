@@ -1,6 +1,6 @@
 # Architecture
 
-These pages describe the decisions behind what is currently implemented, and why each one was made. It is not an API reference: the API is `src/fried/`.
+These pages describe the decisions behind what is currently implemented, and why each one was made. It is not an API reference, which is [generated from `src/fried/`](https://koyfc.github.io/FriedEngine/api/).
 
 - [Consuming the engine](consuming.md)
 - [SDL2 and the native layer](native-layer.md)

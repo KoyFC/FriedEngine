@@ -61,6 +61,7 @@ nav:
       - platforms/nds.md
       - platforms/cg50.md
       - platforms/web.md
+  - API reference: https://koyfc.github.io/FriedEngine/api/
   - Development:
       - development/index.md
       - development/3d-roadmap.md

@@ -18,6 +18,7 @@ The documentation is at <https://koyfc.github.io/FriedEngine/>:
 - [Building](https://koyfc.github.io/FriedEngine/getting-started/building/)
 - [Using the engine in a game](https://koyfc.github.io/FriedEngine/getting-started/using-in-a-game/)
 - [Architecture](https://koyfc.github.io/FriedEngine/architecture/)
+- [API reference](https://koyfc.github.io/FriedEngine/api/)
 
 On Linux, with everything in [Installing](https://koyfc.github.io/FriedEngine/getting-started/installing/) set up, the sandbox builds and runs with:
 
