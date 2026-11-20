@@ -14,4 +14,4 @@ The Haxe side needed no equivalent, since it never had a location to configure. 
 
 Because that layout is fixed and small, it can be generated: [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager) lives in its own repository and writes a project already pinned to the engine. Nothing here knows about the tool, and the layout stays the contract between them.
 
-A scene editor, [FriedEditor](https://github.com/KoyFC/FriedEditor), is planned in a repository of its own, and the engine's share of that work is tracked in [`docs/editor-roadmap.md`](../development/editor-roadmap.md).
+The scene editor, [FriedEditor](https://github.com/KoyFC/FriedEditor), is in a repository of its own, and the engine's share of that work is the [editor player](editor-player.md) and the [scene files](scene-files.md). What is still open is tracked in [`docs/editor-roadmap.md`](../development/editor-roadmap.md).

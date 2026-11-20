@@ -10,9 +10,9 @@ PC (verified on Linux with GCC, and on Windows built with MSVC or MinGW-w64 on W
 
 macOS is not supported. See [Platforms](platforms/index.md) for what each platform draws with and where it was verified.
 
-This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. [Using the engine in a game](getting-started/using-in-a-game.md) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
+This repository is the engine alone, and it is not the starting point for a game. A game lives in its own repository, pins the engine as a Git submodule, and builds it as part of its own build. The recommended way to start one is [Fried Project Manager](https://github.com/KoyFC/FriedProjectManager), which writes a project that already has the engine as a submodule and builds and runs as it comes out. The recommended way to make its scenes is [Fried Editor](https://github.com/KoyFC/FriedEditor), which the Project Manager downloads and opens on the project; see [Tools](getting-started/tools.md). [Using the engine in a game](getting-started/using-in-a-game.md) is the same layout by hand. Cloning this repository on its own is for working on the engine itself, and `sandbox/` is its test program rather than a template.
 
-- [Getting started](getting-started/installing.md): what to install, how to build and how a game uses the engine.
+- [Getting started](getting-started/tools.md): the tools, what to install, how to build and how a game uses the engine.
 - [Architecture](architecture/index.md): the decisions behind what is implemented, and why.
 - [API reference](https://koyfc.github.io/FriedEngine/api/): every public type in `src/fried/`, generated from the source.
 - [Platforms](platforms/index.md): building for each platform and how each port works.

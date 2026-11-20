@@ -1,6 +1,6 @@
 # Using the engine in a game
 
-[Fried Project Manager](https://github.com/KoyFC/FriedProjectManager) writes all of this for you, and that is the recommended route. What follows is what it produces, for a project set up by hand or for reading what a generated one contains.
+[Fried Project Manager](https://github.com/KoyFC/FriedProjectManager) writes all of this for you, and that is the recommended route; [Fried Editor](https://github.com/KoyFC/FriedEditor) is then the recommended way to make its scenes (see [Tools](tools.md)). What follows is what it produces, for a project set up by hand or for reading what a generated one contains.
 
 The engine is consumed as a Git submodule:
 

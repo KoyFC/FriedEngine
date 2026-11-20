@@ -33,6 +33,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting started:
+      - getting-started/tools.md
       - getting-started/installing.md
       - getting-started/building.md
       - getting-started/using-in-a-game.md
