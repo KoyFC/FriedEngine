@@ -37,6 +37,7 @@ nav:
       - getting-started/building.md
       - getting-started/using-in-a-game.md
       - getting-started/vscode.md
+      - getting-started/troubleshooting.md
   - Architecture:
       - architecture/index.md
       - architecture/consuming.md
