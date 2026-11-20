@@ -10,6 +10,15 @@ class Mesh {
 	public var indices(default, null):Array<Int>;
 	public var triangleColors(default, null):Array<Color>;
 
+	// How far the farthest vertex is from the origin, and the box that holds them all, which is what a scene skips a mesh by and an editor outlines it by.
+	public var radius(default, null):Float;
+	public var minX(default, null):Float;
+	public var maxX(default, null):Float;
+	public var minY(default, null):Float;
+	public var maxY(default, null):Float;
+	public var minZ(default, null):Float;
+	public var maxZ(default, null):Float;
+
 	var nativeId:Int;
 
 	public function new(vertices:Array<Float>, indices:Array<Int>, triangleColors:Array<Color>) {
@@ -29,6 +38,28 @@ class Mesh {
 		this.indices = indices;
 		this.triangleColors = triangleColors;
 		nativeId = -1;
+
+		radius = 0.0;
+		minX = 0.0;
+		maxX = 0.0;
+		minY = 0.0;
+		maxY = 0.0;
+		minZ = 0.0;
+		maxZ = 0.0;
+		var corner = 0;
+		while (corner < vertices.length) {
+			var x = vertices[corner];
+			var y = vertices[corner + 1];
+			var z = vertices[corner + 2];
+			radius = Math.max(radius, Math.sqrt(x * x + y * y + z * z));
+			minX = Math.min(minX, x);
+			maxX = Math.max(maxX, x);
+			minY = Math.min(minY, y);
+			maxY = Math.max(maxY, y);
+			minZ = Math.min(minZ, z);
+			maxZ = Math.max(maxZ, z);
+			corner += 3;
+		}
 	}
 
 	// Frees the copy a renderer keeps, which drawing the mesh again makes anew.

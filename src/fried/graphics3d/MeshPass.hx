@@ -36,6 +36,11 @@ class MeshPass {
 	static var lightViewY:Float = 0.0;
 	static var lightViewZ:Float = 0.0;
 	static var lightLength:Float = 0.0;
+	static var tanX:Float = 1.0;
+	static var tanY:Float = 1.0;
+	static var sideX:Float = 1.0;
+	static var sideY:Float = 1.0;
+	static var clipped:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 	static var ambient:Float = 1.0;
 
 	public static function draw(camera:Camera3D, light:Null<DirectionalLight>, meshes:Array<MeshInstance>, width:Float, height:Float):Void {
@@ -118,6 +123,10 @@ class MeshPass {
 		focalLength = (height / 2.0) / Math.tan(camera.fieldOfView * Math.PI / 360.0);
 		centerX = width / 2.0;
 		centerY = height / 2.0;
+		tanY = Math.tan(camera.fieldOfView * Math.PI / 360.0);
+		tanX = tanY * width / height;
+		sideX = Math.sqrt(1.0 + tanX * tanX);
+		sideY = Math.sqrt(1.0 + tanY * tanY);
 	}
 
 	static function place(placement:Array<Float>, instance:MeshInstance, camera:Camera3D, width:Float, height:Float, lightX:Float, lightY:Float,
@@ -170,6 +179,13 @@ class MeshPass {
 		var shiftY = cameraTurn[1] * offsetX + cameraTurn[4] * offsetY + cameraTurn[7] * offsetZ;
 		var shiftZ = cameraTurn[2] * offsetX + cameraTurn[5] * offsetY + cameraTurn[8] * offsetZ;
 
+		// A mesh whose bounding sphere is wholly behind the near plane or outside a side of the view is not worth turning.
+		var radius = mesh.radius * Math.max(Math.abs(scaleX), Math.max(Math.abs(scaleY), Math.abs(scaleZ)));
+		if (shiftZ + radius < near || shiftX - tanX * shiftZ > radius * sideX || -shiftX - tanX * shiftZ > radius * sideX
+			|| shiftY - tanY * shiftZ > radius * sideY || -shiftY - tanY * shiftZ > radius * sideY) {
+			return;
+		}
+
 		var vertices = mesh.vertices;
 		viewVertices.resize(vertices.length);
 		var index = 0;
@@ -194,7 +210,8 @@ class MeshPass {
 			var az = viewVertices[a + 2];
 			var bz = viewVertices[b + 2];
 			var cz = viewVertices[c + 2];
-			if (az < near || bz < near || cz < near) {
+			var inside = (az >= near ? 1 : 0) + (bz >= near ? 1 : 0) + (cz >= near ? 1 : 0);
+			if (inside == 0) {
 				continue;
 			}
 
@@ -218,8 +235,13 @@ class MeshPass {
 			}
 			var brightness = ambient + (1.0 - ambient) * Math.max(facing, 0.0);
 			var color = mesh.triangleColors[triangle];
+			var shade = Color.rgba(Std.int(color.red * brightness), Std.int(color.green * brightness), Std.int(color.blue * brightness), color.alpha);
+			if (inside < 3) {
+				emitClipped(shade, ax, ay, az, viewVertices[b], viewVertices[b + 1], bz, viewVertices[c], viewVertices[c + 1], cz, near);
+				continue;
+			}
 			var slot = triangleTotal++;
-			shades[slot] = Color.rgba(Std.int(color.red * brightness), Std.int(color.green * brightness), Std.int(color.blue * brightness), color.alpha);
+			shades[slot] = shade;
 			depths[slot] = az + bz + cz;
 
 			var bx = viewVertices[b];
@@ -234,6 +256,66 @@ class MeshPass {
 			corners[at + 4] = centerX + cx * focalLength / cz;
 			corners[at + 5] = centerY - cy * focalLength / cz;
 		}
+	}
+
+	// A triangle with a corner nearer than the near plane is cut at it, which leaves a triangle or a quad, and the quad goes as two triangles.
+	static function emitClipped(shade:Color, ax:Float, ay:Float, az:Float, bx:Float, by:Float, bz:Float, cx:Float, cy:Float, cz:Float, near:Float):Void {
+		var count = clipEdge(ax, ay, az, bx, by, bz, near, 0);
+		count = clipEdge(bx, by, bz, cx, cy, cz, near, count);
+		count = clipEdge(cx, cy, cz, ax, ay, az, near, count);
+		var depth = 0.0;
+		for (corner in 0...count) {
+			depth += clipped[corner * 3 + 2];
+		}
+		depth = depth * 3.0 / count;
+		emitFan(shade, depth, 0, 1, 2);
+		if (count == 4) {
+			emitFan(shade, depth, 0, 2, 3);
+		}
+	}
+
+	// Adds to clipped, which holds up to four corners, the start of an edge if it is in front of the near plane and the place the edge crosses it.
+	static function clipEdge(px:Float, py:Float, pz:Float, qx:Float, qy:Float, qz:Float, near:Float, count:Int):Int {
+		var isPInside = pz >= near;
+		if (isPInside) {
+			clipped[count * 3] = px;
+			clipped[count * 3 + 1] = py;
+			clipped[count * 3 + 2] = pz;
+			count++;
+		}
+		if (isPInside != (qz >= near)) {
+			var along = (near - pz) / (qz - pz);
+			clipped[count * 3] = px + (qx - px) * along;
+			clipped[count * 3 + 1] = py + (qy - py) * along;
+			clipped[count * 3 + 2] = near;
+			count++;
+		}
+		return count;
+	}
+
+	static function emitFan(shade:Color, depth:Float, first:Int, second:Int, third:Int):Void {
+		var slot = triangleTotal++;
+		if (slot >= depths.length) {
+			var size = slot * 2 + 16;
+			depths.resize(size);
+			shades.resize(size);
+			corners.resize(size * 6);
+			drawOrder.resize(size);
+			keys.resize(size);
+			halfSorted.resize(size);
+		}
+		shades[slot] = shade;
+		depths[slot] = depth;
+		var at = slot * 6;
+		var one = first * 3;
+		var two = second * 3;
+		var three = third * 3;
+		corners[at] = centerX + clipped[one] * focalLength / clipped[one + 2];
+		corners[at + 1] = centerY - clipped[one + 1] * focalLength / clipped[one + 2];
+		corners[at + 2] = centerX + clipped[two] * focalLength / clipped[two + 2];
+		corners[at + 3] = centerY - clipped[two + 1] * focalLength / clipped[two + 2];
+		corners[at + 4] = centerX + clipped[three] * focalLength / clipped[three + 2];
+		corners[at + 5] = centerY - clipped[three + 1] * focalLength / clipped[three + 2];
 	}
 
 	// Puts drawOrder in the order of the triangles' depths, farthest first, and triangles of the same depth in the order they were made. A comparison sort of the thousands of triangles a scene has takes longer than all the rest of the pass, so the depths are cut into 65536 steps between the nearest and the farthest and sorted a byte at a time.

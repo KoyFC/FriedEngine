@@ -3,6 +3,13 @@
 	"name": "Sandbox 3D",
 	"nodes": [
 		{
+			"children": [
+				{
+					"id": "free-camera",
+					"name": "Free camera",
+					"type": "FreeCamera"
+				}
+			],
 			"id": "camera",
 			"name": "Camera",
 			"type": "Camera3D"
@@ -90,7 +97,7 @@
 			"offsetX": 12,
 			"offsetY": 12,
 			"priority": 1,
-			"text": "Up/Down: cubes x2 or /2   F2/North: next scene",
+			"text": "Up/Down: cubes x2 or /2   J/L/I/K/WASD: camera   F2/North: next scene",
 			"type": "Label"
 		}
 	],
