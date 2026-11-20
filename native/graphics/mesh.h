@@ -58,28 +58,45 @@ extern "C"
 }
 
 #ifdef __NDS__
-// A triangle or a quad as the geometry engine takes it: its normal, its
-// color as RGB15, its alpha from 0 to 255, and its corners as v16 x and y
-// packed in a word and z alone, in units of the mesh's own.
-struct FriedNdsPolygon
+// A run of polygons of one alpha and one corner count, as the packed commands
+// the geometry engine's FIFO takes: up to four command bytes in a word, then
+// their parameters. A polygon is its normal and its corners as v16 x and y
+// packed in a word and z alone, in units of the mesh's own, with the material
+// before it where the color changes. Drawing a run is one DMA of its words.
+struct FriedNdsList
 {
-    uint32_t m_normal;
-    uint16_t m_color;
+    const uint32_t *m_words;
+    int m_wordCount;
     uint8_t m_alpha;
     uint8_t m_cornerCount;
-    uint32_t m_xy[4];
-    uint16_t m_z[4];
+};
+
+// Where a list holds the emission of a color, which is the light's ambient
+// share of it and so is written again when the ambient changes.
+struct FriedNdsEmission
+{
+    uint32_t *m_word;
+    uint16_t m_color;
 };
 
 // A v16 holds less than 8, so the corners are stored divided by a unit of
 // 2 to the power of m_unitShift, which the mesh is scaled back up by as it is
-// drawn.
+// drawn. The lists share one allocation, m_words.
 struct FriedNdsMesh
 {
-    FriedNdsPolygon *m_polygons;
-    int m_polygonCount;
+    uint32_t *m_words;
+    int m_wordCount;
+    FriedNdsList *m_lists;
+    int m_listCount;
+    FriedNdsEmission *m_emissions;
+    int m_emissionCount;
+    int m_ambient;
     int m_unitShift;
 };
 
-const FriedNdsMesh *fried_mesh_get_nds(int meshId);
+FriedNdsMesh *fried_mesh_get_nds(int meshId);
+
+// Writes the emissions of the lists for an ambient share from 0 to 32 and
+// puts the words where the DMA reads them.
+void fried_mesh_set_ambient_nds(FriedNdsMesh *mesh, int ambient);
 #endif

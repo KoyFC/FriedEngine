@@ -266,6 +266,27 @@ namespace
         return true;
     }
 
+    // Sends packed commands to the geometry engine's FIFO by DMA, and waits
+    // until it has taken them all, as the direct writes that follow must come
+    // after them. FIFO DMA does not run beside another channel.
+    void sendCommands(const uint32_t *words, int count)
+    {
+        constexpr int s_channels = 4;
+        constexpr uintptr_t s_fifoAddress = 0x4000400;
+        for (int channel = 0; channel < s_channels; ++channel)
+        {
+            while (DMA_CR(channel) & DMA_BUSY)
+            {
+            }
+        }
+        DMA_SRC(0) = (uint32_t)words;
+        DMA_DEST(0) = s_fifoAddress;
+        DMA_CR(0) = DMA_FIFO | (uint32_t)count;
+        while (DMA_CR(0) & DMA_BUSY)
+        {
+        }
+    }
+
     // Starts the polygons of one 2D draw, at one alpha and with one texture
     // or none.
     bool beginPolygons(GL_GLBEGIN_ENUM kind, int alpha, const FriedNdsTexture *texture)
@@ -584,15 +605,6 @@ namespace
         s_drawingMeshes = true;
     }
 
-    // Emission is the second half of the word that also holds the specular
-    // color, which is left black.
-    uint32_t emissionOf(uint16_t color)
-    {
-        int r = ((color & 0x1f) * s_meshAmbient) >> 5;
-        int g = (((color >> 5) & 0x1f) * s_meshAmbient) >> 5;
-        int b = (((color >> 10) & 0x1f) * s_meshAmbient) >> 5;
-        return (uint32_t)RGB15(r, g, b) << 16;
-    }
 }
 
 namespace
@@ -1184,7 +1196,7 @@ bool fried_renderer_draws_meshes(int rendererId)
 void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
 {
     Renderer *renderer = isSoftware(rendererId) ? nullptr : s_renderers.get(rendererId);
-    const FriedNdsMesh *mesh = fried_mesh_get_nds(meshId);
+    FriedNdsMesh *mesh = fried_mesh_get_nds(meshId);
     if (!renderer || !mesh || !placement)
     {
         return;
@@ -1202,6 +1214,11 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
     int64_t scaleY = std::clamp<int64_t>(fried_to_fixed(placement[FRIED_MESH_SCALE_Y], 12 + mesh->m_unitShift), INT32_MIN, INT32_MAX);
     int64_t scaleZ = std::clamp<int64_t>(fried_to_fixed(placement[FRIED_MESH_SCALE_Z], 12 + mesh->m_unitShift), INT32_MIN, INT32_MAX);
 
+    if (mesh->m_ambient != s_meshAmbient)
+    {
+        fried_mesh_set_ambient_nds(mesh, s_meshAmbient);
+    }
+
     glPushMatrix();
     glTranslatef32((int)x, (int)y, (int)z);
     glRotateYi(toAngle(placement[FRIED_MESH_ROTATION_Y]));
@@ -1209,45 +1226,14 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placemen
     glRotateZi(toAngle(placement[FRIED_MESH_ROTATION_Z]));
     glScalef32((int)scaleX, (int)scaleY, (int)scaleZ);
 
-    int alpha = -1;
-    int cornerCount = 0;
-    int color = -1;
-    bool started = false;
-    for (int index = 0; index < mesh->m_polygonCount; ++index)
+    for (int index = 0; index < mesh->m_listCount; ++index)
     {
-        const FriedNdsPolygon &polygon = mesh->m_polygons[index];
-        if (polygon.m_alpha != alpha || polygon.m_cornerCount != cornerCount)
+        const FriedNdsList &list = mesh->m_lists[index];
+        if (startPolygons(list.m_cornerCount == 4 ? GL_QUADS : GL_TRIANGLES, list.m_alpha, nullptr, s_meshCulling | POLY_FORMAT_LIGHT0))
         {
-            if (started)
-            {
-                glEnd();
-            }
-            alpha = polygon.m_alpha;
-            cornerCount = polygon.m_cornerCount;
-            started = startPolygons(cornerCount == 4 ? GL_QUADS : GL_TRIANGLES, alpha, nullptr, s_meshCulling | POLY_FORMAT_LIGHT0);
+            sendCommands(list.m_words, list.m_wordCount);
+            glEnd();
         }
-        if (!started)
-        {
-            continue;
-        }
-        // The material holds from one polygon to the next, as neighbors
-        // often share it.
-        if (polygon.m_color != color)
-        {
-            color = polygon.m_color;
-            GFX_DIFFUSE_AMBIENT = polygon.m_color;
-            GFX_SPECULAR_EMISSION = emissionOf(polygon.m_color);
-        }
-        GFX_NORMAL = polygon.m_normal;
-        for (int corner = 0; corner < cornerCount; ++corner)
-        {
-            GFX_VERTEX16 = polygon.m_xy[corner];
-            GFX_VERTEX16 = polygon.m_z[corner];
-        }
-    }
-    if (started)
-    {
-        glEnd();
     }
     glPopMatrix(1);
 }
