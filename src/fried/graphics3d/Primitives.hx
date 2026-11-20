@@ -6,6 +6,7 @@ import fried.graphics.Color;
 class Primitives {
 	static inline var SPHERE_SEGMENTS = 8;
 	static inline var SPHERE_RINGS = 6;
+	static inline var PLANE_TILES = 16;
 
 	static var cache:Map<String, Mesh> = new Map();
 
@@ -38,8 +39,7 @@ class Primitives {
 					0, 1, 5, 0, 5, 4 // -y
 				];
 			case Plane:
-				vertices = [-0.5, 0.0, -0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, 0.5, 0.0, 0.5];
-				indices = [2, 3, 1, 2, 1, 0];
+				buildPlane(vertices, indices);
 			case Pyramid:
 				vertices = [-0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.0, 0.5, 0.0];
 				indices = [0, 1, 3, 0, 3, 2, 4, 1, 0, 4, 2, 3, 4, 0, 2, 4, 3, 1];
@@ -50,6 +50,29 @@ class Primitives {
 			orientOutward(vertices, indices);
 		}
 		return new Mesh(vertices, indices, [for (triangle in 0...Std.int(indices.length / 3)) color]);
+	}
+
+	// Cut into a grid, since triangles are ordered by their average depth and the two halves of a large plane would otherwise be ordered as one point, wrongly against whatever stands on it.
+	static function buildPlane(vertices:Array<Float>, indices:Array<Int>):Void {
+		for (row in 0...PLANE_TILES + 1) {
+			for (column in 0...PLANE_TILES + 1) {
+				vertices.push(column / PLANE_TILES - 0.5);
+				vertices.push(0.0);
+				vertices.push(row / PLANE_TILES - 0.5);
+			}
+		}
+		for (row in 0...PLANE_TILES) {
+			for (column in 0...PLANE_TILES) {
+				var low = row * (PLANE_TILES + 1) + column;
+				var high = low + PLANE_TILES + 1;
+				indices.push(high);
+				indices.push(high + 1);
+				indices.push(low + 1);
+				indices.push(high);
+				indices.push(low + 1);
+				indices.push(low);
+			}
+		}
 	}
 
 	// A pole at each end and rings between them, each of segments that wrap round.
