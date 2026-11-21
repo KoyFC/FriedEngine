@@ -1,6 +1,7 @@
 package fried.editor;
 
 #if fried_editor
+import fried.Project;
 import fried.editor.EditorConnection;
 import fried.input.Input;
 import fried.io.Filesystem;
@@ -130,6 +131,13 @@ class PlayRunner extends Game {
 				Input.inject(message.down == true ? MouseButtonDown : MouseButtonUp, Bootstrap.window, Std.int(message.button), Std.int(message.x), Std.int(message.y));
 			case "mouseWheel":
 				Input.inject(MouseWheel, Bootstrap.window, 0, 0, 0, message.x, message.y);
+			case "frameLimit":
+				// Frames a second, 0 for as many as it can draw, or the project's own rule when it is negative: the display's rate when the project waits for vsync, and its default frame rate when it does not.
+				var fps = Std.int(message.fps);
+				if (fps < 0) {
+					fps = Project.vsync() ? Std.int(message.refresh) : Project.defaultTargetFramerate();
+				}
+				Application.targetFps = fps;
 			case "showGame":
 				isShowing = message.visible == true;
 			case "quit":

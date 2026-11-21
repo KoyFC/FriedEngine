@@ -81,7 +81,7 @@ class Input {
 	public static function isKeyPressed(key:Key):Bool {
 		#if fried_editor
 		if (isInjecting) {
-			return keysDown[key] && !keysBefore[key];
+			return keysDown[key];
 		}
 		#end
 		return InputNative.isKeyPressed(key) != 0;
@@ -90,7 +90,7 @@ class Input {
 	public static function isKeyDown(key:Key):Bool {
 		#if fried_editor
 		if (isInjecting) {
-			return keysDown[key];
+			return keysDown[key] && !keysBefore[key];
 		}
 		#end
 		return InputNative.isKeyDown(key) != 0;
@@ -108,7 +108,7 @@ class Input {
 	public static function isButtonPressed(button:MouseButton):Bool {
 		#if fried_editor
 		if (isInjecting) {
-			return buttonsDown[button] && !buttonsBefore[button];
+			return buttonsDown[button];
 		}
 		#end
 		return MouseNative.isButtonPressed(button) != 0;
@@ -117,7 +117,7 @@ class Input {
 	public static function isButtonDown(button:MouseButton):Bool {
 		#if fried_editor
 		if (isInjecting) {
-			return buttonsDown[button];
+			return buttonsDown[button] && !buttonsBefore[button];
 		}
 		#end
 		return MouseNative.isButtonDown(button) != 0;
