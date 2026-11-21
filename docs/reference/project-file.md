@@ -12,6 +12,7 @@ A game declares itself in a `project.fried` at its own root, in JSON. Each side 
 | `display.mode` | `default`, `fit`, `integer`, `expand`, `pixel`, `height` or `stretch` | `default` | How the game fills the screen. |
 | `display.width`, `display.height` | whole numbers above zero | required for every mode but `default`; a window opens at 640 by 480 on a computer when they are missing | The size the game is designed for. |
 | `display.filter` | `nearest` or `linear` | `nearest` | How every texture is sampled when drawn at another size, whether the display or a transform scaled it: pixel art wants `nearest`, and art drawn at a higher resolution than it is shown at wants `linear`. |
+| `platforms` | list of `pc`, `vita`, `switch`, `3ds`, `nds`, `cg50` and `web` | every platform | The platforms the game builds for. Configuring for one that is not listed fails, and the limits of the listed ones are checked on every build: a PNG over 1024 pixels a side warns when `3ds` or `nds` is listed, and the game's audio files that the build leaves out warn when `cg50` is. `pc` is every computer. An empty list or an unknown name is refused. The editor player is a computer build of any project and is never refused. |
 | `physicsRate` | integer | 60 | How many fixed steps a second the game runs; a game for a console that cannot afford them may ask for 30. |
 | `vsync` | boolean | true unless it is `false` | Passed to the renderer `fried.Bootstrap.run()` creates. It is only a request: the consoles and the calculator always present at their own refresh. |
 | `defaultTargetFramerate` | integer | `0`, which is no limit | The frame rate `Bootstrap` starts the loop at when vsync is off. It is read only then and only to start the game. |
@@ -21,7 +22,7 @@ A game declares itself in a `project.fried` at its own root, in JSON. Each side 
 | `nds.subtitle1` | string, up to 31 characters | the organization | The DS banner's second line. |
 | `nds.subtitle2` | string, up to 31 characters | `Version <version>` | The DS banner's third line. |
 
-A text too long for its package is refused at configure time rather than cut where nobody sees it. There is one `display` for every platform: a `<platform>.display` is refused at configure time.
+A text too long for its package is refused at configure time rather than cut where nobody sees it. So is a build for a platform `platforms` does not list. There is one `display` for every platform: a `<platform>.display` is refused at configure time.
 
 ## Example
 

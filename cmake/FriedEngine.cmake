@@ -20,6 +20,7 @@ endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ProjectPlatforms.cmake")
 
 # fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
 #
@@ -309,6 +310,13 @@ function(fried_add_game target_name)
     else()
         set(_platform pc)
     endif()
+
+    # The editor player is a computer build of any project, whatever it declares.
+    fried_read_project_platforms("${_project_json}" _declared_platforms)
+    if(NOT _game_EDITOR_PLAYER)
+        fried_require_declared_platform(${_platform} "${_declared_platforms}")
+    endif()
+    fried_check_declared_platforms("${_declared_platforms}" ${_platform} "${_engine_assets}" "${_game_assets}")
 
     # The renderer applies the display, so it is compiled into the engine rather than the game.
     fried_read_project_display("${_project_json}" ${_platform} _display_mode _display_width _display_height _display_filter)
