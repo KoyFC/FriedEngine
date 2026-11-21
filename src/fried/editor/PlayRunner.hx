@@ -2,6 +2,7 @@ package fried.editor;
 
 #if fried_editor
 import fried.editor.EditorConnection;
+import fried.input.Input;
 import fried.io.Filesystem;
 import fried.scene.Scene;
 import fried.scene.SceneLayer;
@@ -121,6 +122,14 @@ class PlayRunner extends Game {
 				if (framesInFlight > 0) {
 					framesInFlight--;
 				}
+			case "key":
+				Input.inject(message.down == true ? KeyDown : KeyUp, Bootstrap.window, Std.int(message.code));
+			case "mouseMove":
+				Input.inject(MouseMoved, Bootstrap.window, 0, Std.int(message.x), Std.int(message.y));
+			case "mouseButton":
+				Input.inject(message.down == true ? MouseButtonDown : MouseButtonUp, Bootstrap.window, Std.int(message.button), Std.int(message.x), Std.int(message.y));
+			case "mouseWheel":
+				Input.inject(MouseWheel, Bootstrap.window, 0, 0, 0, message.x, message.y);
 			case "showGame":
 				isShowing = message.visible == true;
 			case "quit":

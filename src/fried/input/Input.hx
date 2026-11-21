@@ -9,6 +9,62 @@ class Input {
 
 	public static var events(default, null):Array<InputEvent> = [];
 
+	#if fried_editor
+	// The editor shows a game in its own panel, where the window never has the keyboard or the mouse, so it sends them. Once anything has been sent, the keys, the mouse and its events are the editor's and not the window's.
+	static inline var KEY_COUNT = 512;
+	static inline var BUTTON_COUNT = 8;
+
+	static var isInjecting:Bool = false;
+	static var keysDown:Array<Bool> = [for (_ in 0...KEY_COUNT) false];
+	static var keysBefore:Array<Bool> = [for (_ in 0...KEY_COUNT) false];
+	static var buttonsDown:Array<Bool> = [for (_ in 0...BUTTON_COUNT) false];
+	static var buttonsBefore:Array<Bool> = [for (_ in 0...BUTTON_COUNT) false];
+	static var injectedX:Int = 0;
+	static var injectedY:Int = 0;
+	static var injectedScrollX:Float = 0.0;
+	static var injectedScrollY:Float = 0.0;
+	static var injected:Array<{type:InputEventType, window:Window, code:Int, x:Int, y:Int, scrollX:Float, scrollY:Float}> = [];
+
+	// Queues an event of the editor's, which takes effect with the events of the next frame like a real one. A key or a button carries its code, a motion or a button the position in the game's pixels, and a wheel how far it turned.
+	public static function inject(type:InputEventType, window:Window, code:Int = 0, x:Int = 0, y:Int = 0, scrollX:Float = 0.0, scrollY:Float = 0.0):Void {
+		isInjecting = true;
+		injected.push({type: type, window: window, code: code, x: x, y: y, scrollX: scrollX, scrollY: scrollY});
+	}
+
+	static function applyInjected():Void {
+		injectedScrollX = 0.0;
+		injectedScrollY = 0.0;
+		for (item in injected) {
+			var event = nextEvent();
+			switch (item.type) {
+				case KeyDown | KeyUp:
+					if (item.code >= 0 && item.code < KEY_COUNT) {
+						keysDown[item.code] = item.type == KeyDown;
+					}
+					event.setKey(item.type, item.window, cast item.code);
+				case MouseButtonDown | MouseButtonUp:
+					if (item.code >= 0 && item.code < BUTTON_COUNT) {
+						buttonsDown[item.code] = item.type == MouseButtonDown;
+					}
+					injectedX = item.x;
+					injectedY = item.y;
+					event.setMouseButton(item.type, item.window, cast item.code, item.x, item.y);
+				case MouseMoved:
+					injectedX = item.x;
+					injectedY = item.y;
+					event.setMouseMotion(item.window, item.x, item.y);
+				case MouseWheel:
+					injectedScrollX += item.scrollX;
+					injectedScrollY += item.scrollY;
+					event.setMouseWheel(item.window, item.scrollX, item.scrollY);
+				case _:
+					events.pop();
+			}
+		}
+		injected.resize(0);
+	}
+	#end
+
 	public static var mouseX(get, never):Int;
 	public static var mouseY(get, never):Int;
 	public static var scrollX(get, never):Float;
@@ -23,26 +79,56 @@ class Input {
 	public static var gamepadCancelButton(get, never):GamepadButton;
 
 	public static function isKeyPressed(key:Key):Bool {
+		#if fried_editor
+		if (isInjecting) {
+			return keysDown[key] && !keysBefore[key];
+		}
+		#end
 		return InputNative.isKeyPressed(key) != 0;
 	}
 
 	public static function isKeyDown(key:Key):Bool {
+		#if fried_editor
+		if (isInjecting) {
+			return keysDown[key];
+		}
+		#end
 		return InputNative.isKeyDown(key) != 0;
 	}
 
 	public static function isKeyReleased(key:Key):Bool {
+		#if fried_editor
+		if (isInjecting) {
+			return !keysDown[key] && keysBefore[key];
+		}
+		#end
 		return InputNative.isKeyReleased(key) != 0;
 	}
 
 	public static function isButtonPressed(button:MouseButton):Bool {
+		#if fried_editor
+		if (isInjecting) {
+			return buttonsDown[button] && !buttonsBefore[button];
+		}
+		#end
 		return MouseNative.isButtonPressed(button) != 0;
 	}
 
 	public static function isButtonDown(button:MouseButton):Bool {
+		#if fried_editor
+		if (isInjecting) {
+			return buttonsDown[button];
+		}
+		#end
 		return MouseNative.isButtonDown(button) != 0;
 	}
 
 	public static function isButtonReleased(button:MouseButton):Bool {
+		#if fried_editor
+		if (isInjecting) {
+			return !buttonsDown[button] && buttonsBefore[button];
+		}
+		#end
 		return MouseNative.isButtonReleased(button) != 0;
 	}
 
@@ -120,6 +206,9 @@ class Input {
 			}
 			nativeType = EventsNative.pollInputEvent();
 		}
+		#if fried_editor
+		applyInjected();
+		#end
 	}
 
 	static function nextEvent():InputEvent {
@@ -133,6 +222,14 @@ class Input {
 
 	@:allow(fried.Application)
 	static function endFrame():Void {
+		#if fried_editor
+		for (index in 0...KEY_COUNT) {
+			keysBefore[index] = keysDown[index];
+		}
+		for (index in 0...BUTTON_COUNT) {
+			buttonsBefore[index] = buttonsDown[index];
+		}
+		#end
 		InputNative.endFrame();
 		MouseNative.endFrame();
 		GamepadNative.endFrame();
@@ -140,18 +237,38 @@ class Input {
 	}
 
 	static function get_mouseX():Int {
+		#if fried_editor
+		if (isInjecting) {
+			return injectedX;
+		}
+		#end
 		return MouseNative.getX();
 	}
 
 	static function get_mouseY():Int {
+		#if fried_editor
+		if (isInjecting) {
+			return injectedY;
+		}
+		#end
 		return MouseNative.getY();
 	}
 
 	static function get_scrollX():Float {
+		#if fried_editor
+		if (isInjecting) {
+			return injectedScrollX;
+		}
+		#end
 		return MouseNative.getScrollX();
 	}
 
 	static function get_scrollY():Float {
+		#if fried_editor
+		if (isInjecting) {
+			return injectedScrollY;
+		}
+		#end
 		return MouseNative.getScrollY();
 	}
 
