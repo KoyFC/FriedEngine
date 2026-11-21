@@ -6,9 +6,9 @@ import fried.graphics.Font;
 import fried.graphics.Renderer;
 import fried.input.InputAction;
 import fried.input.Key;
+import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.Label;
-import fried.scene.serialization.SceneLoader;
 
 class Scene3D {
 	var renderer:Renderer;
@@ -21,8 +21,8 @@ class Scene3D {
 		this.overlay = overlay;
 	}
 
-	public function load(context:SceneContext):Void {
-		var scene = context.pushScene(renderer, SceneLoader.load("scenes/sandbox_3d.scene.json", renderer));
+	// What the game adds to the 3D scene once it is loaded: the keys that change the number of cubes and what the overlay shows.
+	public function wire(context:SceneContext, scene:Scene):Void {
 		var field = scene.getById("cube-field", CubeField);
 		scene.getById("hint", Label).font = font;
 

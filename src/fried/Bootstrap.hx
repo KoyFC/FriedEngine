@@ -3,6 +3,7 @@ package fried;
 import fried.graphics.Color;
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
+import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
 import fried.scene.serialization.NodeDiscovery;
 import fried.scene.serialization.SceneLoader;
@@ -39,7 +40,12 @@ class Bootstrap {
 		NodeDiscovery.register();
 		var scenes = Project.sceneNames();
 		for (name in scenes) {
-			SceneLoader.register(name, 'scenes/$name.scene.json', renderer);
+			SceneManager.register(name, function(context) {
+				var scene = SceneLoader.load('scenes/$name.scene.json', renderer);
+				context.pushLayer(renderer, new SceneLayer(scene));
+				context.onUnload(scene.destroy);
+				game.sceneLoaded(context, scene);
+			});
 		}
 		game.start();
 

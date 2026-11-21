@@ -4,8 +4,10 @@
 		"mode": "height",
 		"width": 640
 	},
+	"gameClass": "SandboxGame",
 	"name": "Fried Sandbox",
 	"organization": "Fried Engine",
+	"startScene": "sandbox",
 	"version": "01.00",
 	"vita": {
 		"titleId": "FRIE00001"

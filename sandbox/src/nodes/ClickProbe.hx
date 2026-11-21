@@ -1,4 +1,4 @@
-package scene2d;
+package nodes;
 
 import fried.Log;
 import fried.input.InputEvent;
@@ -6,19 +6,18 @@ import fried.input.InputEventType;
 import fried.input.MouseButton;
 import fried.physics.Collider;
 import fried.physics.Physics;
-import fried.scene.Scene;
-import fried.scene.SceneLayer;
+import fried.scene.Node;
 
-class WorldLayer extends SceneLayer {
+// Reports what a click or a touch of the world lands on and what stands between it and the player, which is what the physics queries are for.
+class ClickProbe extends Node {
 	var player:Collider;
 
-	public function new(scene:Scene, player:Collider) {
-		super(scene);
+	public function new(player:Collider) {
+		super("ClickProbe");
 		this.player = player;
 	}
 
 	override function onEvent(event:InputEvent):Void {
-		super.onEvent(event);
 		if (event.handled) {
 			return;
 		}

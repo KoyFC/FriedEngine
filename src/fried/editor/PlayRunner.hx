@@ -6,6 +6,7 @@ import fried.editor.EditorConnection;
 import fried.input.Input;
 import fried.io.Filesystem;
 import fried.scene.Scene;
+import fried.scene.SceneContext;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
 import fried.scene.serialization.SceneLoader;
@@ -75,6 +76,12 @@ class PlayRunner extends Game {
 		}
 	}
 
+	override function sceneLoaded(context:SceneContext, scene:Scene):Void {
+		if (inner != null) {
+			inner.sceneLoaded(context, scene);
+		}
+	}
+
 	override function shutdown():Void {
 		if (inner != null) {
 			inner.shutdown();
@@ -108,6 +115,7 @@ class PlayRunner extends Game {
 				scene.destroy();
 				scene = null;
 			});
+			sceneLoaded(context, scene);
 		});
 		if (!message.fromStart) {
 			Bootstrap.startSceneOverride = name;

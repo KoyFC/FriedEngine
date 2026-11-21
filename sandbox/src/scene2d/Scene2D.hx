@@ -3,6 +3,7 @@ package scene2d;
 import debug.DebugOverlay;
 import nodes.Box;
 import nodes.CameraZoom;
+import nodes.ClickProbe;
 import nodes.KeyShortcuts;
 import nodes.Player;
 import fried.Log;
@@ -18,6 +19,7 @@ import fried.scene.Camera;
 import fried.scene.Control;
 import fried.scene.Label;
 import fried.scene.Node2D;
+import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.TextureRect;
 import fried.scene.serialization.SceneLoader;
@@ -39,7 +41,8 @@ class Scene2D {
 		this.runs = runs;
 	}
 
-	public function load(context:SceneContext):Void {
+	// What the game adds to the world scene once it is loaded: the interface scene over it, the keys, the click probe and what the overlay shows.
+	public function wire(context:SceneContext, scene:Scene):Void {
 		var sprite = Texture.from(renderer, Assets.game("sprite.png"));
 		var hints = [
 			'Run $runs',
@@ -59,7 +62,6 @@ class Scene2D {
 		var iconSize = 64;
 		var scrollRegion = new Rect(0, 0, Std.int(sprite.width / 2), Std.int(sprite.height / 2));
 
-		var scene = context.addScene(SceneLoader.load("scenes/sandbox.scene.json", renderer));
 		var wallNode = scene.getById("wall", Node2D);
 		var player = scene.getById("player", Player);
 		var playerCollider = scene.getById("player-hitbox", Collider);
@@ -127,7 +129,7 @@ class Scene2D {
 		overlay.addSceneButton(context, () -> 'Interface ${interfaceLayer.renderer != null ? "on" : "off"}', toggleInterface);
 		overlay.addSceneButton(context, () -> 'Colliders ${colliders[0].isDebugVisible ? "on" : "off"}', toggleColliders);
 
-		context.pushLayer(renderer, new WorldLayer(scene, playerCollider));
+		scene.add(new ClickProbe(playerCollider));
 		context.pushLayer(renderer, interfaceLayer);
 
 		context.onUnload(function() {
