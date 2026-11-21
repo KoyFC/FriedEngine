@@ -19,6 +19,13 @@ class Scene {
 	// What the scene's meshes are drawn through. A scene has a camera or a camera3D, and two scenes loaded together give a game both.
 	public var camera3D:Null<Camera3D>;
 
+	#if fried_editor
+	// The editor's 3D view leaves out what is drawn flat, and its 2D view leaves out the meshes.
+	public var isFlatHidden:Bool = false;
+
+	public var isMeshesHidden:Bool = false;
+	#end
+
 	public var nodeCount(default, null):Int;
 
 	// The size of the view the scene is drawn to, which a node reads instead of holding the renderer. Zero until the scene has been given one.
@@ -307,10 +314,21 @@ class Scene {
 		while (index < count) {
 			var node = list[index];
 			if (node.shownInTree) {
+				#if fried_editor
+				if (isFlatHidden && !Std.isOfType(node, Node3D)) {
+					index++;
+					continue;
+				}
+				#end
 				node.draw();
 			}
 			index++;
 		}
+		#if fried_editor
+		if (isMeshesHidden) {
+			return;
+		}
+		#end
 		if (camera3D != null && camera3D.shownInTree && meshList.length > 0) {
 			var camera2D = DrawQueue.currentCamera;
 			DrawQueue.currentCamera = null;

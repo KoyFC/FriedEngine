@@ -211,6 +211,8 @@ class EditorPlayer {
 				camera3D.rotationY = message.rotationY;
 				camera3D.rotationZ = 0.0;
 				camera3D.fieldOfView = message.fieldOfView;
+			case "setEditorView":
+				layer.is3D = message.mode == "3d";
 			case "resize":
 				window.setSize(Std.int(message.width), Std.int(message.height));
 				isJustResized = true;
