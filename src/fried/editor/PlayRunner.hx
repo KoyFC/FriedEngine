@@ -83,10 +83,11 @@ class PlayRunner extends Game {
 	}
 
 	override function shutdown():Void {
+		// The editor learns that the game ended before the game's own cleanup, which a game may take a while over, so it never shows a game that has quit as still running.
+		connection.close();
 		if (inner != null) {
 			inner.shutdown();
 		}
-		connection.close();
 	}
 
 	// The editor sends `play` as soon as it hears hello, with the scene it is showing and where to start.
