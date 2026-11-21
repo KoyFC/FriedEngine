@@ -8,7 +8,7 @@ zensical build --strict --clean
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-haxe -cp src -D fried-project=sandbox/project.fried -D doc-gen -D no-compilation \
+haxe -cp src -D fried-project=tools/docs-project.fried -D doc-gen -D no-compilation \
     -cpp "$work/cpp" --no-output --xml "$work/fried.xml" --macro "include('fried')"
 
 haxelib run dox -i "$work/fried.xml" -o site/api \

@@ -1,0 +1,13 @@
+{
+	"display": {
+		"height": 480,
+		"mode": "height",
+		"width": 640
+	},
+	"name": "Fried Engine",
+	"organization": "Fried Engine",
+	"version": "01.00",
+	"window": {
+		"title": "Fried Engine"
+	}
+}
