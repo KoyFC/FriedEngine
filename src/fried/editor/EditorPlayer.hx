@@ -207,6 +207,8 @@ class EditorPlayer {
 				camera3D.fieldOfView = message.fieldOfView;
 			case "setEditorView":
 				layer.is3D = message.mode == "3d";
+			case "setPreview":
+				layer.isPreview = message.enabled == true;
 			case "resize":
 				window.setSize(Std.int(message.width), Std.int(message.height));
 				isJustResized = true;
@@ -230,6 +232,8 @@ class EditorPlayer {
 			scene.camera3D = null;
 			scene.destroy();
 		}
+		layer.previewCamera = next.camera;
+		layer.previewCamera3D = next.camera3D;
 		scene = next;
 		scene.camera = camera;
 		scene.camera3D = camera3D;
