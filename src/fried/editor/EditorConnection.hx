@@ -9,7 +9,7 @@ import sys.net.Socket;
 
 // The editor's end of the player's link: messages are a 32-bit little-endian length and then JSON, and a message that says how many "pixels" it has is followed by that many raw bytes.
 class EditorConnection {
-	public static inline var PROTOCOL:Int = 4;
+	public static inline var PROTOCOL:Int = 5;
 
 	public var isClosed(default, null):Bool;
 

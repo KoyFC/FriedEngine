@@ -13,7 +13,6 @@ import fried.scene.Node;
 import fried.scene.Node3D;
 import fried.scene.Scene;
 import fried.scene.serialization.FieldCodec;
-import fried.scene.serialization.LoadContext;
 import fried.scene.serialization.NodeRegistry;
 import fried.scene.serialization.SceneLoader;
 
@@ -58,7 +57,7 @@ class EditorPlayer {
 		window.destroy();
 	}
 
-	static function parseArguments(arguments:Array<String>):Map<String, String> {
+	public static function parseArguments(arguments:Array<String>):Map<String, String> {
 		var options = new Map<String, String>();
 		var index = 0;
 		while (index + 1 < arguments.length) {
@@ -185,20 +184,15 @@ class EditorPlayer {
 	}
 
 	function handle(message:Dynamic):Void {
+		if (SceneEdits.apply(scene, renderer, message)) {
+			return;
+		}
 		switch (message.type) {
 			case "schema":
 				connection.send({type: "schema", classes: describeClasses()});
 			case "load":
 				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});
-			case "setField":
-				setField(message.id, message.field, message.value);
-			case "addNode":
-				SceneLoader.addSubtree(requireScene(), nodeOrRoot(message.parent), message.index, message.node, renderer);
-			case "removeNode":
-				nodeNamed(message.id).destroy();
-			case "moveNode":
-				SceneLoader.moveSubtree(requireScene(), nodeNamed(message.id), nodeOrRoot(message.parent), message.index);
 			case "setEditorCamera":
 				camera.x = message.x;
 				camera.y = message.y;
@@ -240,43 +234,6 @@ class EditorPlayer {
 		scene.camera = camera;
 		scene.camera3D = camera3D;
 		layer.scene = scene;
-	}
-
-	function requireScene():Scene {
-		if (scene == null) {
-			throw "No scene has been loaded.";
-		}
-		return scene;
-	}
-
-	function nodeNamed(id:String):Node {
-		var node = scene != null ? scene.findById(id) : null;
-		if (node == null) {
-			throw 'The scene has no node "$id".';
-		}
-		return node;
-	}
-
-	// The empty id is the top of the scene.
-	function nodeOrRoot(id:String):Null<Node> {
-		return id == null || id == "" ? null : nodeNamed(id);
-	}
-
-	function setField(id:String, field:String, value:Dynamic):Void {
-		var node = nodeNamed(id);
-		if (field == "name") {
-			node.name = FieldCodec.toText(value, "name");
-			return;
-		}
-		var type = NodeRegistry.get(Type.getClassName(Type.getClass(node)).split(".").pop());
-		if (type == null) {
-			throw 'The node $id is of a class a scene file cannot name.';
-		}
-		var data = {};
-		Reflect.setField(data, field, value);
-		var context = new LoadContext(renderer);
-		context.scene = scene;
-		type.apply(node, data, context);
 	}
 
 	function describeClasses():Array<Dynamic> {

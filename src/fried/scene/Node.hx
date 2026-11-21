@@ -38,6 +38,7 @@ class Node {
 	@:allow(fried.scene.Scene)
 	@:allow(fried.scene.serialization.SceneLoader)
 	@:allow(fried.editor.EditorPlayer)
+	@:allow(fried.editor.PlayRunner)
 	@:allow(fried.editor.EditorBounds)
 	var children:Array<Node>;
 

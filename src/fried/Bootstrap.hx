@@ -12,6 +12,11 @@ class Bootstrap {
 	public static var window(default, null):Window;
 	public static var renderer(default, null):Renderer;
 
+	#if fried_editor
+	// The scene to open instead of the one project.fried names, which is how the editor starts a game from the scene it is showing.
+	public static var startSceneOverride:String;
+	#end
+
 	public static function run(?game:Game):Void {
 		if (game == null) {
 			game = new Game();
@@ -42,6 +47,11 @@ class Bootstrap {
 		if (first == "" && scenes.length > 0) {
 			first = scenes[0];
 		}
+		#if fried_editor
+		if (startSceneOverride != null) {
+			first = startSceneOverride;
+		}
+		#end
 		if (first != "") {
 			SceneManager.load(first);
 		}

@@ -19,6 +19,16 @@ class SceneManager {
 		registeredNames.push(name);
 	}
 
+	#if fried_editor
+	// Replaces what a name loads, or registers it, so the editor can run the scene it is showing in place of the one on disk.
+	public static function replace(name:String, load:SceneContext->Void):Void {
+		if (!loaders.exists(name)) {
+			registeredNames.push(name);
+		}
+		loaders.set(name, load);
+	}
+	#end
+
 	// Takes effect at the start of the next frame.
 	public static function load(name:String):Void {
 		if (!loaders.exists(name)) {
