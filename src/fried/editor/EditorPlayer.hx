@@ -15,6 +15,7 @@ import fried.scene.Scene;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.NodeRegistry;
 import fried.scene.PackedScene;
+import fried.scene.serialization.Builtins;
 import fried.scene.serialization.SceneLoader;
 
 // The editor's viewport: a game with no game in it. It shows the scene the editor sends and answers its requests, and draws only when asked.
@@ -287,6 +288,7 @@ class EditorPlayer {
 
 	function describeClasses():Array<Dynamic> {
 		var classes = [];
+		var builtin = [for (type in Builtins.all()) type.name];
 		for (type in NodeRegistry.all()) {
 			var defaults = type.defaultValues();
 			var fields:Array<Dynamic> = [];
@@ -298,7 +300,7 @@ class EditorPlayer {
 					defaultValue: Reflect.field(defaults, field.name)
 				});
 			}
-			classes.push({name: type.name, parent: type.parent, fields: fields});
+			classes.push({name: type.name, parent: type.parent, fields: fields, builtin: builtin.indexOf(type.name) >= 0});
 		}
 		return classes;
 	}

@@ -52,7 +52,7 @@ class SandboxShell extends Node {
 
 	// The shell of the running game.
 	public static function of():SandboxShell {
-		return SceneManager.autoload("sandbox_shell").getById("shell", SandboxShell);
+		return SceneManager.autoload("SandboxShell").getById("SandboxShell", SandboxShell);
 	}
 
 	public function new() {

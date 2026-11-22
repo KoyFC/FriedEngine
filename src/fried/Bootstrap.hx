@@ -3,9 +3,12 @@ package fried;
 import fried.graphics.Color;
 import fried.graphics.Renderer;
 import fried.io.Filesystem;
+import fried.scene.Scene;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
+import fried.scene.serialization.LoadContext;
 import fried.scene.serialization.NodeDiscovery;
+import fried.scene.serialization.NodeRegistry;
 import fried.scene.serialization.SceneLoader;
 
 // Starts a game the way the editor describes it: a window and a renderer from project.fried, the game's nodes and scene files registered, and the scene the project names opened. A game's own code is its nodes and, if it needs one, a Game.
@@ -20,6 +23,20 @@ class Bootstrap {
 	// Told how the game goes, which is how the editor's play mode watches it.
 	public static var observer:fried.editor.BootObserver;
 	#end
+
+	// An autoload is the name of a node class, which becomes a scene holding one node of that class with the class's name as its id, or else the name of a scene file.
+	static function loadAutoload(name:String):Scene {
+		var type = NodeRegistry.get(name);
+		if (type == null) {
+			return SceneLoader.load('scenes/$name.scene.json', renderer);
+		}
+		var scene = new Scene(name);
+		var node = type.create({}, new LoadContext(renderer));
+		node.id = name;
+		node.name = name;
+		scene.add(node);
+		return scene;
+	}
 
 	public static function run():Void {
 		Application.init();
@@ -51,7 +68,7 @@ class Bootstrap {
 			});
 		}
 		for (name in Project.autoloadNames()) {
-			SceneManager.addAutoload(name, renderer, SceneLoader.load('scenes/$name.scene.json', renderer));
+			SceneManager.addAutoload(name, renderer, loadAutoload(name));
 		}
 		#if fried_editor
 		if (observer != null) {
