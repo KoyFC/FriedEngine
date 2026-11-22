@@ -47,6 +47,9 @@ void fried_texture_write_pending();
 struct SDL_Texture;
 
 struct SDL_Texture *fried_texture_get_sdl(int textureId);
+
+// How many times smaller than the image it stands for a texture is stored, which an importer asked for, so a region of the image is that many times smaller in the texture.
+int fried_texture_sdl_downscale(int textureId);
 #endif
 
 #ifdef FRIED_SOFTWARE_RENDERER

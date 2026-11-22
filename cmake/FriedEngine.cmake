@@ -21,6 +21,7 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectPlatforms.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/AssetImport.cmake")
 
 # fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
 #
@@ -321,6 +322,11 @@ function(fried_add_game target_name)
     endif()
     fried_check_declared_platforms("${_declared_platforms}" ${_platform} "${_engine_assets}" "${_game_assets}")
 
+    # The editor's player reads the assets as they are, which is what the editor shows.
+    if(NOT _game_EDITOR_PLAYER)
+        fried_import_assets(${target_name} ${_platform} "${_engine_assets}" "${_game_assets}")
+    endif()
+
     # The renderer applies the display, so it is compiled into the engine rather than the game.
     fried_read_project_display("${_project_json}" ${_platform} _display_mode _display_width _display_height _display_filter)
     if(_game_EDITOR_PLAYER)
@@ -427,15 +433,18 @@ function(fried_add_game target_name)
     else()
         # Its own ALL target rather than a POST_BUILD command: POST_BUILD only
         # fires when the target relinks, so an edited asset would never arrive.
+        fried_imported_dir("${_engine_assets}" _engine_copy)
+        fried_imported_dir("${_game_assets}" _game_copy)
         add_custom_target(${target_name}_assets ALL
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${_engine_assets}
+                ${_engine_copy}
                 $<TARGET_FILE_DIR:${target_name}>/assets/engine
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${_game_assets}
+                ${_game_copy}
                 $<TARGET_FILE_DIR:${target_name}>/assets/game
             COMMENT "Copying the engine and game asset roots next to the executable"
         )
         add_dependencies(${target_name}_assets ${target_name})
+        fried_depend_on_import(${target_name}_assets)
     endif()
 endfunction()

@@ -2,6 +2,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/import_chunk.h"
 #include "graphics/renderer.h"
 #include "graphics/software_backend_nds.h"
 
@@ -40,6 +41,8 @@ namespace
     struct Texture
     {
         FriedNdsTexture m_public;
+        // How many times of m_public.m_downscale an importer asked for, which is not the GPU's doing.
+        int m_imported = 1;
         std::vector<uint8_t> m_texels;
         int m_dirtyTop;
         int m_dirtyBottom;
@@ -98,7 +101,7 @@ namespace
     // glTexImage2D() copies from main RAM by DMA, which does not see the cache.
     Texture *upload(GL_TEXTURE_TYPE_ENUM format, int width, int height, int side, int sideHeight, const void *texels, int bytes)
     {
-        Texture *texture = new (std::nothrow) Texture{{0, width, height, 1, side, sideHeight, format == GL_RGB8_A5}, {}, 0, 0};
+        Texture *texture = new (std::nothrow) Texture{{0, width, height, 1, side, sideHeight, format == GL_RGB8_A5}, 1, {}, 0, 0};
         if (!texture)
         {
             return nullptr;
@@ -305,6 +308,7 @@ int fried_texture_load(int rendererId, const char *path)
     }
 
     int width = 0, height = 0, channels = 0;
+    FriedImportInfo info = fried_read_import_chunk(contents, (size_t)size);
     unsigned char *rgba = stbi_load_from_memory(contents, size, &width, &height, &channels, 4);
     delete[] contents;
     if (!rgba)
@@ -313,6 +317,7 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
+    int imported = fried_import_downscale(info, width);
     int downscale = 1;
     int downscaleShift = 0;
     while (width / downscale > s_maxSide || height / downscale > s_maxSide)
@@ -335,7 +340,9 @@ int fried_texture_load(int rendererId, const char *path)
     }
     stbi_image_free(rgba);
 
-    Texture *texture = upload(GL_RGBA, width, height, side, sideHeight, texels.data(), (int)(texels.size() * sizeof(uint16_t)));
+    int logicalWidth = imported > 1 ? info.m_width : width;
+    int logicalHeight = imported > 1 ? info.m_height : height;
+    Texture *texture = upload(GL_RGBA, logicalWidth, logicalHeight, side, sideHeight, texels.data(), (int)(texels.size() * sizeof(uint16_t)));
     if (!texture)
     {
         char message[96];
@@ -343,8 +350,14 @@ int fried_texture_load(int rendererId, const char *path)
         fried_set_last_error(message);
         return -1;
     }
-    texture->m_public.m_downscale = downscale;
-    texture->m_public.m_downscaleShift = downscaleShift;
+    int importedShift = 0;
+    while ((1 << importedShift) < imported)
+    {
+        ++importedShift;
+    }
+    texture->m_imported = imported;
+    texture->m_public.m_downscale = downscale * imported;
+    texture->m_public.m_downscaleShift = downscaleShift + importedShift;
     return s_textures.store(texture);
 }
 
@@ -384,6 +397,6 @@ int fried_texture_get_downscale(int textureId)
     {
         return fried_software_texture_get_downscale(softwareId(textureId));
     }
-    const FriedNdsTexture *texture = fried_texture_get_nds(textureId);
-    return texture ? texture->m_downscale : 0;
+    const Texture *texture = s_textures.get(textureId);
+    return texture ? texture->m_public.m_downscale / texture->m_imported : 0;
 }

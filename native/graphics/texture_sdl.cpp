@@ -5,21 +5,38 @@
 #include "last_error.h"
 #include "graphics/display.h"
 #include "graphics/renderer.h"
+#include "graphics/import_chunk.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
 
+#include <unordered_map>
 #include <vector>
 
 namespace
 {
     HandlePool<SDL_Texture> s_textures;
 
-    int storeFiltered(SDL_Texture *texture)
+    // The textures that are stored smaller than the image they stand for, by how many times.
+    std::unordered_map<int, int> s_downscales;
+
+    int storeFiltered(SDL_Texture *texture, int filter = 0, int downscale = 1)
     {
-        SDL_SetTextureScaleMode(texture, fried_display_filters_linearly() ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
-        return s_textures.store(texture);
+        bool isLinear = filter == 0 ? fried_display_filters_linearly() : filter == 2;
+        SDL_SetTextureScaleMode(texture, isLinear ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
+        int id = s_textures.store(texture);
+        if (id >= 0 && downscale > 1)
+        {
+            s_downscales[id] = downscale;
+        }
+        return id;
     }
+}
+
+int fried_texture_sdl_downscale(int textureId)
+{
+    auto found = s_downscales.find(textureId);
+    return found == s_downscales.end() ? 1 : found->second;
 }
 
 SDL_Texture *fried_texture_get_sdl(int textureId)
@@ -37,14 +54,26 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    SDL_Texture *texture = IMG_LoadTexture(renderer, path);
+    // A file the importer wrote says what size it stands for and how it is filtered.
+    size_t size = 0;
+    void *contents = SDL_LoadFile(path, &size);
+    if (!contents)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+    FriedImportInfo info = fried_read_import_chunk((const unsigned char *)contents, size);
+    SDL_Texture *texture = IMG_LoadTexture_RW(renderer, SDL_RWFromConstMem(contents, (int)size), 1);
+    SDL_free(contents);
     if (!texture)
     {
         fried_capture_sdl_error();
         return -1;
     }
 
-    return storeFiltered(texture);
+    int width = 0;
+    SDL_QueryTexture(texture, nullptr, nullptr, &width, nullptr);
+    return storeFiltered(texture, info.m_filter, fried_import_downscale(info, width));
 }
 
 int fried_texture_create_blank(int rendererId, int width, int height)
@@ -114,6 +143,7 @@ void fried_texture_destroy(int textureId)
     {
         return;
     }
+    s_downscales.erase(textureId);
     SDL_DestroyTexture(texture);
 }
 
@@ -126,7 +156,7 @@ int fried_texture_get_width(int textureId)
     }
     int width = 0;
     SDL_QueryTexture(texture, nullptr, nullptr, &width, nullptr);
-    return width;
+    return width * fried_texture_sdl_downscale(textureId);
 }
 
 int fried_texture_get_height(int textureId)
@@ -138,7 +168,7 @@ int fried_texture_get_height(int textureId)
     }
     int height = 0;
     SDL_QueryTexture(texture, nullptr, nullptr, nullptr, &height);
-    return height;
+    return height * fried_texture_sdl_downscale(textureId);
 }
 
 int fried_texture_get_downscale(int textureId)

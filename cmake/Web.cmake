@@ -24,6 +24,9 @@ function(fried_add_web_page target_name)
     cmake_parse_arguments(PAGE "" "NAME;ENGINE_ASSETS;GAME_ASSETS" "" ${ARGN})
 
     set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
+    fried_imported_dir("${PAGE_ENGINE_ASSETS}" _engine_assets)
+    fried_imported_dir("${PAGE_GAME_ASSETS}" _game_assets)
+    fried_depend_on_import(${target_name})
 
     # The loop in Application.run() hands control back to the browser for every
     # frame, which the Haxe stack cannot do without Asyncify unwinding it. It saves
@@ -35,8 +38,8 @@ function(fried_add_web_page target_name)
         -sALLOW_MEMORY_GROWTH
         -sEXIT_RUNTIME
         "SHELL:--shell-file ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/web/shell.html"
-        "SHELL:--preload-file ${PAGE_ENGINE_ASSETS}@/assets/engine"
-        "SHELL:--preload-file ${PAGE_GAME_ASSETS}@/assets/game"
+        "SHELL:--preload-file ${_engine_assets}@/assets/engine"
+        "SHELL:--preload-file ${_game_assets}@/assets/game"
     )
 
     set_property(TARGET ${target_name} APPEND PROPERTY LINK_DEPENDS

@@ -43,6 +43,9 @@ Linux is the default build, described in [Building](../getting-started/building.
 | Two screens | ❌ | ❌ | ❌ | ❌ | 🛠️ | 🛠️ | ❌ | ❌ |
 | Physics | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | User data that persists | ✅ | ✅ | ✅ | ✅ | ✅ | 🛠️ | 🛠️ | ❌ |
+| Image size and filter settings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Image color depth settings | ✅ | ✅ | ✅ | ✅ | ⏳ | ✅ | ✅ | ✅ |
+| Sound settings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Editor play mode | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-Text on the fx-CG50 and the DS is drawn with a pixel font. The fx-CG50 keyboard is its keypad. The Switch 3D backend has only been built, not run, and a Web game keeps its user data in memory until the page closes.
+Image and sound settings are described in [Import settings](../reference/import-settings.md). The depth of the colors is applied to the picture on every platform but the 3DS does not yet store it in 16 bits, and the sound settings do not apply to the fx-CG50, which has no sound. Text on the fx-CG50 and the DS is drawn with a pixel font. The fx-CG50 keyboard is its keypad. The Switch 3D backend has only been built, not run, and a Web game keeps its user data in memory until the page closes.

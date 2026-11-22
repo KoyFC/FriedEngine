@@ -2,9 +2,9 @@
 
 Fried Engine itself is under the MIT License, see [`LICENSE`](LICENSE). These are the components that are bundled with it or linked into every game built with it. Each licence below is the one the component's own sources or files state.
 
-## stb_image and stb_truetype
+## stb_image, stb_image_write and stb_truetype
 
-`native/third_party/stb_image.h` (v2.30) and `native/third_party/stb_truetype.h` (v1.26), by Sean Barrett and contributors, <https://github.com/nothings/stb>. Each header offers its terms as two alternatives at its end: the MIT License, or the public domain (Unlicense).
+`native/third_party/stb_image.h` (v2.30), `native/third_party/stb_image_write.h` (v1.19, used only by the asset import tool) and `native/third_party/stb_truetype.h` (v1.26), by Sean Barrett and contributors, <https://github.com/nothings/stb>. Each header offers its terms as two alternatives at its end: the MIT License, or the public domain (Unlicense).
 
 ## Nunito Sans
 

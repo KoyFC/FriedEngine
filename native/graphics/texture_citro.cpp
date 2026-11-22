@@ -3,6 +3,7 @@
 #include "handle_pool.h"
 #include "last_error.h"
 #include "graphics/display.h"
+#include "graphics/import_chunk.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -17,6 +18,8 @@ namespace
         Tex3DS_SubTexture subtexture;
         C2D_Image image;
         int downscale;
+        // How many times of that an importer asked for, which is not the GPU's doing.
+        int imported;
     };
 
     HandlePool<CitroTexture> s_textures;
@@ -146,6 +149,7 @@ namespace
         };
         texture->image = {&texture->tex, &texture->subtexture};
         texture->downscale = 1;
+        texture->imported = 1;
         return texture;
     }
 }
@@ -158,7 +162,7 @@ const C2D_Image *fried_texture_get_citro(int textureId)
 
 namespace
 {
-    int textureFromSurface(SDL_Surface *surface)
+    int textureFromSurface(SDL_Surface *surface, const FriedImportInfo &info)
     {
         if (!surface)
         {
@@ -172,6 +176,7 @@ namespace
             return -1;
         }
 
+        int imported = fried_import_downscale(info, rgbaSurface->w);
         int downscale = downscaleToFit(rgbaSurface->w, rgbaSurface->h);
         if (downscale > 1)
         {
@@ -196,9 +201,15 @@ namespace
         C3D_TexFlush(&texture->tex);
 
         // The size stays the source's, so a downscaled texture still draws and measures as it.
-        texture->subtexture.width = (u16)surface->w;
-        texture->subtexture.height = (u16)surface->h;
-        texture->downscale = downscale;
+        texture->subtexture.width = (u16)(imported > 1 ? info.m_width : surface->w);
+        texture->subtexture.height = (u16)(imported > 1 ? info.m_height : surface->h);
+        texture->downscale = downscale * imported;
+        texture->imported = imported;
+        if (info.m_filter != 0)
+        {
+            GPU_TEXTURE_FILTER_PARAM filter = info.m_filter == 2 ? GPU_LINEAR : GPU_NEAREST;
+            C3D_TexSetFilter(&texture->tex, filter, filter);
+        }
 
         SDL_FreeSurface(rgbaSurface);
         return s_textures.store(texture);
@@ -260,14 +271,24 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    SDL_Surface *surface = IMG_Load(path);
+    // A file the importer wrote says what size it stands for and how it is filtered.
+    size_t fileSize = 0;
+    void *contents = SDL_LoadFile(path, &fileSize);
+    if (!contents)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+    FriedImportInfo info = fried_read_import_chunk((const unsigned char *)contents, fileSize);
+    SDL_Surface *surface = IMG_Load_RW(SDL_RWFromConstMem(contents, (int)fileSize), 1);
+    SDL_free(contents);
     if (!surface)
     {
         fried_capture_sdl_error();
         return -1;
     }
 
-    int textureId = textureFromSurface(surface);
+    int textureId = textureFromSurface(surface, info);
     SDL_FreeSurface(surface);
     return textureId;
 }
@@ -298,5 +319,5 @@ int fried_texture_get_height(int textureId)
 int fried_texture_get_downscale(int textureId)
 {
     CitroTexture *texture = s_textures.get(textureId);
-    return texture ? texture->downscale : 0;
+    return texture ? texture->downscale / texture->imported : 0;
 }

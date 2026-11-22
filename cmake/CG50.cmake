@@ -211,12 +211,15 @@ function(fried_add_cg50_g3a target_name)
         ${_icon_arguments}
     )
 
+    fried_imported_dir("${G3A_ENGINE_ASSETS}" _engine_assets)
+    fried_imported_dir("${G3A_GAME_ASSETS}" _game_assets)
     add_custom_target(${target_name}_assets ALL
         COMMAND ${CMAKE_COMMAND}
-            "-DENGINE_ASSETS=${G3A_ENGINE_ASSETS}"
-            "-DGAME_ASSETS=${G3A_GAME_ASSETS}"
+            "-DENGINE_ASSETS=${_engine_assets}"
+            "-DGAME_ASSETS=${_game_assets}"
             "-DDESTINATION=${CMAKE_CURRENT_BINARY_DIR}/${G3A_NAME}/assets"
             -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/CG50StageAssets.cmake"
         COMMENT "Staging the engine and game asset roots to copy next to the .g3a"
     )
+    fried_depend_on_import(${target_name}_assets)
 endfunction()

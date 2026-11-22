@@ -263,6 +263,22 @@ bool fried_renderer_read_pixels(int rendererId, unsigned char *rgba, int width, 
     return true;
 }
 
+namespace
+{
+    // A region in the pixels of the image a texture stands for, in the texture's own.
+    SDL_Rect regionOf(int textureId, int x, int y, int width, int height)
+    {
+        int downscale = fried_texture_sdl_downscale(textureId);
+        if (downscale <= 1)
+        {
+            return {x, y, width, height};
+        }
+        int left = x / downscale;
+        int top = y / downscale;
+        return {left, top, (x + width + downscale - 1) / downscale - left, (y + height + downscale - 1) / downscale - top};
+    }
+}
+
 void fried_renderer_draw_texture(int rendererId, int textureId, float x, float y, float width, float height)
 {
     fried_mesh_sdl_leave();
@@ -287,7 +303,7 @@ void fried_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int
         return;
     }
 
-    SDL_Rect source = {srcX, srcY, srcWidth, srcHeight};
+    SDL_Rect source = regionOf(textureId, srcX, srcY, srcWidth, srcHeight);
     SDL_FRect destination = snapped(renderer, x, y, width, height);
     SDL_RenderCopyExF(renderer, texture, &source, &destination, angle, nullptr, (SDL_RendererFlip)flipMode);
 }
@@ -307,7 +323,7 @@ void fried_renderer_draw_tinted(int rendererId, int textureId, const FriedQuad *
     for (int index = 0; index < count; ++index)
     {
         const FriedQuad &quad = quads[index];
-        SDL_Rect source = {quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight};
+        SDL_Rect source = regionOf(textureId, quad.m_srcX, quad.m_srcY, quad.m_srcWidth, quad.m_srcHeight);
         SDL_FRect destination = snapped(renderer, quad.m_x, quad.m_y, quad.m_width, quad.m_height);
         SDL_FPoint pivot = {quad.m_pivotX - destination.x, quad.m_pivotY - destination.y};
         SDL_RenderCopyExF(renderer, texture, &source, &destination, quad.m_angle, &pivot, SDL_FLIP_NONE);

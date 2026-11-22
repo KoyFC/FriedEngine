@@ -2,12 +2,14 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "graphics/import_chunk.h"
 #include "graphics/renderer.h"
 #include "graphics/software_frame.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -162,6 +164,7 @@ int fried_texture_load(int rendererId, const char *path)
     }
 
     int width = 0, height = 0, channels = 0;
+    FriedImportInfo info = fried_read_import_chunk(contents, (size_t)size);
     unsigned char *rgba = stbi_load_from_memory(contents, size, &width, &height, &channels, 4);
     delete[] contents;
     if (!rgba)
@@ -170,7 +173,30 @@ int fried_texture_load(int rendererId, const char *path)
         return -1;
     }
 
-    FriedSoftwareTexture *texture = convert(rgba, width, height);
+    // The software renderer draws a texture as big as the image it stands for, so one an importer made smaller is stretched back to that size.
+    int imported = fried_import_downscale(info, width);
+    unsigned char *stretched = nullptr;
+    if (imported > 1)
+    {
+        stretched = new (std::nothrow) unsigned char[(size_t)info.m_width * info.m_height * 4];
+        if (stretched)
+        {
+            for (int y = 0; y < info.m_height; ++y)
+            {
+                for (int x = 0; x < info.m_width; ++x)
+                {
+                    int sourceX = std::min(x / imported, width - 1);
+                    int sourceY = std::min(y / imported, height - 1);
+                    std::memcpy(stretched + ((size_t)y * info.m_width + x) * 4, rgba + ((size_t)sourceY * width + sourceX) * 4, 4);
+                }
+            }
+            width = info.m_width;
+            height = info.m_height;
+        }
+    }
+
+    FriedSoftwareTexture *texture = convert(stretched ? stretched : rgba, width, height);
+    delete[] stretched;
     stbi_image_free(rgba);
     if (!texture)
     {
