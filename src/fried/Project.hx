@@ -54,6 +54,24 @@ class Project {
 		return macro $v{Std.isOfType(name, String) ? (name : String) : ""};
 	}
 
+	// The scenes loaded once at startup and kept for as long as the game runs, in the order project.fried lists them.
+	public static macro function autoloadNames():ExprOf<Array<String>> {
+		var node:Dynamic = read();
+		var list:Dynamic = Reflect.field(node, "autoload");
+		var names:Array<String> = [];
+		if (Std.isOfType(list, Array)) {
+			for (name in (list : Array<Dynamic>)) {
+				if (!Std.isOfType(name, String)) {
+					Context.error('The "autoload" of $filePath must list scene names.', Context.currentPos());
+				}
+				names.push(name);
+			}
+		} else if (list != null) {
+			Context.error('The "autoload" of $filePath must be a list of scene names.', Context.currentPos());
+		}
+		return macro $v{names};
+	}
+
 	// The names of the scene files in assets/scenes, which is how the engine finds scenes without listing a folder on a console.
 	public static macro function sceneNames():ExprOf<Array<String>> {
 		read();

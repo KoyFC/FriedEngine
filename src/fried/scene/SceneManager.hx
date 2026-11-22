@@ -1,5 +1,7 @@
 package fried.scene;
 
+import fried.graphics.Renderer;
+
 class SceneManager {
 	public static var activeName(get, never):String;
 
@@ -10,6 +12,8 @@ class SceneManager {
 	static var additive:Array<SceneContext> = [];
 	static var pendingAdditive:Array<String> = [];
 	static var pendingUnloads:Array<String> = [];
+	static var autoloadContext:Null<SceneContext>;
+	static var autoloaded:Map<String, Scene> = new Map();
 
 	public static function register(name:String, load:SceneContext->Void):Void {
 		if (loaders.exists(name)) {
@@ -47,6 +51,37 @@ class SceneManager {
 
 	public static function unloadAdditive(name:String):Void {
 		pendingUnloads.push(name);
+	}
+
+	// Keeps a scene for as long as the game runs: loading another scene does not unload it, and its layer stays above the one that is loaded. It is a way for what the whole game needs, such as music, a pause menu or a debug overlay, to be nodes like anything else.
+	public static function addAutoload(name:String, renderer:Renderer, scene:Scene):Scene {
+		if (autoloaded.exists(name)) {
+			throw 'The autoload $name was already added.';
+		}
+		if (autoloadContext == null) {
+			autoloadContext = new SceneContext("autoload");
+		}
+		autoloadContext.pushScene(renderer, scene);
+		autoloaded.set(name, scene);
+		return scene;
+	}
+
+	// The scene an autoload is, from which its nodes are reached by id.
+	public static function autoload(name:String):Scene {
+		var scene = autoloaded.get(name);
+		if (scene == null) {
+			throw 'No autoload named $name was added.';
+		}
+		return scene;
+	}
+
+	@:allow(fried.Application)
+	static function unloadAutoloads():Void {
+		if (autoloadContext != null) {
+			autoloadContext.unload();
+			autoloadContext = null;
+		}
+		autoloaded = new Map();
 	}
 
 	public static function names():Array<String> {

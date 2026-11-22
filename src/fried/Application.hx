@@ -50,6 +50,7 @@ class Application {
 
 	public static function shutdown():Void {
 		SceneManager.unloadActive();
+		SceneManager.unloadAutoloads();
 		destroyRenderers();
 		Font.destroyAll();
 		Sound.destroyAll();

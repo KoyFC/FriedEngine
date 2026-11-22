@@ -17,6 +17,7 @@ A game declares itself in a `project.fried` at its own root, in JSON. Each side 
 | `vsync` | boolean | true unless it is `false` | Passed to the renderer `fried.Bootstrap.run()` creates. It is only a request: the consoles and the calculator always present at their own refresh. |
 | `defaultTargetFramerate` | integer | `0`, which is no limit | The frame rate `Bootstrap` starts the loop at when vsync is off. It is read only then and only to start the game. |
 | `startScene` | string | the first scene, by name | The scene the game loads when it starts. |
+| `autoload` | list of strings | none | Scenes loaded once at startup, in order, and kept while the game runs, for what the whole game needs: music, a pause menu, a debug overlay. |
 | `gameClass` | string | none | The class, extending `fried.Game`, that `Bootstrap` runs for what a game needs once. |
 | `3ds.description` | string, up to 128 characters | `Version <version>` | The SMDH's description line. |
 | `nds.subtitle1` | string, up to 31 characters | the organization | The DS banner's second line. |

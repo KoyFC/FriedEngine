@@ -47,6 +47,9 @@ class Bootstrap {
 				game.sceneLoaded(context, scene);
 			});
 		}
+		for (name in Project.autoloadNames()) {
+			SceneManager.addAutoload(name, renderer, SceneLoader.load('scenes/$name.scene.json', renderer));
+		}
 		game.start();
 
 		var first = Project.startScene();
