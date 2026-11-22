@@ -1,6 +1,7 @@
 package fried.graphics;
 
 import fried.Layer;
+import fried.scene.Scene;
 import fried.NativeError;
 import fried.Window;
 import fried.input.InputEvent;
@@ -157,7 +158,7 @@ class Renderer {
 			if (layer.isEnabled) {
 				DrawQueue.currentRenderTarget = this;
 				DrawQueue.currentCamera = null;
-				DrawQueue.currentLayerIndex = index;
+				DrawQueue.currentLayerIndex = index * Scene.CANVAS_SLOTS;
 				layer.draw();
 			}
 		}

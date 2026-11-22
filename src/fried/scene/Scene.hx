@@ -9,9 +9,25 @@ import fried.physics.ColliderGrid;
 import fried.physics.KinematicBody;
 import haxe.ds.ArraySort;
 
+// What a CanvasLayer node holds for the frame: the drawing and input hooks of its subtree.
+private class CanvasBucket {
+	public var node:CanvasLayer;
+	public var drawList:Array<Node> = [];
+	public var eventTree:Array<Node> = [];
+	public var eventList:Array<Node> = [];
+
+	public function new(node:CanvasLayer) {
+		this.node = node;
+	}
+}
+
 // A tree of nodes and the lists a frame runs through. The lists hold only the nodes whose class overrides the hook, in tree order, and are filled again only when the tree changed, so a frame never walks the tree.
 @:allow(fried.scene)
 class Scene {
+	// The draw order a renderer layer leaves for the canvas layers of its scene: the world is drawn at the layer's own index and each canvas layer after it, so a world node's priority never lifts it over an interface.
+	@:allow(fried.graphics.Renderer)
+	public static inline var CANVAS_SLOTS:Int = 64;
+
 	public var name:String;
 
 	public var camera(default, set):Null<Camera>;
@@ -24,6 +40,9 @@ class Scene {
 	public var isFlatHidden:Bool = false;
 
 	public var isMeshesHidden:Bool = false;
+
+	// The editor's scene view draws what is under a canvas layer through the camera, where it sits in the world, so it can be seen and picked.
+	public var isCanvasInWorld:Bool = false;
 	#end
 
 	public var nodeCount(default, null):Int;
@@ -47,6 +66,7 @@ class Scene {
 	var lightList:Array<DirectionalLight>;
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;
+	var canvasBuckets:Array<CanvasBucket>;
 	var colliders:Array<Collider>;
 	var colliderGrid:ColliderGrid;
 	var areListsDirty:Bool;
@@ -66,6 +86,7 @@ class Scene {
 		lightList = [];
 		eventTree = [];
 		eventList = [];
+		canvasBuckets = [];
 		colliders = [];
 		colliderGrid = new ColliderGrid();
 		areListsDirty = false;
@@ -178,22 +199,32 @@ class Scene {
 		meshList.resize(0);
 		lightList.resize(0);
 		eventTree.resize(0);
-		collect(root);
+		canvasBuckets.resize(0);
+		collect(root, null);
+		if (canvasBuckets.length >= CANVAS_SLOTS) {
+			throw 'The scene $name has ${canvasBuckets.length} canvas layers, and a scene holds at most ${CANVAS_SLOTS - 1}.';
+		}
+		ArraySort.sort(canvasBuckets, byCanvasLayer);
 		areListsDirty = false;
 		isEventOrderDirty = true;
 	}
 
-	function collect(node:Node):Void {
+	function collect(node:Node, bucket:Null<CanvasBucket>):Void {
+		var canvas = Std.downcast(node, CanvasLayer);
+		if (canvas != null) {
+			bucket = new CanvasBucket(canvas);
+			canvasBuckets.push(bucket);
+		}
 		var flags = node.hooks;
 		if (flags != 0) {
 			if ((flags & 1) != 0) {
 				updateList.push(node);
 			}
 			if ((flags & 2) != 0) {
-				drawList.push(node);
+				(bucket != null ? bucket.drawList : drawList).push(node);
 			}
 			if ((flags & 4) != 0) {
-				eventTree.push(node);
+				(bucket != null ? bucket.eventTree : eventTree).push(node);
 			}
 			if ((flags & 16) != 0) {
 				fixedUpdateList.push(node);
@@ -209,7 +240,7 @@ class Scene {
 			}
 		}
 		for (child in node.children) {
-			collect(child);
+			collect(child, bucket);
 		}
 	}
 
@@ -325,16 +356,50 @@ class Scene {
 			index++;
 		}
 		#if fried_editor
-		if (isMeshesHidden) {
-			return;
+		if (!isMeshesHidden) {
+		#end
+			if (camera3D != null && camera3D.shownInTree && meshList.length > 0) {
+				var camera2D = DrawQueue.currentCamera;
+				DrawQueue.currentCamera = null;
+				MeshPass.draw(camera3D, firstLight(), meshList, renderer.width, renderer.height);
+				DrawQueue.currentCamera = camera2D;
+			}
+		#if fried_editor
 		}
 		#end
-		if (camera3D != null && camera3D.shownInTree && meshList.length > 0) {
-			var camera2D = DrawQueue.currentCamera;
-			DrawQueue.currentCamera = null;
-			MeshPass.draw(camera3D, firstLight(), meshList, renderer.width, renderer.height);
-			DrawQueue.currentCamera = camera2D;
+		if (canvasBuckets.length > 0) {
+			drawCanvasLayers();
 		}
+	}
+
+	// Each canvas layer draws after the world and the meshes, in screen space, in a draw order slot of its own.
+	function drawCanvasLayers():Void {
+		var world = DrawQueue.currentLayerIndex;
+		var slot = 1;
+		for (bucket in canvasBuckets) {
+			if (!bucket.node.shownInTree) {
+				continue;
+			}
+			DrawQueue.currentLayerIndex = world + slot;
+			slot++;
+			#if fried_editor
+			DrawQueue.currentCamera = isCanvasInWorld && camera != null ? camera.view : null;
+			#else
+			DrawQueue.currentCamera = null;
+			#end
+			for (node in bucket.drawList) {
+				if (node.shownInTree) {
+					#if fried_editor
+					if (isFlatHidden && !Std.isOfType(node, Node3D)) {
+						continue;
+					}
+					#end
+					node.draw();
+				}
+			}
+		}
+		DrawQueue.currentLayerIndex = world;
+		DrawQueue.currentCamera = camera != null ? camera.view : null;
 	}
 
 	function firstLight():Null<DirectionalLight> {
@@ -352,16 +417,26 @@ class Scene {
 			rebuildLists();
 		}
 		if (isEventOrderDirty) {
-			eventList.resize(0);
-			var index = eventTree.length - 1;
-			while (index >= 0) {
-				eventList.push(eventTree[index]);
-				index--;
+			orderEvents(eventTree, eventList);
+			for (bucket in canvasBuckets) {
+				orderEvents(bucket.eventTree, bucket.eventList);
 			}
-			ArraySort.sort(eventList, byPriorityDescending);
 			isEventOrderDirty = false;
 		}
-		var list = eventList;
+		var bucketIndex = canvasBuckets.length - 1;
+		while (bucketIndex >= 0 && !event.handled) {
+			var bucket = canvasBuckets[bucketIndex];
+			if (bucket.node.shownInTree) {
+				dispatch(bucket.eventList, event);
+			}
+			bucketIndex--;
+		}
+		if (!event.handled) {
+			dispatch(eventList, event);
+		}
+	}
+
+	function dispatch(list:Array<Node>, event:InputEvent):Void {
 		var count = list.length;
 		var index = 0;
 		while (index < count) {
@@ -376,6 +451,16 @@ class Scene {
 		}
 	}
 
+	function orderEvents(tree:Array<Node>, list:Array<Node>):Void {
+		list.resize(0);
+		var index = tree.length - 1;
+		while (index >= 0) {
+			list.push(tree[index]);
+			index--;
+		}
+		ArraySort.sort(list, byPriorityDescending);
+	}
+
 	public function destroy():Void {
 		for (child in root.children.copy()) {
 			root.removeChild(child);
@@ -383,6 +468,10 @@ class Scene {
 		}
 		camera = null;
 		camera3D = null;
+	}
+
+	static function byCanvasLayer(first:CanvasBucket, second:CanvasBucket):Int {
+		return first.node.layer - second.node.layer;
 	}
 
 	static function byPriorityDescending(first:Node, second:Node):Int {

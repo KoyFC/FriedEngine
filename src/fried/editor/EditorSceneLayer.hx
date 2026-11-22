@@ -38,9 +38,11 @@ class EditorSceneLayer extends Layer {
 		}
 		scene.isFlatHidden = is3D;
 		scene.isMeshesHidden = !is3D;
+		scene.isCanvasInWorld = true;
 		scene.draw(renderer);
 		scene.isFlatHidden = false;
 		scene.isMeshesHidden = false;
+		scene.isCanvasInWorld = false;
 	}
 }
 #end
