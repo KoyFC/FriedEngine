@@ -1,12 +1,8 @@
 package nodes;
 
 import fried.graphics.FlipMode;
-import fried.input.GamepadAxis;
-import fried.input.GamepadButton;
 import fried.input.InputAction;
-import fried.input.InputBinding;
-import fried.input.InputSource;
-import fried.input.Key;
+import fried.input.InputMaps;
 import fried.physics.KinematicBody;
 import fried.scene.Node2D;
 import fried.scene.Sprite;
@@ -29,24 +25,17 @@ class Player extends Sprite {
 		name = "Player";
 		this.speed = speed;
 		this.wall = wall;
-		movementAction = new InputAction("Move", Vector2);
-		movementAction.addBinding(Stick(GamepadAxis.LeftX, GamepadAxis.LeftY));
-		movementAction.addBinding(Vector(PadButton(GamepadButton.DpadUp), PadButton(GamepadButton.DpadDown), PadButton(GamepadButton.DpadLeft),
-			PadButton(GamepadButton.DpadRight)));
-		movementAction.addBinding(Vector(Keyboard(Key.W), Keyboard(Key.S), Keyboard(Key.A), Keyboard(Key.D)));
-		movementAction.addBinding(Vector(Keyboard(Key.Up), Keyboard(Key.Down), Keyboard(Key.Left), Keyboard(Key.Right)));
 	}
 
 	override function ready():Void {
-		movementAction.enable();
+		movementAction = InputMaps.action("Move");
+		if (movementAction == null) {
+			throw 'A Player needs the input action "Move", declared in the input block of project.fried.';
+		}
 		body = findChild(KinematicBody);
 		if (body == null) {
 			throw 'A Player needs a KinematicBody child on $name.';
 		}
-	}
-
-	override function destroyed():Void {
-		movementAction.disable();
 	}
 
 	override function update(delta:Float):Void {

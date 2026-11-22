@@ -72,6 +72,20 @@ class Project {
 		return macro $v{names};
 	}
 
+	// The `input` block as JSON text, empty when project.fried declares none. A mistake in it is an error of the build, with the place it is at, so a game never starts with an action it cannot read.
+	public static macro function inputMapsText():ExprOf<String> {
+		var block:Dynamic = Reflect.field(read(), "input");
+		if (block == null) {
+			return macro "";
+		}
+		try {
+			fried.input.InputMapParser.parse(block, fried.input.InputNamesMacro.tables());
+		} catch (message:String) {
+			Context.error('The "input" block of $filePath is wrong. $message', Context.currentPos());
+		}
+		return macro $v{haxe.Json.stringify(block)};
+	}
+
 	// The names of the scene files in assets/scenes, which is how the engine finds scenes without listing a folder on a console.
 	public static macro function sceneNames():ExprOf<Array<String>> {
 		read();

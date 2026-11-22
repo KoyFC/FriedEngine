@@ -67,6 +67,10 @@ class Bootstrap {
 				#end
 			});
 		}
+		var inputText = Project.inputMapsText();
+		if (inputText != "") {
+			fried.input.InputMaps.load(haxe.Json.parse(inputText));
+		}
 		for (name in Project.autoloadNames()) {
 			SceneManager.addAutoload(name, renderer, loadAutoload(name));
 		}

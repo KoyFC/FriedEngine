@@ -234,7 +234,7 @@ class EditorPlayer {
 		}
 		switch (message.type) {
 			case "schema":
-				connection.send({type: "schema", classes: describeClasses()});
+				connection.send({type: "schema", classes: describeClasses(), inputNames: fried.input.InputNames.describe()});
 			case "load":
 				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});

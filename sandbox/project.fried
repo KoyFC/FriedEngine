@@ -7,6 +7,109 @@
 		"mode": "height",
 		"width": 640
 	},
+	"input": {
+		"maps": [
+			{
+				"actions": [
+					{
+						"bindings": [
+							{
+								"stick": [
+									"LeftX",
+									"LeftY"
+								]
+							},
+							{
+								"vector": [
+									"pad:DpadUp",
+									"pad:DpadDown",
+									"pad:DpadLeft",
+									"pad:DpadRight"
+								]
+							},
+							{
+								"vector": [
+									"key:W",
+									"key:S",
+									"key:A",
+									"key:D"
+								]
+							},
+							{
+								"vector": [
+									"key:Up",
+									"key:Down",
+									"key:Left",
+									"key:Right"
+								]
+							}
+						],
+						"name": "Move",
+						"type": "vector2"
+					}
+				],
+				"enabled": true,
+				"name": "Player"
+			},
+			{
+				"actions": [
+					{
+						"bindings": [
+							{
+								"axis": [
+									"key:Q",
+									"key:E"
+								]
+							},
+							{
+								"axis": [
+									"pad:L1",
+									"pad:R1"
+								]
+							}
+						],
+						"name": "Zoom",
+						"type": "value"
+					},
+					{
+						"bindings": [
+							{
+								"single": "key:Space"
+							},
+							{
+								"single": "key:Enter"
+							},
+							{
+								"single": "pad:South"
+							},
+							{
+								"single": "mouse:Left"
+							}
+						],
+						"name": "PlaySound",
+						"type": "button"
+					},
+					{
+						"bindings": [
+							{
+								"single": "key:M"
+							},
+							{
+								"single": "key:F6"
+							},
+							{
+								"single": "pad:East"
+							}
+						],
+						"name": "ToggleMusic",
+						"type": "button"
+					}
+				],
+				"enabled": true,
+				"name": "Gameplay"
+			}
+		]
+	},
 	"name": "Fried Sandbox",
 	"organization": "Fried Engine",
 	"physicsRate": 50,

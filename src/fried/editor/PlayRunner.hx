@@ -6,6 +6,7 @@ import fried.Time;
 import fried.audio.Music;
 import fried.editor.EditorConnection;
 import fried.input.Input;
+import fried.input.InputMaps;
 import fried.io.Filesystem;
 import fried.scene.Scene;
 import fried.scene.SceneContext;
@@ -193,6 +194,10 @@ class PlayRunner extends BootObserver {
 
 	// The scene on screen is the editor's own copy, so the changes it makes while the game runs are the ones it can see. The same name loads it again if the game comes back to it.
 	function open(message:Dynamic):Void {
+		// The input actions the editor shows are the ones that run, so what was changed there since the player was built needs no build.
+		if (message.input != null) {
+			applyInput(message.input);
+		}
 		var name:String = message.name;
 		var data = message.scene;
 		SceneManager.replace(name, function(context) {
@@ -203,6 +208,14 @@ class PlayRunner extends BootObserver {
 		});
 		if (!message.fromStart) {
 			Bootstrap.startSceneOverride = name;
+		}
+	}
+
+	function applyInput(block:Dynamic):Void {
+		try {
+			InputMaps.replace(block);
+		} catch (error:String) {
+			connection.send({type: "error", request: "inputMap", message: error});
 		}
 	}
 
@@ -244,6 +257,8 @@ class PlayRunner extends BootObserver {
 				}
 				isWatchingAll = all;
 				watchedId = message.selected;
+			case "inputMap":
+				applyInput(message.input);
 			case "pause":
 				var wasPaused = Application.isSuspended;
 				var isPaused = message.paused == true;

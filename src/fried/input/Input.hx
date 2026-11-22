@@ -87,6 +87,27 @@ class Input {
 		return InputNative.isKeyPressed(key) != 0;
 	}
 
+	// An action declared in project.fried, asked by name. An unknown name reads as idle. See InputMaps.
+	public static function isActionPressed(name:String):Bool {
+		var action = InputMaps.action(name);
+		return action != null && action.isPressed;
+	}
+
+	public static function isActionDown(name:String):Bool {
+		var action = InputMaps.action(name);
+		return action != null && action.isDown;
+	}
+
+	public static function isActionReleased(name:String):Bool {
+		var action = InputMaps.action(name);
+		return action != null && action.isReleased;
+	}
+
+	public static function getActionValue(name:String):Float {
+		var action = InputMaps.action(name);
+		return action != null ? action.value : 0.0;
+	}
+
 	public static function isKeyDown(key:Key):Bool {
 		#if fried_editor
 		if (isInjecting) {

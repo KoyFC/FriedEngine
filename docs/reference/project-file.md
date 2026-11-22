@@ -18,6 +18,7 @@ A game declares itself in a `project.fried` at its own root, in JSON. Each side 
 | `defaultTargetFramerate` | integer | `0`, which is no limit | The frame rate `Bootstrap` starts the loop at when vsync is off. It is read only then and only to start the game. |
 | `startScene` | string | the first scene, by name | The scene the game loads when it starts. |
 | `autoload` | list of strings | none | Node classes or scenes loaded once at startup, in order, and kept while the game runs, for what the whole game needs: music, a pause menu, a debug overlay. A name that is a node class is made as it is, and any other is a scene file. |
+| `input` | object | none | The input actions of the game, declared as data: a list of `maps`, each with a `name`, an optional `enabled` and its `actions`. See [Input](../architecture/input.md) for the format. A mistake in it is an error of the build. |
 | `3ds.description` | string, up to 128 characters | `Version <version>` | The SMDH's description line. |
 | `nds.subtitle1` | string, up to 31 characters | the organization | The DS banner's second line. |
 | `nds.subtitle2` | string, up to 31 characters | `Version <version>` | The DS banner's third line. |

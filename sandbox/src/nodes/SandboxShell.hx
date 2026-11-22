@@ -15,6 +15,7 @@ import fried.graphics.Renderer;
 import fried.input.GamepadButton;
 import fried.input.Input;
 import fried.input.InputActionMap;
+import fried.input.InputMaps;
 import fried.input.InputEventType;
 import fried.input.Key;
 import fried.input.MouseButton;
@@ -127,18 +128,11 @@ class SandboxShell extends Node {
 		overlay.addButton(() -> 'Music ${music.paused ? "off" : "on"}', toggleMusic);
 		overlay.addButton(() -> "Sound", playSound);
 
-		gameplay = new InputActionMap("Gameplay");
-		zoom = gameplay.addAction("Zoom", Value);
-		zoom.addBinding(Axis(Keyboard(Key.Q), Keyboard(Key.E)));
-		zoom.addBinding(Axis(PadButton(GamepadButton.L1), PadButton(GamepadButton.R1)));
-		var playSoundAction = gameplay.addAction("PlaySound", Button);
+		gameplay = InputMaps.getMap("Gameplay");
+		zoom = InputMaps.action("Zoom");
 		// The overlay's Sound button handles the click it receives, so it sounds once, not twice.
-		playSoundAction.addKey(Key.Space).addKey(Key.Enter).addGamepadButton(GamepadButton.South).addMouseButton(MouseButton.Left);
-		playSoundAction.onPressed = playSound;
-		var toggleMusicAction = gameplay.addAction("ToggleMusic", Button);
-		toggleMusicAction.addKey(Key.M).addKey(Key.F6).addGamepadButton(GamepadButton.East);
-		toggleMusicAction.onPressed = toggleMusic;
-		gameplay.enable();
+		InputMaps.action("PlaySound").onPressed = playSound;
+		InputMaps.action("ToggleMusic").onPressed = toggleMusic;
 
 		overlayRenderer.pushLayer(overlay);
 
