@@ -23,6 +23,13 @@ class Sprite extends Node2D {
 		if (texture == null) {
 			return;
 		}
+		if (slot >= 0) {
+			if (worldDirty) {
+				ensureWorld();
+			}
+			DrawQueue.submitSpriteSlot(priority, texture, slot, flip, source);
+			return;
+		}
 		DrawQueue.submitSprite(priority, texture, worldX, worldY, worldScaleX, worldScaleY, worldRotation, flip, source);
 	}
 }

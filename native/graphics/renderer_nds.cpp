@@ -9,6 +9,7 @@
 #include "graphics/texture.h"
 #include "math/fixed_point.h"
 #include "platform/window.h"
+#include "scene/transform2d.h"
 
 #include <nds.h>
 
@@ -616,6 +617,7 @@ namespace
     constexpr int s_outlineRecord = 2;
     constexpr int s_cameraRecord = 3;
     constexpr int s_scaledTextureRecord = 4;
+    constexpr int s_slotTextureRecord = 5;
     constexpr int s_fixedOne = 1 << 16;
 
     // What places a record: the camera and the display's layout, in 16.16 fixed point, worked out from the doubles' bits so no float operation is done for it.
@@ -662,9 +664,9 @@ namespace
         int64_t m_height;
     };
 
-    LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
+    LogicalRect placeOf(const BatchView &view, int64_t x, int64_t y, int64_t width, int64_t height)
     {
-        LogicalRect rect = {fried_to_fixed(values[0], 16), fried_to_fixed(values[1], 16), width, height};
+        LogicalRect rect = {x, y, width, height};
         if (view.m_hasCamera)
         {
             rect.m_x = ((rect.m_x * view.m_zoom) >> 16) + view.m_offsetX;
@@ -673,6 +675,11 @@ namespace
             rect.m_height = (rect.m_height * view.m_zoom) >> 16;
         }
         return rect;
+    }
+
+    LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
+    {
+        return placeOf(view, fried_to_fixed(values[0], 16), fried_to_fixed(values[1], 16), width, height);
     }
 
     Edges edgesOf(const BatchView &view, const LogicalRect &rect)
@@ -754,6 +761,39 @@ namespace
         }
     }
 
+    // A texture record's quad, straight unless it is turned about its middle.
+    void drawTextureRecord(PolygonList &list, const BatchView &view, const int *record, const LogicalRect &rect, bool isTurned, int angle)
+    {
+        const FriedNdsTexture *texture = fried_texture_get_nds(record[1]);
+        if (!texture || !startList(list, texture, 255))
+        {
+            return;
+        }
+        glColor(toVertexColor(255, 255, 255));
+        Edges edges = edgesOf(view, rect);
+        TexelRegion region = regionOf(*texture, record[2], record[3], record[4], record[5], record[6]);
+        if (isTurned)
+        {
+            rotatedQuad(edges, region, angle);
+        }
+        else
+        {
+            quad(edges, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
+        }
+        finishDraw(list);
+    }
+
+    // A sprite placed by its transform slot, whose numbers are already in the units the record is drawn with.
+    void drawSlotRecord(PolygonList &list, const BatchView &view, const int *record)
+    {
+        const FriedTransform2DFixed *world = fried_transform2d_world_fixed(record[7]);
+        int64_t width = (world->m_scaleX * record[4]) >> 16;
+        int64_t height = (world->m_scaleY * record[5]) >> 16;
+        LogicalRect rect = placeOf(view, world->m_x, world->m_y, width, height);
+        int angle = (int)((((int64_t)world->m_rotation * s_angleFactor) >> 24) & (DEGREES_IN_CIRCLE - 1));
+        drawTextureRecord(list, view, record, rect, world->m_rotation != 0, angle);
+    }
+
     void drawBatchRecords(const Renderer &renderer, const int *ints, const double *doubles, int count)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
@@ -780,29 +820,20 @@ namespace
                 continue;
             }
 
+            if (kind == s_slotTextureRecord)
+            {
+                drawSlotRecord(list, view, record);
+                continue;
+            }
+
             // A scale takes 32 bits of fraction so that a size times it is cut at the same place as the size worked out whole.
             int64_t width = kind == s_scaledTextureRecord ? (fried_to_fixed(values[2], 32) * record[4]) >> 16 : fried_to_fixed(values[2], 16);
             int64_t height = kind == s_scaledTextureRecord ? (fried_to_fixed(values[3], 32) * record[5]) >> 16 : fried_to_fixed(values[3], 16);
             LogicalRect rect = placeOf(view, values, width, height);
             if (kind == s_textureRecord || kind == s_scaledTextureRecord)
             {
-                const FriedNdsTexture *texture = fried_texture_get_nds(record[1]);
-                if (!texture || !startList(list, texture, 255))
-                {
-                    continue;
-                }
-                glColor(toVertexColor(255, 255, 255));
-                Edges edges = edgesOf(view, rect);
-                TexelRegion region = regionOf(*texture, record[2], record[3], record[4], record[5], record[6]);
-                if (isZero(values[4]))
-                {
-                    quad(edges, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
-                }
-                else
-                {
-                    rotatedQuad(edges, region, toAngle(values[4]));
-                }
-                finishDraw(list);
+                bool isTurned = !isZero(values[4]);
+                drawTextureRecord(list, view, record, rect, isTurned, isTurned ? toAngle(values[4]) : 0);
                 continue;
             }
 

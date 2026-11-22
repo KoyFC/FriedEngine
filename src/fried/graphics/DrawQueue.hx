@@ -36,6 +36,7 @@ class DrawQueue {
 	static inline var RECORD_OUTLINE = 2;
 	static inline var RECORD_CAMERA = 3;
 	static inline var RECORD_SCALED_TEXTURE = 4;
+	static inline var RECORD_SLOT_TEXTURE = 5;
 	static var batchInts:Array<Int> = [];
 	static var batchDoubles:Array<Float> = [];
 	static var batchCapacity:Int = 0;
@@ -74,6 +75,23 @@ class DrawQueue {
 		command.width = scaleX;
 		command.height = scaleY;
 		command.angle = angle;
+		command.flip = flip;
+		command.hasSource = source != null;
+		if (source != null) {
+			command.source.x = source.x;
+			command.source.y = source.y;
+			command.source.width = source.width;
+			command.source.height = source.height;
+		}
+	}
+
+	// A sprite whose place, scale and angle the renderer reads from its transform slot when the frame is flushed.
+	@:allow(fried.scene)
+	static function submitSpriteSlot(priority:Int, texture:Texture, slot:Int, flip:FlipMode, source:Rect):Void {
+		var command = next(priority);
+		command.type = SlotTextureRegion;
+		command.texture = texture;
+		command.slot = slot;
 		command.flip = flip;
 		command.hasSource = source != null;
 		if (source != null) {
@@ -165,13 +183,15 @@ class DrawQueue {
 					writeTexture(command, RECORD_TEXTURE);
 				case ScaledTextureRegion:
 					writeTexture(command, RECORD_SCALED_TEXTURE);
+				case SlotTextureRegion:
+					writeTexture(command, RECORD_SLOT_TEXTURE);
 				case FillRect:
 					colorChanged = true;
-					var record = addRecord(command, RECORD_FILL);
+					var record = addRecord(command, RECORD_FILL, true);
 					NativeArray.unsafeSet(batchInts, (record << 3) + 1, cast command.color);
 				case DrawRect:
 					colorChanged = true;
-					var record = addRecord(command, RECORD_OUTLINE);
+					var record = addRecord(command, RECORD_OUTLINE, true);
 					NativeArray.unsafeSet(batchInts, (record << 3) + 1, cast command.color);
 				case Text:
 					sendBatch(renderer);
@@ -194,7 +214,8 @@ class DrawQueue {
 
 	static function writeTexture(command:DrawCommand, kind:Int):Void {
 		var texture = command.texture;
-		var record = addRecord(command, kind);
+		var isSlot = kind == RECORD_SLOT_TEXTURE;
+		var record = addRecord(command, kind, !isSlot);
 		var ints = record << 3;
 		NativeArray.unsafeSet(batchInts, ints + 1, texture.id);
 		if (command.hasSource) {
@@ -210,11 +231,14 @@ class DrawQueue {
 			NativeArray.unsafeSet(batchInts, ints + 5, texture.height);
 		}
 		NativeArray.unsafeSet(batchInts, ints + 6, cast command.flip);
+		if (isSlot) {
+			NativeArray.unsafeSet(batchInts, ints + 7, command.slot);
+		}
 	}
 
 	// The record arrays are written without the bounds check hxcpp makes at every access, which the DS pays for in software: addRecord() grows them before it writes.
 	// Appends a record for a sprite or a rectangle, after the one that says which camera it is placed by when that is not the camera of the record before it. Returns the record's place, with its numbers written.
-	static function addRecord(command:DrawCommand, kind:Int):Int {
+	static function addRecord(command:DrawCommand, kind:Int, writesDoubles:Bool):Int {
 		if (batchCount + 2 > batchCapacity) {
 			batchCapacity = batchCapacity == 0 ? 256 : batchCapacity * 2;
 			batchInts.resize(batchCapacity * RECORD_INTS);
@@ -238,12 +262,14 @@ class DrawQueue {
 		}
 		var record = batchCount++;
 		NativeArray.unsafeSet(batchInts, record << 3, kind);
-		var doubles = record * RECORD_DOUBLES;
-		NativeArray.unsafeSet(batchDoubles, doubles, command.x);
-		NativeArray.unsafeSet(batchDoubles, doubles + 1, command.y);
-		NativeArray.unsafeSet(batchDoubles, doubles + 2, command.width);
-		NativeArray.unsafeSet(batchDoubles, doubles + 3, command.height);
-		NativeArray.unsafeSet(batchDoubles, doubles + 4, command.angle);
+		if (writesDoubles) {
+			var doubles = record * RECORD_DOUBLES;
+			NativeArray.unsafeSet(batchDoubles, doubles, command.x);
+			NativeArray.unsafeSet(batchDoubles, doubles + 1, command.y);
+			NativeArray.unsafeSet(batchDoubles, doubles + 2, command.width);
+			NativeArray.unsafeSet(batchDoubles, doubles + 3, command.height);
+			NativeArray.unsafeSet(batchDoubles, doubles + 4, command.angle);
+		}
 		return record;
 	}
 
@@ -476,6 +502,7 @@ private enum abstract DrawCommandType(Int) {
 	var FillTriangles = 4;
 	var DrawMesh = 5;
 	var ScaledTextureRegion = 6;
+	var SlotTextureRegion = 7;
 }
 
 private class DrawCommand {
@@ -499,6 +526,7 @@ private class DrawCommand {
 	public var source:Rect;
 	public var points:Array<Float>;
 	public var meshId:Int;
+	public var slot:Int;
 
 	public var color:Color;
 	public var colors:Array<Color>;
@@ -507,6 +535,7 @@ private class DrawCommand {
 		source = new Rect(0, 0, 0, 0);
 		points = [];
 		meshId = -1;
+		slot = -1;
 		colors = [];
 	}
 }
