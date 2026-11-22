@@ -52,6 +52,29 @@ static inline int64_t fried_to_fixed(double value, int fractionBits)
     return fried_fixed_convert(value, fractionBits, false);
 }
 
+// The double a fixed number stands for, built from its bits.
+static inline double fried_from_fixed(int64_t value, int fractionBits)
+{
+    if (value == 0)
+    {
+        return 0.0;
+    }
+    uint64_t sign = 0;
+    uint64_t magnitude = (uint64_t)value;
+    if (value < 0)
+    {
+        sign = 1ull << 63;
+        magnitude = (uint64_t)(-value);
+    }
+    int top = 63 - __builtin_clzll(magnitude);
+    uint64_t mantissa = top >= 52 ? magnitude >> (top - 52) : magnitude << (52 - top);
+    uint64_t exponent = (uint64_t)(top - fractionBits + 1023);
+    uint64_t bits = sign | (exponent << 52) | (mantissa & 0xfffffffffffffull);
+    double result;
+    std::memcpy(&result, &bits, sizeof result);
+    return result;
+}
+
 // Where a Collider's box is, in 20.12: the pixel is 4096 units, which is a
 // finer grid than anything is drawn on, and the range is a quarter of a
 // million pixels either way, past which a position saturates. Rounding down
