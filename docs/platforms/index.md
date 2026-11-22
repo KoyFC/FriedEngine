@@ -19,3 +19,30 @@ Linux is the default build, described in [Building](../getting-started/building.
 - [Nintendo DS](nds.md)
 - [Casio fx-CG50](cg50.md)
 - [Web](web.md)
+
+## Features
+
+| Symbol | Meaning |
+|---|---|
+| ✅ | Implemented, in code shared with other platforms |
+| 🛠️ | Implemented, with a backend of its own for the platform |
+| ⏳ | Pending |
+| ❌ | Not supported |
+
+| Feature | Linux | Windows | Vita | Switch | 3DS | DS | fx-CG50 | Web |
+|---|---|---|---|---|---|---|---|---|
+| 2D drawing | ✅ | ✅ | ✅ | ✅ | 🛠️ | 🛠️ | 🛠️ | ✅ |
+| Text | ✅ | ✅ | ✅ | ✅ | ✅ | 🛠️ | 🛠️ | ✅ |
+| 3D meshes | ✅ | ✅ | 🛠️ | ✅ | 🛠️ | 🛠️ | ✅ | ✅ |
+| 3D depth buffer | ✅ | ✅ | 🛠️ | ✅ | 🛠️ | 🛠️ | ❌ | ⏳ |
+| Sounds | ✅ | ✅ | ✅ | ✅ | ✅ | 🛠️ | ❌ | ✅ |
+| Music | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Gamepad | ✅ | ✅ | ✅ | ✅ | 🛠️ | 🛠️ | ❌ | ✅ |
+| Keyboard and mouse | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | 🛠️ | ✅ |
+| Touch | ✅ | ✅ | ✅ | ✅ | ✅ | 🛠️ | ❌ | ✅ |
+| Two screens | ❌ | ❌ | ❌ | ❌ | 🛠️ | 🛠️ | ❌ | ❌ |
+| Physics | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| User data that persists | ✅ | ✅ | ✅ | ✅ | ✅ | 🛠️ | 🛠️ | ❌ |
+| Editor play mode | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+Text on the fx-CG50 and the DS is drawn with a pixel font. The fx-CG50 keyboard is its keypad. The Switch 3D backend has only been built, not run, and a Web game keeps its user data in memory until the page closes.
