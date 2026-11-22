@@ -15,8 +15,10 @@ extern "C"
     void fried_transform2d_set_rotation(int slot, double degrees);
     void fried_transform2d_set_scale_x(int slot, double value);
     void fried_transform2d_set_scale_y(int slot, double value);
-    // Works the world values out from the locals and the parent slot's world values, which the caller made current first, keeps them, and writes x, y, rotation, scaleX and scaleY to out.
-    void fried_transform2d_compute(int slot, double *out);
+    // Works the world values out from the locals and the parent slot's world values, which the caller made current first, and keeps them.
+    void fried_transform2d_update(int slot);
+    // A Collider's box in world space as four integers in 20.12 (left, top, right, bottom), from the slot's world values and the collider's own width and height, as math/fixed_point.h works them out.
+    void fried_transform2d_bounds(int slot, double width, double height, int *out);
     // For a node placed by Haxe, whose children may still be worked out here.
     void fried_transform2d_set_world(int slot, const double *values);
     void fried_transform2d_read_world(int slot, double *out);

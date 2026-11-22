@@ -4,6 +4,7 @@ import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
 import fried.scene.Node2D;
+import fried.scene.Transform2D;
 
 // An axis aligned box that Physics finds. A body is stopped by the solid colliders whose layer its mask names, and a trigger is one that stops nothing and is only reported, so a zone or a shot can notice what it touches. Its position is the box's top left corner, in its parent's space, so what used to be a collider's offset is where the node sits, and it follows a node it is a child of.
 @:serializable
@@ -28,6 +29,8 @@ class Collider extends Node2D {
 	@:noSerialize public var centerY(get, never):Float;
 
 	var debugRect:Rect;
+
+	static var boundsValues:Array<Int> = [0, 0, 0, 0];
 
 	// The box in world space as integers, in 20.12 (see FixedPoint), worked out when read and again only after the node, an ancestor or the size changed. A query compares these and does no arithmetic on a Float for every candidate, which is a call into software floating point on the DS.
 	var boundsLeft:Int;
@@ -92,6 +95,17 @@ class Collider extends Node2D {
 	}
 
 	function refreshBounds():Void {
+		if (slot >= 0) {
+			ensureSlot();
+			var values = boundsValues;
+			Transform2D.bounds(slot, width, height, cpp.Pointer.ofArray(values).raw);
+			boundsLeft = values[0];
+			boundsTop = values[1];
+			boundsRight = values[2];
+			boundsBottom = values[3];
+			boundsDirty = false;
+			return;
+		}
 		var scaleX = worldScaleX;
 		var scaleY = worldScaleY;
 		var originX = worldX;

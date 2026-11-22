@@ -12,11 +12,21 @@ class Node2D extends CanvasItem {
 	// The place this node's transform has in the native store while it is in a scene, and -1 when it is not in one.
 	var slot:Int;
 
+	// A node in a scene whose parent is no CanvasItem or another Node2D, which the store places without Haxe, and that parent when it is a Node2D.
+	var isStored:Bool;
+	var storedParent:Null<Node2D>;
+
+	// The store's world values are out of date. What the renderer and the colliders read is the store, so they ask for it alone; the doubles that worldDirty guards are then out of date too, and are worked out from the store only when a game or a layout reads them.
+	var slotDirty:Bool;
+
 	static var worldValues:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0];
 
 	public function new(x:Float = 0.0, y:Float = 0.0) {
 		super("Node2D");
 		slot = -1;
+		isStored = false;
+		storedParent = null;
+		slotDirty = true;
 		this.x = x;
 		this.y = y;
 		rotation = 0.0;
@@ -36,10 +46,11 @@ class Node2D extends CanvasItem {
 
 	override function enterScene(entered:Scene):Void {
 		slot = Transform2D.create();
-		var parentNode = Std.downcast(parentItem, Node2D);
-		Transform2D.setParent(slot, parentNode != null ? parentNode.slot : -1);
+		storedParent = Std.downcast(parentItem, Node2D);
+		isStored = parentItem == null || storedParent != null;
+		Transform2D.setParent(slot, storedParent != null ? storedParent.slot : -1);
 		Transform2D.setLocal(slot, x, y, rotation, scaleX, scaleY);
-		markWorldDirty();
+		invalidateWorld();
 		super.enterScene(entered);
 	}
 
@@ -47,19 +58,58 @@ class Node2D extends CanvasItem {
 		super.leaveScene();
 		Transform2D.release(slot);
 		slot = -1;
+		isStored = false;
+		storedParent = null;
 	}
 
-	// In a scene, under no parent or another node of the store, the world values are worked out natively, in fixed point on the DS. A node outside a scene, or under a Control, whose layout reads the cache, is worked out here.
+	// Stops at a node whose world values and whose store are both out of date, whose subtree is out of date with it.
+	override function markWorldDirty():Void {
+		if (slotDirty && worldDirty) {
+			return;
+		}
+		invalidateWorld();
+	}
+
+	function invalidateWorld():Void {
+		slotDirty = true;
+		worldDirty = true;
+		for (child in children) {
+			child.parentTransformChanged();
+		}
+	}
+
+	// Makes the store's world values current, which is all a draw or a collider needs. A node the store cannot place is worked out in Haxe, which hands the result to the store.
+	function ensureSlot():Void {
+		if (!slotDirty) {
+			return;
+		}
+		if (!isStored) {
+			ensureWorld();
+			return;
+		}
+		if (storedParent != null && storedParent.slotDirty) {
+			storedParent.ensureSlot();
+		}
+		slotDirty = false;
+		Transform2D.update(slot);
+	}
+
+	// In a scene, under another node of the store, the world values are worked out natively, in fixed point on the DS, and read out as doubles here. A node under no parent is its own world, and one outside a scene, or under a Control, whose layout reads the cache, is worked out in Haxe.
 	override function ensureWorld():Void {
-		var item = parentItem;
-		var parentNode = Std.downcast(item, Node2D);
-		if (slot >= 0 && (item == null || (parentNode != null && parentNode.slot >= 0))) {
-			if (item != null && item.worldDirty) {
-				item.ensureWorld();
+		if (isStored) {
+			if (storedParent == null) {
+				worldDirty = false;
+				wx = x;
+				wy = y;
+				wrot = rotation;
+				wsx = scaleX;
+				wsy = scaleY;
+				return;
 			}
+			ensureSlot();
 			worldDirty = false;
 			var out = worldValues;
-			Transform2D.compute(slot, cpp.Pointer.ofArray(out).raw);
+			Transform2D.readWorld(slot, cpp.Pointer.ofArray(out).raw);
 			wx = out[0];
 			wy = out[1];
 			wrot = out[2];
@@ -76,6 +126,7 @@ class Node2D extends CanvasItem {
 			out[3] = wsx;
 			out[4] = wsy;
 			Transform2D.setWorld(slot, cpp.Pointer.ofArray(out).constRaw);
+			slotDirty = false;
 		}
 	}
 

@@ -3,6 +3,8 @@
 #include <cmath>
 #include <vector>
 
+#include "math/fixed_point.h"
+
 namespace
 {
     constexpr double s_degreesToRadians = 3.14159265358979323846 / 180.0;
@@ -89,7 +91,7 @@ extern "C"
         s_slots[slot].m_local[4] = value;
     }
 
-    void fried_transform2d_compute(int slot, double *out)
+    void fried_transform2d_update(int slot)
     {
         Slot &self = s_slots[slot];
         const double *local = self.m_local;
@@ -131,10 +133,15 @@ extern "C"
             world[3] = parent[3] * local[3];
             world[4] = parent[4] * local[4];
         }
-        for (int index = 0; index < 5; ++index)
-        {
-            out[index] = world[index];
-        }
+    }
+
+    void fried_transform2d_bounds(int slot, double width, double height, int *out)
+    {
+        const double *world = s_slots[slot].m_world;
+        out[0] = fried_bounds_low(world[0], width, world[3]);
+        out[1] = fried_bounds_low(world[1], height, world[4]);
+        out[2] = fried_bounds_high(world[0], width, world[3]);
+        out[3] = fried_bounds_high(world[1], height, world[4]);
     }
 
     void fried_transform2d_set_world(int slot, const double *values)

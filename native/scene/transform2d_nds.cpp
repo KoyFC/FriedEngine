@@ -98,7 +98,7 @@ extern "C"
         s_slots[slot].m_localScaleY = fried_to_fixed(value, 32);
     }
 
-    void fried_transform2d_compute(int slot, double *out)
+    void fried_transform2d_update(int slot)
     {
         Slot &self = s_slots[slot];
         FriedTransform2DFixed &world = self.m_world;
@@ -140,11 +140,20 @@ extern "C"
             world.m_scaleX = ((parent.m_scaleX >> 16) * self.m_localScaleX) >> 16;
             world.m_scaleY = ((parent.m_scaleY >> 16) * self.m_localScaleY) >> 16;
         }
-        out[0] = fried_from_fixed(world.m_x, 16);
-        out[1] = fried_from_fixed(world.m_y, 16);
-        out[2] = fried_from_fixed(world.m_rotation, 12);
-        out[3] = fried_from_fixed(world.m_scaleX, 32);
-        out[4] = fried_from_fixed(world.m_scaleY, 32);
+    }
+
+    // The box in 20.12, as fried_bounds_low and fried_bounds_high work it out from doubles: the position is rounded down to a unit, and so are the size and the scale before they are multiplied.
+    void fried_transform2d_bounds(int slot, double width, double height, int *out)
+    {
+        const FriedTransform2DFixed &world = s_slots[slot].m_world;
+        int64_t extentX = (fried_fixed_convert(width, FRIED_BOUNDS_BITS, true) * (world.m_scaleX >> 20)) >> FRIED_BOUNDS_BITS;
+        int64_t extentY = (fried_fixed_convert(height, FRIED_BOUNDS_BITS, true) * (world.m_scaleY >> 20)) >> FRIED_BOUNDS_BITS;
+        int64_t startX = world.m_x >> 4;
+        int64_t startY = world.m_y >> 4;
+        out[0] = fried_bounds_clamp(extentX < 0 ? startX + extentX : startX);
+        out[1] = fried_bounds_clamp(extentY < 0 ? startY + extentY : startY);
+        out[2] = fried_bounds_clamp(extentX < 0 ? startX : startX + extentX);
+        out[3] = fried_bounds_clamp(extentY < 0 ? startY : startY + extentY);
     }
 
     void fried_transform2d_set_world(int slot, const double *values)
@@ -157,14 +166,15 @@ extern "C"
         world.m_scaleY = fried_to_fixed(values[4], 32);
     }
 
+    // Most nodes are neither turned nor scaled, and those two are then known without working the double out.
     void fried_transform2d_read_world(int slot, double *out)
     {
         const FriedTransform2DFixed &world = s_slots[slot].m_world;
         out[0] = fried_from_fixed(world.m_x, 16);
         out[1] = fried_from_fixed(world.m_y, 16);
-        out[2] = fried_from_fixed(world.m_rotation, 12);
-        out[3] = fried_from_fixed(world.m_scaleX, 32);
-        out[4] = fried_from_fixed(world.m_scaleY, 32);
+        out[2] = world.m_rotation == 0 ? 0.0 : fried_from_fixed(world.m_rotation, 12);
+        out[3] = world.m_scaleX == s_unitScale ? 1.0 : fried_from_fixed(world.m_scaleX, 32);
+        out[4] = world.m_scaleY == s_unitScale ? 1.0 : fried_from_fixed(world.m_scaleY, 32);
     }
 }
 
