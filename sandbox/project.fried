@@ -12,6 +12,7 @@
 	"vita": {
 		"titleId": "FRIE00001"
 	},
+	"vsync": false,
 	"window": {
 		"title": "Fried Engine sandbox !!!"
 	}

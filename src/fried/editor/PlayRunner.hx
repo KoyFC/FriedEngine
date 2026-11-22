@@ -161,9 +161,20 @@ class PlayRunner extends Game {
 		}
 	}
 
-	override function sceneLoaded(context:SceneContext, scene:Scene):Void {
+	override function sceneLoaded(context:SceneContext, loaded:Scene):Void {
+		// The scene the editor follows is the one the game is on, not one loaded over it.
+		if (context.name == SceneManager.activeName) {
+			scene = loaded;
+			sentFields = new Map();
+			context.onUnload(function() {
+				if (scene == loaded) {
+					scene = null;
+				}
+			});
+			connection.send({type: "sceneChanged", name: context.name});
+		}
 		if (inner != null) {
-			inner.sceneLoaded(context, scene);
+			inner.sceneLoaded(context, loaded);
 		}
 	}
 
@@ -195,13 +206,10 @@ class PlayRunner extends Game {
 		var name:String = message.name;
 		var data = message.scene;
 		SceneManager.replace(name, function(context) {
-			scene = SceneLoader.build(data, Bootstrap.renderer);
-			context.pushLayer(Bootstrap.renderer, new SceneLayer(scene));
-			context.onUnload(function() {
-				scene.destroy();
-				scene = null;
-			});
-			sceneLoaded(context, scene);
+			var built = SceneLoader.build(data, Bootstrap.renderer);
+			context.pushLayer(Bootstrap.renderer, new SceneLayer(built));
+			context.onUnload(built.destroy);
+			sceneLoaded(context, built);
 		});
 		if (!message.fromStart) {
 			Bootstrap.startSceneOverride = name;

@@ -16,6 +16,9 @@ class CubeField extends Node3D {
 
 	public var cubeCount(default, set):Int;
 
+	// How long the cubes have spun, in seconds. Their turn is worked out from it, so a scene that is shown this value shows the cubes where the running game has them.
+	public var age(default, set):Float;
+
 	var viewWidth:Int;
 	var viewHeight:Int;
 	var fieldOfView:Float;
@@ -35,6 +38,7 @@ class CubeField extends Node3D {
 		cubes = [];
 		spinSpeedsX = [];
 		spinSpeedsY = [];
+		age = 0.0;
 		this.cubeCount = cubeCount;
 	}
 
@@ -47,8 +51,6 @@ class CubeField extends Node3D {
 		while (cubes.length < cubeCount) {
 			var cube = new MeshInstance();
 			cube.mesh = mesh;
-			cube.rotationX = cubes.length * 37.0;
-			cube.rotationY = cubes.length * 53.0;
 			addChild(cube);
 			cubes.push(cube);
 			spinSpeedsX.push(30.0 + (cubes.length * 17) % 60);
@@ -60,7 +62,21 @@ class CubeField extends Node3D {
 			spinSpeedsY.pop();
 		}
 		layOut();
+		spin();
 		return cubeCount;
+	}
+
+	function set_age(seconds:Float):Float {
+		age = seconds;
+		spin();
+		return age;
+	}
+
+	function spin():Void {
+		for (index in 0...cubes.length) {
+			cubes[index].rotationX = index * 37.0 + spinSpeedsX[index] * age;
+			cubes[index].rotationY = index * 53.0 + spinSpeedsY[index] * age;
+		}
 	}
 
 	function followView():Void {
@@ -96,11 +112,7 @@ class CubeField extends Node3D {
 
 	override function update(delta:Float):Void {
 		followView();
-		for (index in 0...cubeCount) {
-			var cube = cubes[index];
-			cube.rotationX += spinSpeedsX[index] * delta;
-			cube.rotationY += spinSpeedsY[index] * delta;
-		}
+		age += delta;
 	}
 
 	override function draw():Void {
