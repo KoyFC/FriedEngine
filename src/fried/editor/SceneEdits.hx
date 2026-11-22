@@ -16,6 +16,14 @@ class SceneEdits {
 		switch (message.type) {
 			case "setField":
 				setField(scene, renderer, message.id, message.field, message.value);
+			case "setFields":
+				// Many nodes at once, each with the fields that changed, which is how a running game's state is shown in the editor's own scene.
+				for (entry in (message.nodes : Array<Dynamic>)) {
+					var node = scene != null ? scene.findById(entry.id) : null;
+					if (node != null) {
+						applyFields(scene, renderer, node, entry.id, entry.fields);
+					}
+				}
 			case "addNode":
 				SceneLoader.addSubtree(require(scene), nodeOrRoot(scene, message.parent), message.index, message.node, renderer);
 			case "removeNode":
@@ -54,12 +62,16 @@ class SceneEdits {
 			node.name = FieldCodec.toText(value, "name");
 			return;
 		}
+		var data = {};
+		Reflect.setField(data, field, value);
+		applyFields(scene, renderer, node, id, data);
+	}
+
+	static function applyFields(scene:Scene, renderer:Renderer, node:Node, id:String, data:Dynamic):Void {
 		var type = NodeRegistry.get(Type.getClassName(Type.getClass(node)).split(".").pop());
 		if (type == null) {
 			throw 'The node $id is of a class a scene file cannot name.';
 		}
-		var data = {};
-		Reflect.setField(data, field, value);
 		var context = new LoadContext(renderer);
 		context.scene = scene;
 		type.apply(node, data, context);

@@ -9,7 +9,10 @@ import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
+import fried.scene.serialization.FieldKind;
+import fried.scene.serialization.NodeRegistry;
 import fried.scene.serialization.SceneLoader;
+import haxe.Json;
 
 // The project's game, started the way Bootstrap starts it and watched by the editor: the editor says which scene to open, sends the frames' worth of changes the user makes in the inspector, and gets every frame back as pixels with how long it took.
 //
@@ -18,6 +21,7 @@ class PlayRunner extends Game {
 	// Frames the editor has not yet said it drew, past which the game stops sending, so a slow editor drops frames and never slows the game.
 	static inline var MAX_FRAMES_IN_FLIGHT = 2;
 	static inline var STATS_SECONDS = 0.5;
+	static inline var STATE_SECONDS = 0.05;
 	static inline var START_TIMEOUT_SECONDS = 20.0;
 
 	var inner:Null<Game>;
@@ -33,6 +37,13 @@ class PlayRunner extends Game {
 	var statsFrames:Int = 0;
 	var statsWorkSeconds:Float = 0.0;
 	var stats:Dynamic = {fps: 0.0, frameMs: 0.0, workMs: 0.0, nodes: 0};
+
+	// What the editor looks at: the selected node, and every node while its scene view is on screen. Only what changed since it was last sent goes out.
+	var watchedId:String = "";
+	var isWatchingAll:Bool = false;
+	var sentFields:Map<String, Map<String, String>> = new Map();
+	var stateSentAt:Float = 0.0;
+	var shownFields:Map<String, Map<String, Bool>> = new Map();
 
 	public static function run(options:Map<String, String>):Void {
 		Bootstrap.run(new PlayRunner(options, GameClass.create()));
@@ -73,6 +84,80 @@ class PlayRunner extends Game {
 		}
 		if (inner != null) {
 			inner.update(delta);
+		}
+	}
+
+	// The values of the nodes the editor watches, a few times a second, so its scene view and its inspector follow the game.
+	function sendState():Void {
+		var now = Sys.time();
+		if (scene == null || now - stateSentAt < STATE_SECONDS) {
+			return;
+		}
+		stateSentAt = now;
+		var changed:Array<Dynamic> = [];
+		if (isWatchingAll) {
+			collectState(scene.root, changed);
+		} else if (watchedId != "") {
+			var node = scene.findById(watchedId);
+			if (node != null) {
+				collectNode(node, changed);
+			}
+		}
+		if (changed.length > 0) {
+			connection.send({type: "state", nodes: changed});
+		}
+	}
+
+	function collectState(parent:fried.scene.Node, changed:Array<Dynamic>):Void {
+		for (node in parent.children) {
+			collectNode(node, changed);
+			collectState(node, changed);
+		}
+	}
+
+	// Nodes that code made have no id and are not in the editor's scene, so they are left out.
+	function collectNode(node:fried.scene.Node, changed:Array<Dynamic>):Void {
+		if (node.id == null || node.id == "") {
+			return;
+		}
+		var className = Type.getClassName(Type.getClass(node)).split(".").pop();
+		var type = NodeRegistry.get(className);
+		if (type == null) {
+			return;
+		}
+		var shown = shownFields.get(className);
+		if (shown == null) {
+			// Pictures, fonts and references to other nodes do not come back from the node as what the file spelled, so they are left to the file.
+			shown = new Map();
+			for (step in NodeRegistry.chain(className)) {
+				for (info in step.fields) {
+					shown.set(info.name, info.kind != TextureRef && info.kind != FontRef && info.kind != ObjectRef);
+				}
+			}
+			shownFields.set(className, shown);
+		}
+		var values = type.read(node);
+		var known = sentFields.get(node.id);
+		if (known == null) {
+			known = new Map();
+			sentFields.set(node.id, known);
+		}
+		var diff = {};
+		var isChanged = false;
+		for (field in Reflect.fields(values)) {
+			if (shown.get(field) != true) {
+				continue;
+			}
+			var value = Reflect.field(values, field);
+			var text = Json.stringify(value);
+			if (known.get(field) != text) {
+				known.set(field, text);
+				Reflect.setField(diff, field, value);
+				isChanged = true;
+			}
+		}
+		if (isChanged) {
+			changed.push({id: node.id, fields: diff});
 		}
 	}
 
@@ -124,6 +209,10 @@ class PlayRunner extends Game {
 	}
 
 	function handle(message:Dynamic):Void {
+		// A node the editor changed is sent whole again, so the editor sees what the game made of it.
+		if (message.type == "setField") {
+			sentFields.remove(message.id);
+		}
 		if (scene != null && SceneEdits.apply(scene, Bootstrap.renderer, message)) {
 			return;
 		}
@@ -147,6 +236,16 @@ class PlayRunner extends Game {
 					fps = Project.vsync() ? Std.int(message.refresh) : Project.defaultTargetFramerate();
 				}
 				Application.targetFps = fps;
+			case "watch":
+				var all = message.all == true;
+				if (all && !isWatchingAll) {
+					sentFields = new Map();
+				}
+				if (message.selected != watchedId) {
+					sentFields.remove(message.selected);
+				}
+				isWatchingAll = all;
+				watchedId = message.selected;
 			case "showGame":
 				isShowing = message.visible == true;
 			case "quit":
@@ -159,6 +258,7 @@ class PlayRunner extends Game {
 	}
 
 	function afterDraw():Void {
+		sendState();
 		var now = Sys.time();
 		workSeconds = now - frameStart;
 		statsFrames++;
