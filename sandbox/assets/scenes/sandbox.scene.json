@@ -179,32 +179,9 @@
 			"y": -220
 		},
 		{
-			"children": [
-				{
-					"height": 16,
-					"id": "player-hitbox",
-					"name": "Player hitbox",
-					"type": "Collider",
-					"width": 16
-				},
-				{
-					"id": "player-body",
-					"name": "Player body",
-					"type": "KinematicBody",
-					"velocityX": 0,
-					"velocityY": 0
-				}
-			],
 			"id": "player",
+			"instance": "player",
 			"name": "Player",
-			"scaleX": 8,
-			"scaleY": 8,
-			"speed": 240,
-			"texture": {
-				"path": "sprite.png",
-				"root": "game"
-			},
-			"type": "Player",
 			"wall": "wall",
 			"x": -64,
 			"y": -64
@@ -226,6 +203,19 @@
 			"x": 0,
 			"y": 0,
 			"zoom": 1
+		},
+		{
+			"id": "hud",
+			"instance": "sandbox_ui",
+			"name": "Interface"
+		},
+		{
+			"camera": "camera",
+			"hud": "hud",
+			"id": "world",
+			"name": "World",
+			"player": "player",
+			"type": "SandboxWorld"
 		}
 	],
 	"version": 2

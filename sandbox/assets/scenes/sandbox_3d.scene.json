@@ -99,6 +99,13 @@
 			"priority": 1,
 			"text": "Up/Down keys: cubes x2 or /2   WASD, D-pad, J/L/I/K, right mouse, ABXY: camera   F2/R1: next scene",
 			"type": "Label"
+		},
+		{
+			"field": "cube-field",
+			"hint": "hint",
+			"id": "controls",
+			"name": "Controls",
+			"type": "CubeControls"
 		}
 	],
 	"version": 2

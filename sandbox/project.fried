@@ -1,10 +1,12 @@
 {
+	"autoload": [
+		"sandbox_shell"
+	],
 	"display": {
 		"height": 480,
 		"mode": "height",
 		"width": 640
 	},
-	"gameClass": "SandboxGame",
 	"name": "Fried Sandbox",
 	"organization": "Fried Engine",
 	"startScene": "sandbox",

@@ -10,7 +10,7 @@ import fried.graphics.Renderer;
 import fried.input.Input;
 import fried.scene.Button;
 import fried.scene.Scene;
-import fried.scene.SceneContext;
+import fried.scene.Node;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
 
@@ -26,6 +26,8 @@ class DebugOverlay extends SceneLayer {
 	var buttons:Array<Button>;
 	var buttonLabels:Array<Void->String>;
 	var sceneDetails:Void->Array<String>;
+	var detailsOwner:Null<Node>;
+	var buttonOwners:Array<Null<Node>>;
 	var nextRefresh:Float;
 	var framesPerSecond:Int;
 	var lastRefreshFrame:Int;
@@ -49,7 +51,9 @@ class DebugOverlay extends SceneLayer {
 		lineWidths = [];
 		buttons = [];
 		buttonLabels = [];
+		buttonOwners = [];
 		sceneDetails = null;
+		detailsOwner = null;
 		nextRefresh = 0.0;
 		framesPerSecond = 0;
 		lastRefreshFrame = 0;
@@ -66,18 +70,34 @@ class DebugOverlay extends SceneLayer {
 		};
 		buttons.push(button);
 		buttonLabels.push(label);
+		buttonOwners.push(null);
 		nextRefresh = 0.0;
 		return button;
 	}
 
-	public function addSceneButton(context:SceneContext, label:Void->String, onClick:Void->Void):Void {
-		var button = addButton(label, onClick);
-		context.onUnload(() -> removeButton(button));
+	// A button that belongs to a node, and goes when the node does: the node calls removeOwner from its destroyed().
+	public function addSceneButton(owner:Node, label:Void->String, onClick:Void->Void):Void {
+		addButton(label, onClick);
+		buttonOwners[buttonOwners.length - 1] = owner;
 	}
 
-	public function setSceneDetails(context:SceneContext, details:Void->Array<String>):Void {
+	public function setSceneDetails(owner:Node, details:Void->Array<String>):Void {
 		sceneDetails = details;
-		context.onUnload(() -> sceneDetails = null);
+		detailsOwner = owner;
+	}
+
+	public function removeOwner(owner:Node):Void {
+		if (detailsOwner == owner) {
+			sceneDetails = null;
+			detailsOwner = null;
+		}
+		var index = buttons.length - 1;
+		while (index >= 0) {
+			if (buttonOwners[index] == owner) {
+				removeButton(buttons[index]);
+			}
+			index--;
+		}
 	}
 
 	function removeButton(button:Button):Void {
@@ -87,6 +107,7 @@ class DebugOverlay extends SceneLayer {
 		}
 		buttons.splice(index, 1);
 		buttonLabels.splice(index, 1);
+		buttonOwners.splice(index, 1);
 		button.destroy();
 		nextRefresh = 0.0;
 	}

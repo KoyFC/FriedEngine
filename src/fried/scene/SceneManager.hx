@@ -76,6 +76,7 @@ class SceneManager {
 	}
 
 	@:allow(fried.Application)
+	@:allow(fried.Bootstrap)
 	static function unloadAutoloads():Void {
 		if (autoloadContext != null) {
 			autoloadContext.unload();
@@ -115,6 +116,7 @@ class SceneManager {
 	}
 
 	@:allow(fried.Application)
+	@:allow(fried.Bootstrap)
 	static function unloadActive():Void {
 		pendingName = null;
 		pendingAdditive.resize(0);

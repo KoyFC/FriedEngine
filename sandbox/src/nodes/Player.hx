@@ -24,7 +24,7 @@ class Player extends Sprite {
 	var body:KinematicBody;
 	var movementAction:InputAction;
 
-	public function new(speed:Float, wall:Node2D) {
+	public function new(speed:Float, ?wall:Node2D) {
 		super();
 		name = "Player";
 		this.speed = speed;

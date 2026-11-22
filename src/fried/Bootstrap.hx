@@ -67,6 +67,8 @@ class Bootstrap {
 
 		Application.run(game.update);
 
+		SceneManager.unloadActive();
+		SceneManager.unloadAutoloads();
 		game.shutdown();
 		Application.destroyRenderers();
 		window.destroy();

@@ -1,9 +1,8 @@
+package nodes;
+
 import debug.DebugOverlay;
-import scene2d.Scene2D;
-import scene3d.Scene3D;
 import fried.Application;
 import fried.Bootstrap;
-import fried.Game;
 import fried.Log;
 import fried.Project;
 import fried.Window;
@@ -22,25 +21,26 @@ import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
+import fried.scene.Node;
 import fried.scene.Scene;
-import fried.scene.SceneContext;
 import fried.scene.SceneManager;
 
-// The sandbox's own code on top of what the editor describes: the scenes in assets/scenes are loaded by Bootstrap, and this adds to them what a scene file cannot hold, so the editor's Play runs the same game as a build.
-class SandboxGame extends Game {
+// What the whole sandbox needs and no one scene owns, kept as an autoload so it outlives a change of scene: the logs of a startup, music, sound, the debug overlay, the window shortcuts and the input map the scenes read.
+@:serializable
+class SandboxShell extends Node {
 	var window:Window;
 	var renderer:Renderer;
 	var secondWindow:Window;
 	var secondRenderer:Renderer;
-	var font:Font;
 	var beep:Sound;
 	var music:Music;
-	var overlay:DebugOverlay;
 	var debugScene:Scene;
 	var gameplay:InputActionMap;
-	var zoom:fried.input.InputAction;
-	var scene2d:Scene2D;
-	var scene3d:Scene3D;
+
+	public var font(default, null):Font;
+	public var overlay(default, null):DebugOverlay;
+	public var zoom(default, null):fried.input.InputAction;
+	public var runCount(get, never):Int;
 	var runs:Int;
 
 	var windowSpeed = 400.0;
@@ -50,7 +50,20 @@ class SandboxGame extends Game {
 	var was3D = false;
 	var gameplayWasOn = false;
 
-	override function start():Void {
+	// The shell of the running game.
+	public static function of():SandboxShell {
+		return SceneManager.autoload("sandbox_shell").getById("shell", SandboxShell);
+	}
+
+	public function new() {
+		super("SandboxShell");
+	}
+
+	function get_runCount():Int {
+		return runs;
+	}
+
+	override function ready():Void {
 		window = Bootstrap.window;
 		renderer = Bootstrap.renderer;
 
@@ -129,25 +142,11 @@ class SandboxGame extends Game {
 
 		overlayRenderer.pushLayer(overlay);
 
-		scene2d = new Scene2D(renderer, font, overlay, zoom, runs);
-		scene3d = new Scene3D(renderer, font, overlay);
-
 		Log.info(Input.isGamepadConnected ? "Gamepad connected" : "No gamepad connected");
 
 		// Started last, so it does not play over a screen still being set up.
 		music.play();
 		Log.success('Music playing at volume ${Music.volume}');
-	}
-
-	// The sandbox's two screens are the world scene and the 3D one. The interface scene is loaded over the world by Scene2D, so it is not a screen of its own.
-	override function sceneLoaded(context:SceneContext, scene:Scene):Void {
-		switch (context.name) {
-			case "sandbox":
-				scene2d.wire(context, scene);
-			case "sandbox_3d":
-				scene3d.wire(context, scene);
-			case _:
-		}
 	}
 
 	override function update(delta:Float):Void {
@@ -210,7 +209,7 @@ class SandboxGame extends Game {
 		}
 	}
 
-	override function shutdown():Void {
+	override function destroyed():Void {
 		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands');
 		if (secondRenderer != null) {
 			Application.destroyRenderer(secondRenderer);
