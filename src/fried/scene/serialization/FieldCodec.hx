@@ -130,10 +130,10 @@ class FieldCodec {
 			return null;
 		}
 		var id = toText(value, field);
-		if (context.scene == null) {
+		if (context.scene == null && context.scope == null) {
 			return null;
 		}
-		var target = context.scene.findById(id);
+		var target = context.scope != null ? context.scope.nodes.get(id) : context.scene.findById(id);
 		if (target == null) {
 			throw 'The field "$field" refers to the node "$id", which the scene does not have.';
 		}

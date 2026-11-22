@@ -173,7 +173,7 @@ class Scene {
 
 	@:allow(fried.scene.Node)
 	function register(node:Node):Void {
-		if (node.id != "") {
+		if (node.id != "" && node.scopeOwner == null) {
 			byId.set(node.id, node);
 		}
 		nodeCount++;
@@ -183,7 +183,7 @@ class Scene {
 
 	@:allow(fried.scene.Node)
 	function unregister(node:Node):Void {
-		if (node.id != "" && byId.get(node.id) == node) {
+		if (node.id != "" && node.scopeOwner == null && byId.get(node.id) == node) {
 			byId.remove(node.id);
 		}
 		nodeCount--;

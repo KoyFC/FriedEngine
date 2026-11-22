@@ -16,3 +16,11 @@ An asset reference is `{"root", "path"}`, and a font adds `"size"`, resolved thr
 A scene has no per-platform values: a node that behaves differently on a platform says so in its own code, by asking `Application.platformName`.
 
 A scene file is built whole before any node is readied: every node and reference exists, and then `ready()` runs on each, children before parents, so a node's `ready()` can read the rest of its scene. `SceneLoader.build()` can skip that for the editor, which only looks, so a node that draws must not need `ready()` to have run. A `Scene` knows the size of the view it is drawn to (`viewWidth`, `viewHeight`), so a node reads it from there instead of holding a `Renderer`. `SceneManager.loadAdditive()` loads a scene on top of the active one, such as an interface over a level, and loading another scene unloads it.
+
+## Instancing a scene
+
+An entry with an `instance` key, `{"id": "player", "instance": "player", "x": 40}`, puts another scene file in the tree as one node. `instance` names a scene the way `startScene` does, and the entry has no `type`: the node is the instanced file's root, and every other key of the entry overrides that field of the root, `name` included. An entry cannot have children. Only a file with exactly one top-level node can be instanced, its `camera` is ignored, and its root cannot itself be an instance entry. A scene that ends up instancing itself fails at load, naming the chain.
+
+The ids of an instanced file belong to the instance, which is how two instances of one file never clash and how a file's own references keep meaning its own nodes. They are not in the outer scene's `findById()`: the instance's root has the id the entry gave it, and `instance.getById("hitbox", Collider)` reaches a node inside. An override of a reference field, such as `"wall": "wall"`, names a node of the outer scene. A node meant to be instanced should not require such a reference in its constructor, since its own file cannot give one.
+
+Code does the same with `PackedScene`: `PackedScene.load("player").instantiate()` builds the root with its subtree and no id, ready to be added to any node with `addChild()`, and it is readied when it joins a scene. The file is read once and kept. The editor shows an instance as the one node it is, with the box of everything inside it.

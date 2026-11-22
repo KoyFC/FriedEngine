@@ -117,7 +117,7 @@ class PlayRunner extends Game {
 
 	// Nodes that code made have no id and are not in the editor's scene, so they are left out.
 	function collectNode(node:fried.scene.Node, changed:Array<Dynamic>):Void {
-		if (node.id == null || node.id == "") {
+		if (node.id == null || node.id == "" || node.scopeOwner != null) {
 			return;
 		}
 		var className = Type.getClassName(Type.getClass(node)).split(".").pop();

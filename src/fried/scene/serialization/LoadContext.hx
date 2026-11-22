@@ -12,6 +12,9 @@ class LoadContext {
 	// The scene being built. It is null until every node exists, so a reference to another node cannot be resolved before then.
 	public var scene:Scene;
 
+	// The instance whose own references are being resolved, which look in its nodes and not in the scene.
+	public var scope:Null<InstanceScope>;
+
 	public function new(renderer:Renderer, usesZeroDefaults:Bool = false) {
 		this.renderer = renderer;
 		this.usesZeroDefaults = usesZeroDefaults;

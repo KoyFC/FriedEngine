@@ -14,6 +14,7 @@ import fried.scene.Node3D;
 import fried.scene.Scene;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.NodeRegistry;
+import fried.scene.PackedScene;
 import fried.scene.serialization.SceneLoader;
 
 // The editor's viewport: a game with no game in it. It shows the scene the editor sends and answers its requests, and draws only when asked.
@@ -133,19 +134,43 @@ class EditorPlayer {
 		var bounds3D = [];
 		var frusta = [];
 		if (scene != null) {
-			collectBounds(scene.root, bounds);
+			collectBounds(scene.root, bounds, null);
 			collectBounds3D(scene.root, bounds3D);
 			collectFrusta(scene.root, frusta);
 		}
 		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds, bounds3D: bounds3D, frusta: frusta}, renderer.readPixels());
 	}
 
-	// Every node that is drawn, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the node's own coordinates.
-	function collectBounds(parent:Node, bounds:Array<Dynamic>):Void {
+	// Every node that is drawn, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the node's own coordinates. What is inside an instanced scene is not a node of the scene the editor shows, so an instance is one entry whose box holds all of it.
+	function collectBounds(parent:Node, bounds:Array<Dynamic>, owner:Null<Dynamic>):Void {
 		for (node in parent.children) {
 			var item = Std.downcast(node, CanvasItem);
-			// A node of the game that code made has no id, and a Node3D is not in the plane the editor shows.
-			if (item != null && !Std.isOfType(item, Node3D) && item.id != "") {
+			var isFlat = item != null && !Std.isOfType(item, Node3D);
+			var next = owner;
+			if (owner != null) {
+				if (isFlat) {
+					unite(owner, EditorBounds.of(item));
+				}
+			} else if (node.isInstanceRoot && node.id != "") {
+				var entry:Dynamic = {id: node.id, x: 0.0, y: 0.0, width: 0.0, height: 0.0, originX: 0.0, originY: 0.0, isEmpty: true};
+				if (isFlat) {
+					var box = EditorBounds.of(item);
+					entry = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: item.worldX, originY: item.worldY, isEmpty: false};
+					var around = EditorBounds.parentOf(item);
+					if (around != null) {
+						entry.parent = around;
+					}
+				}
+				var slot = bounds.length;
+				bounds.push(entry);
+				collectBounds(node, bounds, entry);
+				if (entry.isEmpty) {
+					bounds.splice(slot, 1);
+				}
+				Reflect.deleteField(entry, "isEmpty");
+				continue;
+			} else if (isFlat && item.id != "") {
+				// A node of the game that code made has no id, and a Node3D is not in the plane the editor shows.
 				var box = EditorBounds.of(item);
 				var entry:Dynamic = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: item.worldX, originY: item.worldY};
 				var around = EditorBounds.parentOf(item);
@@ -154,15 +179,34 @@ class EditorPlayer {
 				}
 				bounds.push(entry);
 			}
-			collectBounds(node, bounds);
+			collectBounds(node, bounds, next);
 		}
+	}
+
+	static function unite(entry:Dynamic, box:EditorBounds.Box):Void {
+		if (entry.isEmpty) {
+			entry.x = box.x;
+			entry.y = box.y;
+			entry.width = box.width;
+			entry.height = box.height;
+			entry.isEmpty = false;
+			return;
+		}
+		var left = Math.min(entry.x, box.x);
+		var top = Math.min(entry.y, box.y);
+		var right = Math.max(entry.x + entry.width, box.x + box.width);
+		var bottom = Math.max(entry.y + entry.height, box.y + box.height);
+		entry.x = left;
+		entry.y = top;
+		entry.width = right - left;
+		entry.height = bottom - top;
 	}
 
 	// Every Node3D that code did not make, in tree order, where the editor's camera sees it.
 	function collectBounds3D(parent:Node, bounds:Array<Dynamic>):Void {
 		for (node in parent.children) {
 			var item = Std.downcast(node, Node3D);
-			if (item != null && item.id != "") {
+			if (item != null && item.id != "" && node.scopeOwner == null) {
 				var entry = EditorBounds3D.of(item, camera3D, renderer.width, renderer.height);
 				if (entry != null) {
 					bounds.push(entry);
@@ -176,7 +220,7 @@ class EditorPlayer {
 	function collectFrusta(parent:Node, frusta:Array<Dynamic>):Void {
 		for (node in parent.children) {
 			var item = Std.downcast(node, Camera3D);
-			if (item != null && item.id != "" && scene.viewHeight > 0) {
+			if (item != null && item.id != "" && node.scopeOwner == null && scene.viewHeight > 0) {
 				frusta.push(EditorFrustum.of(item, scene.viewWidth / scene.viewHeight));
 			}
 			collectFrusta(node, frusta);
@@ -224,6 +268,7 @@ class EditorPlayer {
 
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
 	function load(data:Dynamic, viewWidth:Null<Int>, viewHeight:Null<Int>):Void {
+		PackedScene.clearCache();
 		var next = SceneLoader.build(data, renderer, false);
 		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size of the game's screen that the editor shows as the display's frame, or the size the project designs for when the editor does not say.
 		next.setView(viewWidth != null ? viewWidth : Project.displayWidth(), viewHeight != null ? viewHeight : Project.displayHeight());

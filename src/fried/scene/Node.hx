@@ -48,6 +48,17 @@ class Node {
 
 	var isReady:Bool;
 
+	// The instance root whose ids this node's id lives among, which is null for a node of the scene itself.
+	@:allow(fried.scene.serialization)
+	@:allow(fried.editor)
+	var scopeOwner:Null<Node>;
+
+	// Set on the root of an instanced scene file, which holds the ids of the file's nodes.
+	@:allow(fried.scene.serialization)
+	var scopeNodes:Null<Map<String, Node>>;
+
+	@:noSerialize public var isInstanceRoot(get, never):Bool;
+
 	public function new(name:String = "Node") {
 		this.name = name;
 		id = "";
@@ -132,6 +143,22 @@ class Node {
 		if (scene != null) {
 			child.leaveScene();
 		}
+	}
+
+	// A node of the scene file this node is the instance of, by the id the file gave it.
+	public function getById<T:Node>(id:String, type:Class<T>):T {
+		if (scopeNodes == null) {
+			throw 'The node $name is not the instance of a scene, so it has no node "$id".';
+		}
+		var node = scopeNodes.get(id);
+		if (node == null) {
+			throw 'The instance $name has no node "$id".';
+		}
+		var typed = Std.downcast(node, type);
+		if (typed == null) {
+			throw 'The node "$id" of the instance $name is not a ${Type.getClassName(type)}.';
+		}
+		return typed;
 	}
 
 	public function getChild(index:Int):Node {
@@ -239,6 +266,10 @@ class Node {
 		active = value;
 		refreshFlags();
 		return value;
+	}
+
+	inline function get_isInstanceRoot():Bool {
+		return scopeNodes != null;
 	}
 
 	inline function get_childCount():Int {
