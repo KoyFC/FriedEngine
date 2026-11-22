@@ -2,6 +2,8 @@ package fried.editor;
 
 #if fried_editor
 import fried.Project;
+import fried.Time;
+import fried.audio.Music;
 import fried.editor.EditorConnection;
 import fried.input.Input;
 import fried.io.Filesystem;
@@ -29,6 +31,7 @@ class PlayRunner extends BootObserver {
 	var scene:Null<Scene>;
 	var framesInFlight:Int = 0;
 	var isShowing:Bool = true;
+	var volumeBeforePause:Float = 1.0;
 
 	var frameStart:Float = 0.0;
 	var workSeconds:Float = 0.0;
@@ -241,6 +244,21 @@ class PlayRunner extends BootObserver {
 				}
 				isWatchingAll = all;
 				watchedId = message.selected;
+			case "pause":
+				var wasPaused = Application.isSuspended;
+				var isPaused = message.paused == true;
+				Application.isSuspended = isPaused;
+				// The music is silenced and brought back, since a paused game that keeps playing it is not a stopped one.
+				if (isPaused && !wasPaused) {
+					volumeBeforePause = Music.volume;
+					Music.volume = 0.0;
+				} else if (!isPaused && wasPaused) {
+					Music.volume = volumeBeforePause;
+				}
+			case "step":
+				Application.stepFrame();
+			case "speed":
+				Time.hostScale = message.scale > 0 ? message.scale : 1.0;
 			case "showGame":
 				isShowing = message.visible == true;
 			case "quit":

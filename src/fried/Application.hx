@@ -96,6 +96,16 @@ class Application {
 		}
 	}
 
+	// A suspended game still reads its events, draws and calls the update given to run, but its scenes stand still: no node updates and no fixed steps. It is a tool for a debugger, such as the editor's pause, while a game that wants a pause sets Time.timeScale to 0.
+	public static var isSuspended:Bool = false;
+
+	static var pendingSteps:Int = 0;
+
+	// Lets one frame of a suspended game run, with one fixed step in it.
+	public static function stepFrame():Void {
+		pendingSteps++;
+	}
+
 	public static function run(update:Float->Void):Void {
 		while (isRunning) {
 			var frameStart = Sys.time();
@@ -107,8 +117,20 @@ class Application {
 			}
 			propagateInputEvents();
 			InputAction.updateAll();
-			Time.tick();
-			var fixedSteps = Time.fixedStepsDue();
+			var isRunningFrame = true;
+			if (isSuspended) {
+				isRunningFrame = pendingSteps > 0;
+				if (isRunningFrame) {
+					pendingSteps--;
+					Time.tickStep();
+				} else {
+					Time.tickSuspended();
+				}
+			} else {
+				pendingSteps = 0;
+				Time.tick();
+			}
+			var fixedSteps = isRunningFrame ? Time.fixedStepsDue() : 0;
 			while (fixedSteps > 0) {
 				for (renderer in renderers) {
 					renderer.fixedUpdateLayers(Time.fixedDeltaSeconds);
@@ -123,8 +145,10 @@ class Application {
 			DrawQueue.currentCamera = null;
 			DrawQueue.currentLayerIndex = 0;
 			update(Time.deltaSeconds);
-			for (renderer in renderers) {
-				renderer.updateLayers(Time.deltaSeconds);
+			if (isRunningFrame) {
+				for (renderer in renderers) {
+					renderer.updateLayers(Time.deltaSeconds);
+				}
 			}
 			for (renderer in renderers) {
 				renderer.drawLayers();

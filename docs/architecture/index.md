@@ -11,6 +11,7 @@ These pages describe the decisions behind what is currently implemented, and why
 - [Text](text.md)
 - [Cameras](cameras.md)
 - [Layers](layers.md)
+- [Time](time.md)
 - [Scene switching](scene-switching.md)
 - [Scene files](scene-files.md)
 - [Starting a game](starting-a-game.md)

@@ -59,6 +59,7 @@ nav:
       - architecture/text.md
       - architecture/cameras.md
       - architecture/layers.md
+      - architecture/time.md
       - architecture/scene-switching.md
       - architecture/scene-files.md
       - architecture/starting-a-game.md
