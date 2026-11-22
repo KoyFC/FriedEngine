@@ -17,14 +17,13 @@ import haxe.Json;
 // The project's game, started the way Bootstrap starts it and watched by the editor: the editor says which scene to open, sends the frames' worth of changes the user makes in the inspector, and gets every frame back as pixels with how long it took.
 //
 // Started as `player --mode play --editor-port N --width W --height H --engine-assets DIR --game-assets DIR`.
-class PlayRunner extends Game {
+class PlayRunner extends BootObserver {
 	// Frames the editor has not yet said it drew, past which the game stops sending, so a slow editor drops frames and never slows the game.
 	static inline var MAX_FRAMES_IN_FLIGHT = 2;
 	static inline var STATS_SECONDS = 0.5;
 	static inline var STATE_SECONDS = 0.05;
 	static inline var START_TIMEOUT_SECONDS = 20.0;
 
-	var inner:Null<Game>;
 	var connection:EditorConnection;
 	var options:Map<String, String>;
 	var scene:Null<Scene>;
@@ -46,13 +45,13 @@ class PlayRunner extends Game {
 	var shownFields:Map<String, Map<String, Bool>> = new Map();
 
 	public static function run(options:Map<String, String>):Void {
-		Bootstrap.run(new PlayRunner(options, GameClass.create()));
+		Bootstrap.observer = new PlayRunner(options);
+		Bootstrap.run();
 	}
 
-	function new(options:Map<String, String>, inner:Null<Game>) {
+	function new(options:Map<String, String>) {
 		super();
 		this.options = options;
-		this.inner = inner;
 	}
 
 	override function start():Void {
@@ -62,9 +61,6 @@ class PlayRunner extends Game {
 		connection.send({type: "hello", protocol: EditorConnection.PROTOCOL, platform: Application.platformName});
 		Application.onBeforePresent = afterDraw;
 
-		if (inner != null) {
-			inner.start();
-		}
 		waitForPlay();
 		statsStart = Sys.time();
 	}
@@ -81,9 +77,6 @@ class PlayRunner extends Game {
 			} catch (error:Dynamic) {
 				connection.send({type: "error", request: message.type, message: Std.string(error)});
 			}
-		}
-		if (inner != null) {
-			inner.update(delta);
 		}
 	}
 
@@ -173,17 +166,11 @@ class PlayRunner extends Game {
 			});
 			connection.send({type: "sceneChanged", name: context.name});
 		}
-		if (inner != null) {
-			inner.sceneLoaded(context, loaded);
-		}
 	}
 
 	override function shutdown():Void {
 		// The editor learns that the game ended before the game's own cleanup, which a game may take a while over, so it never shows a game that has quit as still running.
 		connection.close();
-		if (inner != null) {
-			inner.shutdown();
-		}
 	}
 
 	// The editor sends `play` as soon as it hears hello, with the scene it is showing and where to start.

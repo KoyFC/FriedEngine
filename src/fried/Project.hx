@@ -89,12 +89,6 @@ class Project {
 	}
 
 	#if macro
-	// The class named by "gameClass" in project.fried, which extends fried.Game, or an empty string when there is none.
-	public static function gameClassName():String {
-		var name = Reflect.field(read(), "gameClass");
-		return Std.isOfType(name, String) ? name : "";
-	}
-
 	static function number(keys:Array<String>, fallback:Int):ExprOf<Int> {
 		var node:Dynamic = read();
 		for (key in keys) {
@@ -141,6 +135,9 @@ class Project {
 			Context.fatalError('$filePath is not valid JSON: $e', Context.currentPos());
 		}
 
+		if (Reflect.hasField(file, "gameClass")) {
+			Context.fatalError('$filePath names a "gameClass", which the engine no longer runs. Move what it does into a node of a scene and list the scene under "autoload": see https://koyfc.github.io/FriedEngine/architecture/starting-a-game/.', Context.currentPos());
+		}
 		return file;
 	}
 	#end

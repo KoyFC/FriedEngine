@@ -16,13 +16,12 @@ class Bootstrap {
 	#if fried_editor
 	// The scene to open instead of the one project.fried names, which is how the editor starts a game from the scene it is showing.
 	public static var startSceneOverride:String;
+
+	// Told how the game goes, which is how the editor's play mode watches it.
+	public static var observer:fried.editor.BootObserver;
 	#end
 
-	public static function run(?game:Game):Void {
-		if (game == null) {
-			game = new Game();
-		}
-
+	public static function run():Void {
 		Application.init();
 		window = new Window(Project.windowTitle(), Project.displayWidth(), Project.displayHeight());
 		var icon = Filesystem.resolveAsset("game", "icon.png");
@@ -44,13 +43,21 @@ class Bootstrap {
 				var scene = SceneLoader.load('scenes/$name.scene.json', renderer);
 				context.pushLayer(renderer, new SceneLayer(scene));
 				context.onUnload(scene.destroy);
-				game.sceneLoaded(context, scene);
+				#if fried_editor
+				if (observer != null) {
+					observer.sceneLoaded(context, scene);
+				}
+				#end
 			});
 		}
 		for (name in Project.autoloadNames()) {
 			SceneManager.addAutoload(name, renderer, SceneLoader.load('scenes/$name.scene.json', renderer));
 		}
-		game.start();
+		#if fried_editor
+		if (observer != null) {
+			observer.start();
+		}
+		#end
 
 		var first = Project.startScene();
 		if (first == "" && scenes.length > 0) {
@@ -65,11 +72,21 @@ class Bootstrap {
 			SceneManager.load(first);
 		}
 
-		Application.run(game.update);
+		Application.run(function(delta) {
+			#if fried_editor
+			if (observer != null) {
+				observer.update(delta);
+			}
+			#end
+		});
 
+		#if fried_editor
+		if (observer != null) {
+			observer.shutdown();
+		}
+		#end
 		SceneManager.unloadActive();
 		SceneManager.unloadAutoloads();
-		game.shutdown();
 		Application.destroyRenderers();
 		window.destroy();
 		Application.shutdown();
