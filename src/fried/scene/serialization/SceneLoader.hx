@@ -83,9 +83,10 @@ class SceneLoader {
 		if (nodes == null) {
 			throw "The scene file has no nodes list.";
 		}
-		for (nodeData in nodes) {
-			scene.add(buildNode(nodeData, context, references, seen, null));
+		if (nodes.length != 1) {
+			throw 'The scene ${scene.name} has ${nodes.length} top-level nodes, and a scene has exactly one root node. Put them under a new root node: the editor does it when it opens the file.';
 		}
+		scene.add(buildNode(nodes[0], context, references, seen, null));
 
 		context.scene = scene;
 		applyReferences(references, context);

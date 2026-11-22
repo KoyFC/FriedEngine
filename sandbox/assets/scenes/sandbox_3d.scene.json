@@ -5,107 +5,114 @@
 		{
 			"children": [
 				{
-					"id": "free-camera",
-					"name": "Free camera",
-					"type": "FreeCamera"
-				}
-			],
-			"id": "camera",
-			"name": "Camera",
-			"type": "Camera3D"
-		},
-		{
-			"ambient": 0.3,
-			"id": "light",
-			"name": "Light",
-			"rotationX": 33,
-			"rotationY": -21.8,
-			"type": "DirectionalLight"
-		},
-		{
-			"cubeCount": 16,
-			"id": "cube-field",
-			"name": "Cube field",
-			"type": "CubeField",
-			"z": 10
-		},
-		{
-			"children": [
+					"children": [
+						{
+							"id": "free-camera",
+							"name": "Free camera",
+							"type": "FreeCamera"
+						}
+					],
+					"id": "camera",
+					"name": "Camera",
+					"type": "Camera3D"
+				},
 				{
-					"color": {
-						"a": 255,
-						"b": 110,
-						"g": 90,
-						"r": 90
-					},
-					"id": "floor",
-					"name": "Floor",
-					"scaleX": 6,
-					"scaleZ": 3,
-					"shape": "Plane",
-					"type": "MeshInstance"
+					"ambient": 0.3,
+					"id": "light",
+					"name": "Light",
+					"rotationX": 33,
+					"rotationY": -21.8,
+					"type": "DirectionalLight"
+				},
+				{
+					"cubeCount": 16,
+					"id": "cube-field",
+					"name": "Cube field",
+					"type": "CubeField",
+					"z": 10
+				},
+				{
+					"children": [
+						{
+							"color": {
+								"a": 255,
+								"b": 110,
+								"g": 90,
+								"r": 90
+							},
+							"id": "floor",
+							"name": "Floor",
+							"scaleX": 6,
+							"scaleZ": 3,
+							"shape": "Plane",
+							"type": "MeshInstance"
+						},
+						{
+							"color": {
+								"a": 255,
+								"b": 80,
+								"g": 200,
+								"r": 240
+							},
+							"id": "pyramid",
+							"name": "Pyramid",
+							"shape": "Pyramid",
+							"type": "MeshInstance",
+							"x": -1.5,
+							"y": 0.5
+						},
+						{
+							"color": {
+								"a": 255,
+								"b": 240,
+								"g": 160,
+								"r": 80
+							},
+							"id": "ball",
+							"name": "Ball",
+							"shape": "Sphere",
+							"type": "MeshInstance",
+							"x": 1.5,
+							"y": 0.5
+						}
+					],
+					"id": "shapes",
+					"name": "Shapes",
+					"type": "Node3D",
+					"y": -2.2,
+					"z": 6
 				},
 				{
 					"color": {
 						"a": 255,
-						"b": 80,
-						"g": 200,
-						"r": 240
+						"b": 230,
+						"g": 220,
+						"r": 220
 					},
-					"id": "pyramid",
-					"name": "Pyramid",
-					"shape": "Pyramid",
-					"type": "MeshInstance",
-					"x": -1.5,
-					"y": 0.5
+					"font": {
+						"path": "NunitoSans.ttf",
+						"root": "engine",
+						"size": 16
+					},
+					"id": "hint",
+					"name": "Hint",
+					"offsetX": 12,
+					"offsetY": 12,
+					"priority": 1,
+					"text": "Up/Down keys: cubes x2 or /2   WASD, D-pad, J/L/I/K, right mouse, ABXY: camera   F2/R1: next scene",
+					"type": "Label"
 				},
 				{
-					"color": {
-						"a": 255,
-						"b": 240,
-						"g": 160,
-						"r": 80
-					},
-					"id": "ball",
-					"name": "Ball",
-					"shape": "Sphere",
-					"type": "MeshInstance",
-					"x": 1.5,
-					"y": 0.5
+					"field": "cube-field",
+					"hint": "hint",
+					"id": "controls",
+					"name": "Controls",
+					"type": "CubeControls"
 				}
 			],
-			"id": "shapes",
-			"name": "Shapes",
-			"type": "Node3D",
-			"y": -2.2,
-			"z": 6
-		},
-		{
-			"color": {
-				"a": 255,
-				"b": 230,
-				"g": 220,
-				"r": 220
-			},
-			"font": {
-				"path": "NunitoSans.ttf",
-				"root": "engine",
-				"size": 16
-			},
-			"id": "hint",
-			"name": "Hint",
-			"offsetX": 12,
-			"offsetY": 12,
-			"priority": 1,
-			"text": "Up/Down keys: cubes x2 or /2   WASD, D-pad, J/L/I/K, right mouse, ABXY: camera   F2/R1: next scene",
-			"type": "Label"
-		},
-		{
-			"field": "cube-field",
-			"hint": "hint",
-			"id": "controls",
-			"name": "Controls",
-			"type": "CubeControls"
+			"id": "sandbox-3d-root",
+			"name": "Sandbox 3D",
+			"type": "Node"
 		}
 	],
 	"version": 2
