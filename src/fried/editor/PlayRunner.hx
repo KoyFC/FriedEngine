@@ -255,10 +255,13 @@ class PlayRunner extends BootObserver {
 			case "mouseWheel":
 				Input.inject(MouseWheel, Bootstrap.window, 0, 0, 0, message.x, message.y);
 			case "frameLimit":
-				// Frames a second, 0 for as many as it can draw, or the project's own rule when it is negative: the display's rate when the project waits for vsync, and its default frame rate when it does not.
+				// Frames a second, 0 for as many as it can draw, or the project's own rule when it is negative: the display's rate when the project waits for vsync, and its default frame rate when it does not. A project with no rate at all takes the display's too, since a game drawing thousands of frames that are never shown takes the graphics card the editor draws with.
 				var fps = Std.int(message.fps);
 				if (fps < 0) {
 					fps = Project.vsync() ? Std.int(message.refresh) : Project.defaultTargetFramerate();
+					if (fps <= 0) {
+						fps = Std.int(message.refresh);
+					}
 				}
 				Application.targetFps = fps;
 				isPacedByEditor = fps > 0 && fps == Std.int(message.refresh);
