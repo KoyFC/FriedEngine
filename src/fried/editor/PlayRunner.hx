@@ -26,12 +26,17 @@ class PlayRunner extends BootObserver {
 	static inline var STATS_SECONDS = 0.5;
 	static inline var STATE_SECONDS = 0.05;
 	static inline var START_TIMEOUT_SECONDS = 20.0;
+	// How long a frame waits for the editor to show the last one, so an editor that stops drawing slows the game rather than freezing it.
+	static inline var EDITOR_WAIT_SECONDS = 0.1;
 
 	var connection:EditorConnection;
 	var options:Map<String, String>;
 	var scene:Null<Scene>;
 	var framesInFlight:Int = 0;
 	var isShowing:Bool = true;
+	// A game whose rate is the editor's screen's draws a frame each time the editor shows one, as a built game waits for its own screen, instead of keeping a clock of its own that drifts against the editor's.
+	var isPacedByEditor:Bool = false;
+	var deferred:Array<Dynamic> = [];
 	var volumeBeforePause:Float = 1.0;
 
 	var frameStart:Float = 0.0;
@@ -64,6 +69,7 @@ class PlayRunner extends BootObserver {
 		connection = new EditorConnection(Std.parseInt(options.get("editor-port")));
 		connection.send({type: "hello", protocol: EditorConnection.PROTOCOL, platform: Application.platformName});
 		Application.onBeforePresent = afterDraw;
+		Application.waitForHost = waitForEditor;
 
 		waitForPlay();
 		statsStart = Sys.time();
@@ -75,7 +81,9 @@ class PlayRunner extends BootObserver {
 			Application.quit();
 			return;
 		}
-		for (message in connection.poll()) {
+		var messages = deferred.concat(connection.poll());
+		deferred = [];
+		for (message in messages) {
 			try {
 				handle(message);
 			} catch (error:Dynamic) {
@@ -253,6 +261,7 @@ class PlayRunner extends BootObserver {
 					fps = Project.vsync() ? Std.int(message.refresh) : Project.defaultTargetFramerate();
 				}
 				Application.targetFps = fps;
+				isPacedByEditor = fps > 0 && fps == Std.int(message.refresh);
 			case "watch":
 				var all = message.all == true;
 				if (all && !isWatchingAll) {
@@ -314,6 +323,29 @@ class PlayRunner extends BootObserver {
 		}
 		framesInFlight++;
 		connection.send({type: "gameFrame", width: Bootstrap.renderer.width, height: Bootstrap.renderer.height, stats: stats}, Bootstrap.renderer.readPixels());
+	}
+
+	// What the editor sends meanwhile is kept for the next frame's update, which handles it in order.
+	function waitForEditor():Bool {
+		if (!isPacedByEditor || framesInFlight == 0) {
+			return false;
+		}
+		var deadline = Sys.time() + EDITOR_WAIT_SECONDS;
+		while (framesInFlight > 0 && !connection.isClosed) {
+			var left = deadline - Sys.time();
+			if (left <= 0) {
+				return false;
+			}
+			connection.waitForMessage(left);
+			for (message in connection.poll()) {
+				if (message.type == "frameShown") {
+					framesInFlight--;
+				} else {
+					deferred.push(message);
+				}
+			}
+		}
+		return true;
 	}
 
 	function countNodes(parent:fried.scene.Node):Int {

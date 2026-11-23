@@ -23,6 +23,9 @@ class Application {
 	#if fried_editor
 	// Called each frame after everything is drawn and before it is presented, which is when the frame can still be read back.
 	public static var onBeforePresent:Void->Void;
+
+	// Called once a frame is presented, in place of waiting out the frame budget when it returns true, so the editor's player can keep the time of the editor's screen.
+	public static var waitForHost:Void->Bool;
 	#end
 
 	public static function init():Void {
@@ -203,6 +206,11 @@ class Application {
 		if (ApplicationNative.waitForHostFrame() != 0) {
 			return;
 		}
+		#if fried_editor
+		if (waitForHost != null && waitForHost()) {
+			return;
+		}
+		#end
 		if (targetFps <= 0 || everyRendererHasVsync()) {
 			return;
 		}

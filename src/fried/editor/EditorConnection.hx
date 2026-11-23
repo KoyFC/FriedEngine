@@ -53,6 +53,13 @@ class EditorConnection {
 		return messages;
 	}
 
+	// Returns once something has arrived to poll, or the time is up.
+	public function waitForMessage(seconds:Float):Void {
+		if (!isClosed) {
+			Socket.select([socket], null, null, seconds);
+		}
+	}
+
 	public function send(message:Dynamic, ?pixels:Bytes):Void {
 		if (pixels != null) {
 			Reflect.setField(message, "pixels", pixels.length);
