@@ -177,15 +177,21 @@ class PlayRunner extends BootObserver {
 		connection.close();
 	}
 
-	// The editor sends `play` as soon as it hears hello, with the scene it is showing and where to start.
+	// The editor sends `play` as soon as it hears hello, with the scene it is showing and where to start. The frame limit and the rest of what it sends along with it arrive in the same read, and are handled after the scene opens.
 	function waitForPlay():Void {
 		var deadline = Sys.time() + START_TIMEOUT_SECONDS;
 		while (Sys.time() < deadline && !connection.isClosed) {
+			var isOpen = false;
 			for (message in connection.poll()) {
-				if (message.type == "play") {
+				if (isOpen) {
+					handle(message);
+				} else if (message.type == "play") {
 					open(message);
-					return;
+					isOpen = true;
 				}
+			}
+			if (isOpen) {
+				return;
 			}
 			Sys.sleep(0.005);
 		}
