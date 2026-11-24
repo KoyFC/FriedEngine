@@ -546,7 +546,7 @@ namespace
         int nearest = std::min(s_depth + s_meshBandSteps, s_lastDepth);
         s_depth = nearest;
 
-        auto number = [&view](FriedMeshPlacement index) { return view.m_placement[index - FRIED_MESH_CAMERA_X]; };
+        auto number = [&view](FriedMeshPlacement index) -> double { return view.m_placement[index - FRIED_MESH_CAMERA_X]; };
         s_meshCameraX = fried_to_fixed(number(FRIED_MESH_CAMERA_X), 12);
         s_meshCameraY = fried_to_fixed(number(FRIED_MESH_CAMERA_Y), 12);
         s_meshCameraZ = fried_to_fixed(number(FRIED_MESH_CAMERA_Z), 12);
