@@ -40,7 +40,12 @@ function(fried_add_vita_vpk target_name)
         FILE "${VPK_SCE_SYS}/livearea/contents/template.xml" sce_sys/livearea/contents/template.xml
         ${_vpk_files}
     )
-    fried_depend_on_import(${target_name}.vpk)
+    # The VitaSDK names the target vita_create_vpk() makes <name>-vpk from CMake 3.20 on, and <name> before that.
+    if(TARGET ${target_name}.vpk-vpk)
+        fried_depend_on_import(${target_name}.vpk-vpk)
+    else()
+        fried_depend_on_import(${target_name}.vpk)
+    endif()
 endfunction()
 
 # Appends every file under <source_dir> to <out_var> as the FILE <src> <dest>
