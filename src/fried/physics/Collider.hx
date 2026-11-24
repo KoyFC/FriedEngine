@@ -50,16 +50,9 @@ class Collider extends Node2D {
 	var exactBottom:Single;
 	var exactDirty:Bool;
 
-	// Where the scene's grid has it. The cells are those the box covers, and a collider is queued when its box has changed and the grid has not been told.
+	// Where the scene's grid has it: its place in tree order, and whether it is queued because its box has changed and the grid has not been told.
 	var order:Int;
-	var queryStamp:Int;
 	var isQueued:Bool;
-	var inGrid:Bool;
-	var isLarge:Bool;
-	var cellMinX:Int;
-	var cellMinY:Int;
-	var cellMaxX:Int;
-	var cellMaxY:Int;
 
 	public function new(width:Single = 0.0, height:Single = 0.0) {
 		super();
@@ -74,10 +67,7 @@ class Collider extends Node2D {
 		boundsDirty = true;
 		exactDirty = true;
 		order = 0;
-		queryStamp = 0;
 		isQueued = false;
-		inGrid = false;
-		isLarge = false;
 	}
 
 	// It draws, for the debug outline, and Scene keeps a list of colliders for Physics, which a flag in the same word asks for.

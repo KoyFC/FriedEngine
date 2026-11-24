@@ -14,25 +14,18 @@ class Physics {
 		}
 		var pointX = FixedPoint.point(x);
 		var pointY = FixedPoint.point(y);
-		var list = scene.colliderCandidates(pointX, pointY, pointX + 1, pointY + 1);
-		var count = list.length;
-		var index = 0;
-		var found:Collider = null;
-		while (index < count) {
-			var collider = list[index];
-			index++;
-			if (!collider.activeInTree || collider == ignore) {
-				continue;
-			}
-			if (collider.boundsDirty) {
-				collider.refreshBounds();
-			}
-			if (pointX >= collider.boundsLeft && pointX < collider.boundsRight && pointY >= collider.boundsTop && pointY < collider.boundsBottom
-				&& (found == null || collider.order < found.order)) {
-				found = collider;
+		var count = scene.colliderOverlaps(pointX, pointY, pointX + 1, pointY + 1);
+		var indices = scene.colliderGrid.indices;
+		var all = scene.colliders;
+		var position = 0;
+		while (position < count) {
+			var collider = all[cpp.NativeArray.unsafeGet(indices, position)];
+			position++;
+			if (collider.activeInTree && collider != ignore) {
+				return collider;
 			}
 		}
-		return found;
+		return null;
 	}
 
 	public static function overlapBox(scene:Scene, x:Single, y:Single, width:Single, height:Single, ?ignore:Collider):Null<Collider> {
@@ -43,25 +36,7 @@ class Physics {
 		var boxRight = FixedPoint.high(x, width, ONE);
 		var boxTop = FixedPoint.low(y, height, ONE);
 		var boxBottom = FixedPoint.high(y, height, ONE);
-		var list = scene.colliderCandidates(boxLeft, boxTop, boxRight, boxBottom);
-		var count = list.length;
-		var index = 0;
-		var found:Collider = null;
-		while (index < count) {
-			var collider = list[index];
-			index++;
-			if (!collider.activeInTree || collider == ignore) {
-				continue;
-			}
-			if (collider.boundsDirty) {
-				collider.refreshBounds();
-			}
-			if (collider.boundsLeft < boxRight && collider.boundsRight > boxLeft && collider.boundsTop < boxBottom && collider.boundsBottom > boxTop
-				&& (found == null || collider.order < found.order)) {
-				found = collider;
-			}
-		}
-		return found;
+		return firstOverlapping(scene, boxLeft, boxTop, boxRight, boxBottom, ignore);
 	}
 
 	public static function overlapCollider(scene:Scene, collider:Collider):Null<Collider> {
@@ -75,25 +50,23 @@ class Physics {
 		var queryRight = collider.boundsRight;
 		var queryTop = collider.boundsTop;
 		var queryBottom = collider.boundsBottom;
-		var list = scene.colliderCandidates(queryLeft, queryTop, queryRight, queryBottom);
-		var count = list.length;
-		var index = 0;
-		var found:Collider = null;
-		while (index < count) {
-			var other = list[index];
-			index++;
-			if (!other.activeInTree || other == collider) {
-				continue;
-			}
-			if (other.boundsDirty) {
-				other.refreshBounds();
-			}
-			if (queryLeft < other.boundsRight && queryRight > other.boundsLeft && queryTop < other.boundsBottom && queryBottom > other.boundsTop
-				&& (found == null || other.order < found.order)) {
-				found = other;
+		return firstOverlapping(scene, queryLeft, queryTop, queryRight, queryBottom, collider);
+	}
+
+	// The first collider in tree order that is active, is not the one to ignore and has a box that overlaps this one.
+	static function firstOverlapping(scene:Scene, left:Int, top:Int, right:Int, bottom:Int, ignore:Collider):Null<Collider> {
+		var count = scene.colliderOverlaps(left, top, right, bottom);
+		var indices = scene.colliderGrid.indices;
+		var all = scene.colliders;
+		var position = 0;
+		while (position < count) {
+			var other = all[cpp.NativeArray.unsafeGet(indices, position)];
+			position++;
+			if (other.activeInTree && other != ignore) {
+				return other;
 			}
 		}
-		return found;
+		return null;
 	}
 
 	public static function overlapBoxAll(scene:Scene, x:Single, y:Single, width:Single, height:Single, results:Array<Collider>, ?ignore:Collider):Int {
@@ -105,23 +78,17 @@ class Physics {
 		var boxRight = FixedPoint.high(x, width, ONE);
 		var boxTop = FixedPoint.low(y, height, ONE);
 		var boxBottom = FixedPoint.high(y, height, ONE);
-		var list = scene.colliderCandidates(boxLeft, boxTop, boxRight, boxBottom);
-		var count = list.length;
-		var index = 0;
-		while (index < count) {
-			var collider = list[index];
-			index++;
-			if (!collider.activeInTree || collider == ignore) {
-				continue;
-			}
-			if (collider.boundsDirty) {
-				collider.refreshBounds();
-			}
-			if (collider.boundsLeft < boxRight && collider.boundsRight > boxLeft && collider.boundsTop < boxBottom && collider.boundsBottom > boxTop) {
+		var count = scene.colliderOverlaps(boxLeft, boxTop, boxRight, boxBottom);
+		var indices = scene.colliderGrid.indices;
+		var all = scene.colliders;
+		var position = 0;
+		while (position < count) {
+			var collider = all[cpp.NativeArray.unsafeGet(indices, position)];
+			position++;
+			if (collider.activeInTree && collider != ignore) {
 				results.push(collider);
 			}
 		}
-		ColliderGrid.sortByOrder(results);
 		return results.length;
 	}
 

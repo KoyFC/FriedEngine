@@ -67,7 +67,10 @@ class Scene {
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;
 	var canvasBuckets:Array<CanvasBucket>;
+	@:allow(fried.physics)
 	var colliders:Array<Collider>;
+
+	@:allow(fried.physics)
 	var colliderGrid:ColliderGrid;
 	var areListsDirty:Bool;
 	var areCollidersDirty:Bool;
@@ -273,6 +276,15 @@ class Scene {
 		return colliderGrid.collect(left, top, right, bottom);
 	}
 
+	// How many colliders have a box that overlaps this one, ascending in tree order and with no regard to whether they are active, written to the grid's indices, which index colliders. A collider that moved or changed size earlier in the frame is where it is now.
+	@:allow(fried.physics)
+	function colliderOverlaps(left:Int, top:Int, right:Int, bottom:Int):Int {
+		if (areCollidersDirty) {
+			activeColliders();
+		}
+		return colliderGrid.overlapping(left, top, right, bottom);
+	}
+
 	@:allow(fried.physics)
 	function colliderMoved(collider:Collider):Void {
 		if (!areCollidersDirty) {
@@ -468,6 +480,7 @@ class Scene {
 		}
 		camera = null;
 		camera3D = null;
+		colliderGrid.dispose();
 	}
 
 	static function byCanvasLayer(first:CanvasBucket, second:CanvasBucket):Int {

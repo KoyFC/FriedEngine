@@ -1,57 +1,50 @@
 package fried.physics;
 
-// The colliders of a scene by the cells of a grid they touch, so a query tests the few colliders near it and not every one. The cells are 64 pixels, hashed into a fixed number of buckets, so the world has no edge and nothing is allocated once it is running; two cells in one bucket only add a candidate the caller's own test turns away.
+import cpp.NativeArray;
+
+// The colliders of a scene by the cells of a grid they touch, so a query tests the few colliders near it and not every one. The boxes and the grid live in a ColliderStore, natively; this keeps which collider is at which place in tree order and which ones moved.
 //
 // It is kept up to date as things move and not rebuilt each frame: a collider that moves or changes size queues itself, and a query empties the queue before it looks, so it sees what moved earlier in the same frame. The whole grid is rebuilt only when a node enters or leaves the scene.
 @:allow(fried.scene)
 @:allow(fried.physics)
 class ColliderGrid {
-	// 64 pixels, in the 20.12 units of a collider's box.
-	static inline var CELL_SHIFT:Int = 18;
-	static inline var BUCKET_MASK:Int = 255;
-
-	// A collider or a query that spans more cells than this is not looked up by cell: a collider that big is tested by every query, and a query that big tests every collider.
-	static inline var MAX_CELLS:Int = 16;
-
-	var buckets:Array<Array<Collider>>;
-	var large:Array<Collider>;
+	var store:Int;
 	var moved:Array<Collider>;
 	var candidates:Array<Collider>;
 	var everything:Array<Collider>;
-	var stamp:Int;
+
+	// Where the store writes what a query found: the places in tree order, with room for every collider.
+	var indices:Array<Int>;
 
 	public function new() {
-		buckets = [];
-		for (index in 0...(BUCKET_MASK + 1)) {
-			buckets.push([]);
-		}
-		large = [];
+		store = ColliderStore.create();
 		moved = [];
 		candidates = [];
 		everything = [];
-		stamp = 0;
+		indices = [];
+	}
+
+	// The scene is gone and so are its colliders.
+	function dispose():Void {
+		ColliderStore.destroy(store);
+		store = -1;
 	}
 
 	// Every collider of the scene, in tree order.
 	function rebuild(all:Array<Collider>):Void {
 		everything = all;
-		for (bucket in buckets) {
-			bucket.resize(0);
-		}
-		large.resize(0);
 		moved.resize(0);
 		var count = all.length;
+		indices.resize(count);
+		ColliderStore.reset(store, count);
 		var index = 0;
 		while (index < count) {
 			var collider = all[index];
 			collider.order = index;
 			collider.isQueued = false;
-			collider.inGrid = false;
-			collider.queryStamp = 0;
 			place(collider);
 			index++;
 		}
-		stamp = 0;
 	}
 
 	function queue(collider:Collider):Void {
@@ -75,128 +68,33 @@ class ColliderGrid {
 		moved.resize(0);
 	}
 
-	// Files the collider under the cells its box covers now, or leaves it where it is when they are the same.
+	// Tells the store where the collider's box is now.
 	function place(collider:Collider):Void {
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
-		var minX = collider.boundsLeft >> CELL_SHIFT;
-		var minY = collider.boundsTop >> CELL_SHIFT;
-		var maxX = (collider.boundsRight - 1) >> CELL_SHIFT;
-		var maxY = (collider.boundsBottom - 1) >> CELL_SHIFT;
-		if (maxX < minX) {
-			maxX = minX;
-		}
-		if (maxY < minY) {
-			maxY = minY;
-		}
-		if (collider.inGrid && collider.cellMinX == minX && collider.cellMinY == minY && collider.cellMaxX == maxX && collider.cellMaxY == maxY) {
-			return;
-		}
-		if (collider.inGrid) {
-			remove(collider);
-		}
-		collider.cellMinX = minX;
-		collider.cellMinY = minY;
-		collider.cellMaxX = maxX;
-		collider.cellMaxY = maxY;
-		collider.inGrid = true;
-		if ((maxX - minX + 1) * (maxY - minY + 1) > MAX_CELLS) {
-			collider.isLarge = true;
-			large.push(collider);
-			return;
-		}
-		collider.isLarge = false;
-		var cellY = minY;
-		while (cellY <= maxY) {
-			var cellX = minX;
-			while (cellX <= maxX) {
-				buckets[bucketOf(cellX, cellY)].push(collider);
-				cellX++;
-			}
-			cellY++;
-		}
-	}
-
-	function remove(collider:Collider):Void {
-		if (collider.isLarge) {
-			take(large, collider);
-			return;
-		}
-		var cellY = collider.cellMinY;
-		while (cellY <= collider.cellMaxY) {
-			var cellX = collider.cellMinX;
-			while (cellX <= collider.cellMaxX) {
-				take(buckets[bucketOf(cellX, cellY)], collider);
-				cellX++;
-			}
-			cellY++;
-		}
-	}
-
-	// Without keeping the order, which nothing here depends on.
-	static function take(list:Array<Collider>, collider:Collider):Void {
-		var index = list.indexOf(collider);
-		if (index < 0) {
-			return;
-		}
-		var last = list.pop();
-		if (index < list.length) {
-			list[index] = last;
-		}
-	}
-
-	static inline function bucketOf(cellX:Int, cellY:Int):Int {
-		return ((cellX * 7919) ^ (cellY * 104729)) & BUCKET_MASK;
+		ColliderStore.place(store, collider.order, collider.boundsLeft, collider.boundsTop, collider.boundsRight, collider.boundsBottom);
 	}
 
 	// The colliders that may touch a box, given as edges in the units of a collider's box, each at most once. Nothing is promised about their order, or that they do touch it: the caller tests them.
 	function collect(left:Int, top:Int, right:Int, bottom:Int):Array<Collider> {
 		flush();
-		var minX = left >> CELL_SHIFT;
-		var minY = top >> CELL_SHIFT;
-		var maxX = (right - 1) >> CELL_SHIFT;
-		var maxY = (bottom - 1) >> CELL_SHIFT;
-		if (maxX < minX) {
-			maxX = minX;
-		}
-		if (maxY < minY) {
-			maxY = minY;
-		}
-		if ((maxX - minX + 1) * (maxY - minY + 1) > MAX_CELLS) {
-			return everything;
-		}
-		stamp++;
+		var count = ColliderStore.candidates(store, left, top, right, bottom, cpp.Pointer.ofArray(indices).raw);
 		var found = candidates;
-		found.resize(0);
-		var count = large.length;
-		var index = 0;
-		while (index < count) {
-			var collider = large[index];
-			collider.queryStamp = stamp;
-			found.push(collider);
-			index++;
-		}
-		var cellY = minY;
-		while (cellY <= maxY) {
-			var cellX = minX;
-			while (cellX <= maxX) {
-				var bucket = buckets[bucketOf(cellX, cellY)];
-				count = bucket.length;
-				index = 0;
-				while (index < count) {
-					var collider = bucket[index];
-					if (collider.queryStamp != stamp) {
-						collider.queryStamp = stamp;
-						found.push(collider);
-					}
-					index++;
-				}
-				cellX++;
-			}
-			cellY++;
+		found.resize(count);
+		var all = everything;
+		var position = 0;
+		while (position < count) {
+			found[position] = all[NativeArray.unsafeGet(indices, position)];
+			position++;
 		}
 		return found;
+	}
+
+	// How many colliders have a box that overlaps this one, with their places in tree order, ascending, at the start of indices. A box that only touches does not overlap, and whether a collider is active is for the caller.
+	function overlapping(left:Int, top:Int, right:Int, bottom:Int):Int {
+		flush();
+		return ColliderStore.overlapping(store, left, top, right, bottom, cpp.Pointer.ofArray(indices).raw);
 	}
 
 	// Puts a list back in tree order, which the grid does not keep. The lists are a handful long and nearly sorted already.

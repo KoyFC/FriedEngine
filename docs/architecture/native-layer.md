@@ -16,6 +16,8 @@ A window on PC is created hidden and shown by `fried_renderer_create()`, because
 
 `native/scene/` is not SDL glue but data that nodes keep in C++: today the transforms of `Node2D`s, one slot for each node in a scene. The Haxe output is the same for every target, so a platform that needs another representation has its own implementation of the same header chosen by CMake: the DS keeps a slot in fixed point (`transform2d_nds.cpp`), since it has no floating point unit and every `Float` operation there is a call into software, and the others keep floats (`transform2d.cpp`), as every number that crosses into this layer is a `float`.
 
+`native/physics/` holds the same kind of thing for colliders: `collider_store.cpp` keeps the boxes of a scene's colliders in one array, with the grid that finds the ones near a box, and answers the overlap queries. It is plain integer code, the same on every platform, since a box is already in 20.12 by the time it gets there.
+
 A failure that reaches Haxe as a thrown error carries SDL's own explanation with it. Every failing path in `native/` calls `fried_capture_sdl_error()` or `fried_set_last_error()` before it returns, and `fried.NativeError.describe()` appends what it stored, so `Failed to load texture: x.png` becomes `Failed to load texture: x.png (Unsupported image format)`. Missing file and wrong format are otherwise the same message.
 
 The error is copied at the point of failure rather than read later, because the next SDL call overwrites it. `fried_application_init()` is where that is not theoretical: each of its failure paths tears down the libraries it already brought up, and every one of those teardown calls would replace the error that explains why it is tearing down.

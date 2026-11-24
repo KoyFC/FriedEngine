@@ -138,6 +138,7 @@ if(FRIED_CG50)
         native/audio/sound_gint.cpp
         native/audio/music_gint.cpp
         native/scene/transform2d.cpp
+        native/physics/collider_store.cpp
     )
 elseif(NINTENDO_DS)
     # The DS draws its top screen with its 3D engine and its bottom one with
@@ -166,6 +167,7 @@ elseif(NINTENDO_DS)
         native/audio/music_nds.cpp
         native/audio/wave_nds.cpp
         native/scene/transform2d_nds.cpp
+        native/physics/collider_store.cpp
     )
 else()
     set(_fried_native_sources
@@ -184,6 +186,7 @@ else()
         native/audio/sound.cpp
         native/audio/music.cpp
         native/scene/transform2d.cpp
+        native/physics/collider_store.cpp
     )
 endif()
 list(APPEND _fried_native_sources
