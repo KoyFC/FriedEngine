@@ -114,7 +114,7 @@ namespace
     bool s_isStateSet = false;
     bool s_isInMeshMode = false;
     SavedState s_saved;
-    double s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
+    fried_real s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
 
     const char *s_vertexSource =
         "attribute vec3 a_position;\n"
@@ -580,8 +580,8 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const fried_real *plac
 
     // Meshes of one view share a depth buffer, which starts again each frame
     // and whenever the view changes, as another scene's meshes begin.
-    double view[sizeof(s_lastView) / sizeof(double)];
-    std::memcpy(view, placement + FRIED_MESH_CAMERA_X, (FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X) * sizeof(double));
+    fried_real view[sizeof(s_lastView) / sizeof(fried_real)];
+    std::memcpy(view, placement + FRIED_MESH_CAMERA_X, (FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X) * sizeof(fried_real));
     view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X] = hasCamera ? zoom : 0.0;
     view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 1] = hasCamera ? cameraX : 0.0;
     view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 2] = hasCamera ? cameraY : 0.0;

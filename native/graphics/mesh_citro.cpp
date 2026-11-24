@@ -49,7 +49,7 @@ namespace
     bool s_isReady = false;
     bool s_isInMeshMode = false;
     bool s_isViewSet = false;
-    double s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
+    fried_real s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
 
     bool prepareShader()
     {
@@ -204,8 +204,8 @@ void fried_mesh_citro_draw(int meshId, const fried_real *placement, bool hasCame
     }
 
     // The light is set again whenever the view changes.
-    double view[sizeof(s_lastView) / sizeof(double)];
-    std::memcpy(view, placement + FRIED_MESH_CAMERA_X, (FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X) * sizeof(double));
+    fried_real view[sizeof(s_lastView) / sizeof(fried_real)];
+    std::memcpy(view, placement + FRIED_MESH_CAMERA_X, (FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X) * sizeof(fried_real));
     view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X] = hasCamera ? zoom : 0.0;
     view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 1] = hasCamera ? cameraX : 0.0;
     view[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 2] = hasCamera ? cameraY : 0.0;

@@ -81,7 +81,7 @@ namespace
 
     struct MeshView
     {
-        double m_placement[s_meshViewSize];
+        fried_real m_placement[s_meshViewSize];
         double m_hasCamera;
         double m_zoom;
         double m_cameraX;
