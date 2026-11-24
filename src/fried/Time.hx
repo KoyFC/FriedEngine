@@ -31,8 +31,16 @@ class Time {
 
 	static var fixedAccumulator:Float = 0.0;
 
-	static var startTime:Float = 0.0;
-	static var lastTime:Float = 0.0;
+	// One microsecond in seconds, and a second in microseconds.
+	public static inline var MICROSECOND:Float = 0.000001;
+	static inline var MICROS_PER_SECOND:Int = 1000000;
+
+	// The clock's reading at the last frame, and the two elapsed times as whole seconds and microseconds, so that how long the game has run is exact however long it runs and the Float read from it is only as coarse as a Float is.
+	static var lastMicros:Int = 0;
+	static var elapsedWhole:Int = 0;
+	static var elapsedMicros:Int = 0;
+	static var unscaledWhole:Int = 0;
+	static var unscaledMicros:Int = 0;
 
 	static function set_timeScale(value:Float):Float {
 		timeScale = value > 0.0 ? value : 0.0;
@@ -40,8 +48,11 @@ class Time {
 	}
 
 	public static function start():Void {
-		startTime = Sys.time();
-		lastTime = startTime;
+		lastMicros = Clock.micros();
+		elapsedWhole = 0;
+		elapsedMicros = 0;
+		unscaledWhole = 0;
+		unscaledMicros = 0;
 		elapsedSeconds = 0.0;
 		unscaledElapsedSeconds = 0.0;
 		deltaSeconds = 0.0;
@@ -68,26 +79,50 @@ class Time {
 		return steps;
 	}
 
-	public static function tick():Void {
-		var now = Sys.time();
+	// The microseconds since the last frame, which is also when this one starts.
+	static function lap():Int {
+		var now = Clock.micros();
+		var micros = Clock.difference(now, lastMicros);
+		lastMicros = now;
+		return micros;
+	}
 
-		unscaledDeltaSeconds = now - lastTime;
+	static function advanceElapsed(micros:Int):Void {
+		elapsedMicros += micros;
+		while (elapsedMicros >= MICROS_PER_SECOND) {
+			elapsedMicros -= MICROS_PER_SECOND;
+			elapsedWhole++;
+		}
+		elapsedSeconds = elapsedWhole + elapsedMicros * MICROSECOND;
+	}
+
+	static function advanceUnscaled(micros:Int):Void {
+		unscaledMicros += micros;
+		while (unscaledMicros >= MICROS_PER_SECOND) {
+			unscaledMicros -= MICROS_PER_SECOND;
+			unscaledWhole++;
+		}
+		unscaledElapsedSeconds = unscaledWhole + unscaledMicros * MICROSECOND;
+	}
+
+	public static function tick():Void {
+		var micros = lap();
+
+		unscaledDeltaSeconds = micros * MICROSECOND;
 		deltaSeconds = Math.min(unscaledDeltaSeconds, MAX_DELTA_SECONDS) * timeScale * hostScale;
 
-		elapsedSeconds += deltaSeconds;
-		unscaledElapsedSeconds = now - startTime;
+		advanceElapsed(Math.round(deltaSeconds * MICROS_PER_SECOND));
+		advanceUnscaled(micros);
 
-		lastTime = now;
 		frameCount++;
 	}
 
 	// A frame while the game is suspended: the real clock moves and the game's does not, so what follows picks up with no jump.
 	public static function tickSuspended():Void {
-		var now = Sys.time();
-		unscaledDeltaSeconds = now - lastTime;
+		var micros = lap();
+		unscaledDeltaSeconds = micros * MICROSECOND;
 		deltaSeconds = 0.0;
-		unscaledElapsedSeconds = now - startTime;
-		lastTime = now;
+		advanceUnscaled(micros);
 		fixedAccumulator = 0.0;
 	}
 
@@ -95,7 +130,7 @@ class Time {
 	public static function tickStep():Void {
 		tickSuspended();
 		deltaSeconds = fixedDeltaSeconds;
-		elapsedSeconds += deltaSeconds;
+		advanceElapsed(Math.round(deltaSeconds * MICROS_PER_SECOND));
 		frameCount++;
 	}
 

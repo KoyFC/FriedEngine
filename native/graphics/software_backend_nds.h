@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/real.h"
+
 #include "graphics/renderer.h"
 
 #include <cstdint>
@@ -22,7 +24,7 @@ extern "C"
     void fried_software_renderer_draw_texture_ex(int rendererId, int textureId, int srcX, int srcY, int srcWidth, int srcHeight, float x, float y, float width, float height, double angle, int flipMode);
     void fried_software_renderer_fill_rect(int rendererId, float x, float y, float width, float height);
     void fried_software_renderer_draw_rect(int rendererId, float x, float y, float width, float height);
-    void fried_software_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount);
+    void fried_software_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount);
 
     int fried_software_texture_load(int rendererId, const char *path);
     void fried_software_texture_destroy(int textureId);

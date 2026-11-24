@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/real.h"
+
 #include <cstdint>
 
 // A mesh a renderer turns, lights and depth tests itself, on a GPU that does
@@ -48,13 +50,13 @@ enum FriedMeshPlacement
 extern "C"
 {
     // -1 where no renderer draws meshes.
-    int fried_mesh_create(const double *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount);
+    int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount);
     void fried_mesh_destroy(int meshId);
 
     bool fried_renderer_draws_meshes(int rendererId);
     // A 2D camera moves and zooms the screen the mesh is projected onto, as it
     // does the points of triangles.
-    void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY);
+    void fried_renderer_draw_mesh(int rendererId, int meshId, const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY);
 }
 
 #ifdef __NDS__

@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/renderer.h"
 
 #include "handle_pool.h"
@@ -356,7 +357,7 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     SDL_RenderDrawRectF(renderer, &rect);
 }
 
-void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
+void fried_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount)
 {
     fried_mesh_sdl_leave();
     SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);

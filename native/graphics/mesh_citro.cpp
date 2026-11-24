@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/mesh.h"
 #include "graphics/mesh_citro.h"
 
@@ -183,7 +184,7 @@ void fried_mesh_citro_stop()
     s_isReady = false;
 }
 
-void fried_mesh_citro_draw(int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY,
+void fried_mesh_citro_draw(int meshId, const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY,
                            const FriedDisplayLayout &layout, int outputWidth, int outputHeight)
 {
     if (!placement || meshId < 0 || meshId >= (int)s_meshes.size() || !s_meshes[meshId].m_vertices || !prepareShader())
@@ -240,7 +241,7 @@ void fried_mesh_citro_draw(int meshId, const double *placement, bool hasCamera, 
     C3D_DrawArrays(GPU_TRIANGLES, 0, mesh.m_vertexCount);
 }
 
-int fried_mesh_create(const double *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
+int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
 {
     if (!vertices || !indices || !argbColors || triangleCount <= 0)
     {

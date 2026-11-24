@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/real.h"
+
 #include "graphics/display.h"
 #include "graphics/mesh.h"
 
@@ -26,12 +28,12 @@ namespace fried_mesh
 
     // Each triangle's three corners, with the normal MeshPass works out from
     // them and the triangle's color as bytes. False if an index is out of range.
-    inline bool expand(const double *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount, std::vector<Vertex> &out)
+    inline bool expand(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount, std::vector<Vertex> &out)
     {
         out.resize((size_t)triangleCount * 3);
         for (int triangle = 0; triangle < triangleCount; ++triangle)
         {
-            const double *corner[3];
+            const fried_real *corner[3];
             for (int index = 0; index < 3; ++index)
             {
                 int vertex = indices[triangle * 3 + index];
@@ -115,10 +117,10 @@ namespace fried_mesh
     // The view is the rectangle of the output the camera's picture fills,
     // which a 2D camera moves and zooms as it does the points of triangles.
     // False where the view or the planes leave nothing to draw.
-    inline bool place(const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY, const FriedDisplayLayout &layout,
+    inline bool place(const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY, const FriedDisplayLayout &layout,
                       int viewX, int viewY, int viewWidth, int viewHeight, Transform &out)
     {
-        double nearPlane = std::max(placement[FRIED_MESH_NEAR], 1e-6);
+        double nearPlane = std::max((double)placement[FRIED_MESH_NEAR], 1e-6);
         double farPlane = placement[FRIED_MESH_FAR];
         if (viewWidth <= 0 || viewHeight <= 0 || !(farPlane > nearPlane))
         {

@@ -1,8 +1,9 @@
+#include "math/real.h"
 #include "graphics/mesh.h"
 
 // No renderer here draws meshes, so MeshPass draws them as triangles.
 
-int fried_mesh_create(const double *, int, const int *, const int *, int)
+int fried_mesh_create(const fried_real *, int, const int *, const int *, int)
 {
     return -1;
 }
@@ -16,7 +17,7 @@ bool fried_renderer_draws_meshes(int)
     return false;
 }
 
-void fried_renderer_draw_mesh(int, int, const double *, bool, double, double, double)
+void fried_renderer_draw_mesh(int, int, const fried_real *, bool, double, double, double)
 {
 }
 

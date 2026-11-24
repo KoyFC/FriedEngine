@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/renderer.h"
 
 #include "handle_pool.h"
@@ -418,7 +419,7 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     fillRect(rect.m_x + rect.m_width - 1, rect.m_y + 1, 1, rect.m_height - 2, color);
 }
 
-void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
+void fried_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount)
 {
     CitroRenderer *renderer = sceneRenderer(rendererId);
     if (!renderer)
@@ -428,7 +429,7 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
     for (int index = 0; index < triangleCount && s_triangleVerticesThisFrame + 3 <= s_triangleVertexBudget; ++index)
     {
         s_triangleVerticesThisFrame += 3;
-        const double *corners = points + index * 6;
+        const fried_real *corners = points + index * 6;
         u32 argb = (u32)argbColors[index];
         u32 color = C2D_Color32((u8)(argb >> 16), (u8)(argb >> 8), (u8)argb, (u8)(argb >> 24));
         C2D_DrawTriangle((float)corners[0], (float)corners[1], color, (float)corners[2], (float)corners[3], color, (float)corners[4], (float)corners[5], color, s_depth);
@@ -471,7 +472,7 @@ float fried_renderer_get_pixel_scale(int rendererId)
     return std::min(renderer->layout.m_scaleX, renderer->layout.m_scaleY);
 }
 
-void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
+void fried_renderer_draw_mesh(int rendererId, int meshId, const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
 {
     CitroRenderer *renderer = s_renderers.get(rendererId);
     if (!renderer)

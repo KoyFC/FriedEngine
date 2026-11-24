@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/mesh.h"
 
 #include "handle_pool.h"
@@ -44,7 +45,7 @@ namespace
         uint32_t m_argb;
     };
 
-    Vector vertexAt(const double *vertices, int index)
+    Vector vertexAt(const fried_real *vertices, int index)
     {
         return {vertices[index * 3], vertices[index * 3 + 1], vertices[index * 3 + 2]};
     }
@@ -64,7 +65,7 @@ namespace
         return a.m_x * b.m_x + a.m_y * b.m_y + a.m_z * b.m_z;
     }
 
-    Vector normalOf(const double *vertices, const int corners[3])
+    Vector normalOf(const fried_real *vertices, const int corners[3])
     {
         Vector a = vertexAt(vertices, corners[0]);
         Vector normal = cross(minus(vertexAt(vertices, corners[1]), a), minus(vertexAt(vertices, corners[2]), a));
@@ -75,7 +76,7 @@ namespace
     // The triangles a, b, c and a, c, d make the quad a, b, c, d when they
     // face the same way, have the same color and the quad's other diagonal,
     // from b to d, has a and c on either side of it.
-    bool joinsIntoQuad(const double *vertices, const Face &first, const Face &second)
+    bool joinsIntoQuad(const fried_real *vertices, const Face &first, const Face &second)
     {
         if (first.m_argb != second.m_argb || first.m_corners[0] != second.m_corners[0] || first.m_corners[2] != second.m_corners[1])
         {
@@ -233,7 +234,7 @@ namespace
     class ListBuilder
     {
     public:
-        ListBuilder(const double *vertices, double unit, uint32_t *words, FriedNdsList *lists, FriedNdsEmission *emissions)
+        ListBuilder(const fried_real *vertices, double unit, uint32_t *words, FriedNdsList *lists, FriedNdsEmission *emissions)
             : m_vertices(vertices), m_unit(unit), m_words(words), m_lists(lists), m_packer(words)
         {
             m_packer.keepEmissionsIn(emissions);
@@ -312,7 +313,7 @@ namespace
             m_isOpen = false;
         }
 
-        const double *m_vertices;
+        const fried_real *m_vertices;
         double m_unit;
         uint32_t *m_words;
         FriedNdsList *m_lists;
@@ -353,7 +354,7 @@ namespace
     }
 }
 
-int fried_mesh_create(const double *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
+int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
 {
     if (!vertices || !indices || !argbColors || vertexCount <= 0 || triangleCount <= 0)
     {
@@ -396,7 +397,7 @@ int fried_mesh_create(const double *vertices, int vertexCount, const int *indice
     double largest = 0.0;
     for (int index = 0; index < vertexCount * 3; ++index)
     {
-        largest = std::max(largest, std::fabs(vertices[index]));
+        largest = std::max(largest, (double)std::fabs(vertices[index]));
     }
     double unit = 1.0;
     while (largest / unit > s_largestCorner)

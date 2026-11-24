@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/renderer.h"
 
 #include "handle_pool.h"
@@ -509,7 +510,7 @@ namespace
         return true;
     }
 
-    bool isSameView(const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
+    bool isSameView(const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
     {
         if (!isSameWords(placement + FRIED_MESH_CAMERA_X, s_meshView.m_placement, sizeof s_meshView.m_placement))
         {
@@ -528,7 +529,7 @@ namespace
     // of z from the camera lands farthest + (nearest - farthest) * near / z
     // steps in, which is nearest at the near plane and farthest only
     // infinitely far away, so no far plane is needed to keep it in the band.
-    void enterMeshes(const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY, const FriedDisplayLayout &layout)
+    void enterMeshes(const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY, const FriedDisplayLayout &layout)
     {
         if (s_drawingMeshes && isSameView(placement, hasCamera, zoom, cameraX, cameraY))
         {
@@ -1144,7 +1145,7 @@ void fried_renderer_draw_batch(int rendererId, const int *ints, const float *flo
     }
 }
 
-void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
+void fried_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount)
 {
     if (isSoftware(rendererId))
     {
@@ -1165,7 +1166,7 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
             continue;
         }
         glColor(toVertexColor((int)((argb >> 16) & 0xff), (int)((argb >> 8) & 0xff), (int)(argb & 0xff)));
-        const double *corners = points + index * 6;
+        const fried_real *corners = points + index * 6;
         int depth = nextDepth();
         for (int corner = 0; corner < 3; ++corner)
         {
@@ -1229,7 +1230,7 @@ bool fried_renderer_draws_meshes(int rendererId)
 // Rotation goes about z, then x, then y, as MeshPass turns a mesh. The engine
 // leaves out the triangles that face away from the camera. All of it is in
 // integers once the view is set, as it is the same for every mesh in a band.
-void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
+void fried_renderer_draw_mesh(int rendererId, int meshId, const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
 {
     Renderer *renderer = isSoftware(rendererId) ? nullptr : s_renderers.get(rendererId);
     FriedNdsMesh *mesh = fried_mesh_get_nds(meshId);

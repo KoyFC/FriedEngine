@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/renderer.h"
 
 #include "handle_pool.h"
@@ -1108,7 +1109,7 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     recordFill(*renderer, {inner.m_right, inner.m_top, outer.m_right, inner.m_bottom});
 }
 
-void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount)
+void fried_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount)
 {
     Renderer *renderer = s_renderers.get(rendererId);
     if (!renderer)
@@ -1126,7 +1127,7 @@ void fried_renderer_fill_triangles(int rendererId, const double *points, const i
         {
             continue;
         }
-        const double *corners = points + index * 6;
+        const fried_real *corners = points + index * 6;
         uint16_t color = fried_software_pack((int)((argb >> 16) & 0xff), (int)((argb >> 8) & 0xff), (int)(argb & 0xff));
         Triangle triangle = sortedTriangle(toFixedPixels(current, corners[0], corners[1]), toFixedPixels(current, corners[2], corners[3]),
                                            toFixedPixels(current, corners[4], corners[5]), color, blendAlpha);

@@ -10,13 +10,34 @@
 
 namespace
 {
+    bool s_ticksStarted = false;
     bool s_clockAnchored = false;
     time_t s_anchorSeconds = 0;
     uint64_t s_anchorTicks = 0;
 }
 
+namespace
+{
+    // calico only starts the counter once something schedules a task on it, and starting it twice would not be safe.
+    void startTicks()
+    {
+        if (!s_ticksStarted)
+        {
+            tickInit();
+            s_ticksStarted = true;
+        }
+    }
+}
+
 extern "C"
 {
+    // The system tick counter, started the first time anything asks for it.
+    uint64_t fried_nds_tick_count(void)
+    {
+        startTicks();
+        return tickGetCount();
+    }
+
     // calico's gettimeofday() has only the RTC's whole seconds, so every
     // frame but one a second would last no time at all. The system tick
     // counter supplies the rest, anchored to the RTC's time the first time
@@ -26,7 +47,7 @@ extern "C"
     {
         if (!s_clockAnchored)
         {
-            tickInit();
+            startTicks();
             s_anchorSeconds = time(nullptr);
             s_anchorTicks = tickGetCount();
             s_clockAnchored = true;

@@ -1,3 +1,4 @@
+#include "math/real.h"
 #include "graphics/mesh.h"
 #include "graphics/mesh_sdl.h"
 
@@ -475,7 +476,7 @@ void fried_mesh_sdl_leave()
     }
 }
 
-int fried_mesh_create(const double *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
+int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
 {
     if (s_rendererId < 0 || !vertices || !indices || !argbColors || triangleCount <= 0)
     {
@@ -529,7 +530,7 @@ bool fried_renderer_draws_meshes(int rendererId)
     return s_rendererId >= 0 && rendererId == s_rendererId;
 }
 
-void fried_renderer_draw_mesh(int rendererId, int meshId, const double *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
+void fried_renderer_draw_mesh(int rendererId, int meshId, const fried_real *placement, bool hasCamera, double zoom, double cameraX, double cameraY)
 {
     if (rendererId != s_rendererId || !placement || meshId < 0 || meshId >= (int)s_meshes.size() || !s_meshes[meshId].m_isUsed)
     {

@@ -122,6 +122,7 @@ endif()
 if(FRIED_CG50)
     set(_fried_native_sources
         native/platform/application_gint.cpp
+        native/platform/clock.cpp
         native/platform/events_gint.cpp
         native/platform/filesystem_gint.cpp
         native/platform/gamepad_gint.cpp
@@ -147,6 +148,7 @@ elseif(NINTENDO_DS)
     # nothing of its own for: no keyboard or mouse.
     set(_fried_native_sources
         native/platform/application_nds.cpp
+        native/platform/clock_nds.cpp
         native/platform/console_nds.cpp
         native/platform/events_nds.cpp
         native/platform/filesystem_nds.cpp
@@ -172,6 +174,7 @@ elseif(NINTENDO_DS)
 else()
     set(_fried_native_sources
         native/platform/application.cpp
+        native/platform/clock.cpp
         native/platform/events.cpp
         native/platform/filesystem.cpp
         native/platform/gamepad.cpp
@@ -196,6 +199,20 @@ list(APPEND _fried_native_sources
 )
 list(TRANSFORM _fried_native_sources PREPEND "${FRIED_ENGINE_DIR}/")
 
+# Whether Haxe's Float is a 32-bit float in the C++ generated for this platform
+# (hxcpp's HXCPP_FLOAT32) and not a double. A platform with no floating point
+# unit gains from it, as the DS does, and one with a unit that is fast on a
+# double gains almost nothing, so it is on for the DS and off elsewhere, and
+# -DFRIED_FLOAT32=ON or OFF changes either. Nothing in the engine reads the
+# clock through a Float, but a game that does reads it with 24 bits.
+if(NOT DEFINED FRIED_FLOAT32)
+    if(NINTENDO_DS)
+        set(FRIED_FLOAT32 ON)
+    else()
+        set(FRIED_FLOAT32 OFF)
+    endif()
+endif()
+
 # The engine's C++ needs nothing from hxcpp, so it is its own library rather
 # than sources folded into every game's executable.
 if(NOT TARGET fried_engine)
@@ -203,6 +220,9 @@ if(NOT TARGET fried_engine)
 
     target_include_directories(fried_engine PUBLIC ${FRIED_ENGINE_DIR}/native)
     target_compile_features(fried_engine PUBLIC cxx_std_17)
+    if(FRIED_FLOAT32)
+        target_compile_definitions(fried_engine PUBLIC FRIED_FLOAT32)
+    endif()
     set_target_properties(fried_engine PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON

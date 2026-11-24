@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/real.h"
+
 extern "C"
 {
     int fried_renderer_create(int windowId, bool vsync);
@@ -28,7 +30,7 @@ extern "C"
     // The batch drawn one call at a time through the functions above, for a renderer with nothing quicker.
     void fried_draw_batch_with_calls(int rendererId, const int *ints, const float *floats, int count);
 
-    void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount);
+    void fried_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount);
 }
 
 // The pivot may lie outside the quad, so a line of glyphs turns as one.

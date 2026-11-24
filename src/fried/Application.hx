@@ -111,7 +111,7 @@ class Application {
 
 	public static function run(update:Float->Void):Void {
 		while (isRunning) {
-			var frameStart = Sys.time();
+			var frameStart = Clock.micros();
 			SceneManager.applyPendingLoad();
 
 			if (Events.pump()) {
@@ -202,7 +202,7 @@ class Application {
 		return true;
 	}
 
-	static function waitForFrameBudget(frameStart:Float):Void {
+	static function waitForFrameBudget(frameStart:Int):Void {
 		if (ApplicationNative.waitForHostFrame() != 0) {
 			return;
 		}
@@ -215,7 +215,7 @@ class Application {
 			return;
 		}
 		var budget = 1.0 / targetFps;
-		var spent = Sys.time() - frameStart;
+		var spent = Clock.difference(Clock.micros(), frameStart) * Time.MICROSECOND;
 		if (spent < budget) {
 			Sys.sleep(budget - spent);
 		}

@@ -247,6 +247,10 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         target_compile_options(${target_name} PRIVATE $<$<CONFIG:MinSizeRel>:-O2>)
     endif()
 
+    if(FRIED_FLOAT32)
+        target_compile_definitions(${target_name} PRIVATE HXCPP_FLOAT32 FRIED_FLOAT32)
+    endif()
+
     set_source_files_properties(${_runtime_sources} PROPERTIES
         COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"
     )
