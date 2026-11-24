@@ -27,7 +27,7 @@ These pages describe the decisions behind what is currently implemented, and why
 Haxe  --(hxcpp)-->  generated C++  --(CMake)-->  compiler  -->  executable
 ```
 
-Haxe compiles to C++ with `-D no-compilation`, which stops hxcpp before its own build tool would run, and CMake compiles and links everything from there. `cmake/Hxcpp.cmake` locates the `hxcpp` haxelib and compiles its runtime sources alongside the generated code, so nothing depends on hxcpp's `Build.xml` or on `haxelib run hxcpp`.
+Haxe compiles to C++ with `-D no-compilation`, which stops hxcpp before its own build tool would run (and with `-dce full`, which drops what nothing calls), and CMake compiles and links everything from there. `cmake/Hxcpp.cmake` locates the `hxcpp` haxelib and compiles its runtime sources alongside the generated code, so nothing depends on hxcpp's `Build.xml` or on `haxelib run hxcpp`.
 
 The reason for taking that over is that CMake is then the single build system for every target platform, including the ones hxcpp has no support for. The Vita port is what proved it and the Switch is what confirmed it: the Haxe side did not change for either.
 

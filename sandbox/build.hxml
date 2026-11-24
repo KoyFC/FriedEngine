@@ -3,3 +3,4 @@
 -main fried.Entry
 -cpp build/cpp
 -D no-compilation
+-dce full

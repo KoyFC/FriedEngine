@@ -4,3 +4,4 @@
 -cpp build/editor/cpp
 -D no-compilation
 -D fried-editor
+-dce full
