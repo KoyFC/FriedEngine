@@ -21,6 +21,7 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectPlatforms.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ProjectPrecision.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/AssetImport.cmake")
 
 # fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
@@ -199,20 +200,6 @@ list(APPEND _fried_native_sources
 )
 list(TRANSFORM _fried_native_sources PREPEND "${FRIED_ENGINE_DIR}/")
 
-# Whether Haxe's Float is a 32-bit float in the C++ generated for this platform
-# (hxcpp's HXCPP_FLOAT32) and not a double. A platform with no floating point
-# unit gains from it, as the DS does, and one with a unit that is fast on a
-# double gains almost nothing, so it is on for the DS and off elsewhere, and
-# -DFRIED_FLOAT32=ON or OFF changes either. Nothing in the engine reads the
-# clock through a Float, but a game that does reads it with 24 bits.
-if(NOT DEFINED FRIED_FLOAT32)
-    if(NINTENDO_DS)
-        set(FRIED_FLOAT32 ON)
-    else()
-        set(FRIED_FLOAT32 OFF)
-    endif()
-endif()
-
 # The engine's C++ needs nothing from hxcpp, so it is its own library rather
 # than sources folded into every game's executable.
 if(NOT TARGET fried_engine)
@@ -220,9 +207,6 @@ if(NOT TARGET fried_engine)
 
     target_include_directories(fried_engine PUBLIC ${FRIED_ENGINE_DIR}/native)
     target_compile_features(fried_engine PUBLIC cxx_std_17)
-    if(FRIED_FLOAT32)
-        target_compile_definitions(fried_engine PUBLIC FRIED_FLOAT32)
-    endif()
     set_target_properties(fried_engine PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON
@@ -316,9 +300,6 @@ function(fried_add_game target_name)
     set(_engine_assets ${_engine_dir}/assets)
     set(_game_assets ${_game_PROJECT_DIR}/assets)
 
-    fried_add_hxcpp_executable(${target_name} ${_generated_dir})
-    target_link_libraries(${target_name} PRIVATE fried::engine)
-
     file(READ ${_project_file} _project_json)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
 
@@ -337,6 +318,19 @@ function(fried_add_game target_name)
     else()
         set(_platform pc)
     endif()
+
+    # The editor's player reads the clock as a Float, which a 32-bit float holds to a couple of minutes, so it is always built with doubles.
+    if(_game_EDITOR_PLAYER)
+        set(FRIED_FLOAT32 OFF)
+    else()
+        fried_read_project_precision("${_project_json}" ${_platform} FRIED_FLOAT32)
+    endif()
+    if(FRIED_FLOAT32)
+        target_compile_definitions(fried_engine PUBLIC FRIED_FLOAT32)
+    endif()
+
+    fried_add_hxcpp_executable(${target_name} ${_generated_dir})
+    target_link_libraries(${target_name} PRIVATE fried::engine)
 
     # The editor player is a computer build of any project, whatever it declares.
     fried_read_project_platforms("${_project_json}" _declared_platforms)
