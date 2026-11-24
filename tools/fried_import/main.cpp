@@ -7,6 +7,7 @@
 // whatever is left in the destination that no longer comes from anything is
 // removed.
 #include "audio_import.h"
+#include "font_import.h"
 #include "image_import.h"
 #include "import_settings.h"
 
@@ -24,6 +25,12 @@ namespace fs = std::filesystem;
 
 namespace
 {
+    // The platforms that rasterize text themselves with stb_truetype, which reads a whole font file into RAM and nothing from a font's variation or substitution tables.
+    bool usesSoftwareText(const std::string &platform)
+    {
+        return platform == "nds" || platform == "cg50";
+    }
+
     std::string lowerExtension(const fs::path &path)
     {
         std::string extension = path.extension().string();
@@ -145,6 +152,17 @@ int main(int argc, char **argv)
             else
             {
                 std::cerr << "fried_import: " << relative.string() << ": " << message << ", copied as it is\n";
+            }
+        }
+        else if (extension == ".ttf" && usesSoftwareText(platform))
+        {
+            if (fried_import::stripFontTables(source, &converted, &message))
+            {
+                result = &converted;
+            }
+            else
+            {
+                std::cerr << "fried_import: " << relative.string() << " " << message << ", copied as it is\n";
             }
         }
         else if (hasSidecar && ((settings.m_hasImage && extension != ".png") || (settings.m_hasAudio && extension != ".wav")))

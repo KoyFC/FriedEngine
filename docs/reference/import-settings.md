@@ -36,6 +36,10 @@ Only PCM WAV files of 8 or 16 bits are converted. Other formats are copied as th
 | `sampleRate` | a rate in Hz, or `0` | Resamples, linearly. `0` keeps the rate. |
 | `bits` | `8`, `16` or `0` | The depth of each sample. `0` keeps it. |
 
+## Fonts
+
+A TrueType font needs no sidecar. For the DS and the calculator, which draw text themselves and read a whole font file into RAM, the import leaves out the tables the engine never reads: the variation tables of a variable font (`gvar`, `HVAR`, `MVAR`, `STAT`, `fvar`, `avar`) and the glyph substitution and definition tables (`GSUB`, `GDEF`). Outlines, metrics, the character map and kerning are kept, so every glyph draws as it did. The engine's own `NunitoSans.ttf` goes from 569 KB to 133 KB this way, and every font of a project gets the same. The other platforms, which draw text with SDL_ttf, get the file as it is. A file that is not a single TrueType font is copied as it is.
+
 ## When it runs
 
 `tools/fried_import` is built for the machine doing the build, with any C++17 compiler, and runs at configure time and before each build, so the copy of the assets that is staged next to the executable, packed into the VPK, the romfs or the page is the converted one. It writes under `imported/` in the build folder, only touches what changed, and removes what no longer comes from an asset. The editor's player reads the assets as they are, so the editor shows the sources.
