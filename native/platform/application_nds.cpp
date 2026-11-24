@@ -8,6 +8,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
+#include <new>
 
 // The bottom screen is the text console that standard output prints to, so
 // the log and a crash report are read there, unless a game opens a window on
@@ -27,11 +29,37 @@ namespace
             scanKeys();
         } while (!keysDown());
     }
+
+    // Out of memory, or an exception nothing caught, ends here and not in exit(): neither may use the heap to say so, which is why this prints a fixed text and waits for a button without going through the atexit above.
+    void stopWithMessage(const char *message)
+    {
+        fried_console_reclaim_screen();
+        std::fputs(message, stdout);
+        std::fputs("\nPress any button to turn the DS off\n", stdout);
+        do
+        {
+            swiWaitForVBlank();
+            scanKeys();
+        } while (!keysDown());
+        std::exit(1);
+    }
+
+    void onOutOfMemory()
+    {
+        stopWithMessage("Out of memory: the game needs more than the DS has.\n");
+    }
+
+    void onTerminate()
+    {
+        stopWithMessage("The program stopped on an exception nothing caught.\n");
+    }
 }
 
 int fried_application_init()
 {
     defaultExceptionHandler();
+    std::set_new_handler(onOutOfMemory);
+    std::set_terminate(onTerminate);
     fried_console_start();
     std::atexit(waitForButtonBeforePowerOff);
     return 0;
