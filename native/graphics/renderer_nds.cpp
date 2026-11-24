@@ -233,7 +233,7 @@ namespace
     }
 
     // Puts the screen's projection back after a band of meshes.
-    void leaveMeshes()
+    ITCM_CODE void leaveMeshes()
     {
         if (!s_drawingMeshes)
         {
@@ -248,7 +248,7 @@ namespace
 
     // An alpha of zero is how the engine asks for a wireframe, so nothing
     // that faint is drawn.
-    bool startPolygons(GL_GLBEGIN_ENUM kind, int alpha, const FriedNdsTexture *texture, uint32_t format)
+    ITCM_CODE bool startPolygons(GL_GLBEGIN_ENUM kind, int alpha, const FriedNdsTexture *texture, uint32_t format)
     {
         int polygonAlpha = toPolygonAlpha(alpha);
         if (polygonAlpha == 0)
@@ -290,13 +290,13 @@ namespace
 
     // Starts the polygons of one 2D draw, at one alpha and with one texture
     // or none.
-    bool beginPolygons(GL_GLBEGIN_ENUM kind, int alpha, const FriedNdsTexture *texture)
+    ITCM_CODE bool beginPolygons(GL_GLBEGIN_ENUM kind, int alpha, const FriedNdsTexture *texture)
     {
         leaveMeshes();
         return startPolygons(kind, alpha, texture, POLY_CULL_NONE);
     }
 
-    int nextDepth()
+    ITCM_CODE int nextDepth()
     {
         if (s_depth < s_lastDepth)
         {
@@ -362,7 +362,7 @@ namespace
         }
     }
 
-    void quad(const Edges &edges, int u0, int v0, int u1, int v1)
+    ITCM_CODE void quad(const Edges &edges, int u0, int v0, int u1, int v1)
     {
         vertex(edges.m_left, edges.m_top, u0, v0, nextDepth());
         vertexAtSameDepth(edges.m_right, edges.m_top, u1, v0);
@@ -371,7 +371,7 @@ namespace
     }
 
     // With no texture bound the engine ignores texel coordinates, so none are sent.
-    void plainQuad(const Edges &edges)
+    ITCM_CODE void plainQuad(const Edges &edges)
     {
         glVertex3v16((v16)edges.m_left, (v16)edges.m_top, (v16)nextDepth());
         GFX_VERTEX_XY = ((uint32_t)edges.m_top << 16) | ((uint32_t)edges.m_right & 0xffff);
@@ -399,7 +399,7 @@ namespace
         int m_v1;
     };
 
-    TexelRegion regionOf(const FriedNdsTexture &texture, int srcX, int srcY, int srcWidth, int srcHeight, int flipMode)
+    ITCM_CODE TexelRegion regionOf(const FriedNdsTexture &texture, int srcX, int srcY, int srcWidth, int srcHeight, int flipMode)
     {
         int shift = texture.m_downscaleShift;
         TexelRegion region = {(srcX << 4) >> shift, (srcY << 4) >> shift, ((srcX + srcWidth) << 4) >> shift, ((srcY + srcHeight) << 4) >> shift};
@@ -435,7 +435,7 @@ namespace
     }
 
     // One pixel wide, inside the outer edges, from four rectangles of a polygon list that is already open.
-    void outlineQuads(const Edges &outer, const Edges &inner, int r, int g, int b)
+    ITCM_CODE void outlineQuads(const Edges &outer, const Edges &inner, int r, int g, int b)
     {
         glColor(toVertexColor(r, g, b));
         plainQuad({outer.m_left, outer.m_top, outer.m_right, inner.m_top});
@@ -635,7 +635,7 @@ namespace
     };
 
     // Rounded half away from zero to a pixel, and kept within what a vertex holds.
-    int roundToPixels(int64_t value)
+    ITCM_CODE int roundToPixels(int64_t value)
     {
         int64_t magnitude = ((value < 0 ? -value : value) + (s_fixedOne >> 1)) >> 16;
         if (magnitude > (int64_t)s_maxCoordinate)
@@ -645,12 +645,12 @@ namespace
         return value < 0 ? -(int)magnitude : (int)magnitude;
     }
 
-    int batchEdgeX(const BatchView &view, int64_t logical)
+    ITCM_CODE int batchEdgeX(const BatchView &view, int64_t logical)
     {
         return view.m_viewportX + roundToPixels(view.m_hasUnitScale ? logical : (logical * view.m_scaleX) >> 16);
     }
 
-    int batchEdgeY(const BatchView &view, int64_t logical)
+    ITCM_CODE int batchEdgeY(const BatchView &view, int64_t logical)
     {
         return view.m_viewportY + roundToPixels(view.m_hasUnitScale ? logical : (logical * view.m_scaleY) >> 16);
     }
@@ -664,7 +664,7 @@ namespace
         int64_t m_height;
     };
 
-    LogicalRect placeOf(const BatchView &view, int64_t x, int64_t y, int64_t width, int64_t height)
+    ITCM_CODE LogicalRect placeOf(const BatchView &view, int64_t x, int64_t y, int64_t width, int64_t height)
     {
         LogicalRect rect = {x, y, width, height};
         if (view.m_hasCamera)
@@ -677,12 +677,12 @@ namespace
         return rect;
     }
 
-    LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
+    ITCM_CODE LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
     {
         return placeOf(view, fried_to_fixed(values[0], 16), fried_to_fixed(values[1], 16), width, height);
     }
 
-    Edges edgesOf(const BatchView &view, const LogicalRect &rect)
+    ITCM_CODE Edges edgesOf(const BatchView &view, const LogicalRect &rect)
     {
         return {batchEdgeX(view, rect.m_x), batchEdgeY(view, rect.m_y), batchEdgeX(view, rect.m_x + rect.m_width), batchEdgeY(view, rect.m_y + rect.m_height)};
     }
@@ -695,7 +695,7 @@ namespace
     }
 
     // The corners turned about the middle of the edges, in half pixels so the middle needs no division.
-    void rotatedQuad(const Edges &edges, const TexelRegion &region, int angle)
+    ITCM_CODE void rotatedQuad(const Edges &edges, const TexelRegion &region, int angle)
     {
         int cosine = cosLerp((s16)angle);
         int sine = sinLerp((s16)angle);
@@ -726,7 +726,7 @@ namespace
         const FriedNdsTexture *m_texture;
     };
 
-    void endList(PolygonList &list)
+    ITCM_CODE void endList(PolygonList &list)
     {
         if (list.m_isOpen)
         {
@@ -735,7 +735,7 @@ namespace
         }
     }
 
-    bool startList(PolygonList &list, const FriedNdsTexture *texture, int alpha)
+    ITCM_CODE bool startList(PolygonList &list, const FriedNdsTexture *texture, int alpha)
     {
         bool isShareable = alpha == 255 && !(texture && texture->m_translucent);
         if (list.m_isOpen && isShareable && list.m_texture == texture)
@@ -753,7 +753,7 @@ namespace
     }
 
     // Closes what startList() opened, unless a following draw may carry on in it.
-    void finishDraw(const PolygonList &list)
+    ITCM_CODE void finishDraw(const PolygonList &list)
     {
         if (!list.m_isOpen)
         {
@@ -762,7 +762,7 @@ namespace
     }
 
     // A texture record's quad, straight unless it is turned about its middle.
-    void drawTextureRecord(PolygonList &list, const BatchView &view, const int *record, const LogicalRect &rect, bool isTurned, int angle)
+    ITCM_CODE void drawTextureRecord(PolygonList &list, const BatchView &view, const int *record, const LogicalRect &rect, bool isTurned, int angle)
     {
         const FriedNdsTexture *texture = fried_texture_get_nds(record[1]);
         if (!texture || !startList(list, texture, 255))
@@ -784,7 +784,7 @@ namespace
     }
 
     // A sprite placed by its transform slot, whose numbers are already in the units the record is drawn with.
-    void drawSlotRecord(PolygonList &list, const BatchView &view, const int *record)
+    ITCM_CODE void drawSlotRecord(PolygonList &list, const BatchView &view, const int *record)
     {
         const FriedTransform2DFixed *world = fried_transform2d_world_fixed(record[7]);
         int64_t width = (world->m_scaleX * record[4]) >> 16;
@@ -794,7 +794,7 @@ namespace
         drawTextureRecord(list, view, record, rect, world->m_rotation != 0, angle);
     }
 
-    void drawBatchRecords(const Renderer &renderer, const int *ints, const double *doubles, int count)
+    ITCM_CODE __attribute__((noinline)) void drawBatchRecords(const Renderer &renderer, const int *ints, const double *doubles, int count)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
         BatchView view = {false, renderer.m_hasUnitScale, s_fixedOne, 0, 0, fried_to_fixed((double)layout.m_scaleX, 16), fried_to_fixed((double)layout.m_scaleY, 16),
