@@ -285,23 +285,23 @@ class Renderer {
 	// What the draw queue calls, with no optional arguments: hxcpp passes an
 	// optional Float boxed, which allocates on every call.
 	@:allow(fried.graphics.DrawQueue)
-	function textArea(font:Font, text:String, x:Float, y:Float, width:Float, height:Float, angle:Float, color:Color):Void {
+	function textArea(font:Font, text:String, x:Single, y:Single, width:Single, height:Single, angle:Single, color:Color):Void {
 		font.drawText(this, text, x, y, width, height, angle, color);
 	}
 
 	@:allow(fried.graphics.DrawQueue)
-	function fillArea(x:Float, y:Float, width:Float, height:Float):Void {
+	function fillArea(x:Single, y:Single, width:Single, height:Single):Void {
 		RendererNative.fillRect(id, x, y, width, height);
 	}
 
 	@:allow(fried.graphics.DrawQueue)
-	function outlineArea(x:Float, y:Float, width:Float, height:Float):Void {
+	function outlineArea(x:Single, y:Single, width:Single, height:Single):Void {
 		RendererNative.drawRect(id, x, y, width, height);
 	}
 
 	@:allow(fried.graphics.DrawQueue)
-	function drawBatch(ints:Array<Int>, doubles:Array<Float>, count:Int):Void {
-		RendererNative.drawBatch(id, cpp.Pointer.ofArray(ints).constRaw, cpp.Pointer.ofArray(doubles).constRaw, count);
+	function drawBatch(ints:Array<Int>, floats:Array<Single>, count:Int):Void {
+		RendererNative.drawBatch(id, cpp.Pointer.ofArray(ints).constRaw, cpp.Pointer.ofArray(floats).constRaw, count);
 	}
 
 	@:allow(fried.Application)
@@ -336,7 +336,7 @@ private extern class RendererNative {
 	static function getHeight(id:Int):Int;
 
 	@:native("fried_renderer_get_pixel_scale")
-	static function getPixelScale(id:Int):cpp.Float32;
+	static function getPixelScale(id:Int):Single;
 
 	#if fried_editor
 	@:native("fried_renderer_read_pixels")
@@ -353,20 +353,20 @@ private extern class RendererNative {
 	static function present(id:Int):Void;
 
 	@:native("fried_renderer_draw_batch")
-	static function drawBatch(id:Int, ints:cpp.RawConstPointer<Int>, doubles:cpp.RawConstPointer<Float>, count:Int):Void;
+	static function drawBatch(id:Int, ints:cpp.RawConstPointer<Int>, floats:cpp.RawConstPointer<Single>, count:Int):Void;
 
 	@:native("fried_renderer_draw_texture")
-	static function drawTexture(id:Int, textureId:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
+	static function drawTexture(id:Int, textureId:Int, x:Single, y:Single, width:Single, height:Single):Void;
 
 	@:native("fried_renderer_draw_texture_ex")
-	static function drawTextureEx(id:Int, textureId:Int, srcX:Int, srcY:Int, srcWidth:Int, srcHeight:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32,
-		height:cpp.Float32, angle:Float, flipMode:Int):Void;
+	static function drawTextureEx(id:Int, textureId:Int, srcX:Int, srcY:Int, srcWidth:Int, srcHeight:Int, x:Single, y:Single, width:Single,
+		height:Single, angle:Float, flipMode:Int):Void;
 
 	@:native("fried_renderer_fill_rect")
-	static function fillRect(id:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
+	static function fillRect(id:Int, x:Single, y:Single, width:Single, height:Single):Void;
 
 	@:native("fried_renderer_draw_rect")
-	static function drawRect(id:Int, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32):Void;
+	static function drawRect(id:Int, x:Single, y:Single, width:Single, height:Single):Void;
 
 	@:native("fried_renderer_fill_triangles")
 	static function fillTriangles(id:Int, points:cpp.RawConstPointer<Float>, argbColors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;

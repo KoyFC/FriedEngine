@@ -484,6 +484,11 @@ namespace
         return (int)(((fried_to_fixed(degrees, 12) * s_angleFactor) >> 24) & (DEGREES_IN_CIRCLE - 1));
     }
 
+    int toAngle(float degrees)
+    {
+        return (int)(((fried_to_fixed_single(degrees, 12) * s_angleFactor) >> 24) & (DEGREES_IN_CIRCLE - 1));
+    }
+
     int toInverseAngle(double degrees)
     {
         return (DEGREES_IN_CIRCLE - toAngle(degrees)) & (DEGREES_IN_CIRCLE - 1);
@@ -611,7 +616,7 @@ namespace
 namespace
 {
     constexpr int s_recordInts = 8;
-    constexpr int s_recordDoubles = 5;
+    constexpr int s_recordFloats = 5;
     constexpr int s_textureRecord = 0;
     constexpr int s_fillRecord = 1;
     constexpr int s_outlineRecord = 2;
@@ -620,7 +625,7 @@ namespace
     constexpr int s_slotTextureRecord = 5;
     constexpr int s_fixedOne = 1 << 16;
 
-    // What places a record: the camera and the display's layout, in 16.16 fixed point, worked out from the doubles' bits so no float operation is done for it.
+    // What places a record: the camera and the display's layout, in 16.16 fixed point, worked out from the floats' bits so no float operation is done for it.
     struct BatchView
     {
         bool m_hasCamera;
@@ -677,9 +682,9 @@ namespace
         return rect;
     }
 
-    ITCM_CODE LogicalRect placeOf(const BatchView &view, const double *values, int64_t width, int64_t height)
+    ITCM_CODE LogicalRect placeOf(const BatchView &view, const float *values, int64_t width, int64_t height)
     {
-        return placeOf(view, fried_to_fixed(values[0], 16), fried_to_fixed(values[1], 16), width, height);
+        return placeOf(view, fried_to_fixed_single(values[0], 16), fried_to_fixed_single(values[1], 16), width, height);
     }
 
     ITCM_CODE Edges edgesOf(const BatchView &view, const LogicalRect &rect)
@@ -687,9 +692,9 @@ namespace
         return {batchEdgeX(view, rect.m_x), batchEdgeY(view, rect.m_y), batchEdgeX(view, rect.m_x + rect.m_width), batchEdgeY(view, rect.m_y + rect.m_height)};
     }
 
-    bool isZero(double value)
+    bool isZero(float value)
     {
-        uint64_t bits;
+        uint32_t bits;
         std::memcpy(&bits, &value, sizeof bits);
         return (bits << 1) == 0;
     }
@@ -794,10 +799,10 @@ namespace
         drawTextureRecord(list, view, record, rect, world->m_rotation != 0, angle);
     }
 
-    ITCM_CODE __attribute__((noinline)) void drawBatchRecords(const Renderer &renderer, const int *ints, const double *doubles, int count)
+    ITCM_CODE __attribute__((noinline)) void drawBatchRecords(const Renderer &renderer, const int *ints, const float *floats, int count)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
-        BatchView view = {false, renderer.m_hasUnitScale, s_fixedOne, 0, 0, fried_to_fixed((double)layout.m_scaleX, 16), fried_to_fixed((double)layout.m_scaleY, 16),
+        BatchView view = {false, renderer.m_hasUnitScale, s_fixedOne, 0, 0, fried_to_fixed_single(layout.m_scaleX, 16), fried_to_fixed_single(layout.m_scaleY, 16),
                           layout.m_viewportX, layout.m_viewportY};
         int64_t halfWidth = (int64_t)layout.m_width << 15;
         int64_t halfHeight = (int64_t)layout.m_height << 15;
@@ -806,16 +811,16 @@ namespace
         for (int index = 0; index < count; ++index)
         {
             const int *record = ints + index * s_recordInts;
-            const double *values = doubles + index * s_recordDoubles;
+            const float *values = floats + index * s_recordFloats;
             int kind = record[0];
             if (kind == s_cameraRecord)
             {
                 view.m_hasCamera = record[7] != 0;
                 if (view.m_hasCamera)
                 {
-                    view.m_zoom = fried_to_fixed(values[0], 16);
-                    view.m_offsetX = halfWidth - ((fried_to_fixed(values[1], 16) * view.m_zoom) >> 16);
-                    view.m_offsetY = halfHeight - ((fried_to_fixed(values[2], 16) * view.m_zoom) >> 16);
+                    view.m_zoom = fried_to_fixed_single(values[0], 16);
+                    view.m_offsetX = halfWidth - ((fried_to_fixed_single(values[1], 16) * view.m_zoom) >> 16);
+                    view.m_offsetY = halfHeight - ((fried_to_fixed_single(values[2], 16) * view.m_zoom) >> 16);
                 }
                 continue;
             }
@@ -827,8 +832,8 @@ namespace
             }
 
             // A scale takes 32 bits of fraction so that a size times it is cut at the same place as the size worked out whole.
-            int64_t width = kind == s_scaledTextureRecord ? (fried_to_fixed(values[2], 32) * record[4]) >> 16 : fried_to_fixed(values[2], 16);
-            int64_t height = kind == s_scaledTextureRecord ? (fried_to_fixed(values[3], 32) * record[5]) >> 16 : fried_to_fixed(values[3], 16);
+            int64_t width = kind == s_scaledTextureRecord ? (fried_to_fixed_single(values[2], 32) * record[4]) >> 16 : fried_to_fixed_single(values[2], 16);
+            int64_t height = kind == s_scaledTextureRecord ? (fried_to_fixed_single(values[3], 32) * record[5]) >> 16 : fried_to_fixed_single(values[3], 16);
             LogicalRect rect = placeOf(view, values, width, height);
             if (kind == s_textureRecord || kind == s_scaledTextureRecord)
             {
@@ -1125,17 +1130,17 @@ void fried_renderer_draw_rect(int rendererId, float x, float y, float width, flo
     outlineEdges(outer, inner, renderer->m_r, renderer->m_g, renderer->m_b, renderer->m_a);
 }
 
-void fried_renderer_draw_batch(int rendererId, const int *ints, const double *doubles, int count)
+void fried_renderer_draw_batch(int rendererId, const int *ints, const float *floats, int count)
 {
     if (isSoftware(rendererId))
     {
-        fried_draw_batch_with_calls(rendererId, ints, doubles, count);
+        fried_draw_batch_with_calls(rendererId, ints, floats, count);
         return;
     }
     Renderer *renderer = s_renderers.get(rendererId);
     if (renderer && count > 0)
     {
-        drawBatchRecords(*renderer, ints, doubles, count);
+        drawBatchRecords(*renderer, ints, floats, count);
     }
 }
 

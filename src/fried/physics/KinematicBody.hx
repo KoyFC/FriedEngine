@@ -10,8 +10,8 @@ import fried.scene.Node2D;
 @:allow(fried.scene)
 class KinematicBody extends Node {
 	// Pixels a second.
-	public var velocityX:Float;
-	public var velocityY:Float;
+	public var velocityX:Single;
+	public var velocityY:Single;
 
 	@:noSerialize public var contacts(default, null):Array<Collider>;
 	@:noSerialize public var isBlockedX(default, null):Bool;
@@ -19,11 +19,12 @@ class KinematicBody extends Node {
 
 	// A pixel is 4096 units of a collider's box (see FixedPoint).
 	static inline var UNIT:Float = 1.0 / 4096.0;
+	static inline var ZERO:Single = 0.0;
 
 	var target:Node2D;
 	var collider:Collider;
 
-	public function new(velocityX:Float = 0.0, velocityY:Float = 0.0) {
+	public function new(velocityX:Single = 0.0, velocityY:Single = 0.0) {
 		super("KinematicBody");
 		this.velocityX = velocityX;
 		this.velocityY = velocityY;
@@ -48,15 +49,15 @@ class KinematicBody extends Node {
 		}
 	}
 
-	function step(delta:Float):Void {
+	function step(delta:Single):Void {
 		contacts.resize(0);
 		isBlockedX = false;
 		isBlockedY = false;
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
-		var dx = velocityX * delta;
-		var dy = velocityY * delta;
+		var dx:Single = velocityX * delta;
+		var dy:Single = velocityY * delta;
 
 		// Everything the box can reach in this step, a unit wider each way for the rounding of the move, asked for once: nothing else moves until the step is over.
 		var moveX = FixedPoint.point(dx);
@@ -69,13 +70,13 @@ class KinematicBody extends Node {
 			target.translate(dx, dy);
 			collectOverlaps(nearby, false);
 		} else {
-			if (dx != 0.0) {
+			if (dx != ZERO) {
 				target.x += dx;
-				isBlockedX = stopAgainstSolids(nearby, true, dx > 0.0);
+				isBlockedX = stopAgainstSolids(nearby, true, dx > ZERO);
 			}
-			if (dy != 0.0) {
+			if (dy != ZERO) {
 				target.y += dy;
-				isBlockedY = stopAgainstSolids(nearby, false, dy > 0.0);
+				isBlockedY = stopAgainstSolids(nearby, false, dy > ZERO);
 			}
 			collectOverlaps(nearby, true);
 		}

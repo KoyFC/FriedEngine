@@ -5,7 +5,7 @@
 
 #include "math/fixed_point.h"
 
-// The DS has no floating point unit, so a slot keeps its numbers in the units the renderer draws with and never does a double operation. A position is 16.16, a rotation is degrees in 20.12 and a scale has 32 bits of fraction, so a size times it is cut where the renderer cuts it.
+// The DS has no floating point unit, so a slot keeps its numbers in the units the renderer draws with and never does a float operation. A position is 16.16, a rotation is degrees in 20.12 and a scale has 32 bits of fraction, so a size times it is cut where the renderer cuts it.
 namespace
 {
     constexpr int64_t s_angleFactor = 372827;
@@ -63,39 +63,39 @@ extern "C"
         s_slots[slot].m_parent = parentSlot;
     }
 
-    void fried_transform2d_set_local(int slot, double x, double y, double rotation, double scaleX, double scaleY)
+    void fried_transform2d_set_local(int slot, float x, float y, float rotation, float scaleX, float scaleY)
     {
         Slot &self = s_slots[slot];
-        self.m_localX = (int32_t)fried_to_fixed(x, 16);
-        self.m_localY = (int32_t)fried_to_fixed(y, 16);
-        self.m_localRotation = (int32_t)fried_to_fixed(rotation, 12);
-        self.m_localScaleX = fried_to_fixed(scaleX, 32);
-        self.m_localScaleY = fried_to_fixed(scaleY, 32);
+        self.m_localX = (int32_t)fried_to_fixed_single(x, 16);
+        self.m_localY = (int32_t)fried_to_fixed_single(y, 16);
+        self.m_localRotation = (int32_t)fried_to_fixed_single(rotation, 12);
+        self.m_localScaleX = fried_to_fixed_single(scaleX, 32);
+        self.m_localScaleY = fried_to_fixed_single(scaleY, 32);
     }
 
-    void fried_transform2d_set_x(int slot, double value)
+    void fried_transform2d_set_x(int slot, float value)
     {
-        s_slots[slot].m_localX = (int32_t)fried_to_fixed(value, 16);
+        s_slots[slot].m_localX = (int32_t)fried_to_fixed_single(value, 16);
     }
 
-    void fried_transform2d_set_y(int slot, double value)
+    void fried_transform2d_set_y(int slot, float value)
     {
-        s_slots[slot].m_localY = (int32_t)fried_to_fixed(value, 16);
+        s_slots[slot].m_localY = (int32_t)fried_to_fixed_single(value, 16);
     }
 
-    void fried_transform2d_set_rotation(int slot, double degrees)
+    void fried_transform2d_set_rotation(int slot, float degrees)
     {
-        s_slots[slot].m_localRotation = (int32_t)fried_to_fixed(degrees, 12);
+        s_slots[slot].m_localRotation = (int32_t)fried_to_fixed_single(degrees, 12);
     }
 
-    void fried_transform2d_set_scale_x(int slot, double value)
+    void fried_transform2d_set_scale_x(int slot, float value)
     {
-        s_slots[slot].m_localScaleX = fried_to_fixed(value, 32);
+        s_slots[slot].m_localScaleX = fried_to_fixed_single(value, 32);
     }
 
-    void fried_transform2d_set_scale_y(int slot, double value)
+    void fried_transform2d_set_scale_y(int slot, float value)
     {
-        s_slots[slot].m_localScaleY = fried_to_fixed(value, 32);
+        s_slots[slot].m_localScaleY = fried_to_fixed_single(value, 32);
     }
 
     void fried_transform2d_update(int slot)
@@ -142,12 +142,12 @@ extern "C"
         }
     }
 
-    // The box in 20.12, as fried_bounds_low and fried_bounds_high work it out from doubles: the position is rounded down to a unit, and so are the size and the scale before they are multiplied.
-    void fried_transform2d_bounds(int slot, double width, double height, int *out)
+    // The box in 20.12, as fried_bounds_low and fried_bounds_high work it out from floats: the position is rounded down to a unit, and so are the size and the scale before they are multiplied.
+    void fried_transform2d_bounds(int slot, float width, float height, int *out)
     {
         const FriedTransform2DFixed &world = s_slots[slot].m_world;
-        int64_t extentX = (fried_fixed_convert(width, FRIED_BOUNDS_BITS, true) * (world.m_scaleX >> 20)) >> FRIED_BOUNDS_BITS;
-        int64_t extentY = (fried_fixed_convert(height, FRIED_BOUNDS_BITS, true) * (world.m_scaleY >> 20)) >> FRIED_BOUNDS_BITS;
+        int64_t extentX = (fried_fixed_convert_single(width, FRIED_BOUNDS_BITS, true) * (world.m_scaleX >> 20)) >> FRIED_BOUNDS_BITS;
+        int64_t extentY = (fried_fixed_convert_single(height, FRIED_BOUNDS_BITS, true) * (world.m_scaleY >> 20)) >> FRIED_BOUNDS_BITS;
         int64_t startX = world.m_x >> 4;
         int64_t startY = world.m_y >> 4;
         out[0] = fried_bounds_clamp(extentX < 0 ? startX + extentX : startX);
@@ -156,25 +156,25 @@ extern "C"
         out[3] = fried_bounds_clamp(extentY < 0 ? startY : startY + extentY);
     }
 
-    void fried_transform2d_set_world(int slot, const double *values)
+    void fried_transform2d_set_world(int slot, const float *values)
     {
         FriedTransform2DFixed &world = s_slots[slot].m_world;
-        world.m_x = (int32_t)fried_to_fixed(values[0], 16);
-        world.m_y = (int32_t)fried_to_fixed(values[1], 16);
-        world.m_rotation = (int32_t)fried_to_fixed(values[2], 12);
-        world.m_scaleX = fried_to_fixed(values[3], 32);
-        world.m_scaleY = fried_to_fixed(values[4], 32);
+        world.m_x = (int32_t)fried_to_fixed_single(values[0], 16);
+        world.m_y = (int32_t)fried_to_fixed_single(values[1], 16);
+        world.m_rotation = (int32_t)fried_to_fixed_single(values[2], 12);
+        world.m_scaleX = fried_to_fixed_single(values[3], 32);
+        world.m_scaleY = fried_to_fixed_single(values[4], 32);
     }
 
-    // Most nodes are neither turned nor scaled, and those two are then known without working the double out.
-    void fried_transform2d_read_world(int slot, double *out)
+    // Most nodes are neither turned nor scaled, and those two are then known without working the float out.
+    void fried_transform2d_read_world(int slot, float *out)
     {
         const FriedTransform2DFixed &world = s_slots[slot].m_world;
-        out[0] = fried_from_fixed(world.m_x, 16);
-        out[1] = fried_from_fixed(world.m_y, 16);
-        out[2] = world.m_rotation == 0 ? 0.0 : fried_from_fixed(world.m_rotation, 12);
-        out[3] = world.m_scaleX == s_unitScale ? 1.0 : fried_from_fixed(world.m_scaleX, 32);
-        out[4] = world.m_scaleY == s_unitScale ? 1.0 : fried_from_fixed(world.m_scaleY, 32);
+        out[0] = fried_from_fixed_single(world.m_x, 16);
+        out[1] = fried_from_fixed_single(world.m_y, 16);
+        out[2] = world.m_rotation == 0 ? 0.0f : fried_from_fixed_single(world.m_rotation, 12);
+        out[3] = world.m_scaleX == s_unitScale ? 1.0f : fried_from_fixed_single(world.m_scaleX, 32);
+        out[4] = world.m_scaleY == s_unitScale ? 1.0f : fried_from_fixed_single(world.m_scaleY, 32);
     }
 }
 

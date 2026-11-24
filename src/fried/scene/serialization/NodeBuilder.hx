@@ -234,6 +234,7 @@ class NodeBuilder {
 		return switch (name) {
 			case "Int": {name: "", codec: "Int", kind: "Integer", needsContext: false};
 			case "Float": {name: "", codec: "Float", kind: "Number", needsContext: false};
+			case "Single": {name: "", codec: "Single", kind: "Number", needsContext: false};
 			case "Bool": {name: "", codec: "Bool", kind: "Boolean", needsContext: false};
 			case "String": {name: "", codec: "Text", kind: "Text", needsContext: false};
 			case "Color": {name: "", codec: "Color", kind: "Rgba", needsContext: false};

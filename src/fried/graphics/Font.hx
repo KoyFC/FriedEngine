@@ -65,7 +65,7 @@ class Font {
 	}
 
 	@:allow(fried.graphics.Renderer)
-	function drawText(renderer:Renderer, text:String, x:Float, y:Float, width:Float, height:Float, angle:Float, color:Color):Void {
+	function drawText(renderer:Renderer, text:String, x:Single, y:Single, width:Single, height:Single, angle:Single, color:Color):Void {
 		FontNative.drawText(id, renderer.id, text, x, y, width, height, angle, color.red, color.green, color.blue, color.alpha);
 	}
 }
@@ -85,6 +85,6 @@ private extern class FontNative {
 	static function measureWidth(id:Int, text:cpp.ConstCharStar):Int;
 
 	@:native("fried_font_draw_text")
-	static function drawText(id:Int, rendererId:Int, text:cpp.ConstCharStar, x:cpp.Float32, y:cpp.Float32, width:cpp.Float32, height:cpp.Float32,
+	static function drawText(id:Int, rendererId:Int, text:cpp.ConstCharStar, x:Single, y:Single, width:Single, height:Single,
 		angle:Float, r:Int, g:Int, b:Int, a:Int):Void;
 }

@@ -50,6 +50,13 @@ class FieldCodec {
 		return invalid(field, "a number");
 	}
 
+	public static function toSingle(value:Dynamic, field:String):Single {
+		if (Std.isOfType(value, Float) || Std.isOfType(value, Int)) {
+			return value;
+		}
+		return invalid(field, "a number");
+	}
+
 	public static function toBool(value:Dynamic, field:String):Bool {
 		if (Std.isOfType(value, Bool)) {
 			return value;
@@ -156,6 +163,20 @@ class FieldCodec {
 		return value;
 	}
 
+	// The shortest decimal that reads back as the same single, so 0.1 is saved as 0.1 and not as the double it widens to.
+	public static function fromSingle(value:Single):Dynamic {
+		var exact:Float = value;
+		var scale = 1.0;
+		for (digits in 0...10) {
+			var rounded = Math.ffloor(exact * scale + 0.5) / scale;
+			if (((rounded : Single)) == value) {
+				return rounded;
+			}
+			scale *= 10.0;
+		}
+		return exact;
+	}
+
 	public static function fromBool(value:Bool):Dynamic {
 		return value;
 	}
@@ -194,6 +215,10 @@ class FieldCodec {
 	}
 
 	public static function zeroFloat():Float {
+		return 0.0;
+	}
+
+	public static function zeroSingle():Single {
 		return 0.0;
 	}
 

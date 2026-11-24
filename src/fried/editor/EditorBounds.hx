@@ -32,7 +32,7 @@ class EditorBounds {
 		var width:Dynamic = Reflect.field(node, "width");
 		var height:Dynamic = Reflect.field(node, "height");
 		if (Std.isOfType(width, Int) && Std.isOfType(height, Int)) {
-			return box(node.worldX, node.worldY, width * node.worldScaleX, height * node.worldScaleY);
+			return box(node.worldX, node.worldY, (width : Float) * node.worldScaleX, (height : Float) * node.worldScaleY);
 		}
 		if (Std.isOfType(node, Camera)) {
 			return box(node.worldX - MARKER_SIZE / 2, node.worldY - MARKER_SIZE / 2, MARKER_SIZE, MARKER_SIZE);

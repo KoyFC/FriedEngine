@@ -6,11 +6,11 @@ import fried.graphics.CameraView;
 @:allow(fried.scene)
 @:serializable
 class Camera extends Node2D {
-	public var zoom(default, set):Float;
+	public var zoom(default, set):Single;
 
-	static inline var MIN_ZOOM:Float = 0.01;
+	static inline var MIN_ZOOM:Single = 0.01;
 
-	public function new(zoom:Float = 1.0) {
+	public function new(zoom:Single = 1.0) {
 		super();
 		name = "Camera";
 		this.zoom = zoom;
@@ -43,7 +43,7 @@ class Camera extends Node2D {
 		return scene != null ? scene : viewScene;
 	}
 
-	public function lookAt(x:Float, y:Float):Void {
+	public function lookAt(x:Single, y:Single):Void {
 		this.x = x;
 		this.y = y;
 	}
@@ -54,7 +54,7 @@ class Camera extends Node2D {
 		view.zoom = zoom;
 	}
 
-	function set_zoom(value:Float):Float {
+	function set_zoom(value:Single):Single {
 		if (value < MIN_ZOOM) {
 			Log.warn('A camera zoom of $value would collapse the view, so it was raised to $MIN_ZOOM.');
 			value = MIN_ZOOM;

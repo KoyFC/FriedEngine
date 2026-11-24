@@ -52,6 +52,73 @@ static inline int64_t fried_to_fixed(double value, int fractionBits)
     return fried_fixed_convert(value, fractionBits, false);
 }
 
+// The same for a float, whose 24 significant bits need no 64-bit mantissa.
+static inline int64_t fried_fixed_convert_single(float value, int fractionBits, bool isFloor)
+{
+    uint32_t bits;
+    std::memcpy(&bits, &value, sizeof bits);
+    int exponent = (int)((bits >> 23) & 0xff);
+    if (exponent == 0)
+    {
+        return 0;
+    }
+    int64_t mantissa = (int64_t)((bits & 0x7fffffu) | 0x800000u);
+    int shift = exponent - 150 + fractionBits;
+    int64_t magnitude;
+    bool isInexact = false;
+    if (shift >= 39)
+    {
+        magnitude = INT64_MAX / 2;
+    }
+    else if (shift >= 0)
+    {
+        magnitude = mantissa << shift;
+    }
+    else if (shift > -64)
+    {
+        magnitude = mantissa >> -shift;
+        isInexact = ((uint64_t)mantissa & ((1ull << -shift) - 1)) != 0;
+    }
+    else
+    {
+        magnitude = 0;
+        isInexact = true;
+    }
+    if ((bits >> 31) == 0)
+    {
+        return magnitude;
+    }
+    return isFloor && isInexact ? -magnitude - 1 : -magnitude;
+}
+
+static inline int64_t fried_to_fixed_single(float value, int fractionBits)
+{
+    return fried_fixed_convert_single(value, fractionBits, false);
+}
+
+// The float a fixed number stands for, built from its bits and cut to 24 significant bits.
+static inline float fried_from_fixed_single(int64_t value, int fractionBits)
+{
+    if (value == 0)
+    {
+        return 0.0f;
+    }
+    uint32_t sign = 0;
+    uint64_t magnitude = (uint64_t)value;
+    if (value < 0)
+    {
+        sign = 1u << 31;
+        magnitude = (uint64_t)(-value);
+    }
+    int top = 63 - __builtin_clzll(magnitude);
+    uint64_t mantissa = top >= 23 ? magnitude >> (top - 23) : magnitude << (23 - top);
+    uint32_t exponent = (uint32_t)(top - fractionBits + 127);
+    uint32_t bits = sign | (exponent << 23) | (uint32_t)(mantissa & 0x7fffffu);
+    float result;
+    std::memcpy(&result, &bits, sizeof result);
+    return result;
+}
+
 // The double a fixed number stands for, built from its bits.
 static inline double fried_from_fixed(int64_t value, int fractionBits)
 {
@@ -112,4 +179,28 @@ static inline int fried_bounds_high(double origin, double size, double scale)
     int64_t extent = fried_bounds_extent(size, scale);
     int64_t start = fried_fixed_convert(origin, FRIED_BOUNDS_BITS, true);
     return fried_bounds_clamp(extent < 0 ? start : start + extent);
+}
+
+static inline int64_t fried_bounds_extent_single(float size, float scale)
+{
+    return (fried_fixed_convert_single(size, FRIED_BOUNDS_BITS, true) * fried_fixed_convert_single(scale, FRIED_BOUNDS_BITS, true)) >> FRIED_BOUNDS_BITS;
+}
+
+static inline int fried_bounds_low_single(float origin, float size, float scale)
+{
+    int64_t extent = fried_bounds_extent_single(size, scale);
+    int64_t start = fried_fixed_convert_single(origin, FRIED_BOUNDS_BITS, true);
+    return fried_bounds_clamp(extent < 0 ? start + extent : start);
+}
+
+static inline int fried_bounds_high_single(float origin, float size, float scale)
+{
+    int64_t extent = fried_bounds_extent_single(size, scale);
+    int64_t start = fried_fixed_convert_single(origin, FRIED_BOUNDS_BITS, true);
+    return fried_bounds_clamp(extent < 0 ? start : start + extent);
+}
+
+static inline int fried_bounds_point_single(float value)
+{
+    return fried_bounds_clamp(fried_fixed_convert_single(value, FRIED_BOUNDS_BITS, true));
 }

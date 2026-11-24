@@ -5,9 +5,10 @@ import fried.scene.Scene;
 
 class Physics {
 	static inline var PARALLEL_EPSILON:Float = 0.000001;
+	static inline var ONE:Single = 1.0;
 
 	// Every query asks the scene's grid for the colliders near it and tests those. A collider that overlaps is found whatever its place in the grid; where more than one does and a query returns one, it is the first in the scene's tree order, as it was when every collider was tested.
-	public static function overlapPoint(scene:Scene, x:Float, y:Float, ?ignore:Collider):Null<Collider> {
+	public static function overlapPoint(scene:Scene, x:Single, y:Single, ?ignore:Collider):Null<Collider> {
 		if (scene == null) {
 			return null;
 		}
@@ -34,14 +35,14 @@ class Physics {
 		return found;
 	}
 
-	public static function overlapBox(scene:Scene, x:Float, y:Float, width:Float, height:Float, ?ignore:Collider):Null<Collider> {
+	public static function overlapBox(scene:Scene, x:Single, y:Single, width:Single, height:Single, ?ignore:Collider):Null<Collider> {
 		if (scene == null) {
 			return null;
 		}
-		var boxLeft = FixedPoint.low(x, width, 1.0);
-		var boxRight = FixedPoint.high(x, width, 1.0);
-		var boxTop = FixedPoint.low(y, height, 1.0);
-		var boxBottom = FixedPoint.high(y, height, 1.0);
+		var boxLeft = FixedPoint.low(x, width, ONE);
+		var boxRight = FixedPoint.high(x, width, ONE);
+		var boxTop = FixedPoint.low(y, height, ONE);
+		var boxBottom = FixedPoint.high(y, height, ONE);
 		var list = scene.colliderCandidates(boxLeft, boxTop, boxRight, boxBottom);
 		var count = list.length;
 		var index = 0;
@@ -95,15 +96,15 @@ class Physics {
 		return found;
 	}
 
-	public static function overlapBoxAll(scene:Scene, x:Float, y:Float, width:Float, height:Float, results:Array<Collider>, ?ignore:Collider):Int {
+	public static function overlapBoxAll(scene:Scene, x:Single, y:Single, width:Single, height:Single, results:Array<Collider>, ?ignore:Collider):Int {
 		results.resize(0);
 		if (scene == null) {
 			return 0;
 		}
-		var boxLeft = FixedPoint.low(x, width, 1.0);
-		var boxRight = FixedPoint.high(x, width, 1.0);
-		var boxTop = FixedPoint.low(y, height, 1.0);
-		var boxBottom = FixedPoint.high(y, height, 1.0);
+		var boxLeft = FixedPoint.low(x, width, ONE);
+		var boxRight = FixedPoint.high(x, width, ONE);
+		var boxTop = FixedPoint.low(y, height, ONE);
+		var boxBottom = FixedPoint.high(y, height, ONE);
 		var list = scene.colliderCandidates(boxLeft, boxTop, boxRight, boxBottom);
 		var count = list.length;
 		var index = 0;

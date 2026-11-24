@@ -22,11 +22,11 @@ extern "C"
     void fried_renderer_fill_rect(int rendererId, float x, float y, float width, float height);
     void fried_renderer_draw_rect(int rendererId, float x, float y, float width, float height);
 
-    // A frame's sprites, rectangles and outlines in one call. A record is eight integers and five doubles, in that order in two arrays, and the draw queue's DrawQueue.hx says what each holds. A scaled texture's doubles hold a scale where a texture's hold a size, and its size is its source's times that scale. A camera record sets the camera the records after it are placed by, so a record's numbers are in the world's units until then.
-    void fried_renderer_draw_batch(int rendererId, const int *ints, const double *doubles, int count);
+    // A frame's sprites, rectangles and outlines in one call. A record is eight integers and five floats, in that order in two arrays, and the draw queue's DrawQueue.hx says what each holds. A scaled texture's floats hold a scale where a texture's hold a size, and its size is its source's times that scale. A camera record sets the camera the records after it are placed by, so a record's numbers are in the world's units until then.
+    void fried_renderer_draw_batch(int rendererId, const int *ints, const float *floats, int count);
 
     // The batch drawn one call at a time through the functions above, for a renderer with nothing quicker.
-    void fried_draw_batch_with_calls(int rendererId, const int *ints, const double *doubles, int count);
+    void fried_draw_batch_with_calls(int rendererId, const int *ints, const float *floats, int count);
 
     void fried_renderer_fill_triangles(int rendererId, const double *points, const int *argbColors, int triangleCount);
 }

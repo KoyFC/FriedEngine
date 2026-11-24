@@ -3,11 +3,11 @@ package fried.scene;
 // A node with a position, a rotation in degrees and a scale in the plane, relative to its parent.
 @:serializable
 class Node2D extends CanvasItem {
-	public var x(default, set):Float;
-	public var y(default, set):Float;
-	public var rotation(default, set):Float;
-	public var scaleX(default, set):Float;
-	public var scaleY(default, set):Float;
+	public var x(default, set):Single;
+	public var y(default, set):Single;
+	public var rotation(default, set):Single;
+	public var scaleX(default, set):Single;
+	public var scaleY(default, set):Single;
 
 	// The place this node's transform has in the native store while it is in a scene, and -1 when it is not in one.
 	var slot:Int;
@@ -19,9 +19,13 @@ class Node2D extends CanvasItem {
 	// The store's world values are out of date. What the renderer and the colliders read is the store, so they ask for it alone; the doubles that worldDirty guards are then out of date too, and are worked out from the store only when a game or a layout reads them.
 	var slotDirty:Bool;
 
-	static var worldValues:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0];
+	static var worldValues:Array<Single> = [0.0, 0.0, 0.0, 0.0, 0.0];
 
-	public function new(x:Float = 0.0, y:Float = 0.0) {
+	static inline var DEGREES_TO_RADIANS:Single = 0.017453292519943295;
+	static inline var ZERO:Single = 0.0;
+	static inline var ONE:Single = 1.0;
+
+	public function new(x:Single = 0.0, y:Single = 0.0) {
 		super("Node2D");
 		slot = -1;
 		isStored = false;
@@ -34,12 +38,12 @@ class Node2D extends CanvasItem {
 		scaleY = 1.0;
 	}
 
-	public function translate(dx:Float, dy:Float):Void {
+	public function translate(dx:Single, dy:Single):Void {
 		x += dx;
 		y += dy;
 	}
 
-	public function setScale(scale:Float):Void {
+	public function setScale(scale:Single):Void {
 		scaleX = scale;
 		scaleY = scale;
 	}
@@ -145,7 +149,7 @@ class Node2D extends CanvasItem {
 		if (p.worldDirty) {
 			p.ensureWorld();
 		}
-		if (p.wrot == 0.0 && p.wsx == 1.0 && p.wsy == 1.0) {
+		if (p.wrot == ZERO && p.wsx == ONE && p.wsy == ONE) {
 			wx = p.wx + x;
 			wy = p.wy + y;
 			wrot = rotation;
@@ -153,12 +157,12 @@ class Node2D extends CanvasItem {
 			wsy = scaleY;
 			return;
 		}
-		var scaledX = x * p.wsx;
-		var scaledY = y * p.wsy;
-		if (p.wrot != 0.0) {
-			var radians = p.wrot * (Math.PI / 180.0);
-			var cosine = Math.cos(radians);
-			var sine = Math.sin(radians);
+		var scaledX:Single = x * p.wsx;
+		var scaledY:Single = y * p.wsy;
+		if (p.wrot != ZERO) {
+			var radians:Single = p.wrot * DEGREES_TO_RADIANS;
+			var cosine:Single = Math.cos(radians);
+			var sine:Single = Math.sin(radians);
 			wx = p.wx + scaledX * cosine - scaledY * sine;
 			wy = p.wy + scaledX * sine + scaledY * cosine;
 		} else {
@@ -170,7 +174,7 @@ class Node2D extends CanvasItem {
 		wsy = p.wsy * scaleY;
 	}
 
-	function set_x(value:Float):Float {
+	function set_x(value:Single):Single {
 		x = value;
 		markWorldDirty();
 		if (slot >= 0) {
@@ -179,7 +183,7 @@ class Node2D extends CanvasItem {
 		return value;
 	}
 
-	function set_y(value:Float):Float {
+	function set_y(value:Single):Single {
 		y = value;
 		markWorldDirty();
 		if (slot >= 0) {
@@ -188,7 +192,7 @@ class Node2D extends CanvasItem {
 		return value;
 	}
 
-	function set_rotation(value:Float):Float {
+	function set_rotation(value:Single):Single {
 		rotation = value;
 		markWorldDirty();
 		if (slot >= 0) {
@@ -197,7 +201,7 @@ class Node2D extends CanvasItem {
 		return value;
 	}
 
-	function set_scaleX(value:Float):Float {
+	function set_scaleX(value:Single):Single {
 		scaleX = value;
 		markWorldDirty();
 		if (slot >= 0) {
@@ -206,7 +210,7 @@ class Node2D extends CanvasItem {
 		return value;
 	}
 
-	function set_scaleY(value:Float):Float {
+	function set_scaleY(value:Single):Single {
 		scaleY = value;
 		markWorldDirty();
 		if (slot >= 0) {

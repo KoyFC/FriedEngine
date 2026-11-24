@@ -10,8 +10,8 @@ import fried.scene.Transform2D;
 @:serializable
 @:allow(fried.physics)
 class Collider extends Node2D {
-	public var width(default, set):Float;
-	public var height(default, set):Float;
+	public var width(default, set):Single;
+	public var height(default, set):Single;
 
 	// The layers this collider is on, and the layers a body made of it is stopped by or told about. One bit each, and every collider starts on the first and sees the first.
 	public var collisionLayer:Int;
@@ -21,29 +21,33 @@ class Collider extends Node2D {
 	public var isDebugVisible:Bool;
 	public var debugColor:Color;
 
-	@:noSerialize public var left(get, never):Float;
-	@:noSerialize public var top(get, never):Float;
-	@:noSerialize public var right(get, never):Float;
-	@:noSerialize public var bottom(get, never):Float;
-	@:noSerialize public var centerX(get, never):Float;
-	@:noSerialize public var centerY(get, never):Float;
+	@:noSerialize public var left(get, never):Single;
+	@:noSerialize public var top(get, never):Single;
+	@:noSerialize public var right(get, never):Single;
+	@:noSerialize public var bottom(get, never):Single;
+	@:noSerialize public var centerX(get, never):Single;
+	@:noSerialize public var centerY(get, never):Single;
 
 	var debugRect:Rect;
 
 	static var boundsValues:Array<Int> = [0, 0, 0, 0];
 
-	// The box in world space as integers, in 20.12 (see FixedPoint), worked out when read and again only after the node, an ancestor or the size changed. A query compares these and does no arithmetic on a Float for every candidate, which is a call into software floating point on the DS.
+	// The box in world space as integers, in 20.12 (see FixedPoint), worked out when read and again only after the node, an ancestor or the size changed. A query compares these and does no arithmetic on a Single for every candidate, which is a call into software floating point on the DS.
 	var boundsLeft:Int;
 	var boundsTop:Int;
 	var boundsRight:Int;
 	var boundsBottom:Int;
 	var boundsDirty:Bool;
 
-	// The same box as Floats, for what asks for left, right, top and bottom, which is worked out only when one of them is read.
-	var exactLeft:Float;
-	var exactTop:Float;
-	var exactRight:Float;
-	var exactBottom:Float;
+	static inline var ZERO:Single = 0.0;
+	static inline var ONE:Single = 1.0;
+	static inline var HALF:Single = 0.5;
+
+	// The same box as Singles, for what asks for left, right, top and bottom, which is worked out only when one of them is read.
+	var exactLeft:Single;
+	var exactTop:Single;
+	var exactRight:Single;
+	var exactBottom:Single;
 	var exactDirty:Bool;
 
 	// Where the scene's grid has it. The cells are those the box covers, and a collider is queued when its box has changed and the grid has not been told.
@@ -57,7 +61,7 @@ class Collider extends Node2D {
 	var cellMaxX:Int;
 	var cellMaxY:Int;
 
-	public function new(width:Float = 0.0, height:Float = 0.0) {
+	public function new(width:Single = 0.0, height:Single = 0.0) {
 		super();
 		name = "Collider";
 		this.width = width;
@@ -118,18 +122,18 @@ class Collider extends Node2D {
 	}
 
 	function refreshExact():Void {
-		var sizeX = width * worldScaleX;
-		var sizeY = height * worldScaleY;
+		var sizeX:Single = width * worldScaleX;
+		var sizeY:Single = height * worldScaleY;
 		var originX = worldX;
 		var originY = worldY;
-		if (sizeX < 0.0) {
+		if (sizeX < ZERO) {
 			exactLeft = originX + sizeX;
 			exactRight = originX;
 		} else {
 			exactLeft = originX;
 			exactRight = originX + sizeX;
 		}
-		if (sizeY < 0.0) {
+		if (sizeY < ZERO) {
 			exactTop = originY + sizeY;
 			exactBottom = originY;
 		} else {
@@ -152,15 +156,15 @@ class Collider extends Node2D {
 		return boundsLeft < other.boundsRight && boundsRight > other.boundsLeft && boundsTop < other.boundsBottom && boundsBottom > other.boundsTop;
 	}
 
-	public function overlapsBox(x:Float, y:Float, width:Float, height:Float):Bool {
+	public function overlapsBox(x:Single, y:Single, width:Single, height:Single):Bool {
 		if (boundsDirty) {
 			refreshBounds();
 		}
-		return boundsLeft < FixedPoint.high(x, width, 1.0) && boundsRight > FixedPoint.low(x, width, 1.0) && boundsTop < FixedPoint.high(y, height, 1.0)
-			&& boundsBottom > FixedPoint.low(y, height, 1.0);
+		return boundsLeft < FixedPoint.high(x, width, ONE) && boundsRight > FixedPoint.low(x, width, ONE) && boundsTop < FixedPoint.high(y, height, ONE)
+			&& boundsBottom > FixedPoint.low(y, height, ONE);
 	}
 
-	public function containsPoint(x:Float, y:Float):Bool {
+	public function containsPoint(x:Single, y:Single):Bool {
 		if (boundsDirty) {
 			refreshBounds();
 		}
@@ -187,7 +191,7 @@ class Collider extends Node2D {
 		debugRect = null;
 	}
 
-	function set_width(value:Float):Float {
+	function set_width(value:Single):Single {
 		width = value;
 		boundsDirty = true;
 		exactDirty = true;
@@ -195,7 +199,7 @@ class Collider extends Node2D {
 		return value;
 	}
 
-	function set_height(value:Float):Float {
+	function set_height(value:Single):Single {
 		height = value;
 		boundsDirty = true;
 		exactDirty = true;
@@ -203,39 +207,39 @@ class Collider extends Node2D {
 		return value;
 	}
 
-	function get_left():Float {
+	function get_left():Single {
 		if (exactDirty) {
 			refreshExact();
 		}
 		return exactLeft;
 	}
 
-	function get_right():Float {
+	function get_right():Single {
 		if (exactDirty) {
 			refreshExact();
 		}
 		return exactRight;
 	}
 
-	function get_top():Float {
+	function get_top():Single {
 		if (exactDirty) {
 			refreshExact();
 		}
 		return exactTop;
 	}
 
-	function get_bottom():Float {
+	function get_bottom():Single {
 		if (exactDirty) {
 			refreshExact();
 		}
 		return exactBottom;
 	}
 
-	function get_centerX():Float {
-		return worldX + width * worldScaleX / 2.0;
+	function get_centerX():Single {
+		return worldX + width * worldScaleX * HALF;
 	}
 
-	function get_centerY():Float {
-		return worldY + height * worldScaleY / 2.0;
+	function get_centerY():Single {
+		return worldY + height * worldScaleY * HALF;
 	}
 }

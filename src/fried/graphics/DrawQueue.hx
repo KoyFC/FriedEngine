@@ -12,25 +12,25 @@ class DrawQueue {
 
 	static var drawCommandPool:Array<DrawCommand> = [];
 	static var pendingDrawCommands:Array<DrawCommand> = [];
-	static var viewX:Float = 0.0;
-	static var viewY:Float = 0.0;
-	static var viewWidth:Float = 0.0;
-	static var viewHeight:Float = 0.0;
+	static var viewX:Single = 0.0;
+	static var viewY:Single = 0.0;
+	static var viewWidth:Single = 0.0;
+	static var viewHeight:Single = 0.0;
 	static var viewCamera:CameraView;
-	static var viewZoom:Float = 1.0;
-	static var viewOffsetX:Float = 0.0;
-	static var viewOffsetY:Float = 0.0;
-	static var viewHalfWidth:Float = 0.0;
-	static var viewHalfHeight:Float = 0.0;
+	static var viewZoom:Single = 1.0;
+	static var viewOffsetX:Single = 0.0;
+	static var viewOffsetY:Single = 0.0;
+	static var viewHalfWidth:Single = 0.0;
+	static var viewHalfHeight:Single = 0.0;
 	static var viewPoints:Array<Float> = [];
 	static var sortScratch:Array<DrawCommand> = [];
 	static var sortedLayers:Array<Int> = [];
 	static var sortedPriorities:Array<Int> = [];
 	static var sortedOrder:Array<Int> = [];
 
-	// What a frame's sprites, rectangles and outlines are sent to the renderer as: eight integers and five doubles to a record, one record after another, so a frame crosses into native code once and no double is converted on the way.
+	// What a frame's sprites, rectangles and outlines are sent to the renderer as: eight integers and five floats to a record, one record after another, so a frame crosses into native code once and nothing is converted on the way.
 	static inline var RECORD_INTS = 8;
-	static inline var RECORD_DOUBLES = 5;
+	static inline var RECORD_FLOATS = 5;
 	static inline var RECORD_TEXTURE = 0;
 	static inline var RECORD_FILL = 1;
 	static inline var RECORD_OUTLINE = 2;
@@ -38,13 +38,13 @@ class DrawQueue {
 	static inline var RECORD_SCALED_TEXTURE = 4;
 	static inline var RECORD_SLOT_TEXTURE = 5;
 	static var batchInts:Array<Int> = [];
-	static var batchDoubles:Array<Float> = [];
+	static var batchFloats:Array<Single> = [];
 	static var batchCapacity:Int = 0;
 	static var batchCount:Int = 0;
 	static var batchCamera:CameraView;
 	static var isBatchCameraKnown:Bool = false;
 
-	public static function submitTexture(priority:Int, texture:Texture, x:Float, y:Float, width:Float, height:Float, angle:Float = 0.0,
+	public static function submitTexture(priority:Int, texture:Texture, x:Single, y:Single, width:Single, height:Single, angle:Single = 0.0,
 			flip:FlipMode = None, ?source:Rect):Void {
 		var command = next(priority);
 		command.type = TextureRegion;
@@ -66,7 +66,7 @@ class DrawQueue {
 
 	// A texture drawn at a multiple of its size, which the renderer works out: the multiplication of a size by a scale is a call into software floating point on the DS, and there it is done on the bits of the scale instead.
 	@:allow(fried.scene)
-	static function submitSprite(priority:Int, texture:Texture, x:Float, y:Float, scaleX:Float, scaleY:Float, angle:Float, flip:FlipMode, source:Rect):Void {
+	static function submitSprite(priority:Int, texture:Texture, x:Single, y:Single, scaleX:Single, scaleY:Single, angle:Single, flip:FlipMode, source:Rect):Void {
 		var command = next(priority);
 		command.type = ScaledTextureRegion;
 		command.texture = texture;
@@ -102,8 +102,8 @@ class DrawQueue {
 		}
 	}
 
-	public static function submitText(priority:Int, font:Font, text:String, x:Float, y:Float, width:Float, height:Float, color:Color,
-			angle:Float = 0.0):Void {
+	public static function submitText(priority:Int, font:Font, text:String, x:Single, y:Single, width:Single, height:Single, color:Color,
+			angle:Single = 0.0):Void {
 		var command = next(priority);
 		command.type = Text;
 		command.font = font;
@@ -238,11 +238,11 @@ class DrawQueue {
 
 	// The record arrays are written without the bounds check hxcpp makes at every access, which the DS pays for in software: addRecord() grows them before it writes.
 	// Appends a record for a sprite or a rectangle, after the one that says which camera it is placed by when that is not the camera of the record before it. Returns the record's place, with its numbers written.
-	static function addRecord(command:DrawCommand, kind:Int, writesDoubles:Bool):Int {
+	static function addRecord(command:DrawCommand, kind:Int, writesFloats:Bool):Int {
 		if (batchCount + 2 > batchCapacity) {
 			batchCapacity = batchCapacity == 0 ? 256 : batchCapacity * 2;
 			batchInts.resize(batchCapacity * RECORD_INTS);
-			batchDoubles.resize(batchCapacity * RECORD_DOUBLES);
+			batchFloats.resize(batchCapacity * RECORD_FLOATS);
 		}
 		var camera = command.camera;
 		if (!isBatchCameraKnown || camera != batchCamera) {
@@ -254,21 +254,21 @@ class DrawQueue {
 				NativeArray.unsafeSet(batchInts, (cameraRecord << 3) + 7, 0);
 			} else {
 				NativeArray.unsafeSet(batchInts, (cameraRecord << 3) + 7, 1);
-				var cameraDoubles = cameraRecord * RECORD_DOUBLES;
-				NativeArray.unsafeSet(batchDoubles, cameraDoubles, camera.zoom);
-				NativeArray.unsafeSet(batchDoubles, cameraDoubles + 1, camera.x);
-				NativeArray.unsafeSet(batchDoubles, cameraDoubles + 2, camera.y);
+				var cameraFloats = cameraRecord * RECORD_FLOATS;
+				NativeArray.unsafeSet(batchFloats, cameraFloats, camera.zoom);
+				NativeArray.unsafeSet(batchFloats, cameraFloats + 1, camera.x);
+				NativeArray.unsafeSet(batchFloats, cameraFloats + 2, camera.y);
 			}
 		}
 		var record = batchCount++;
 		NativeArray.unsafeSet(batchInts, record << 3, kind);
-		if (writesDoubles) {
-			var doubles = record * RECORD_DOUBLES;
-			NativeArray.unsafeSet(batchDoubles, doubles, command.x);
-			NativeArray.unsafeSet(batchDoubles, doubles + 1, command.y);
-			NativeArray.unsafeSet(batchDoubles, doubles + 2, command.width);
-			NativeArray.unsafeSet(batchDoubles, doubles + 3, command.height);
-			NativeArray.unsafeSet(batchDoubles, doubles + 4, command.angle);
+		if (writesFloats) {
+			var floats = record * RECORD_FLOATS;
+			NativeArray.unsafeSet(batchFloats, floats, command.x);
+			NativeArray.unsafeSet(batchFloats, floats + 1, command.y);
+			NativeArray.unsafeSet(batchFloats, floats + 2, command.width);
+			NativeArray.unsafeSet(batchFloats, floats + 3, command.height);
+			NativeArray.unsafeSet(batchFloats, floats + 4, command.angle);
 		}
 		return record;
 	}
@@ -277,7 +277,7 @@ class DrawQueue {
 		if (batchCount == 0) {
 			return;
 		}
-		renderer.drawBatch(batchInts, batchDoubles, batchCount);
+		renderer.drawBatch(batchInts, batchFloats, batchCount);
 		batchCount = 0;
 		isBatchCameraKnown = false;
 	}
@@ -516,11 +516,11 @@ private class DrawCommand {
 	public var texture:Texture;
 	public var font:Font;
 	public var text:String;
-	public var x:Float;
-	public var y:Float;
-	public var width:Float;
-	public var height:Float;
-	public var angle:Float;
+	public var x:Single;
+	public var y:Single;
+	public var width:Single;
+	public var height:Single;
+	public var angle:Single;
 	public var flip:FlipMode;
 	public var hasSource:Bool;
 	public var source:Rect;

@@ -10,19 +10,19 @@ class CanvasItem extends Node {
 	public var priority(default, set):Int;
 
 	// Where the node is in the world, after every ancestor's transform. Worked out when read, and again only after something changed.
-	@:noSerialize public var worldX(get, never):Float;
-	@:noSerialize public var worldY(get, never):Float;
-	@:noSerialize public var worldRotation(get, never):Float;
-	@:noSerialize public var worldScaleX(get, never):Float;
-	@:noSerialize public var worldScaleY(get, never):Float;
+	@:noSerialize public var worldX(get, never):Single;
+	@:noSerialize public var worldY(get, never):Single;
+	@:noSerialize public var worldRotation(get, never):Single;
+	@:noSerialize public var worldScaleX(get, never):Single;
+	@:noSerialize public var worldScaleY(get, never):Single;
 
 	var worldDirty:Bool;
 	var parentItem:Null<CanvasItem>;
-	var wx:Float;
-	var wy:Float;
-	var wrot:Float;
-	var wsx:Float;
-	var wsy:Float;
+	var wx:Single;
+	var wy:Single;
+	var wrot:Single;
+	var wsx:Single;
+	var wsy:Single;
 
 	public function new(name:String = "CanvasItem") {
 		super(name);
@@ -71,35 +71,35 @@ class CanvasItem extends Node {
 		return priority;
 	}
 
-	inline function get_worldX():Float {
+	inline function get_worldX():Single {
 		if (worldDirty) {
 			ensureWorld();
 		}
 		return wx;
 	}
 
-	inline function get_worldY():Float {
+	inline function get_worldY():Single {
 		if (worldDirty) {
 			ensureWorld();
 		}
 		return wy;
 	}
 
-	inline function get_worldRotation():Float {
+	inline function get_worldRotation():Single {
 		if (worldDirty) {
 			ensureWorld();
 		}
 		return wrot;
 	}
 
-	inline function get_worldScaleX():Float {
+	inline function get_worldScaleX():Single {
 		if (worldDirty) {
 			ensureWorld();
 		}
 		return wsx;
 	}
 
-	inline function get_worldScaleY():Float {
+	inline function get_worldScaleY():Single {
 		if (worldDirty) {
 			ensureWorld();
 		}
