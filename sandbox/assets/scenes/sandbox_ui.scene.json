@@ -138,6 +138,42 @@
 						"root": "game"
 					},
 					"type": "TextureRect"
+				},
+				{
+					"action": "Move",
+					"anchorMaxX": 0,
+					"anchorMaxY": 0.42,
+					"anchorMinX": 0,
+					"anchorMinY": 0.42,
+					"baseSize": 140,
+					"height": 160,
+					"id": "touch-stick",
+					"platforms": "android",
+					"name": "Touch stick",
+					"offsetX": 24,
+					"offsetY": 0,
+					"pivotX": 0,
+					"pivotY": 0.5,
+					"tipSize": 60,
+					"type": "VirtualJoystick",
+					"width": 160
+				},
+				{
+					"action": "PlaySound",
+					"anchorMaxX": 1,
+					"anchorMaxY": 0.47,
+					"anchorMinX": 1,
+					"anchorMinY": 0.47,
+					"height": 96,
+					"id": "touch-beep",
+					"platforms": "android",
+					"name": "Touch beep",
+					"offsetX": -24,
+					"offsetY": 0,
+					"pivotX": 1,
+					"pivotY": 0.5,
+					"type": "TouchButton",
+					"width": 96
 				}
 			],
 			"id": "interface",
