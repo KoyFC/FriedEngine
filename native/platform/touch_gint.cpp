@@ -2,6 +2,11 @@
 
 // The calculator's screen is not a touchscreen, so there is no touch device.
 
+int fried_touch_is_on_display()
+{
+    return 0;
+}
+
 int fried_touch_get_device_count()
 {
     return 0;

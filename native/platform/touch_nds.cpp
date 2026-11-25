@@ -61,6 +61,11 @@ void fried_touch_poll(void (*report)(int type, int windowId, int x, int y))
     }
 }
 
+int fried_touch_is_on_display()
+{
+    return 0;
+}
+
 int fried_touch_get_device_count()
 {
     return 1;

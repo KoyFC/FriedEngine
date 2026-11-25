@@ -72,6 +72,9 @@ class Input {
 
 	public static var touchDeviceCount(get, never):Int;
 
+	// Whether a finger touches the screen the game is drawn on, which is what an on-screen control needs: true on a phone, a Vita, a Switch or a computer with a touch screen, false on the DS and the 3DS, whose touch screen is another screen, and on the calculator.
+	public static var isTouchOnDisplay(get, never):Bool;
+
 	public static var isGamepadConnected(get, never):Bool;
 	public static var gamepadDeadzone(get, set):Float;
 
@@ -293,6 +296,10 @@ class Input {
 		return MouseNative.getScrollY();
 	}
 
+	static function get_isTouchOnDisplay():Bool {
+		return TouchNative.isOnDisplay() != 0;
+	}
+
 	static function get_touchDeviceCount():Int {
 		return TouchNative.getDeviceCount();
 	}
@@ -430,6 +437,9 @@ private extern class GamepadNative {
 private extern class TouchNative {
 	@:native("fried_touch_get_device_count")
 	static function getDeviceCount():Int;
+
+	@:native("fried_touch_is_on_display")
+	static function isOnDisplay():Int;
 
 	@:native("fried_touch_get_finger_count")
 	static function getFingerCount(device:Int):Int;

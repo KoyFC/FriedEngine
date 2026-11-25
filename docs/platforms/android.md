@@ -46,3 +46,7 @@ An optional `android` section:
 | `orientation` | `landscape` (the default) or `portrait`. The phone may be turned either way within it. |
 
 The icon is `android/icon.png`, 192 by 192 pixels. A project without one gets the default launcher icon.
+
+### Touch
+
+Android makes an SDL touch device for each input device of the phone, and which of them a finger arrives on depends on the model: the phone this was tried on reports three and puts its fingers on the second. The engine treats them all as the screen, so a phone has one touch device, 0, and `Input.touchDeviceCount` is 1 or 0.

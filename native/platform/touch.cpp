@@ -25,8 +25,27 @@ namespace
 
     std::vector<Device> s_devices;
 
+#ifdef __ANDROID__
+    // Android makes an SDL touch device for each input device of the phone, and which of them a finger arrives on is up to the model, so one phone reports three and puts its fingers on the second. They are all the screen, so they are one device here, 0.
+    constexpr SDL_TouchID s_screenTouchId = 0;
+
+    SDL_TouchID deviceKey(SDL_TouchID)
+    {
+        return s_screenTouchId;
+    }
+#else
+    SDL_TouchID deviceKey(SDL_TouchID id)
+    {
+        return id;
+    }
+#endif
+
     int indexOfDevice(SDL_TouchID id)
     {
+#ifdef __ANDROID__
+        (void)id;
+        return 0;
+#else
         for (int i = 0; i < SDL_GetNumTouchDevices(); ++i)
         {
             if (SDL_GetTouchDevice(i) == id)
@@ -35,10 +54,12 @@ namespace
             }
         }
         return -1;
+#endif
     }
 
     Device &findOrAddDevice(SDL_TouchID id)
     {
+        id = deviceKey(id);
         for (Device &device : s_devices)
         {
             if (device.m_id == id)
@@ -56,7 +77,13 @@ namespace
         {
             return nullptr;
         }
-        SDL_TouchID id = SDL_GetTouchDevice(index);
+        SDL_TouchID id = deviceKey(SDL_GetTouchDevice(index));
+#ifdef __ANDROID__
+        if (index != 0)
+        {
+            return nullptr;
+        }
+#endif
         for (const Device &device : s_devices)
         {
             if (device.m_id == id)
@@ -78,9 +105,22 @@ namespace
     }
 }
 
+int fried_touch_is_on_display()
+{
+#ifdef __3DS__
+    return 0;
+#else
+    return SDL_GetNumTouchDevices() > 0 ? 1 : 0;
+#endif
+}
+
 int fried_touch_get_device_count()
 {
+#ifdef __ANDROID__
+    return SDL_GetNumTouchDevices() > 0 ? 1 : 0;
+#else
     return SDL_GetNumTouchDevices();
+#endif
 }
 
 int fried_touch_get_finger_count(int device)

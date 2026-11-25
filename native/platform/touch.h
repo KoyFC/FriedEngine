@@ -5,6 +5,8 @@ struct SDL_TouchFingerEvent;
 extern "C"
 {
     int fried_touch_get_device_count();
+    // 1 where a finger touches the screen the game is drawn on: not the DS and the 3DS, whose touch screen is a screen of its own, and not the calculator, which has none.
+    int fried_touch_is_on_display();
     int fried_touch_get_finger_count(int device);
     int fried_touch_get_finger_id(int device, int index);
     int fried_touch_get_x(int device, int index);
