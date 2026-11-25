@@ -22,6 +22,10 @@ class Bootstrap {
 
 	// Told how the game goes, which is how the editor's play mode watches it.
 	public static var observer:fried.editor.BootObserver;
+
+	// The size of the window instead of the display's own, which is how the editor's play mode draws the game at the screen of the platform it previews. Zero keeps the display's.
+	public static var windowWidthOverride:Int = 0;
+	public static var windowHeightOverride:Int = 0;
 	#end
 
 	// An autoload is the name of a node class, which becomes a scene holding one node of that class with the class's name as its id, or else the name of a scene file.
@@ -40,7 +44,15 @@ class Bootstrap {
 
 	public static function run():Void {
 		Application.init();
-		window = new Window(Project.windowTitle(), Project.displayWidth(), Project.displayHeight());
+		var windowWidth = Project.displayWidth();
+		var windowHeight = Project.displayHeight();
+		#if fried_editor
+		if (windowWidthOverride > 0 && windowHeightOverride > 0) {
+			windowWidth = windowWidthOverride;
+			windowHeight = windowHeightOverride;
+		}
+		#end
+		window = new Window(Project.windowTitle(), windowWidth, windowHeight);
 		var icon = Filesystem.resolveAsset("game", "icon.png");
 		if (Filesystem.exists(icon)) {
 			window.setIcon(icon);

@@ -19,7 +19,7 @@ import haxe.Json;
 
 // The project's game, started the way Bootstrap starts it and watched by the editor: the editor says which scene to open, sends the frames' worth of changes the user makes in the inspector, and gets every frame back as pixels with how long it took.
 //
-// Started as `player --mode play --editor-port N --width W --height H --engine-assets DIR --game-assets DIR`.
+// Started as `player --mode play --editor-port N --width W --height H --engine-assets DIR --game-assets DIR`, where the width and the height are the size the game draws at.
 class PlayRunner extends BootObserver {
 	// Frames the editor has not yet said it drew, past which the game stops sending, so a slow editor drops frames and never slows the game.
 	static inline var MAX_FRAMES_IN_FLIGHT = 2;
@@ -55,6 +55,8 @@ class PlayRunner extends BootObserver {
 
 	public static function run(options:Map<String, String>):Void {
 		Bootstrap.observer = new PlayRunner(options);
+		Bootstrap.windowWidthOverride = Std.parseInt(options.get("width"));
+		Bootstrap.windowHeightOverride = Std.parseInt(options.get("height"));
 		Bootstrap.run();
 	}
 
