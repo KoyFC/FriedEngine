@@ -35,6 +35,11 @@ int fried_application_init()
 
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 
+#if defined(__ANDROID__) && defined(FRIED_ANDROID_ORIENTATIONS)
+    // SDL turns the activity to these when the window is made, and lets it turn between them.
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, FRIED_ANDROID_ORIENTATIONS);
+#endif
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) != 0)
     {
         fried_capture_sdl_error();

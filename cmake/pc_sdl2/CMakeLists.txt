@@ -89,6 +89,11 @@ set(SDL2TTF_HARFBUZZ OFF)
 
 FetchContent_MakeAvailable(sdl2 sdl2_image sdl2_mixer sdl2_ttf)
 
+# SDL's Java half has to come from the same release as its C, so the APK is built from this copy.
+if(ANDROID)
+    install(DIRECTORY "${sdl2_SOURCE_DIR}/android-project/app/src/main/java/" DESTINATION share/sdl2-android-java)
+endif()
+
 # Only a source that unpacked completely is reused by the next build.
 if(FRIED_SOURCES_CACHE)
     foreach(_source_dir IN LISTS _fried_cached_sources)

@@ -24,6 +24,7 @@ function(_fried_pc_sdl2_prefix out_prefix)
         "${CMAKE_C_FLAGS}" "${CMAKE_CXX_FLAGS}"
         "${CMAKE_MSVC_RUNTIME_LIBRARY}"
         "${CMAKE_GENERATOR_PLATFORM}" "${CMAKE_GENERATOR_TOOLSET}"
+        "${ANDROID_ABI}" "${ANDROID_PLATFORM}" "${ANDROID_STL}"
     )
     if(NOT CMAKE_CONFIGURATION_TYPES)
         list(APPEND _identity "${CMAKE_BUILD_TYPE}")
@@ -55,6 +56,7 @@ function(_fried_install_pc_sdl2 prefix)
         CMAKE_TOOLCHAIN_FILE CMAKE_C_COMPILER CMAKE_CXX_COMPILER CMAKE_RC_COMPILER
         CMAKE_C_FLAGS CMAKE_CXX_FLAGS CMAKE_MSVC_RUNTIME_LIBRARY FRIED_MINGW_SYSROOT
         CMAKE_GENERATOR_PLATFORM CMAKE_GENERATOR_TOOLSET CMAKE_MAKE_PROGRAM
+        ANDROID_ABI ANDROID_PLATFORM ANDROID_STL
     )
         if(DEFINED ${_inherited} AND NOT "${${_inherited}}" STREQUAL "")
             list(APPEND _configure_args "-D${_inherited}=${${_inherited}}")
@@ -96,7 +98,8 @@ function(_fried_use_installed_package prefix name)
     list(GET _config 0 _config)
     get_filename_component(_dir "${_config}" DIRECTORY)
     set(${name}_DIR "${_dir}" CACHE PATH "" FORCE)
-    find_package(${name} REQUIRED CONFIG NO_DEFAULT_PATH PATHS "${_dir}")
+    # A cross toolchain such as the NDK's roots every search in its sysroot, which the prefix is not in.
+    find_package(${name} REQUIRED CONFIG NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH PATHS "${_dir}")
 endfunction()
 
 function(fried_add_pc_sdl2 out_link_targets)
@@ -123,6 +126,15 @@ function(fried_add_pc_sdl2 out_link_targets)
         _fried_install_pc_sdl2("${_prefix}")
     endif()
 
+    # SDL2_image's package config asks for libjpeg and libpng although the stb backend it was built with needs neither, and the NDK has neither.
+    if(ANDROID)
+        foreach(_unused JPEG PNG)
+            if(NOT TARGET ${_unused}::${_unused})
+                add_library(${_unused}::${_unused} INTERFACE IMPORTED)
+            endif()
+        endforeach()
+    endif()
+
     foreach(_package SDL2 SDL2_image SDL2_mixer SDL2_ttf)
         _fried_use_installed_package("${_prefix}" ${_package})
     endforeach()
@@ -130,6 +142,9 @@ function(fried_add_pc_sdl2 out_link_targets)
     # A fixed place for editors, wherever the libraries were installed.
     file(GLOB _installed_headers "${_prefix}/include/SDL2/*.h")
     file(COPY ${_installed_headers} DESTINATION "${CMAKE_BINARY_DIR}/_deps/sdl2-companion-headers")
+
+    # Android's APK is built from the Java SDL installed beside the libraries.
+    set(FRIED_SDL2_PREFIX "${_prefix}" PARENT_SCOPE)
 
     set(${out_link_targets}
         SDL2_image::SDL2_image-static

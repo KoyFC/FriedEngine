@@ -142,7 +142,14 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         fried_nds_patch_hxcpp(_runtime_sources)
     endif()
 
-    add_executable(${target_name}
+    # SDLActivity loads the game as libmain.so and calls its SDL_main.
+    if(FRIED_ANDROID)
+        add_library(${target_name} SHARED)
+        set_target_properties(${target_name} PROPERTIES OUTPUT_NAME main)
+    else()
+        add_executable(${target_name})
+    endif()
+    target_sources(${target_name} PRIVATE
         ${_generated_sources}
         ${_no_files_source}
         ${_runtime_sources}
@@ -200,6 +207,18 @@ function(fried_add_hxcpp_executable target_name generated_dir)
             -Wno-nontrivial-memcall
             -Wno-return-type-c-linkage
         )
+    elseif(FRIED_ANDROID)
+        # hxcpp's own Android define; the NDK already passes -DANDROID. Without HXCPP_EXE_LINK its main is hxcpp_main(), which android/sdl_main.cpp calls.
+        target_compile_definitions(${target_name} PRIVATE HX_ANDROID)
+        target_compile_options(${target_name} PRIVATE
+            -Wno-invalid-offsetof
+            -Wno-return-type-c-linkage
+            -Wno-parentheses
+        )
+        target_sources(${target_name} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/android/sdl_main.cpp")
+        target_link_libraries(${target_name} PRIVATE log android)
+        # Devices with 16 KB memory pages refuse a library aligned to 4 KB.
+        target_link_options(${target_name} PRIVATE "LINKER:-z,max-page-size=16384")
     elseif(APPLE)
         target_compile_definitions(${target_name} PRIVATE HX_MACOS)
     elseif(WIN32)

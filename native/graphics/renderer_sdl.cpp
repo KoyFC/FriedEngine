@@ -106,7 +106,7 @@ int fried_renderer_create(int windowId, bool vsync)
     // Meshes are drawn with GL or GXM between SDL's own calls, which needs SDL's
     // queue flushed by hand rather than behind the application's back.
     // Neither hint beats the environment, so the driver can still be named from outside.
-#if defined(__SWITCH__)
+#if defined(__SWITCH__) || defined(__ANDROID__)
     SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengles2", SDL_HINT_DEFAULT);
     SDL_SetHintWithPriority(SDL_HINT_RENDER_BATCHING, "1", SDL_HINT_DEFAULT);
 #elif defined(__vita__)

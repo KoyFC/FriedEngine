@@ -30,6 +30,12 @@ namespace
     {
         return "romfs:/assets/";
     }
+#elif defined(__ANDROID__)
+    // SDL reads a relative path out of the APK's assets/, where the build puts engine/ and game/.
+    std::string resolveAssetPath(const std::string &)
+    {
+        return std::string();
+    }
 #else
     std::string resolveAssetPath(const std::string &basePath)
     {

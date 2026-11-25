@@ -339,6 +339,13 @@ function(fried_add_game target_name)
     fried_add_hxcpp_executable(${target_name} ${_generated_dir})
     target_link_libraries(${target_name} PRIVATE fried::engine)
 
+    # SDL's JNI functions are only called from Java, so nothing in the game pulls them out of the archive.
+    if(FRIED_ANDROID)
+        target_link_options(${target_name} PRIVATE
+            "LINKER:--whole-archive" "$<TARGET_FILE:SDL2::SDL2-static>" "LINKER:--no-whole-archive"
+        )
+    endif()
+
     # The editor player is a computer build of any project, whatever it declares.
     fried_read_project_platforms("${_project_json}" _declared_platforms)
     if(NOT _game_EDITOR_PLAYER)

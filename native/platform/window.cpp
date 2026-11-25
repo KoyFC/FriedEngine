@@ -12,7 +12,7 @@ namespace
 {
     HandlePool<SDL_Window> s_windows;
 
-#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__)
+#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__) || defined(__ANDROID__)
     constexpr Uint32 s_visibilityUntilRendererExists = SDL_WINDOW_SHOWN;
 #else
     // SDL2's OpenGL renderers recreate the window they are given, which flashes a shown one.
@@ -75,7 +75,7 @@ int fried_window_create(const char *title, int width, int height)
     int displayIndex = 0;
 #endif
 
-#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__)
+#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__) || defined(__ANDROID__)
     SDL_DisplayMode screen;
     if (SDL_GetDesktopDisplayMode(displayIndex, &screen) != 0)
     {
@@ -161,8 +161,8 @@ int fried_window_get_height(int windowId)
     return height;
 }
 
-// A console's window is its screen, so it has no position to report or change.
-#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__)
+// A console's or a phone's window is its screen, so it has no position to report or change.
+#if defined(__vita__) || defined(__SWITCH__) || defined(__3DS__) || defined(__ANDROID__)
 int fried_window_get_x(int)
 {
     return 0;
