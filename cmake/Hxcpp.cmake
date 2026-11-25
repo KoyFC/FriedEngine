@@ -96,6 +96,37 @@ set(_hxcpp_mingw_dir "${CMAKE_CURRENT_LIST_DIR}/mingw")
 # working pthread keys.
 set(_hxcpp_libctru_tls_header "${CMAKE_CURRENT_LIST_DIR}/libctru/hx_tls.h")
 
+# PCRE2 is C, and a language enabled inside a function is lost when it returns, so it is enabled here.
+enable_language(C)
+
+# hxcpp's regexp library and the PCRE2 it wraps, built the way libs/regexp/Build.xml does: 8-bit PCRE2 always and 16-bit PCRE2 as well with smart strings, without the JIT, which needs a machine-specific code generator.
+function(fried_add_hxcpp_regexp target_name)
+    set(_pcre_dir "${HXCPP_ROOT}/project/thirdparty/pcre2-10.42/src")
+    file(STRINGS "${HXCPP_ROOT}/src/hx/libs/regexp/pcre2_sources.xml" _pcre_entries REGEX "<file name=")
+    set(_pcre_sources "")
+    foreach(_entry IN LISTS _pcre_entries)
+        string(REGEX REPLACE "^.*PCRE_DIR\\}/([^\"]+)\".*$" "\\1" _file "${_entry}")
+        list(APPEND _pcre_sources "${_pcre_dir}/${_file}")
+    endforeach()
+
+    foreach(_width 8 16)
+        # Static libraries, not object libraries: make cannot name an object whose path holds the comma of hxcpp's "4,3,2" folder from another target.
+        add_library(${target_name}_pcre${_width} STATIC ${_pcre_sources})
+        target_include_directories(${target_name}_pcre${_width} PRIVATE "${_pcre_dir}")
+        target_compile_definitions(${target_name}_pcre${_width} PRIVATE
+            HAVE_CONFIG_H PCRE2_STATIC SUPPORT_UNICODE PCRE2_CODE_UNIT_WIDTH=${_width} SUPPORT_PCRE2_${_width}
+        )
+        set_target_properties(${target_name}_pcre${_width} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+        target_link_libraries(${target_name} PRIVATE ${target_name}_pcre${_width})
+    endforeach()
+
+    target_sources(${target_name} PRIVATE "${HXCPP_ROOT}/src/hx/libs/regexp/RegExp.cpp")
+    set_source_files_properties("${HXCPP_ROOT}/src/hx/libs/regexp/RegExp.cpp" PROPERTIES
+        INCLUDE_DIRECTORIES "${_pcre_dir}"
+        COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"
+    )
+endfunction()
+
 # fried_add_hxcpp_executable(<target> <generated_dir>)
 #
 # <generated_dir> must be the output of
@@ -155,6 +186,12 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         ${_runtime_sources}
         ${_std_sources}
     )
+
+    # EReg is the only user of hxcpp's regexp library, and PCRE2 under it is a few hundred KB, so a game that never writes a regular expression does not carry it.
+    list(FIND _generated_sources "${generated_dir}/src/EReg.cpp" _ereg_index)
+    if(NOT _ereg_index EQUAL -1)
+        fried_add_hxcpp_regexp(${target_name})
+    endif()
 
     target_include_directories(${target_name} PRIVATE "${generated_dir}/include")
     target_include_directories(${target_name} SYSTEM PRIVATE "${_include_dir}")
