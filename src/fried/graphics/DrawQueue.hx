@@ -133,6 +133,29 @@ class DrawQueue {
 		copyInto(colors, command.colors);
 	}
 
+	static inline var CIRCLE_SEGMENTS:Int = 24;
+	static var circlePoints:Array<Float> = [];
+	static var circleColors:Array<Color> = [];
+
+	// A filled circle, drawn as a fan of triangles.
+	public static function submitFillCircle(priority:Int, x:Float, y:Float, radius:Float, color:Color):Void {
+		circlePoints.resize(0);
+		circleColors.resize(0);
+		var step = 2 * Math.PI / CIRCLE_SEGMENTS;
+		for (index in 0...CIRCLE_SEGMENTS) {
+			var from = index * step;
+			var to = from + step;
+			circlePoints.push(x);
+			circlePoints.push(y);
+			circlePoints.push(x + Math.cos(from) * radius);
+			circlePoints.push(y + Math.sin(from) * radius);
+			circlePoints.push(x + Math.cos(to) * radius);
+			circlePoints.push(y + Math.sin(to) * radius);
+			circleColors.push(color);
+		}
+		submitTriangles(priority, circlePoints, circleColors);
+	}
+
 	// A mesh the renderer draws itself. Returns the numbers that place it, for
 	// MeshPass to fill in the order graphics/mesh.h lists them: they are
 	// written straight into the command, as copying them takes as long again.

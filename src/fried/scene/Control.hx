@@ -1,6 +1,7 @@
 package fried.scene;
 
 import fried.Log;
+import fried.input.InputEvent;
 
 // A node of the interface, placed against the rectangle of its parent instead of by a position.
 //
@@ -80,6 +81,41 @@ class Control extends CanvasItem {
 
 	function intrinsicHeight():Float {
 		return -1;
+	}
+
+	// Where an event of the pointer or a finger is, in the space the control is drawn in: the screen under a CanvasLayer, the world through the scene's camera anywhere else.
+	function eventX(event:InputEvent):Float {
+		var camera = worldCamera();
+		return camera != null ? camera.screenToWorldX(event.x) : event.x;
+	}
+
+	function eventY(event:InputEvent):Float {
+		var camera = worldCamera();
+		return camera != null ? camera.screenToWorldY(event.y) : event.y;
+	}
+
+	function worldCamera():Null<Camera> {
+		if (scene == null) {
+			return null;
+		}
+		var node = parent;
+		while (node != null) {
+			if (Std.isOfType(node, CanvasLayer)) {
+				return null;
+			}
+			node = node.parent;
+		}
+		return scene.camera;
+	}
+
+	function containsEvent(event:InputEvent):Bool {
+		var x = eventX(event);
+		var y = eventY(event);
+		var left = worldX;
+		var top = worldY;
+		var right = left + rectWidth;
+		var bottom = top + rectHeight;
+		return x >= Math.min(left, right) && x < Math.max(left, right) && y >= Math.min(top, bottom) && y < Math.max(top, bottom);
 	}
 
 	public function isStretchedX():Bool {

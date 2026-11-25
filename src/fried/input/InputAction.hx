@@ -47,6 +47,10 @@ class InputAction {
 
 	var bindings:Array<InputBinding> = [];
 
+	// What an on-screen control holds, read as one more binding: x alone for a button or a value, x and y for a vector.
+	var virtualX:Float = 0.0;
+	var virtualY:Float = 0.0;
+
 	public function new(name:String, type:InputActionType) {
 		this.name = name;
 		this.type = type;
@@ -78,6 +82,12 @@ class InputAction {
 		bindings.resize(0);
 	}
 
+	// Set by an on-screen control such as a TouchButton or a VirtualJoystick, and held until it is set again. When two controls hold the same action, the last one to change it wins.
+	public function setVirtual(x:Float, y:Float = 0.0):Void {
+		virtualX = x;
+		virtualY = y;
+	}
+
 	// An input already held does not count as a press.
 	public function enable():Void {
 		if (isEnabled) {
@@ -102,6 +112,8 @@ class InputAction {
 		isPressed = false;
 		isDown = false;
 		isReleased = false;
+		virtualX = 0.0;
+		virtualY = 0.0;
 	}
 
 	@:allow(fried.Application)
@@ -185,6 +197,12 @@ class InputAction {
 				bestX = readX;
 				bestY = readY;
 			}
+		}
+		var virtualStrength = type == Vector2 ? virtualX * virtualX + virtualY * virtualY : Math.abs(virtualX);
+		if (virtualStrength > bestStrength) {
+			bestStrength = virtualStrength;
+			bestX = virtualX;
+			bestY = virtualY;
 		}
 
 		switch (type) {

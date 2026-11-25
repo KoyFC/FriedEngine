@@ -51,18 +51,18 @@ class Button extends Control {
 	override function onEvent(event:InputEvent):Void {
 		var isHeld = isHeldByMouse || isHeldByTouch;
 		switch (event.type) {
-			case MouseButtonDown if (!isHeld && event.mouseButton == MouseButton.Left && contains(event)):
+			case MouseButtonDown if (!isHeld && event.mouseButton == MouseButton.Left && containsEvent(event)):
 				isHeldByMouse = true;
 				hold(event);
-			case TouchDown if (!isHeld && event.touchDevice == FRONT_TOUCH_DEVICE && contains(event)):
+			case TouchDown if (!isHeld && event.touchDevice == FRONT_TOUCH_DEVICE && containsEvent(event)):
 				isHeldByTouch = true;
 				heldFingerId = event.fingerId;
 				hold(event);
 			case MouseMoved if (isHeldByMouse):
-				isPressed = contains(event);
+				isPressed = containsEvent(event);
 				event.handled = true;
 			case TouchMoved if (isHeldByTouch && event.fingerId == heldFingerId):
-				isPressed = contains(event);
+				isPressed = containsEvent(event);
 				event.handled = true;
 			case MouseButtonUp if (isHeldByMouse && event.mouseButton == MouseButton.Left):
 				release(event);
@@ -96,7 +96,7 @@ class Button extends Control {
 	}
 
 	function release(event:InputEvent):Void {
-		var isClick = contains(event);
+		var isClick = containsEvent(event);
 		isHeldByMouse = false;
 		isHeldByTouch = false;
 		isPressed = false;
@@ -104,17 +104,6 @@ class Button extends Control {
 		if (isClick && onClick != null) {
 			onClick();
 		}
-	}
-
-	function contains(event:InputEvent):Bool {
-		var camera = scene != null ? scene.camera : null;
-		var x = camera != null ? camera.screenToWorldX(event.x) : event.x;
-		var y = camera != null ? camera.screenToWorldY(event.y) : event.y;
-		var left = worldX;
-		var top = worldY;
-		var right = left + rectWidth;
-		var bottom = top + rectHeight;
-		return x >= Math.min(left, right) && x < Math.max(left, right) && y >= Math.min(top, bottom) && y < Math.max(top, bottom);
 	}
 
 	function measuredLabelWidth():Int {
