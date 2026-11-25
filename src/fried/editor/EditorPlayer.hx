@@ -15,6 +15,7 @@ import fried.scene.Scene;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.NodeRegistry;
 import fried.scene.PackedScene;
+import fried.scene.PlatformList;
 import fried.scene.serialization.Builtins;
 import fried.scene.serialization.SceneLoader;
 
@@ -42,6 +43,7 @@ class EditorPlayer {
 		var options = parseArguments(Sys.args());
 
 		Application.init();
+		PlatformList.isEditing = true;
 		Filesystem.overrideRoot("engine", options.get("engine-assets"));
 		Filesystem.overrideRoot("game", options.get("game-assets"));
 

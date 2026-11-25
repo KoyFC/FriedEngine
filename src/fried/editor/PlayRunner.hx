@@ -8,6 +8,7 @@ import fried.editor.EditorConnection;
 import fried.input.Input;
 import fried.input.InputMaps;
 import fried.io.Filesystem;
+import fried.scene.PlatformList;
 import fried.scene.Scene;
 import fried.scene.SceneContext;
 import fried.scene.SceneLayer;
@@ -55,6 +56,7 @@ class PlayRunner extends BootObserver {
 
 	public static function run(options:Map<String, String>):Void {
 		Bootstrap.observer = new PlayRunner(options);
+		PlatformList.previewed = options.exists("platform") ? options.get("platform") : "";
 		Bootstrap.windowWidthOverride = Std.parseInt(options.get("width"));
 		Bootstrap.windowHeightOverride = Std.parseInt(options.get("height"));
 		Bootstrap.run();
