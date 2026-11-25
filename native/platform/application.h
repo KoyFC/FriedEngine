@@ -23,6 +23,8 @@ extern "C" inline const char *fried_application_platform_name()
     return "cg50";
 #elif defined(__EMSCRIPTEN__)
     return "web";
+#elif defined(__ANDROID__)
+    return "android";
 #else
     return "pc";
 #endif

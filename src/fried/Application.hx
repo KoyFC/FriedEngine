@@ -17,7 +17,7 @@ class Application {
 
 	public static var renderers(default, null):Array<Renderer> = [];
 
-	// The key `project.fried` and scene files use for this platform: pc, vita, switch, 3ds, nds, cg50 or web.
+	// The key `project.fried` and scene files use for this platform: pc, vita, switch, 3ds, nds, cg50, web or android.
 	public static var platformName(default, null):String;
 
 	#if fried_editor

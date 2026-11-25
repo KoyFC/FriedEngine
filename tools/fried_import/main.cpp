@@ -1,4 +1,4 @@
-// fried_import --platform <pc|vita|switch|3ds|nds|cg50|web> --in <assets> --out <imported>
+// fried_import --platform <pc|vita|switch|3ds|nds|cg50|web|android> --in <assets> --out <imported>
 //
 // Writes the assets of a folder into another as a platform wants them. A file
 // with a sidecar, "sprite.png.import", is converted as the sidecar says for

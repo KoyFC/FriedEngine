@@ -2,7 +2,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/AudioFiles.cmake")
 
 # The names fried_add_game gives the platform it configures for. "pc" is every
 # computer: Linux, Windows and macOS.
-set(FRIED_PLATFORMS pc vita switch 3ds nds cg50 web)
+set(FRIED_PLATFORMS pc vita switch 3ds nds cg50 web android)
 
 # The most pixels a side a texture has on the 3DS and the DS, whose GPUs halve
 # a larger image until it fits.
