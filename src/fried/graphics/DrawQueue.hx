@@ -27,6 +27,7 @@ class DrawQueue {
 	static var sortedLayers:Array<Int> = [];
 	static var sortedPriorities:Array<Int> = [];
 	static var sortedOrder:Array<Int> = [];
+	static var isSortedOrderIdentity:Bool = false;
 
 	// What a frame's sprites, rectangles and outlines are sent to the renderer as: eight integers and five floats to a record, one record after another, so a frame crosses into native code once and nothing is converted on the way.
 	static inline var RECORD_INTS = 8;
@@ -395,6 +396,9 @@ class DrawQueue {
 		var commands = pendingDrawCommands;
 		var count = commands.length;
 		if (hasSortedKeys(commands, count)) {
+			if (isSortedOrderIdentity) {
+				return;
+			}
 			sortScratch.resize(count);
 			for (position in 0...count) {
 				sortScratch[position] = commands[sortedOrder[position]];
@@ -414,9 +418,15 @@ class DrawQueue {
 		}
 		sortCommands();
 		sortedOrder.resize(count);
+		var isIdentity = true;
 		for (position in 0...count) {
-			sortedOrder[position] = commands[position].sequence;
+			var sequence = commands[position].sequence;
+			sortedOrder[position] = sequence;
+			if (sequence != position) {
+				isIdentity = false;
+			}
 		}
+		isSortedOrderIdentity = isIdentity;
 	}
 
 	static function hasSortedKeys(commands:Array<DrawCommand>, count:Int):Bool {
