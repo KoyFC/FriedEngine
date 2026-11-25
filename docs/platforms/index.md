@@ -12,6 +12,7 @@ Linux is the default build, described in [Building](../getting-started/building.
 | [Nintendo DS](nds.md) | Linux | The DS's 3D engine on the top screen, the CPU on the bottom one | The DS's 3D engine | melonDS |
 | [Casio fx-CG50](cg50.md) | Linux | The CPU, into gint's frame | Triangles in painter's order, with no further 3D support | A calculator |
 | [Web](web.md) | Linux | SDL2's Emscripten port | Triangles in painter's order | Not stated |
+| [Android](android.md) | Linux | SDL2's renderer | Depth buffer through SDL's `opengles2` driver | Not stated |
 
 - [PlayStation Vita](vita.md)
 - [Nintendo Switch](switch.md)
@@ -19,6 +20,7 @@ Linux is the default build, described in [Building](../getting-started/building.
 - [Nintendo DS](nds.md)
 - [Casio fx-CG50](cg50.md)
 - [Web](web.md)
+- [Android](android.md)
 
 ## Features
 

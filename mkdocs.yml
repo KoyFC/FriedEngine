@@ -48,6 +48,7 @@ nav:
       - platforms/nds.md
       - platforms/cg50.md
       - platforms/web.md
+      - platforms/android.md
   - Architecture:
       - architecture/index.md
       - architecture/consuming.md

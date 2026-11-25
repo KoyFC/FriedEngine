@@ -13,15 +13,26 @@
 function(fried_import_assets target_name platform engine_assets game_assets)
     get_filename_component(_engine_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
     set(_tool_dir ${CMAKE_BINARY_DIR}/fried_import_tool)
+
+    # The tool runs on this machine, and a cross toolchain such as the NDK's exports its own compiler as CXX to every process CMake starts on the first configure, which would build the tool with a compiler that does not match this machine's headers. A tool tree an earlier configure made with that compiler is started again.
+    set(_host_env ${CMAKE_COMMAND} -E env --unset=CC --unset=CXX --unset=CFLAGS --unset=CXXFLAGS --unset=LDFLAGS)
+    if(CMAKE_CROSSCOMPILING AND EXISTS ${_tool_dir}/CMakeCache.txt)
+        file(STRINGS ${_tool_dir}/CMakeCache.txt _cached_compiler REGEX "^CMAKE_CXX_COMPILER:")
+        string(FIND "${_cached_compiler}" "${CMAKE_CXX_COMPILER}" _cached_from_target)
+        if(NOT _cached_from_target EQUAL -1)
+            file(REMOVE_RECURSE ${_tool_dir})
+        endif()
+    endif()
+
     execute_process(
-        COMMAND ${CMAKE_COMMAND} -S ${_engine_dir}/tools/fried_import -B ${_tool_dir}
+        COMMAND ${_host_env} ${CMAKE_COMMAND} -S ${_engine_dir}/tools/fried_import -B ${_tool_dir}
         RESULT_VARIABLE _configured
         OUTPUT_QUIET
         ERROR_VARIABLE _tool_log
     )
     if(_configured EQUAL 0)
         execute_process(
-            COMMAND ${CMAKE_COMMAND} --build ${_tool_dir}
+            COMMAND ${_host_env} ${CMAKE_COMMAND} --build ${_tool_dir}
             RESULT_VARIABLE _built
             OUTPUT_QUIET
             ERROR_VARIABLE _tool_log

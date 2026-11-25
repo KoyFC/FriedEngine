@@ -59,6 +59,8 @@ elseif(FRIED_CG50)
     include("${CMAKE_CURRENT_LIST_DIR}/CG50.cmake")
 elseif(FRIED_WEB)
     include("${CMAKE_CURRENT_LIST_DIR}/Web.cmake")
+elseif(FRIED_ANDROID)
+    include("${CMAKE_CURRENT_LIST_DIR}/Android.cmake")
 endif()
 
 # gint is the whole platform on the calculator, and libnds on the DS, with no
@@ -458,6 +460,29 @@ function(fried_add_game target_name)
 
         fried_add_web_page(${target_name}
             NAME "${_name}"
+            ENGINE_ASSETS ${_engine_assets}
+            GAME_ASSETS ${_game_assets}
+        )
+    elseif(FRIED_ANDROID)
+        # The APK carries the identity project.fried declares, with "android.package" naming it on the device, "android.versionCode" the number stores compare, and "android.orientation" the way it is held.
+        string(JSON _name GET "${_project_json}" name)
+        string(JSON _organization GET "${_project_json}" organization)
+        string(JSON _version GET "${_project_json}" version)
+        string(JSON _version_code ERROR_VARIABLE _version_code_error GET "${_project_json}" android versionCode)
+        if(_version_code_error)
+            set(_version_code 1)
+        endif()
+        fried_read_android_package("${_project_json}" "${_organization}" "${_name}" _package)
+        fried_read_android_orientation("${_project_json}" _orientation _sdl_orientations)
+        target_compile_definitions(fried_engine PRIVATE "FRIED_ANDROID_ORIENTATIONS=\"${_sdl_orientations}\"")
+
+        fried_add_android_apk(${target_name}
+            NAME "${_name}"
+            PACKAGE ${_package}
+            VERSION "${_version}"
+            VERSION_CODE ${_version_code}
+            ORIENTATION ${_orientation}
+            ICON ${_game_PROJECT_DIR}/android/icon.png
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
