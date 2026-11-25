@@ -16,6 +16,8 @@ namespace
     std::string s_basePath;
     std::string s_assetPath;
     std::string s_userDataPath;
+    void *s_loaded = nullptr;
+    size_t s_loadedSize = 0;
 
 #ifdef __vita__
     // The Vita mounts the application read-only at a fixed point.
@@ -114,4 +116,48 @@ void fried_filesystem_init_user_data(const char *organization, const char *name)
 const char *fried_filesystem_get_user_data_path()
 {
     return s_userDataPath.c_str();
+}
+
+int fried_filesystem_assets_are_packed()
+{
+#ifdef __ANDROID__
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int fried_filesystem_exists(const char *path)
+{
+    SDL_RWops *file = SDL_RWFromFile(path, "rb");
+    if (!file)
+    {
+        return 0;
+    }
+    SDL_RWclose(file);
+    return 1;
+}
+
+int fried_filesystem_load(const char *path)
+{
+    SDL_free(s_loaded);
+    s_loadedSize = 0;
+    s_loaded = SDL_LoadFile(path, &s_loadedSize);
+    if (!s_loaded)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+    return (int)s_loadedSize;
+}
+
+void fried_filesystem_take_loaded(unsigned char *destination)
+{
+    if (destination && s_loaded)
+    {
+        SDL_memcpy(destination, s_loaded, s_loadedSize);
+    }
+    SDL_free(s_loaded);
+    s_loaded = nullptr;
+    s_loadedSize = 0;
 }

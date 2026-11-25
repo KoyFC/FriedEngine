@@ -15,3 +15,5 @@ Paths must be macro constants, which is what makes those checks possible on ever
 An asset a scene file names is chosen at run time, so it goes through `Filesystem.resolveAsset(root, path)` instead. It makes the same checks the macros do, except that a missing file is found when the asset loads rather than when the program compiles: an unknown root, an absolute path and `..` are rejected. The scene file is data, so the engine/game asymmetry is not enforced here: whoever writes the file chooses the root.
 
 The boundary is a guard rail, not a sandbox. `fried.io.Filesystem.getAssetPath()` is public and has to be, so engine code that wanted to could still build a `game/` path by hand. What the macro buys is that it cannot happen by accident, and that it is visible in review.
+
+On Android the two roots live inside the APK, in its `assets/` folder as `engine/` and `game/`, and the asset path is empty. Nothing there is a file on disk, so `Filesystem.exists` and `Filesystem.readBytes` read through SDL on that platform, which opens a relative path out of the APK.

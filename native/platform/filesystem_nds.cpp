@@ -63,3 +63,24 @@ const char *fried_filesystem_get_user_data_path()
 {
     return s_userDataPath.c_str();
 }
+
+// Assets are plain files here, which the Haxe side reads itself.
+int fried_filesystem_assets_are_packed()
+{
+    return 0;
+}
+
+int fried_filesystem_exists(const char *)
+{
+    return 0;
+}
+
+int fried_filesystem_load(const char *)
+{
+    fried_set_last_error("Assets are read as files on this platform");
+    return -1;
+}
+
+void fried_filesystem_take_loaded(unsigned char *)
+{
+}

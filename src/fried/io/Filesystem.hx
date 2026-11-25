@@ -5,6 +5,9 @@ class Filesystem {
 
 	public static var assetPath(default, null):String;
 
+	// Android's assets are inside the APK, where only SDL reads them.
+	static var isPacked:Bool = false;
+
 	public static function getAssetPath(relativePath:String):String {
 		return assetPath + relativePath;
 	}
@@ -36,11 +39,23 @@ class Filesystem {
 	#end
 
 	public static function exists(path:String):Bool {
+		if (isPacked) {
+			return FilesystemNative.exists(path) != 0;
+		}
 		return sys.FileSystem.exists(path);
 	}
 
 	public static function readBytes(path:String):haxe.io.Bytes {
-		return sys.io.File.getBytes(path);
+		if (!isPacked) {
+			return sys.io.File.getBytes(path);
+		}
+		var size = FilesystemNative.load(path);
+		if (size < 0) {
+			throw NativeError.describe('Failed to read $path');
+		}
+		var bytes = haxe.io.Bytes.alloc(size);
+		FilesystemNative.takeLoaded(size > 0 ? cpp.Pointer.ofArray(bytes.getData()).raw : null);
+		return bytes;
 	}
 
 	@:allow(fried.Application)
@@ -48,6 +63,7 @@ class Filesystem {
 		FilesystemNative.init();
 		basePath = FilesystemNative.getBasePath();
 		assetPath = FilesystemNative.getAssetPath();
+		isPacked = FilesystemNative.assetsArePacked() != 0;
 	}
 
 	@:allow(fried.Application)
@@ -69,4 +85,16 @@ private extern class FilesystemNative {
 
 	@:native("fried_filesystem_get_asset_path")
 	static function getAssetPath():cpp.ConstCharStar;
+
+	@:native("fried_filesystem_assets_are_packed")
+	static function assetsArePacked():Int;
+
+	@:native("fried_filesystem_exists")
+	static function exists(path:cpp.ConstCharStar):Int;
+
+	@:native("fried_filesystem_load")
+	static function load(path:cpp.ConstCharStar):Int;
+
+	@:native("fried_filesystem_take_loaded")
+	static function takeLoaded(destination:cpp.RawPointer<cpp.UInt8>):Void;
 }
