@@ -6,3 +6,4 @@ These are the open items of the roadmaps, and the measurements that decisions re
 - [Editor roadmap](editor-roadmap.md)
 - [DS 3D measurements](ds-3d-measurements.md)
 - [Physics backends](physics-backends.md)
+- [Releasing](releasing.md)
