@@ -6,6 +6,7 @@ import fried.scene.Camera;
 import fried.scene.CanvasItem;
 import fried.scene.Control;
 import fried.scene.Sprite;
+import fried.scene.Tilemap;
 
 typedef Box = {x:Float, y:Float, width:Float, height:Float}
 
@@ -23,6 +24,10 @@ class EditorBounds {
 			var width = sprite.source != null ? sprite.source.width : sprite.texture.width;
 			var height = sprite.source != null ? sprite.source.height : sprite.texture.height;
 			return box(sprite.worldX, sprite.worldY, width * sprite.worldScaleX, height * sprite.worldScaleY);
+		}
+		var tilemap = Std.downcast(node, Tilemap);
+		if (tilemap != null) {
+			return box(tilemap.worldX, tilemap.worldY, tilemap.mapWidth * tilemap.tileWidth * tilemap.worldScaleX, tilemap.mapHeight * tilemap.tileHeight * tilemap.worldScaleY);
 		}
 		var collider = Std.downcast(node, Collider);
 		if (collider != null) {
