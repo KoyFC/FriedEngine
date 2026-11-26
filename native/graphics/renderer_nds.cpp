@@ -802,6 +802,31 @@ namespace
         drawTextureRecord(list, view, record, rect, world->m_rotation != 0, angle);
     }
 
+    constexpr int s_tileEdgeCapacity = 96;
+
+    // The tiles one at a time, each placed and drawn as a texture record: for a tileset that is translucent, or a view of more tiles than the edge tables hold.
+    ITCM_CODE void drawTilesOneByOne(PolygonList &list, const BatchView &view, const int *record, const FriedTilemap *map, const LogicalRect &origin, int firstColumn, int firstRow, int endColumn, int endRow)
+    {
+        int tileRecord[s_recordInts] = {s_textureRecord, record[1], 0, 0, map->m_tileWidth, map->m_tileHeight, 0, 0};
+        for (int row = firstRow; row < endRow; ++row)
+        {
+            const uint16_t *cells = map->m_cells + row * map->m_width;
+            int64_t top = origin.m_y + row * origin.m_height;
+            for (int column = firstColumn; column < endColumn; ++column)
+            {
+                int cell = cells[column];
+                if (cell == 0)
+                {
+                    continue;
+                }
+                int tile = cell - 1;
+                tileRecord[2] = (tile % map->m_columns) * map->m_tileWidth;
+                tileRecord[3] = (tile / map->m_columns) * map->m_tileHeight;
+                drawTextureRecord(list, view, tileRecord, {origin.m_x + column * origin.m_width, top, origin.m_width, origin.m_height}, false, 0);
+            }
+        }
+    }
+
     // The tiles of a map that the screen shows, each a quad of its own. Every tile's edges are the same two numbers as its neighbours', so no seam opens between them at any scale. A map is not turned.
     ITCM_CODE void drawTilemapRecord(PolygonList &list, const BatchView &view, const int *record, int64_t screenWidth, int64_t screenHeight)
     {
@@ -827,11 +852,40 @@ namespace
         endColumn = endColumn > map->m_width ? map->m_width : endColumn;
         endRow = endRow > map->m_height ? map->m_height : endRow;
 
-        int tileRecord[s_recordInts] = {s_textureRecord, record[1], 0, 0, map->m_tileWidth, map->m_tileHeight, 0, 0};
+        // An opaque tileset is one list, one texture and one color for every tile, and each edge is worked out once for the row or the column that shares it.
+        const FriedNdsTexture *texture = fried_texture_get_nds(record[1]);
+        const int columnCount = endColumn - firstColumn;
+        const int rowCount = endRow - firstRow;
+        if (!texture || columnCount <= 0 || rowCount <= 0 || columnCount > s_tileEdgeCapacity || rowCount > s_tileEdgeCapacity)
+        {
+            drawTilesOneByOne(list, view, record, map, origin, firstColumn, firstRow, endColumn, endRow);
+            return;
+        }
+        if (texture->m_translucent)
+        {
+            drawTilesOneByOne(list, view, record, map, origin, firstColumn, firstRow, endColumn, endRow);
+            return;
+        }
+        int columnEdges[s_tileEdgeCapacity + 1];
+        int rowEdges[s_tileEdgeCapacity + 1];
+        for (int at = 0; at <= columnCount; ++at)
+        {
+            columnEdges[at] = batchEdgeX(view, origin.m_x + (firstColumn + at) * tileWidth);
+        }
+        for (int at = 0; at <= rowCount; ++at)
+        {
+            rowEdges[at] = batchEdgeY(view, origin.m_y + (firstRow + at) * tileHeight);
+        }
+        if (!startList(list, texture, 255))
+        {
+            return;
+        }
+        glColor(toVertexColor(255, 255, 255));
         for (int row = firstRow; row < endRow; ++row)
         {
             const uint16_t *cells = map->m_cells + row * map->m_width;
-            int64_t top = origin.m_y + row * tileHeight;
+            const int top = rowEdges[row - firstRow];
+            const int bottom = rowEdges[row - firstRow + 1];
             for (int column = firstColumn; column < endColumn; ++column)
             {
                 int cell = cells[column];
@@ -840,11 +894,11 @@ namespace
                     continue;
                 }
                 int tile = cell - 1;
-                tileRecord[2] = (tile % map->m_columns) * map->m_tileWidth;
-                tileRecord[3] = (tile / map->m_columns) * map->m_tileHeight;
-                drawTextureRecord(list, view, tileRecord, {origin.m_x + column * tileWidth, top, tileWidth, tileHeight}, false, 0);
+                TexelRegion region = regionOf(*texture, (tile % map->m_columns) * map->m_tileWidth, (tile / map->m_columns) * map->m_tileHeight, map->m_tileWidth, map->m_tileHeight, 0);
+                quad({columnEdges[column - firstColumn], top, columnEdges[column - firstColumn + 1], bottom}, region.m_u0, region.m_v0, region.m_u1, region.m_v1);
             }
         }
+        finishDraw(list);
     }
 
     ITCM_CODE __attribute__((noinline)) void drawBatchRecords(const Renderer &renderer, const int *ints, const float *floats, int count)
