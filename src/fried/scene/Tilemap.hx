@@ -2,6 +2,7 @@ package fried.scene;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.Texture;
+import fried.physics.Collider;
 
 // A grid of tiles taken from one picture, which is drawn as the cells it holds. The grid lives in the native layer and the renderer draws only the tiles the screen shows, so a large map costs no more than the part in view. Its position is its top left corner, it is scaled with its parent and it is never turned.
 @:serializable
@@ -19,12 +20,21 @@ class Tilemap extends Node2D {
 	// The tiles as a scene file keeps them: one line for each row, and in it the number of each cell separated by spaces, 0 for no tile and otherwise the tile's place in the picture counting along its rows from 1. setCell() changes the map that is running and not this.
 	public var cells(default, set):String;
 
+	// Whether every cell that holds a tile stops what is on the layer below. The cells are covered by as few boxes as the native layer finds, which are colliders that are children of this node and that Physics finds like any other.
+	public var isSolid(default, set):Bool;
+	public var collisionLayer(default, set):Int;
+
 	var store:Int;
+	var colliders:Array<Collider>;
+	static var solidValues:Array<Int> = [0, 0, 0, 0];
 
 	public function new(texture:Texture = null, tileWidth:Int = 16, tileHeight:Int = 16, mapWidth:Int = 0, mapHeight:Int = 0) {
 		super();
 		name = "Tilemap";
 		store = -1;
+		colliders = [];
+		isSolid = false;
+		collisionLayer = 1;
 		this.texture = texture;
 		this.tileWidth = tileWidth;
 		this.tileHeight = tileHeight;
@@ -40,6 +50,28 @@ class Tilemap extends Node2D {
 	public function setCell(x:Int, y:Int, value:Int):Void {
 		if (store >= 0) {
 			TilemapNative.setCell(store, x, y, value);
+		}
+	}
+
+	// Makes the colliders again from the cells as they are now, which a game does once after a run of setCell() calls that changed what is solid.
+	public function refreshColliders():Void {
+		for (collider in colliders) {
+			removeChild(collider);
+		}
+		colliders.resize(0);
+		if (!isSolid || store < 0) {
+			return;
+		}
+		var count = TilemapNative.buildSolid(store);
+		var values = solidValues;
+		for (index in 0...count) {
+			TilemapNative.solidRect(index, cpp.Pointer.ofArray(values).raw);
+			var collider = new Collider(values[2] * tileWidth, values[3] * tileHeight);
+			collider.x = values[0] * tileWidth;
+			collider.y = values[1] * tileHeight;
+			collider.collisionLayer = collisionLayer;
+			colliders.push(collider);
+			addChild(collider);
 		}
 	}
 
@@ -97,9 +129,14 @@ class Tilemap extends Node2D {
 		if (isInNumber) {
 			TilemapNative.setCell(store, x, y, value);
 		}
+		refreshColliders();
 	}
 
 	function release():Void {
+		for (collider in colliders) {
+			removeChild(collider);
+		}
+		colliders.resize(0);
 		if (store >= 0) {
 			TilemapNative.release(store);
 			store = -1;
@@ -132,6 +169,18 @@ class Tilemap extends Node2D {
 
 	function set_mapHeight(value:Int):Int {
 		mapHeight = value;
+		build();
+		return value;
+	}
+
+	function set_isSolid(value:Bool):Bool {
+		isSolid = value;
+		build();
+		return value;
+	}
+
+	function set_collisionLayer(value:Int):Int {
+		collisionLayer = value;
 		build();
 		return value;
 	}

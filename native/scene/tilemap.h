@@ -22,6 +22,10 @@ extern "C"
     void fried_tilemap_release(int id);
     void fried_tilemap_set_cell(int id, int x, int y, int value);
     int fried_tilemap_get_cell(int id, int x, int y);
+    // Covers the map's non-empty cells with as few rectangles as a greedy pass finds (a run along a row, grown down while the rows below hold the same run) and returns how many. They stay readable until the next call.
+    int fried_tilemap_build_solid(int id);
+    // A rectangle of the last fried_tilemap_build_solid() as left, top, width and height in cells.
+    void fried_tilemap_solid_rect(int index, int *out);
 }
 
 const FriedTilemap *fried_tilemap_get(int id);
