@@ -1,0 +1,39 @@
+name: Release
+
+# Release manually from the Actions tab. The engine is used as a submodule pinned to a tag,
+# so a release is the tag and its notes, with no files attached.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version being released, e.g. 0.1.0"
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    # Creating a release writes to the repository
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The notes are the version's section of CHANGELOG.md.
+          awk -v v="v${{ inputs.version }}" '$1 == "##" && $2 == v {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "CHANGELOG.md has no section for v${{ inputs.version }}" >&2
+            exit 1
+          fi
+
+          gh release create "v${{ inputs.version }}" \
+            --repo ${{ github.repository }} \
+            --target ${{ github.sha }} \
+            --title "Fried Engine ${{ inputs.version }}" \
+            --notes-file notes.md \
+            --draft
