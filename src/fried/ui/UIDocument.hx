@@ -15,6 +15,7 @@ import fried.ui.css.ElementState;
 //
 // The document is sized to its box when it is drawn, with the body filling it, and works its layout out again only after a class, a state, a text or the size changed.
 @:serializable
+@:autoBuild(fried.ui.UIDocumentBuilder.build())
 class UIDocument extends Control {
 	// The HTML file the document shows.
 	public var document(default, set):HtmlSource;
@@ -30,6 +31,9 @@ class UIDocument extends Control {
 	static var scratch:Rect = new Rect(0, 0, 0, 0);
 
 	var path:String;
+	var elementsById:Map<String, UIElement>;
+	var bindingValues:Map<String, String>;
+	var boundTexts:Map<String, Array<UIText>>;
 	var ownSheets:Array<StyleSheet>;
 	var sheets:Array<StyleSheet>;
 	var fontSizes:Map<String, Array<Int>>;
@@ -54,6 +58,9 @@ class UIDocument extends Control {
 		ownSheets = [];
 		sheets = [];
 		fontSizes = new Map();
+		elementsById = new Map();
+		bindingValues = new Map();
+		boundTexts = new Map();
 		images = [];
 		dirtyStyles = [];
 		isLayoutDirty = true;
@@ -122,6 +129,40 @@ class UIDocument extends Control {
 		}
 		isLoaded = true;
 		build(source);
+		bindElements();
+		reportUnboundHandlers(root);
+	}
+
+	// Gives the fields of a subclass their elements and their handlers. The code of a class marked @:ui writes this one.
+	function bindElements():Void {}
+
+	// The element of a document with this id, which a class compiled against the file asks for. A file that no longer has it was changed after the class was compiled.
+	function requireElement<T:UIElement>(id:String, type:Class<T>):T {
+		var element = elementsById.get(id);
+		if (element == null || !Std.isOfType(element, type)) {
+			throw '$path has no ${Type.getClassName(type)} with the id "$id", which ${Type.getClassName(Type.getClass(this))} was compiled against. Build the game again.';
+		}
+		return cast element;
+	}
+
+	// Fills the {{name}} of the texts that show it.
+	function setBinding(name:String, value:String):Void {
+		bindingValues.set(name, value);
+		var texts = boundTexts.get(name);
+		if (texts != null) {
+			for (text in texts) {
+				text.refresh(bindingValues);
+			}
+		}
+	}
+
+	function reportUnboundHandlers(element:UIElement):Void {
+		if (element.handlerName != null && element.onClick == null) {
+			UIDiagnostics.report(path, 0, 0, 'onclick="${element.handlerName}" is not bound, since a document binds it only in a class marked @:ui', "make the document a class that extends UIDocument and is marked @:ui(\"file.html\"), or set onClick in code");
+		}
+		for (child in element.children) {
+			reportUnboundHandlers(child);
+		}
 	}
 
 	function build(source:HtmlSource):Void {
@@ -140,6 +181,11 @@ class UIDocument extends Control {
 		var bodyRoot = new UIElement("body", content.nodeType == Element ? content.get("id") : null, content.nodeType == Element ? classesOf(content) : null);
 		root = bodyRoot;
 		images = [];
+		elementsById = new Map();
+		boundTexts = new Map();
+		if (bodyRoot.id != null) {
+			elementsById.set(bodyRoot.id, bodyRoot);
+		}
 		buildChildren(content, bodyRoot);
 		bodyRoot.setDocument(this);
 		rebuildSheets();
@@ -173,7 +219,17 @@ class UIDocument extends Control {
 				case PCData | CData:
 					var text = collapse(child.nodeValue);
 					if (text != "") {
-						parent.appendChild(new UIText(text));
+						var element = new UIText(text);
+						for (name in element.bindTemplate(text)) {
+							var texts = boundTexts.get(name);
+							if (texts == null) {
+								texts = [];
+								boundTexts.set(name, texts);
+							}
+							texts.push(element);
+						}
+						element.refresh(bindingValues);
+						parent.appendChild(element);
 					}
 				case _:
 			}
@@ -205,6 +261,10 @@ class UIDocument extends Control {
 				UIDiagnostics.report(path, 0, 0, '<$tag> is not an element the subset knows, so it is treated as a <div>', "use a <div>");
 				element = new UIElement(tag, id, classes);
 		}
+		if (id != null) {
+			elementsById.set(id, element);
+		}
+		element.handlerName = xml.get("onclick");
 		element.hidden = xml.exists("hidden");
 		element.disabled = xml.exists("disabled");
 		return element;

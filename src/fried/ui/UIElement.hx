@@ -39,6 +39,9 @@ class UIElement {
 	var intrinsicPass:Int;
 
 	var document:Null<UIDocument>;
+
+	// The method the HTML named in onclick, kept to say so when nothing binds it.
+	var handlerName:Null<String>;
 	var isStyleDirty:Bool;
 
 	public function new(tag:String, id:Null<String> = null, classes:Array<String> = null) {

@@ -25,6 +25,18 @@ class Assets {
 	}
 
 	#if macro
+	// The file on disk a game asset is, for a macro that reads it while compiling.
+	public static function gameSourcePath(relativePath:String):String {
+		if (relativePath == "" || Path.isAbsolute(relativePath) || relativePath.split("/").indexOf("..") != -1) {
+			Context.error('Invalid asset path "$relativePath". It must be relative to its own asset root and may not contain "..".', Context.currentPos());
+		}
+		var sourcePath = Path.join([sourceDirectory(Game), relativePath]);
+		if (!sys.FileSystem.exists(sourcePath) || sys.FileSystem.isDirectory(sourcePath)) {
+			Context.error('Asset not found: $sourcePath', Context.currentPos());
+		}
+		return sourcePath;
+	}
+
 	static function resolve(root:AssetRoot, relativePath:String):ExprOf<String> {
 		if (relativePath == "" || Path.isAbsolute(relativePath) || relativePath.split("/").indexOf("..") != -1) {
 			Context.error('Invalid asset path "$relativePath". It must be relative to its own asset root and may not contain "..".', Context.currentPos());

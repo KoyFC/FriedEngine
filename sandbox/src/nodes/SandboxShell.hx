@@ -225,7 +225,7 @@ class SandboxShell extends Node {
 		}
 	}
 
-	function playSound():Void {
+	public function playSound():Void {
 		beep.play();
 		Log.info("Sound played");
 	}

@@ -4,13 +4,9 @@
 		{
 			"children": [
 				{
-					"document": {
-						"path": "ui/menu.html",
-						"root": "game"
-					},
 					"id": "menu",
 					"name": "Menu",
-					"type": "UIDocument"
+					"type": "MainMenu"
 				},
 				{
 					"document": {

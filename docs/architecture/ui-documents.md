@@ -48,6 +48,34 @@ Every property, value, selector, element or rule that is not supported is report
 
 Each size of a font is a separate atlas of glyphs in memory, so a document that uses more than four sizes of a family is told so.
 
+## Binding in code
+
+A class that extends `UIDocument` and is marked `@:ui("ui/menu.html")` is compiled against its HTML file, so the game never looks an element up by a string. The build macro (`UIDocumentBuilder`) reads the file while compiling and writes what it names into the class:
+
+```haxe
+@:ui("ui/menu.html")
+@:serializable
+class MainMenu extends UIDocument {
+	var clicks:Int = 0;                       // shown by {{clicks}}
+
+	function makeSound():Void {               // called by onclick="makeSound"
+		clicks++;
+	}
+
+	override function ready():Void {
+		super.ready();
+		quit.disabled = true;                 // <button id="quit">, a UIButton field
+	}
+}
+```
+
+- Every element with an `id` is a public field of the class, `play-button` as `playButton`, typed by its tag: `UIButton` for a `button`, `UIImage` for an `img` and `UIElement` for the rest. It is filled when the document loads, which is before `ready()` of the subclass goes on after `super.ready()`.
+- `onclick="startGame"` sets that element's `onClick` to the method `startGame`, which takes no arguments. The element needs an id.
+- `{{score}}` in a text shows the field `score`, which needs a type. Assigning it rewrites that text and lays the document out again, and nothing runs each frame.
+- A method that does not exist, a `{{name}}` with no field, or an id that cannot be a field (`1x`, or two that give the same name) is a compile error that points at the place in the HTML file.
+
+The file is read again when the game runs, so its styles, layout and fixed text can change without compiling. What the class was compiled against cannot: if an id the class needs is gone from the file, loading fails and says to build the game again. A scene file names a `@:ui` class as the node's `type`, with no `document`. A document that is not a `@:ui` class has no handlers, and an `onclick` in it is reported.
+
 ## Pointer
 
 A press on a `<button>`, or on an element with an `onClick`, is held until it is let go, and `onClick` is called when it is let go over the same element. `:hover` and `:active` are set on the element under the pointer and on its ancestors, and `:active` ends when the pointer leaves what took the press. A press or a click is marked as handled only when it lands on something that takes it or on an element with a background that is not transparent, so a transparent part of a document lets the pointer through to the game.
