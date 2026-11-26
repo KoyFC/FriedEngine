@@ -16,7 +16,7 @@ The `document` field names the HTML file and the `theme` field an optional CSS f
 
 The HTML has to be well formed: every element is closed, and one without content ends with a slash, as in `<link rel="stylesheet" href="theme.css" />` and `<img src="icon.png" />`. A file that is not is refused with the parser's message. The `<body>` is the root of the document and fills the node's box, so `body { display: flex; justify-content: center; align-items: center; }` centers a panel on the screen. The text of an element is cut at spaces and its blanks are collapsed; there is no text mixed with elements in one line, so a `<span>` inside a sentence is a block of its own.
 
-The sheets apply in this order, each over the one before: the engine's own (`assets/ui/default.css`, which sets the font, the sizes of headings and the look of a `<button>`), the `<link rel="stylesheet">` and `<style>` of the file in order, and the `theme`. Inside a sheet the most specific selector wins, and the later rule wins a tie. `!important` is not supported.
+The sheets apply in this order, each over the one before: the engine's own (`assets/ui/default.css`, which sets the font, the sizes of headings and the look of a `<button>`), the `<link rel="stylesheet">` and `<style>` of the file in order, and the `theme`. Across all of them the most specific selector wins, and between equal ones the later sheet and then the later rule, so a theme that styles `button` does not take away the `button:focus` of the engine's sheet. `!important` is not supported.
 
 A `StyleSheet` is loaded once for its path, the way a `Font` is, and every document that links it or has it as its theme shares that one object. Changing the sheet changes all of them, and the file is read and parsed once.
 
@@ -69,12 +69,18 @@ class MainMenu extends UIDocument {
 }
 ```
 
-- Every element with an `id` is a public field of the class, `play-button` as `playButton`, typed by its tag: `UIButton` for a `button`, `UIImage` for an `img` and `UIElement` for the rest. It is filled when the document loads, which is before `ready()` of the subclass goes on after `super.ready()`.
+- Every element with an `id` is a public field of the class, `play-button` as `playButton`, typed by its tag: `UIButton` for a `button`, `UIImage` for an `img` and `UIElement` for the rest. It is filled when the document loads, so it can be used in `ready()` after `super.ready()`.
 - `onclick="startGame"` sets that element's `onClick` to the method `startGame`, which takes no arguments. The element needs an id.
 - `{{score}}` in a text shows the field `score`, which needs a type. Assigning it rewrites that text and lays the document out again, and nothing runs each frame.
 - A method that does not exist, a `{{name}}` with no field, or an id that cannot be a field (`1x`, or two that give the same name) is a compile error that points at the place in the HTML file.
 
 The file is read again when the game runs, so its styles, layout and fixed text can change without compiling. What the class was compiled against cannot: if an id the class needs is gone from the file, loading fails and says to build the game again. A scene file names a `@:ui` class as the node's `type`, with no `document`. A document that is not a `@:ui` class has no handlers, and an `onclick` in it is reported.
+
+## Focus, keyboard and gamepad
+
+A document can be used without a pointer. The elements that can have the focus are the `<button>`s, the elements with a `tabindex` and the ones with an `onClick`, as long as they are shown and not disabled. When the document loads, the first of them has the focus (`focusOnReady`, on by default), and `:focus` selects it, which the engine's sheet draws as a white border. A press on one gives it the focus too.
+
+The arrow keys, the D-pad and the left stick (pushed past half way, once for each push) move the focus to the nearest element in that direction: the one that is farthest to the side counts double, so a column of buttons moves up and down and a row left and right. Enter, Space and the gamepad's South button press the focused element, which looks pressed while the key is down and is clicked when it is let go. Escape and the East button call `onCancel`. Each of these is marked as handled only when the document used it, so a document with nothing to focus leaves them to the game.
 
 ## Pointer
 

@@ -4,5 +4,6 @@ package fried.ui;
 class UIButton extends UIElement {
 	public function new(id:Null<String> = null, classes:Array<String> = null) {
 		super("button", id, classes);
+		focusable = true;
 	}
 }

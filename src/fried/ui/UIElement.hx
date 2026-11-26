@@ -23,6 +23,9 @@ class UIElement {
 
 	public var onClick:Null<Void->Void>;
 
+	// Can take the focus, which a keyboard or a gamepad moves between elements. A button can, and so can any element with an onClick, or with a tabindex in the HTML.
+	public var focusable:Bool;
+
 	// The text of the element: the text it holds directly, which setting replaces.
 	public var textContent(get, set):String;
 
@@ -53,6 +56,7 @@ class UIElement {
 		states = 0;
 		hidden = false;
 		disabled = false;
+		focusable = false;
 		boxX = 0.0;
 		boxY = 0.0;
 		boxWidth = 0.0;

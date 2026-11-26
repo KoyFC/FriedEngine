@@ -3,7 +3,10 @@ package fried.ui;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
+import fried.input.GamepadAxis;
+import fried.input.GamepadButton;
 import fried.input.InputEvent;
+import fried.input.Key;
 import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.scene.Control;
@@ -11,7 +14,7 @@ import fried.ui.css.ElementState;
 
 // A screen written in HTML and CSS. It is one node: its box, which is placed like any control's, is the viewport of the document, and the elements inside are laid out and drawn by the document itself.
 //
-// The sheets apply in this order, each over the one before: the engine's own, the ones the file links or holds in a <style>, and then `theme`, which is how one sheet is shared between documents from the inspector. The cascade is simple on purpose: within a sheet, a more specific selector wins and then the later rule. What a document uses is reported once, with where it is, in the log when it is not supported.
+// The sheets apply in this order, each over the one before: the engine's own, the ones the file links or holds in a <style>, and then `theme`, which is how one sheet is shared between documents from the inspector. The cascade is the browser's without origins: the more specific selector wins, and between equal ones the later sheet and then the later rule. What a document uses is reported once, with where it is, in the log when it is not supported.
 //
 // The document is sized to its box when it is drawn, with the body filling it, and works its layout out again only after a class, a state, a text or the size changed.
 @:serializable
@@ -22,6 +25,15 @@ class UIDocument extends Control {
 
 	// A sheet laid over the ones the document has, shared with every other document that names it.
 	public var theme(default, set):StyleSheet;
+
+	// Whether the first element that can be focused has the focus when the document loads, which is what a gamepad or a keyboard starts from.
+	public var focusOnReady:Bool;
+
+	// Called when the player cancels, with Escape or the gamepad's East button.
+	public var onCancel:Null<Void->Void>;
+
+	// The element with the focus, which :focus selects and Enter or the gamepad's South button clicks.
+	@:noSerialize public var focused(default, null):Null<UIElement>;
 
 	// The body of the document, once it has loaded.
 	@:noSerialize public var root(default, null):Null<UIElement>;
@@ -50,6 +62,9 @@ class UIDocument extends Control {
 	var isHeldByMouse:Bool;
 	var isHeldByTouch:Bool;
 	var heldFingerId:Int;
+	var activating:Null<UIElement>;
+	var stickX:Int;
+	var stickY:Int;
 
 	public function new() {
 		super("UIDocument");
@@ -68,6 +83,9 @@ class UIDocument extends Control {
 		laidWidth = -1.0;
 		laidHeight = -1.0;
 		heldFingerId = 0;
+		focusOnReady = true;
+		stickX = 0;
+		stickY = 0;
 	}
 
 	// The asset path of the HTML a subclass shows, when it names one in code instead of in a scene file.
@@ -110,6 +128,16 @@ class UIDocument extends Control {
 				release(event);
 			case TouchUp if (isHeldByTouch && event.fingerId == heldFingerId):
 				release(event);
+			case KeyDown:
+				onKey(event, true);
+			case KeyUp:
+				onKey(event, false);
+			case GamepadButtonDown:
+				onPadButton(event, true);
+			case GamepadButtonUp:
+				onPadButton(event, false);
+			case GamepadAxisMoved:
+				onStick(event);
 			case _:
 		}
 	}
@@ -131,6 +159,9 @@ class UIDocument extends Control {
 		build(source);
 		bindElements();
 		reportUnboundHandlers(root);
+		if (focusOnReady) {
+			focusFirst();
+		}
 	}
 
 	// Gives the fields of a subclass their elements and their handlers. The code of a class marked @:ui writes this one.
@@ -265,6 +296,9 @@ class UIDocument extends Control {
 			elementsById.set(id, element);
 		}
 		element.handlerName = xml.get("onclick");
+		if (xml.exists("tabindex")) {
+			element.focusable = true;
+		}
 		element.hidden = xml.exists("hidden");
 		element.disabled = xml.exists("disabled");
 		return element;
@@ -517,6 +551,7 @@ class UIDocument extends Control {
 		if (target != null) {
 			pressedTarget = target;
 			pressedLeaf = leaf;
+			setFocus(target);
 			setChain(leaf, ElementState.ACTIVE, true);
 			event.handled = true;
 			return true;
@@ -557,6 +592,176 @@ class UIDocument extends Control {
 		}
 	}
 
+	// What can have the focus: a button, an element with a tabindex or an onClick, that is shown and not disabled. In the order of the document.
+	function collectFocusable(element:UIElement, into:Array<UIElement>):Void {
+		if (!element.isDisplayed()) {
+			return;
+		}
+		if (!element.disabled && (element.focusable || element.onClick != null)) {
+			into.push(element);
+		}
+		for (child in element.children) {
+			collectFocusable(child, into);
+		}
+	}
+
+	function focusables():Array<UIElement> {
+		var list = [];
+		if (root != null) {
+			ensureFresh();
+			collectFocusable(root, list);
+		}
+		return list;
+	}
+
+	public function focusFirst():Void {
+		var list = focusables();
+		setFocus(list.length > 0 ? list[0] : null);
+	}
+
+	public function setFocus(element:Null<UIElement>):Void {
+		if (element == focused) {
+			return;
+		}
+		if (focused != null) {
+			focused.setState(ElementState.FOCUS, false);
+		}
+		focused = element;
+		if (element != null) {
+			element.setState(ElementState.FOCUS, true);
+		}
+	}
+
+	// Moves the focus to the nearest element in a direction, which is the one whose center is the least far off to the side for how far it is ahead. Returns whether there is anything to focus, which is when the key is the document's.
+	function moveFocus(dx:Int, dy:Int):Bool {
+		var list = focusables();
+		if (list.length == 0) {
+			return false;
+		}
+		if (focused == null || list.indexOf(focused) < 0) {
+			setFocus(list[0]);
+			return true;
+		}
+		var fromX = focused.boxX + focused.boxWidth / 2;
+		var fromY = focused.boxY + focused.boxHeight / 2;
+		var best:Null<UIElement> = null;
+		var bestScore = Math.POSITIVE_INFINITY;
+		for (candidate in list) {
+			if (candidate == focused) {
+				continue;
+			}
+			var offsetX = candidate.boxX + candidate.boxWidth / 2 - fromX;
+			var offsetY = candidate.boxY + candidate.boxHeight / 2 - fromY;
+			var ahead = offsetX * dx + offsetY * dy;
+			if (ahead <= 0) {
+				continue;
+			}
+			var aside = Math.abs(offsetX * dy) + Math.abs(offsetY * dx);
+			var score = ahead + 2 * aside;
+			if (score < bestScore) {
+				bestScore = score;
+				best = candidate;
+			}
+		}
+		if (best != null) {
+			setFocus(best);
+		}
+		return true;
+	}
+
+	function onKey(event:InputEvent, isDown:Bool):Void {
+		switch (event.key) {
+			case Key.Up if (isDown):
+				event.handled = moveFocus(0, -1) || event.handled;
+			case Key.Down if (isDown):
+				event.handled = moveFocus(0, 1) || event.handled;
+			case Key.Left if (isDown):
+				event.handled = moveFocus(-1, 0) || event.handled;
+			case Key.Right if (isDown):
+				event.handled = moveFocus(1, 0) || event.handled;
+			case Key.Enter | Key.Space:
+				activate(event, isDown);
+			case Key.Escape if (isDown):
+				cancel(event);
+			case _:
+		}
+	}
+
+	function onPadButton(event:InputEvent, isDown:Bool):Void {
+		switch (event.gamepadButton) {
+			case GamepadButton.DpadUp if (isDown):
+				event.handled = moveFocus(0, -1) || event.handled;
+			case GamepadButton.DpadDown if (isDown):
+				event.handled = moveFocus(0, 1) || event.handled;
+			case GamepadButton.DpadLeft if (isDown):
+				event.handled = moveFocus(-1, 0) || event.handled;
+			case GamepadButton.DpadRight if (isDown):
+				event.handled = moveFocus(1, 0) || event.handled;
+			case GamepadButton.South:
+				activate(event, isDown);
+			case GamepadButton.East if (isDown):
+				cancel(event);
+			case _:
+		}
+	}
+
+	// The left stick moves the focus once for each time it is pushed past half way, and again after it came back to the middle.
+	function onStick(event:InputEvent):Void {
+		var value = event.axisValue;
+		switch (event.gamepadAxis) {
+			case GamepadAxis.LeftX:
+				var direction = stickDirection(value, stickX);
+				if (direction != stickX && direction != 0) {
+					event.handled = moveFocus(direction, 0) || event.handled;
+				}
+				stickX = direction;
+			case GamepadAxis.LeftY:
+				var direction = stickDirection(value, stickY);
+				if (direction != stickY && direction != 0) {
+					event.handled = moveFocus(0, direction) || event.handled;
+				}
+				stickY = direction;
+			case _:
+		}
+	}
+
+	static function stickDirection(value:Float, current:Int):Int {
+		if (value > 0.5) {
+			return 1;
+		}
+		if (value < -0.5) {
+			return -1;
+		}
+		return Math.abs(value) < 0.3 ? 0 : current;
+	}
+
+	// A key or button held on the focused element looks pressed, and clicks it when it is let go.
+	function activate(event:InputEvent, isDown:Bool):Void {
+		if (isDown) {
+			if (focused == null || activating != null || !(focused.onClick != null || focused.focusable)) {
+				return;
+			}
+			activating = focused;
+			focused.setState(ElementState.ACTIVE, true);
+			event.handled = true;
+		} else if (activating != null) {
+			var target = activating;
+			activating = null;
+			target.setState(ElementState.ACTIVE, false);
+			event.handled = true;
+			if (target.onClick != null && !target.disabled) {
+				target.onClick();
+			}
+		}
+	}
+
+	function cancel(event:InputEvent):Void {
+		if (onCancel != null) {
+			event.handled = true;
+			onCancel();
+		}
+	}
+
 	function set_document(value:HtmlSource):HtmlSource {
 		document = value;
 		isLoaded = false;
@@ -566,6 +771,8 @@ class UIDocument extends Control {
 		hoveredLeaf = null;
 		pressedTarget = null;
 		pressedLeaf = null;
+		focused = null;
+		activating = null;
 		isHeldByMouse = false;
 		isHeldByTouch = false;
 		isLayoutDirty = true;

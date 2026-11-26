@@ -14,7 +14,7 @@ private class Match {
 	}
 }
 
-// Works out the style of an element from the sheets of its document: the rules that match it, laid over one another by sheet, then specificity, then place in the sheet, on top of what it inherits.
+// Works out the style of an element from the sheets of its document: the rules that match it, laid over one another by specificity, then by sheet, then by place in the sheet, on top of what it inherits.
 class StyleResolver {
 	// The most sizes of one family a document may use before it is told, since each size is an atlas of glyphs on the device.
 	static inline var SIZES_PER_FAMILY:Int = 4;
@@ -49,11 +49,11 @@ class StyleResolver {
 	}
 
 	static function compare(a:Match, b:Match):Int {
-		if (a.sheet != b.sheet) {
-			return a.sheet - b.sheet;
-		}
 		if (a.rule.selector.specificity != b.rule.selector.specificity) {
 			return a.rule.selector.specificity - b.rule.selector.specificity;
+		}
+		if (a.sheet != b.sheet) {
+			return a.sheet - b.sheet;
 		}
 		return a.rule.order - b.rule.order;
 	}
