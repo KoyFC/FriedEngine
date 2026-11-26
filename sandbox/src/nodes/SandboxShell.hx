@@ -231,7 +231,7 @@ class SandboxShell extends Node {
 	}
 
 	function loadNextScene():Void {
-		var screens = ["sandbox", "sandbox_3d"];
+		var screens = ["sandbox", "sandbox_3d", "sandbox_html"];
 		var next = screens[(screens.indexOf(SceneManager.activeName) + 1) % screens.length];
 		Log.info('Loading scene $next');
 		SceneManager.load(next);

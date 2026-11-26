@@ -1,0 +1,21 @@
+/* The styles every document starts from. A document's own sheets and its theme come after this one, so they override it. */
+
+@font-face { font-family: "NunitoSans"; src: url("engine:NunitoSans.ttf"); }
+
+body { font-family: "NunitoSans"; font-size: 16px; color: #e6e6f0; }
+div, section, header, footer, nav, main, ul, li, p, span, label, h1, h2, h3 { display: block; }
+h1 { font-size: 24px; }
+h2 { font-size: 20px; }
+h3 { font-size: 18px; }
+
+button {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 4px 8px;
+	background-color: #3c3c50;
+	border: 1px solid #9696be;
+}
+button:active { background-color: #646487; }
+button:focus { border-color: #ffffff; }
+button:disabled { opacity: 0.5; }

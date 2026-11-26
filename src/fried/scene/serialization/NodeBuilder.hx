@@ -243,6 +243,8 @@ class NodeBuilder {
 			case "Rect": {name: "", codec: "Rect", kind: "Region", needsContext: false};
 			case "Texture": {name: "", codec: "Texture", kind: "TextureRef", needsContext: true};
 			case "Font": {name: "", codec: "Font", kind: "FontRef", needsContext: true};
+			case "HtmlSource": {name: "", codec: "HtmlSource", kind: "HtmlRef", needsContext: false};
+			case "StyleSheet": {name: "", codec: "StyleSheet", kind: "StyleSheetRef", needsContext: false};
 			case _: null;
 		}
 	}

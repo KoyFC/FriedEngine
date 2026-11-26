@@ -7,6 +7,8 @@ import fried.graphics.Rect;
 import fried.graphics3d.MeshShape;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
+import fried.ui.HtmlSource;
+import fried.ui.StyleSheet;
 
 // Converts between the data of a scene file and the values of node fields. The code a node's build macro generates calls these.
 class FieldCodec {
@@ -131,6 +133,14 @@ class FieldCodec {
 		return Font.from(assetPath(value, field), size);
 	}
 
+	public static function toHtmlSource(value:Dynamic, field:String):HtmlSource {
+		return value == null ? null : HtmlSource.from(assetPath(value, field));
+	}
+
+	public static function toStyleSheet(value:Dynamic, field:String):StyleSheet {
+		return value == null ? null : StyleSheet.from(assetPath(value, field));
+	}
+
 	// A reference is the id of another node of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
 	public static function toNode(value:Dynamic, field:String, context:LoadContext):fried.scene.Node {
 		if (value == null) {
@@ -210,6 +220,14 @@ class FieldCodec {
 		return null;
 	}
 
+	public static function fromHtmlSource(value:HtmlSource):Dynamic {
+		return null;
+	}
+
+	public static function fromStyleSheet(value:StyleSheet):Dynamic {
+		return null;
+	}
+
 	public static function zeroInt():Int {
 		return 0;
 	}
@@ -251,6 +269,14 @@ class FieldCodec {
 	}
 
 	public static function zeroFont():Font {
+		return null;
+	}
+
+	public static function zeroHtmlSource():HtmlSource {
+		return null;
+	}
+
+	public static function zeroStyleSheet():StyleSheet {
 		return null;
 	}
 

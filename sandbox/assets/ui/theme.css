@@ -1,0 +1,33 @@
+/* A theme shared by the documents of the sandbox. */
+
+@font-face { font-family: "Nunito"; src: url("engine:NunitoSans.ttf"); }
+
+body { font-family: "Nunito"; font-size: 16px; color: #dcdcf0; }
+
+.panel {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 16px 24px;
+	background-color: #282838;
+	border: 2px solid #5ac8ff;
+}
+
+.title { font-size: 24px; color: #ffffff; }
+.note { color: #a0a0c0; font-size: 14px; }
+
+button { min-width: 160px; background-color: #34344c; border-color: #5a5a88; }
+button:hover { background-color: #44445e; }
+button:active { background-color: #5a5a88; }
+
+.bar {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	margin: 8px;
+	padding: 6px 12px;
+	background-color: #14141e;
+	border: 1px solid #5a5a88;
+}

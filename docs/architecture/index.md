@@ -10,6 +10,7 @@ These pages describe the decisions behind what is currently implemented, and why
 - [The draw queue](draw-queue.md)
 - [Tilemaps](tilemaps.md)
 - [Text](text.md)
+- [Documents in HTML and CSS](ui-documents.md)
 - [Cameras](cameras.md)
 - [Layers](layers.md)
 - [Time](time.md)

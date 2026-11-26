@@ -3,6 +3,7 @@ package fried.scene;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Font;
+import fried.graphics.TextLayout;
 
 // Text on the screen, in one color, which sizes its control.
 @:serializable
@@ -98,7 +99,7 @@ class Label extends Control {
 		if (isMeasured) {
 			return;
 		}
-		lines = maxWidth > 0 ? breakLines() : [text];
+		lines = maxWidth > 0 ? TextLayout.breakLines(font, text, maxWidth) : [text];
 		measuredWidth = 0;
 		lineWidths = [];
 		for (line in lines) {
@@ -107,25 +108,6 @@ class Label extends Control {
 			measuredWidth = lineWidth > measuredWidth ? lineWidth : measuredWidth;
 		}
 		isMeasured = true;
-	}
-
-	function breakLines():Array<String> {
-		var result = [];
-		for (paragraph in text.split("\n")) {
-			var line:Null<String> = null;
-			for (word in paragraph.split(" ")) {
-				if (line == null) {
-					line = word;
-				} else if (font.measureWidth(line + " " + word) <= maxWidth) {
-					line += " " + word;
-				} else {
-					result.push(line);
-					line = word;
-				}
-			}
-			result.push(line == null ? "" : line);
-		}
-		return result;
 	}
 
 	function get_textHeight():Int {

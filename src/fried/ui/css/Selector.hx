@@ -1,5 +1,7 @@
 package fried.ui.css;
 
+import fried.ui.UIElement;
+
 class Compound {
 	public var tag:Null<String>;
 	public var id:Null<String>;
@@ -31,6 +33,46 @@ class Selector {
 				specificity += 1;
 			}
 		}
+	}
+
+	public function matches(element:UIElement):Bool {
+		if (!matchesCompound(parts[parts.length - 1], element)) {
+			return false;
+		}
+		var current = element;
+		var index = parts.length - 2;
+		while (index >= 0) {
+			current = current.parent;
+			if (childOf[index]) {
+				if (current == null || !matchesCompound(parts[index], current)) {
+					return false;
+				}
+			} else {
+				while (current != null && !matchesCompound(parts[index], current)) {
+					current = current.parent;
+				}
+				if (current == null) {
+					return false;
+				}
+			}
+			index--;
+		}
+		return true;
+	}
+
+	static function matchesCompound(compound:Compound, element:UIElement):Bool {
+		if (compound.tag != null && compound.tag != "*" && compound.tag != element.tag) {
+			return false;
+		}
+		if (compound.id != null && compound.id != element.id) {
+			return false;
+		}
+		for (name in compound.classes) {
+			if (!element.classList.contains(name)) {
+				return false;
+			}
+		}
+		return (element.states & compound.states) == compound.states;
 	}
 
 	// Null when the text uses something the subset leaves out, and then `problem` says what.

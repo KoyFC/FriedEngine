@@ -1,0 +1,36 @@
+{
+	"name": "Sandbox HTML",
+	"nodes": [
+		{
+			"children": [
+				{
+					"document": {
+						"path": "ui/menu.html",
+						"root": "game"
+					},
+					"id": "menu",
+					"name": "Menu",
+					"type": "UIDocument"
+				},
+				{
+					"document": {
+						"path": "ui/hud.html",
+						"root": "game"
+					},
+					"id": "hud",
+					"name": "HUD",
+					"priority": 1,
+					"theme": {
+						"path": "ui/theme.css",
+						"root": "game"
+					},
+					"type": "UIDocument"
+				}
+			],
+			"id": "sandbox-html",
+			"name": "Sandbox HTML",
+			"type": "Node"
+		}
+	],
+	"version": 2
+}

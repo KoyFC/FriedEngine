@@ -59,6 +59,7 @@ nav:
       - architecture/draw-queue.md
       - architecture/tilemaps.md
       - architecture/text.md
+      - architecture/ui-documents.md
       - architecture/cameras.md
       - architecture/layers.md
       - architecture/time.md

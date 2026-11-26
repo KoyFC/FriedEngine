@@ -3,14 +3,13 @@ package fried.ui;
 import fried.io.Filesystem;
 import fried.ui.css.CssParser;
 import fried.ui.css.StyleRule;
-import haxe.io.Path;
 
 // A parsed CSS file. It is loaded once for its path and shared by every document and node that uses it, so the file is read and parsed a single time however many use it.
 class StyleSheet {
 	public var path(default, null):String;
 	public var rules(default, null):Array<StyleRule>;
 
-	// Family to the asset path of its font, resolved against the directory of the sheet.
+	// Family to the asset path of its font, which the sheet wrote relative to its own directory or as `engine:` or `game:` followed by a path.
 	public var fontFaces(default, null):Map<String, String>;
 
 	static var byPath:Map<String, StyleSheet> = new Map();
@@ -30,7 +29,7 @@ class StyleSheet {
 		var parsed = CssParser.parse(path, text);
 		var faces = new Map<String, String>();
 		for (family in parsed.fontFaces.keys()) {
-			faces.set(family, Path.join([Path.directory(path), parsed.fontFaces.get(family)]));
+			faces.set(family, UIPaths.resolve(path, parsed.fontFaces.get(family)));
 		}
 		return new StyleSheet(path, parsed.rules, faces);
 	}
