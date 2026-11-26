@@ -1,0 +1,9 @@
+# Tilemaps
+
+A `fried.scene.Tilemap` is a `Node2D` that draws a grid of tiles cut from one picture. Its fields are the `texture`, the size of a tile in the picture's pixels (`tileWidth`, `tileHeight`), the size of the map in tiles (`mapWidth`, `mapHeight`) and `cells`, which is how a scene file keeps the tiles: one line for each row, and in it the number of each cell separated by spaces. 0 is no tile, and any other number is the tile's place in the picture counting along its rows from 1. Its position is its top left corner, its parent's scale scales it, and it is never turned.
+
+The grid does not live in Haxe. A tilemap in a scene owns a map in the native store (`native/scene/tilemap.cpp`), made when it enters the scene and released when it leaves it or any of its fields changes, and filled by one pass over `cells` that allocates nothing. The map is one array of 16-bit cells, so a 64 by 32 map is 4 KB however many tiles it shows. `getCell()` and `setCell()` read and change that array while the game runs, and do not touch `cells`.
+
+A tilemap draws one command in the queue, not one for each tile. The record (`RECORD_TILEMAP`) names the texture, the map and the transform slot that places it, and the renderer works out which cells the screen shows from the camera and draws only those, so a large map costs what its visible part costs. Every renderer but the DS's 3D engine decodes the record into one texture draw for each visible tile (`draw_batch.cpp`). The DS draws each as a quad in 16.16 fixed point (`drawTilemapRecord` in `renderer_nds.cpp`) and gives all of a tile's neighbours the same edge numbers, so no seam opens between tiles at any scale or camera position.
+
+The cost on the DS is about 7 microseconds a tile, so a screen of 16 by 12 tiles takes 1.4 ms of a 16.7 ms frame. Measure it with the `tiles` bench (`bench/tiles.hxml`), see [Profiling](../development/profiling.md).

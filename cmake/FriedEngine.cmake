@@ -147,6 +147,7 @@ if(FRIED_CG50)
         native/graphics/mesh_none.cpp
         native/audio/sound_gint.cpp
         native/audio/music_gint.cpp
+        native/scene/tilemap.cpp
         native/scene/transform2d.cpp
         native/physics/collider_store.cpp
     )
@@ -178,6 +179,7 @@ elseif(NINTENDO_DS)
         native/audio/sound_nds.cpp
         native/audio/music_nds.cpp
         native/audio/wave_nds.cpp
+        native/scene/tilemap.cpp
         native/scene/transform2d_nds.cpp
         native/physics/collider_store.cpp
     )
@@ -199,6 +201,7 @@ else()
         native/graphics/mesh_${_fried_mesh_backend}.cpp
         native/audio/sound.cpp
         native/audio/music.cpp
+        native/scene/tilemap.cpp
         native/scene/transform2d.cpp
         native/physics/collider_store.cpp
     )

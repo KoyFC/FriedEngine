@@ -8,6 +8,7 @@ These pages describe the decisions behind what is currently implemented, and why
 - [Input](input.md)
 - [Nodes](nodes.md)
 - [The draw queue](draw-queue.md)
+- [Tilemaps](tilemaps.md)
 - [Text](text.md)
 - [Cameras](cameras.md)
 - [Layers](layers.md)

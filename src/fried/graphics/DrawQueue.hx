@@ -39,6 +39,7 @@ class DrawQueue {
 	static inline var RECORD_CAMERA = 3;
 	static inline var RECORD_SCALED_TEXTURE = 4;
 	static inline var RECORD_SLOT_TEXTURE = 5;
+	static inline var RECORD_TILEMAP = 6;
 	static var batchInts:Array<Int> = [];
 	static var batchFloats:Array<Single> = [];
 	static var batchCapacity:Int = 0;
@@ -157,6 +158,16 @@ class DrawQueue {
 		submitTriangles(priority, circlePoints, circleColors);
 	}
 
+	// A tilemap the renderer draws from the native store, which places it by its transform slot and draws the tiles the screen shows.
+	@:allow(fried.scene)
+	static function submitTilemap(priority:Int, texture:Texture, tilemap:Int, slot:Int):Void {
+		var command = next(priority);
+		command.type = TilemapRegion;
+		command.texture = texture;
+		command.tilemap = tilemap;
+		command.slot = slot;
+	}
+
 	// A mesh the renderer draws itself. Returns the numbers that place it, for
 	// MeshPass to fill in the order graphics/mesh.h lists them: they are
 	// written straight into the command, as copying them takes as long again.
@@ -227,6 +238,11 @@ class DrawQueue {
 				case FillTriangles:
 					sendBatch(renderer);
 					renderer.fillTriangles(computeViewPoints(command), command.colors);
+				case TilemapRegion:
+					var record = addRecord(command, RECORD_TILEMAP, false);
+					NativeArray.unsafeSet(batchInts, (record << 3) + 1, command.texture.id);
+					NativeArray.unsafeSet(batchInts, (record << 3) + 2, command.tilemap);
+					NativeArray.unsafeSet(batchInts, (record << 3) + 7, command.slot);
 				case DrawMesh:
 					sendBatch(renderer);
 					drawMesh(command, renderer);
@@ -541,6 +557,7 @@ private enum abstract DrawCommandType(Int) {
 	var DrawMesh = 5;
 	var ScaledTextureRegion = 6;
 	var SlotTextureRegion = 7;
+	var TilemapRegion = 8;
 }
 
 private class DrawCommand {
@@ -564,6 +581,7 @@ private class DrawCommand {
 	public var source:Rect;
 	public var points:Array<Float>;
 	public var meshId:Int;
+	public var tilemap:Int;
 	public var slot:Int;
 
 	public var color:Color;

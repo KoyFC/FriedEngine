@@ -10,6 +10,7 @@
 #include "graphics/texture.h"
 #include "math/fixed_point.h"
 #include "platform/window.h"
+#include "scene/tilemap.h"
 #include "scene/transform2d.h"
 
 #include <nds.h>
@@ -624,6 +625,7 @@ namespace
     constexpr int s_cameraRecord = 3;
     constexpr int s_scaledTextureRecord = 4;
     constexpr int s_slotTextureRecord = 5;
+    constexpr int s_tilemapRecord = 6;
     constexpr int s_fixedOne = 1 << 16;
 
     // What places a record: the camera and the display's layout, in 16.16 fixed point, worked out from the floats' bits so no float operation is done for it.
@@ -800,6 +802,51 @@ namespace
         drawTextureRecord(list, view, record, rect, world->m_rotation != 0, angle);
     }
 
+    // The tiles of a map that the screen shows, each a quad of its own. Every tile's edges are the same two numbers as its neighbours', so no seam opens between them at any scale. A map is not turned.
+    ITCM_CODE void drawTilemapRecord(PolygonList &list, const BatchView &view, const int *record, int64_t screenWidth, int64_t screenHeight)
+    {
+        const FriedTilemap *map = fried_tilemap_get(record[2]);
+        if (map == nullptr)
+        {
+            return;
+        }
+        const FriedTransform2DFixed *world = fried_transform2d_world_fixed(record[7]);
+        LogicalRect origin = placeOf(view, world->m_x, world->m_y, (world->m_scaleX * map->m_tileWidth) >> 16, (world->m_scaleY * map->m_tileHeight) >> 16);
+        const int64_t tileWidth = origin.m_width;
+        const int64_t tileHeight = origin.m_height;
+        if (tileWidth <= 0 || tileHeight <= 0)
+        {
+            return;
+        }
+        int firstColumn = origin.m_x >= 0 ? 0 : (int)((-origin.m_x) / tileWidth);
+        int firstRow = origin.m_y >= 0 ? 0 : (int)((-origin.m_y) / tileHeight);
+        int64_t spanX = screenWidth - origin.m_x;
+        int64_t spanY = screenHeight - origin.m_y;
+        int endColumn = spanX <= 0 ? 0 : (int)((spanX + tileWidth - 1) / tileWidth);
+        int endRow = spanY <= 0 ? 0 : (int)((spanY + tileHeight - 1) / tileHeight);
+        endColumn = endColumn > map->m_width ? map->m_width : endColumn;
+        endRow = endRow > map->m_height ? map->m_height : endRow;
+
+        int tileRecord[s_recordInts] = {s_textureRecord, record[1], 0, 0, map->m_tileWidth, map->m_tileHeight, 0, 0};
+        for (int row = firstRow; row < endRow; ++row)
+        {
+            const uint16_t *cells = map->m_cells + row * map->m_width;
+            int64_t top = origin.m_y + row * tileHeight;
+            for (int column = firstColumn; column < endColumn; ++column)
+            {
+                int cell = cells[column];
+                if (cell == 0)
+                {
+                    continue;
+                }
+                int tile = cell - 1;
+                tileRecord[2] = (tile % map->m_columns) * map->m_tileWidth;
+                tileRecord[3] = (tile / map->m_columns) * map->m_tileHeight;
+                drawTextureRecord(list, view, tileRecord, {origin.m_x + column * tileWidth, top, tileWidth, tileHeight}, false, 0);
+            }
+        }
+    }
+
     ITCM_CODE __attribute__((noinline)) void drawBatchRecords(const Renderer &renderer, const int *ints, const float *floats, int count)
     {
         const FriedDisplayLayout &layout = renderer.m_layout;
@@ -829,6 +876,12 @@ namespace
             if (kind == s_slotTextureRecord)
             {
                 drawSlotRecord(list, view, record);
+                continue;
+            }
+
+            if (kind == s_tilemapRecord)
+            {
+                drawTilemapRecord(list, view, record, halfWidth * 2, halfHeight * 2);
                 continue;
             }
 
