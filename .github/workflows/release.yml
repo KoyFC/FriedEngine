@@ -1,5 +1,8 @@
 name: Release
 
+# Shows the version in the list of runs
+run-name: Release ${{ inputs.version }}
+
 # Release manually from the Actions tab. The engine is used as a submodule pinned to a tag,
 # so a release is the tag and its notes, with no files attached.
 on:
