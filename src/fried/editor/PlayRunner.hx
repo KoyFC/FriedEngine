@@ -1,6 +1,7 @@
 package fried.editor;
 
 #if fried_editor
+import fried.Profile;
 import fried.Project;
 import fried.Time;
 import fried.audio.Music;
@@ -321,6 +322,9 @@ class PlayRunner extends BootObserver {
 				workMs: statsWorkSeconds / statsFrames * 1000.0,
 				nodes: scene != null ? countNodes(scene.root) : 0
 			};
+			#if fried_profile
+			stats.sections = [for (section in 0...Profile.SECTIONS) Profile.average(section) / 1000.0];
+			#end
 			statsStart = now;
 			statsFrames = 0;
 			statsWorkSeconds = 0.0;
