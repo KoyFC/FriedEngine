@@ -133,6 +133,7 @@ class Application {
 				pendingSteps = 0;
 				Time.tick();
 			}
+			var profileFixed = Profile.begin();
 			var fixedSteps = isRunningFrame ? Time.fixedStepsDue() : 0;
 			while (fixedSteps > 0) {
 				for (renderer in renderers) {
@@ -140,6 +141,7 @@ class Application {
 				}
 				fixedSteps--;
 			}
+			Profile.end(Profile.FIXED, profileFixed);
 
 			for (renderer in renderers) {
 				renderer.clear();
@@ -147,26 +149,36 @@ class Application {
 			DrawQueue.currentRenderTarget = renderers.length > 0 ? renderers[0] : null;
 			DrawQueue.currentCamera = null;
 			DrawQueue.currentLayerIndex = 0;
+			var profileUpdate = Profile.begin();
 			update(Time.deltaSeconds);
 			if (isRunningFrame) {
 				for (renderer in renderers) {
 					renderer.updateLayers(Time.deltaSeconds);
 				}
 			}
+			Profile.end(Profile.UPDATE, profileUpdate);
+			var profileDraw = Profile.begin();
 			for (renderer in renderers) {
 				renderer.drawLayers();
 			}
+			Profile.end(Profile.DRAW, profileDraw);
+			var profileFlush = Profile.begin();
 			DrawQueue.flush(renderers);
+			Profile.end(Profile.FLUSH, profileFlush);
+			Profile.end(Profile.WORK, frameStart);
 			#if fried_editor
 			if (onBeforePresent != null) {
 				onBeforePresent();
 			}
 			#end
+			var profilePresent = Profile.begin();
 			for (renderer in renderers) {
 				renderer.present();
 			}
+			Profile.end(Profile.PRESENT, profilePresent);
 
 			Input.endFrame();
+			Profile.frame();
 
 			waitForFrameBudget(frameStart);
 		}

@@ -131,6 +131,7 @@ if(FRIED_CG50)
     set(_fried_native_sources
         native/platform/application_gint.cpp
         native/platform/clock.cpp
+        native/platform/profile.cpp
         native/platform/events_gint.cpp
         native/platform/filesystem_gint.cpp
         native/platform/gamepad_gint.cpp
@@ -157,6 +158,7 @@ elseif(NINTENDO_DS)
     set(_fried_native_sources
         native/platform/application_nds.cpp
         native/platform/clock_nds.cpp
+        native/platform/profile.cpp
         native/platform/console_nds.cpp
         native/platform/events_nds.cpp
         native/platform/filesystem_nds.cpp
@@ -183,6 +185,7 @@ else()
     set(_fried_native_sources
         native/platform/application.cpp
         native/platform/clock.cpp
+        native/platform/profile.cpp
         native/platform/events.cpp
         native/platform/filesystem.cpp
         native/platform/gamepad.cpp

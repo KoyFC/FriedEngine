@@ -1,6 +1,7 @@
 package fried.graphics;
 
 import cpp.NativeArray;
+import fried.Profile;
 
 
 class DrawQueue {
@@ -172,7 +173,9 @@ class DrawQueue {
 
 	@:allow(fried.Application)
 	static function flush(renderers:Array<Renderer>):Void {
+		var profileSort = Profile.begin();
 		sortPending();
+		Profile.end(Profile.SORT, profileSort);
 
 		for (renderer in renderers) {
 			draw(renderer);
@@ -301,7 +304,9 @@ class DrawQueue {
 		if (batchCount == 0) {
 			return;
 		}
+		var profileBatch = Profile.begin();
 		renderer.drawBatch(batchInts, batchFloats, batchCount);
+		Profile.end(Profile.BATCH, profileBatch);
 		batchCount = 0;
 		isBatchCameraKnown = false;
 	}
