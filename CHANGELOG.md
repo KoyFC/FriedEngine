@@ -7,7 +7,7 @@ All notable changes to Fried Engine are written here, newest version first.
 - Each section uses `Added`, `Changed`, `Fixed` and `Removed`, and leaves out the ones it has no entries for.
 - The Release workflow copies a version's section into its GitHub release, see [Releasing](https://koyfc.github.io/FriedEngine/development/releasing/).
 
-## vX.Y.Z
+## v0.1.0 - 2026-11-26
 
 The first release. It is the engine as it stands now, written in Haxe on top of a native C++ core, with SDL2 on PC and native backends on the consoles.
 
