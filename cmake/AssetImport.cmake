@@ -6,11 +6,12 @@
 # for the packaging steps that list them, as well as before every build so an
 # edited asset or sidecar arrives.
 
-# fried_import_assets(<target> <platform> <engine_assets> <game_assets>)
+# fried_build_import_tool(<out_tool_var>)
 #
-# Adds <target>_import and remembers where each root's imported copy is for
-# fried_imported_dir(). The copies are under the build tree, a folder per root.
-function(fried_import_assets target_name platform engine_assets game_assets)
+# Builds tools/fried_import for this machine and gives the path of the program.
+# Reading project.fried needs it, since CMake cannot read YAML, so it exists
+# before the assets are imported and for the editor's player too.
+function(fried_build_import_tool out_tool)
     get_filename_component(_engine_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
     set(_tool_dir ${CMAKE_BINARY_DIR}/fried_import_tool)
 
@@ -41,7 +42,33 @@ function(fried_import_assets target_name platform engine_assets game_assets)
     if(NOT _configured EQUAL 0 OR NOT _built EQUAL 0)
         message(FATAL_ERROR "The asset import tool could not be built for this machine, which takes a C++17 compiler:\n${_tool_log}")
     endif()
-    set(_tool ${_tool_dir}/fried_import)
+    set(${out_tool} ${_tool_dir}/fried_import PARENT_SCOPE)
+endfunction()
+
+# fried_project_json(<project_file> <out_json_var>)
+#
+# The text of project.fried as JSON, which string(JSON ...) reads.
+function(fried_project_json project_file out_json)
+    fried_build_import_tool(_tool)
+    set(_json_file ${CMAKE_BINARY_DIR}/project.json)
+    execute_process(
+        COMMAND ${_tool} --project-json ${project_file} ${_json_file}
+        RESULT_VARIABLE _read
+        ERROR_VARIABLE _read_log
+    )
+    if(NOT _read EQUAL 0)
+        message(FATAL_ERROR "${_read_log}")
+    endif()
+    file(READ ${_json_file} _json)
+    set(${out_json} "${_json}" PARENT_SCOPE)
+endfunction()
+
+# fried_import_assets(<target> <platform> <engine_assets> <game_assets>)
+#
+# Adds <target>_import and remembers where each root's imported copy is for
+# fried_imported_dir(). The copies are under the build tree, a folder per root.
+function(fried_import_assets target_name platform engine_assets game_assets)
+    fried_build_import_tool(_tool)
     set(_imported ${CMAKE_BINARY_DIR}/imported)
 
     foreach(_root engine game)

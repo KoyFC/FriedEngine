@@ -324,7 +324,7 @@ function(fried_add_game target_name)
     set(_engine_assets ${_engine_dir}/assets)
     set(_game_assets ${_game_PROJECT_DIR}/assets)
 
-    file(READ ${_project_file} _project_json)
+    fried_project_json(${_project_file} _project_json)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_project_file})
 
     if(VITA)
