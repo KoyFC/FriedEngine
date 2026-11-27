@@ -11,6 +11,8 @@ All notable changes to Fried Engine are written here, newest version first.
 
 ### Added
 - `Tilemap`, a node that draws a grid of tiles from one picture out of a native cell store, drawing only the tiles the screen shows, with `isSolid` to cover its cells with merged colliders.
+- `UIDocument`, a node that shows a screen written in HTML and CSS: a small parser for each, a flex layout, `:hover`, `:active`, `:focus` and `:disabled`, a `StyleSheet` shared by every document that uses it, focus moved with a keyboard or a gamepad, and `@:ui("file.html")` classes compiled against their HTML so an element's id, its `onclick` and its `{{text}}` are typed fields and methods.
+- Rounded corners, gradients and shadows in a `UIDocument`, drawn plain on the DS and the fx-CG50.
 - `fried.Profile`, section timers that exist only in a build made with `-D fried_profile`, and the game's frame stats carry them to the editor.
 
 ## v0.1.0 - 2026-11-26
