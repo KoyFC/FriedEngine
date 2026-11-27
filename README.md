@@ -31,6 +31,8 @@ cmake --build build
 ./build/sandbox/fried_sandbox
 ```
 
+On Linux, in a Wayland session whose SDL2 is `sdl2-compat` (Arch and CachyOS install it as `sdl2`), [Fried Editor](https://github.com/KoyFC/FriedEditor) does not lock the pointer while panning its view or wrap it when a value is dragged. Start it with `SDL_VIDEODRIVER=x11` to avoid it, see [its documentation](https://koyfc.github.io/FriedEditor/using/viewport/#panning-on-wayland).
+
 ## License
 
 Fried Engine is released under the MIT License, see [`LICENSE`](LICENSE). Third party components are listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
