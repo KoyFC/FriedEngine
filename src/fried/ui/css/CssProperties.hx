@@ -56,7 +56,10 @@ class CssProperties {
 	public static inline var TEXT_ALIGN:Int = 30;
 	public static inline var VISIBILITY:Int = 31;
 	public static inline var OPACITY:Int = 32;
-	public static inline var COUNT:Int = 33;
+	public static inline var BORDER_RADIUS:Int = 33;
+	public static inline var BACKGROUND_IMAGE:Int = 34;
+	public static inline var BOX_SHADOW:Int = 35;
+	public static inline var COUNT:Int = 36;
 
 	// The size an em and a rem are worth, since the subset has no root font size to follow.
 	static inline var EM:Float = 16.0;
@@ -109,6 +112,7 @@ class CssProperties {
 		add("text-align", TEXT_ALIGN, Keywords(["left", "center", "right"]));
 		add("visibility", VISIBILITY, Keywords(["visible", "hidden"]));
 		add("opacity", OPACITY, NumberKind);
+		add("border-radius", BORDER_RADIUS, Length(false, false));
 		return map;
 	}
 
@@ -125,6 +129,12 @@ class CssProperties {
 				return parseBorder(value, report);
 			case "flex":
 				return parse("flex-grow", value, report);
+			case "background":
+				return StringTools.startsWith(value.toLowerCase(), "linear-gradient(") ? parse("background-image", value, report) : parse("background-color", value, report);
+			case "background-image":
+				return parseImage(value, report);
+			case "box-shadow":
+				return parseShadow(value, report);
 			case _:
 		}
 		var property = properties.get(name);
@@ -134,6 +144,115 @@ class CssProperties {
 		}
 		var parsed = parseValue(name, property.kind, value, report);
 		return parsed == null ? [] : [new Declaration(property.id, parsed)];
+	}
+
+	static function parseImage(value:String, report:(message:String, fix:String) -> Void):Array<Declaration> {
+		var text = StringTools.trim(value);
+		if (text.toLowerCase() == "none") {
+			return [new Declaration(BACKGROUND_IMAGE, Keyword("none"))];
+		}
+		var gradient = parseGradient(text, report);
+		return gradient == null ? [] : [new Declaration(BACKGROUND_IMAGE, gradient)];
+	}
+
+	static function parseGradient(text:String, report:(message:String, fix:String) -> Void):Null<StyleValue> {
+		var open = text.indexOf("(");
+		var close = text.lastIndexOf(")");
+		if (!StringTools.startsWith(text.toLowerCase(), "linear-gradient(") || close < open) {
+			report('"$text" is not an image the subset draws', "write linear-gradient(to bottom, #color, #color) or none");
+			return null;
+		}
+		var parts = splitTopLevel(text.substring(open + 1, close), ",");
+		var isHorizontal = false;
+		var isReversed = false;
+		var first = parts[0].toLowerCase();
+		if (StringTools.startsWith(first, "to ")) {
+			parts.shift();
+			switch (first) {
+				case "to bottom":
+				case "to top":
+					isReversed = true;
+				case "to right":
+					isHorizontal = true;
+				case "to left":
+					isHorizontal = true;
+					isReversed = true;
+				case _:
+					report('"$first" is not a direction the subset reads', "write to bottom, to top, to right or to left");
+					return null;
+			}
+		} else if (parseColor(first) == null) {
+			report("a gradient with an angle is not supported", "write a direction such as to bottom");
+			return null;
+		}
+		if (parts.length < 2) {
+			report("a gradient needs two colors", "write linear-gradient(to bottom, #color, #color)");
+			return null;
+		}
+		if (parts.length > 2) {
+			report("a gradient with more than two colors is not supported, so the first and the last are used", "write two colors");
+		}
+		var from = parseColor(parts[0]);
+		var to = parseColor(parts[parts.length - 1]);
+		if (from == null || to == null) {
+			report("a color of the gradient is not one the subset reads", "write #rgb, #rrggbb or rgb()");
+			return null;
+		}
+		return isReversed ? Gradient(isHorizontal, to, from) : Gradient(isHorizontal, from, to);
+	}
+
+	static function parseShadow(value:String, report:(message:String, fix:String) -> Void):Array<Declaration> {
+		if (StringTools.trim(value).toLowerCase() == "none") {
+			return [new Declaration(BOX_SHADOW, Keyword("none"))];
+		}
+		var lengths:Array<Float> = [];
+		var color:Null<Color> = null;
+		for (word in splitWords(value)) {
+			if (isLengthWord(word)) {
+				var parsed = parseLength("box-shadow", word.toLowerCase(), false, false, report);
+				if (parsed == null) {
+					return [];
+				}
+				lengths.push(switch (parsed) {
+					case Px(amount): amount;
+					case _: 0.0;
+				});
+			} else {
+				color = parseColor(word);
+				if (color == null) {
+					report('"$word" is not a color the subset reads', "write #rgb, #rrggbb or rgba()");
+					return [];
+				}
+			}
+		}
+		if (lengths.length < 2 || lengths.length > 4) {
+			report('"box-shadow: $value" needs an x and a y offset', "write box-shadow: 2px 2px #000");
+			return [];
+		}
+		if (lengths.length > 2 && lengths[2] != 0) {
+			report("a shadow with a blur is drawn without it", "write 0 for the blur");
+		}
+		return [new Declaration(BOX_SHADOW, Shadow(lengths[0], lengths[1], color != null ? color : Color.rgb(0, 0, 0)))];
+	}
+
+	// The pieces of a text split by a separator that is not inside parentheses.
+	static function splitTopLevel(text:String, separator:String):Array<String> {
+		var parts = [];
+		var depth = 0;
+		var start = 0;
+		for (index in 0...text.length) {
+			var character = text.charAt(index);
+			if (character == "(") {
+				depth++;
+			} else if (character == ")") {
+				depth--;
+			} else if (character == separator && depth == 0) {
+				parts.push(StringTools.trim(text.substring(start, index)));
+				start = index + 1;
+			}
+		}
+		parts.push(StringTools.trim(text.substr(start)));
+		return parts;
 	}
 
 	static function spreadBox(name:String, value:String, ids:Array<Int>, report:(message:String, fix:String) -> Void):Array<Declaration> {

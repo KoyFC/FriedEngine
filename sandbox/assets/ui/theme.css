@@ -12,14 +12,16 @@ body { font-family: "Nunito"; font-size: 16px; color: #dcdcf0; }
 	padding: 16px 24px;
 	background-color: #282838;
 	border: 2px solid #5ac8ff;
+	border-radius: 12px;
+	box-shadow: 4px 4px 0 #0a0a12;
 }
 
 .title { font-size: 24px; color: #ffffff; }
 .note { color: #a0a0c0; font-size: 14px; }
 
-button { min-width: 160px; background-color: #34344c; border-color: #5a5a88; }
-button:hover { background-color: #44445e; }
-button:active { background-color: #5a5a88; }
+button { min-width: 160px; background: linear-gradient(to bottom, #44445e, #2c2c42); border-color: #5a5a88; border-radius: 6px; }
+button:hover { background: linear-gradient(to bottom, #565678, #3a3a54); }
+button:active { background: linear-gradient(to bottom, #2c2c42, #44445e); }
 
 .bar {
 	display: flex;

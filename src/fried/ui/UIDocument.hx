@@ -404,8 +404,14 @@ class UIDocument extends Control {
 			var y = originY + element.boxY;
 			var width = element.boxWidth;
 			var height = element.boxHeight;
-			if (style.backgroundColor.alpha > 0) {
-				fill(x, y, width, height, style.backgroundColor, opacity);
+			if (style.hasShadow && !Decoration.isPlain) {
+				var shadow = faded(style.shadowColor, opacity);
+				Decoration.rounded(priority, x + style.shadowX, y + style.shadowY, width, height, style.radius, shadow);
+			}
+			if (style.hasGradient) {
+				Decoration.gradient(priority, x, y, width, height, style.isGradientHorizontal, faded(style.gradientFrom, opacity), faded(style.gradientTo, opacity));
+			} else if (style.backgroundColor.alpha > 0 && !isRoundedBorder(style)) {
+				Decoration.rounded(priority, x, y, width, height, style.radius, faded(style.backgroundColor, opacity));
 			}
 			drawBorder(style, x, y, width, height, opacity);
 			if (element.kind == UIElement.TEXT) {
@@ -432,11 +438,23 @@ class UIDocument extends Control {
 			return;
 		}
 		var color = style.hasBorderColor ? style.borderColor : style.color;
+		if (isRoundedBorder(style)) {
+			var inset = top > left ? top : left;
+			Decoration.rounded(priority, x, y, width, height, style.radius, faded(color, opacity));
+			Decoration.rounded(priority, x + left, y + top, width - left - right, height - top - bottom, style.radius > inset ? style.radius - inset : 0,
+				faded(style.backgroundColor, opacity));
+			return;
+		}
 		fill(x, y, width, top, color, opacity);
 		fill(x, y + height - bottom, width, bottom, color, opacity);
 		var sideHeight = height - top - bottom;
 		fill(x, y + top, left, sideHeight, color, opacity);
 		fill(x + width - right, y + top, right, sideHeight, color, opacity);
+	}
+
+	// A box with rounded corners and a border is drawn as the border color with the background inside it, which needs a background to show.
+	static inline function isRoundedBorder(style:Style):Bool {
+		return style.radius > 0 && style.backgroundColor.alpha > 0 && !style.hasGradient && (style.borderTop > 0 || style.borderLeft > 0);
 	}
 
 	function drawText(element:UIText, x:Int, y:Int, opacity:Int):Void {

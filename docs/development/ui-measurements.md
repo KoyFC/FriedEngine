@@ -13,3 +13,14 @@ A screen of 36 buttons in three columns, a header, and 80 elements in all (`benc
 The frame holds 60 fps in all three last cases. A document that does not change costs 2 ms to draw, which is the 223 commands it submits, about 9 microseconds each. A hover or a press costs 0.3 ms, and a text whose size changes costs a layout of the whole document, 1.6 ms for these 80 elements, so a HUD with a few elements and a counter costs a fraction of that.
 
 Two things measured on the way: a rectangle outline (`submitRect`) costs the DS about 150 microseconds, much more than the four filled rectangles that draw the same border, so borders are four fills; and `EReg` (Haxe's `Xml` uses one) does not build for the DS.
+
+## Rounded corners, gradients and shadows
+
+The same screen, with nothing changing, against the 1.99 ms of drawing and 223 commands it takes plain:
+
+| Decoration of the 36 buttons | commands | d |
+|---|---|---|
+| Corners of 6 px (fans of 4 triangles) | 331 | 42.2 ms (15 fps) |
+| A gradient of 8 bands and a hard shadow | 511 | 4.18 ms |
+
+The corners go through arrays of floats that the draw queue copies, which on a chip with no floating point unit costs about 0.4 ms for each box. The gradient and the shadow only add rectangles, 2.2 ms more for 36 buttons. Both are far over what a frame can spare, so on the DS and the fx-CG50 a box is drawn plain, and other platforms draw them live. What would make them cheap there is the editor or `fried_import` baking each radius, border, gradient and shadow of a sheet into a nine-slice picture that `submitTexture` draws in nine commands, chosen by a `"ui": {"bake": true}` in the sidecar of the sheet. That is not built.

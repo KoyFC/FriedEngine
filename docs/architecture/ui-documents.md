@@ -34,13 +34,15 @@ Properties:
 |---|---|
 | Box | `width`, `height`, `min-*`, `max-*` (px or %, or auto), `margin`, `padding`, `border`, `border-width`, `border-color`, `border-style` (solid or none) in px, with the usual one to four value shorthands. The sizes are those of the content, as in a browser |
 | Layout | `display` (block, flex, none), `flex-direction`, `justify-content` (flex-start, center, flex-end, space-between), `align-items` (stretch, flex-start, center, flex-end), `gap`, `flex-grow` and the `flex: <number>` shorthand |
-| Looks | `background-color`, `color`, `opacity`, `visibility` |
+| Looks | `background-color`, `color`, `opacity`, `visibility`, `border-radius` (one value), `background: linear-gradient(to bottom, #a, #b)` (two colors, to bottom, top, right or left) and `box-shadow: x y 0 color` (no blur, a blur is drawn without it) |
 | Text | `font-family`, `font-size`, `text-align` |
 | Fonts | `@font-face { font-family; src: url() }` |
 
 A block stacks its children and an auto width fills the space. A flex container lays its children in a row or a column, shares what is left over by `flex-grow`, and never shrinks them, so what does not fit overflows. Nothing is clipped. Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()` and `white black red green blue gray transparent`.
 
 The scale and rotation of the node are not applied to the document.
+
+Rounded corners, gradients and shadows are drawn on every platform but the DS and the fx-CG50, where a box is drawn plain (square, in the color halfway along the gradient, with no shadow). A rounded border needs a `background-color` to be drawn rounded, and a gradient ignores `border-radius`. The corners are fans of four triangles, the gradient is eight bands of one color, and the cost on the DS made them not worth drawing there, see [UI measurements](../development/ui-measurements.md).
 
 ## What is left out is said
 

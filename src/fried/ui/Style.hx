@@ -67,6 +67,16 @@ class Style {
 	public var fontSize:Int = 16;
 	public var textAlign:Int = TEXT_LEFT;
 	public var isVisible:Bool = true;
+
+	public var radius:Int = 0;
+	public var hasGradient:Bool = false;
+	public var isGradientHorizontal:Bool = false;
+	public var gradientFrom:Color = Color.rgb(0, 0, 0);
+	public var gradientTo:Color = Color.rgb(0, 0, 0);
+	public var hasShadow:Bool = false;
+	public var shadowX:Int = 0;
+	public var shadowY:Int = 0;
+	public var shadowColor:Color = Color.rgb(0, 0, 0);
 	// From 0 to 256, where 256 is opaque.
 	public var opacity:Int = 256;
 
@@ -197,6 +207,28 @@ class Style {
 				isVisible = keyword(value) != "hidden";
 			case CssProperties.OPACITY:
 				opacity = Math.round(Math.min(1.0, number(value)) * 256);
+			case CssProperties.BORDER_RADIUS:
+				radius = pixels(value);
+			case CssProperties.BACKGROUND_IMAGE:
+				switch (value) {
+					case Gradient(isHorizontal, from, to):
+						hasGradient = true;
+						isGradientHorizontal = isHorizontal;
+						gradientFrom = from;
+						gradientTo = to;
+					case _:
+						hasGradient = false;
+				}
+			case CssProperties.BOX_SHADOW:
+				switch (value) {
+					case Shadow(x, y, color):
+						hasShadow = true;
+						shadowX = Math.round(x);
+						shadowY = Math.round(y);
+						shadowColor = color;
+					case _:
+						hasShadow = false;
+				}
 			case _:
 		}
 	}
