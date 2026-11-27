@@ -3,3 +3,6 @@
 
 # Shell scripts must keep LF even when checked out on Windows
 *.sh text eol=lf
+
+# The YAML corpus keeps the line endings its cases are about
+tools/yaml-corpus/*.yaml -text
