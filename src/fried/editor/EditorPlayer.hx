@@ -14,6 +14,7 @@ import fried.scene.Node3D;
 import fried.scene.Scene;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.NodeRegistry;
+import fried.scene.serialization.ResourceRegistry;
 import fried.scene.PackedScene;
 import fried.scene.PlatformList;
 import fried.scene.serialization.Builtins;
@@ -236,7 +237,7 @@ class EditorPlayer {
 		}
 		switch (message.type) {
 			case "schema":
-				connection.send({type: "schema", classes: describeClasses(), inputNames: fried.input.InputNames.describe()});
+				connection.send({type: "schema", classes: describeClasses(), resources: describeResources(), inputNames: fried.input.InputNames.describe()});
 			case "load":
 				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});
@@ -272,6 +273,7 @@ class EditorPlayer {
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
 	function load(data:Dynamic, viewWidth:Null<Int>, viewHeight:Null<Int>):Void {
 		PackedScene.clearCache();
+		fried.graphics3d.MeshFile.clearCache();
 		var next = SceneLoader.build(data, renderer, false);
 		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size of the game's screen that the editor shows as the display's frame, or the size the project designs for when the editor does not say.
 		next.setView(viewWidth != null ? viewWidth : Project.displayWidth(), viewHeight != null ? viewHeight : Project.displayHeight());
@@ -286,6 +288,25 @@ class EditorPlayer {
 		scene.camera = camera;
 		scene.camera3D = camera3D;
 		layer.scene = scene;
+	}
+
+	// The resources a field can hold, which the editor lists for it to pick from and shows the fields of.
+	function describeResources():Array<Dynamic> {
+		var resources = [];
+		for (type in ResourceRegistry.all()) {
+			var defaults = type.defaultValues();
+			var fields:Array<Dynamic> = [];
+			for (field in type.fields) {
+				fields.push({
+					name: field.name,
+					kind: (field.kind : String),
+					values: FieldCodec.enumValues(field.kind),
+					defaultValue: Reflect.field(defaults, field.name)
+				});
+			}
+			resources.push({name: type.name, category: type.category, fields: fields});
+		}
+		return resources;
 	}
 
 	function describeClasses():Array<Dynamic> {
