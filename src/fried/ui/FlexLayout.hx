@@ -1,17 +1,14 @@
 package fried.ui;
 
-import fried.graphics.TextLayout;
-import fried.ui.css.StyleValue;
-
 // Sizes and places the elements of a document: blocks that stack, and flex containers with a direction, a gap, justification, alignment and growth. There is no shrinking, so what does not fit overflows, and nothing is clipped.
 //
-// An element is laid out for the width its parent gives it, which gives its height, and its children are placed relative to its content box. The positions in the document come in one last walk, so a child is never moved once it is placed.
+// An element is laid out for the width its parent gives it, which gives its height, and its children are placed relative to its content box. The positions in the document come in one last walk, so a child is never moved once it is placed. Every size is a whole number of pixels.
 class FlexLayout {
 	// Which layout the widths an element prefers were worked out in.
 	static var pass:Int = 0;
 
 	// The root fills the viewport, as the screen a document is, and its margins are left around it.
-	public static function layoutRoot(root:UIElement, width:Float, height:Float):Void {
+	public static function layoutRoot(root:UIElement, width:Int, height:Int):Void {
 		pass++;
 		var style = root.style;
 		layoutElement(root, width - style.marginLeft - style.marginRight, height - style.marginTop - style.marginBottom);
@@ -19,42 +16,41 @@ class FlexLayout {
 	}
 
 	// Gives the element a border box of this width and returns its height. `forcedHeight` is a border box height its parent decided, or -1 to let the content decide.
-	static function layoutElement(element:UIElement, borderWidth:Float, forcedHeight:Float):Float {
+	static function layoutElement(element:UIElement, borderWidth:Int, forcedHeight:Int):Int {
 		var style = element.style;
 		element.boxWidth = borderWidth;
-		var contentWidth = Math.max(0.0, borderWidth - style.horizontalExtras());
-		var knownHeight = forcedHeight >= 0 ? Math.max(0.0, forcedHeight - style.verticalExtras()) : -1.0;
-		var contentHeight:Float;
-		if (Std.isOfType(element, UIText)) {
+		var contentWidth = atLeastZero(borderWidth - style.horizontalExtras());
+		var knownHeight = forcedHeight >= 0 ? atLeastZero(forcedHeight - style.verticalExtras()) : -1;
+		var contentHeight:Int;
+		if (element.kind == UIElement.TEXT) {
 			contentHeight = layoutText(cast element, contentWidth);
-		} else if (Std.isOfType(element, UIImage)) {
+		} else if (element.kind == UIElement.IMAGE) {
 			var texture = cast(element, UIImage).texture;
-			contentHeight = texture != null ? texture.height : 0.0;
+			contentHeight = texture != null ? texture.height : 0;
 		} else if (style.display == Style.FLEX) {
 			contentHeight = layoutFlex(element, contentWidth, knownHeight);
 		} else {
 			contentHeight = layoutBlock(element, contentWidth, knownHeight);
 		}
 		var height = forcedHeight >= 0 ? forcedHeight : contentHeight + style.verticalExtras();
-		height = clamp(height, style.minHeight, style.maxHeight, style.verticalExtras(), -1.0);
+		height = clamp(height, style.minHeight, style.maxHeight, style.verticalExtras(), -1);
 		element.boxHeight = height;
 		return height;
 	}
 
-	static function layoutText(element:UIText, contentWidth:Float):Float {
+	static function layoutText(element:UIText, contentWidth:Int):Int {
 		var font = element.style.font;
 		if (font == null || element.text == null || element.text == "") {
 			element.lines = [];
 			element.lineWidths = [];
-			return 0.0;
+			return 0;
 		}
-		element.lines = TextLayout.breakLines(font, element.text, Std.int(contentWidth));
-		element.lineWidths = [for (line in element.lines) font.measureWidth(line)];
+		element.fit(font, contentWidth);
 		return font.lineHeight * element.lines.length;
 	}
 
-	static function layoutBlock(element:UIElement, contentWidth:Float, knownHeight:Float):Float {
-		var y = 0.0;
+	static function layoutBlock(element:UIElement, contentWidth:Int, knownHeight:Int):Int {
+		var y = 0;
 		for (child in element.children) {
 			if (!child.isDisplayed()) {
 				continue;
@@ -69,175 +65,179 @@ class FlexLayout {
 		return y;
 	}
 
-	static function layoutFlex(element:UIElement, contentWidth:Float, knownHeight:Float):Float {
-		var items = [for (child in element.children) if (child.isDisplayed()) child];
-		if (items.length == 0) {
-			return 0.0;
+	static function layoutFlex(element:UIElement, contentWidth:Int, knownHeight:Int):Int {
+		var container = element.style;
+		var count = 0;
+		for (child in element.children) {
+			if (child.isDisplayed()) {
+				count++;
+			}
 		}
-		return element.style.isColumn ? layoutColumn(element, items, contentWidth, knownHeight) : layoutRow(element, items, contentWidth, knownHeight);
+		if (count == 0) {
+			return 0;
+		}
+		return container.isColumn ? layoutColumn(element, count, contentWidth, knownHeight) : layoutRow(element, count, contentWidth, knownHeight);
 	}
 
-	static function layoutRow(element:UIElement, items:Array<UIElement>, contentWidth:Float, knownHeight:Float):Float {
+	static function layoutRow(element:UIElement, count:Int, contentWidth:Int, knownHeight:Int):Int {
 		var container = element.style;
-		var widths = [for (item in items) borderWidthOf(item, contentWidth, false)];
-		var used = container.gap * (items.length - 1);
-		var grow = 0.0;
-		for (index in 0...items.length) {
-			used += widths[index] + items[index].style.marginLeft + items[index].style.marginRight;
-			grow += items[index].style.flexGrow;
-		}
-		var free = Math.max(0.0, contentWidth - used);
-		if (free > 0 && grow > 0) {
-			for (index in 0...items.length) {
-				widths[index] += free * items[index].style.flexGrow / grow;
+		var children = element.children;
+		var used = container.gap * (count - 1);
+		var grow = 0;
+		for (item in children) {
+			if (item.isDisplayed()) {
+				var style = item.style;
+				item.flexWidth = borderWidthOf(item, contentWidth, false);
+				used += item.flexWidth + style.marginLeft + style.marginRight;
+				grow += style.flexGrow;
 			}
-			free = 0.0;
+		}
+		var free = atLeastZero(contentWidth - used);
+		if (free > 0 && grow > 0) {
+			for (item in children) {
+				if (item.isDisplayed()) {
+					item.flexWidth += Std.int(free * item.style.flexGrow / grow);
+				}
+			}
+			free = 0;
 		}
 
-		var heights = [];
-		var line = 0.0;
-		for (index in 0...items.length) {
-			var item = items[index];
-			var height = layoutElement(item, widths[index], definiteHeight(item, knownHeight));
-			heights.push(height);
-			line = Math.max(line, height + item.style.marginTop + item.style.marginBottom);
+		var line = 0;
+		for (item in children) {
+			if (item.isDisplayed()) {
+				item.flexHeight = layoutElement(item, item.flexWidth, definiteHeight(item, knownHeight));
+				line = atLeast(line, item.flexHeight + item.style.marginTop + item.style.marginBottom);
+			}
 		}
 		var cross = knownHeight >= 0 ? knownHeight : line;
-
-		var offsets = [];
-		for (index in 0...items.length) {
-			var item = items[index];
-			var style = item.style;
-			var room = cross - style.marginTop - style.marginBottom;
-			if (container.alignItems == Style.ALIGN_STRETCH && style.height == Auto && heights[index] < room) {
-				heights[index] = layoutElement(item, widths[index], room);
+		for (item in children) {
+			if (item.isDisplayed()) {
+				var style = item.style;
+				var room = cross - style.marginTop - style.marginBottom;
+				if (container.alignItems == Style.ALIGN_STRETCH && style.height.mode == Length.AUTO && item.flexHeight < room) {
+					item.flexHeight = layoutElement(item, item.flexWidth, room);
+				}
+				item.flexOffset = crossOffset(container.alignItems, room - item.flexHeight);
 			}
-			offsets.push(crossOffset(container.alignItems, room - heights[index]));
 		}
 
-		var x = 0.0;
+		var x = 0;
 		var spacing = container.gap;
 		switch (container.justify) {
 			case Style.JUSTIFY_CENTER:
-				x = free / 2;
+				x = free >> 1;
 			case Style.JUSTIFY_END:
 				x = free;
-			case Style.JUSTIFY_BETWEEN if (items.length > 1):
-				spacing += free / (items.length - 1);
+			case Style.JUSTIFY_BETWEEN if (count > 1):
+				spacing += Std.int(free / (count - 1));
 			case _:
 		}
-		for (index in 0...items.length) {
-			var item = items[index];
-			item.relX = x + item.style.marginLeft;
-			item.relY = item.style.marginTop + offsets[index];
-			x += item.style.marginLeft + widths[index] + item.style.marginRight + spacing;
+		for (item in children) {
+			if (item.isDisplayed()) {
+				var style = item.style;
+				item.relX = x + style.marginLeft;
+				item.relY = style.marginTop + item.flexOffset;
+				x += style.marginLeft + item.flexWidth + style.marginRight + spacing;
+			}
 		}
 		return line;
 	}
 
-	static function layoutColumn(element:UIElement, items:Array<UIElement>, contentWidth:Float, knownHeight:Float):Float {
+	static function layoutColumn(element:UIElement, count:Int, contentWidth:Int, knownHeight:Int):Int {
 		var container = element.style;
-		var widths = [];
-		for (item in items) {
-			var isStretched = container.alignItems == Style.ALIGN_STRETCH && item.style.width == Auto;
-			widths.push(borderWidthOf(item, contentWidth, isStretched));
+		var children = element.children;
+		var used = container.gap * (count - 1);
+		var grow = 0;
+		for (item in children) {
+			if (item.isDisplayed()) {
+				var isStretched = container.alignItems == Style.ALIGN_STRETCH && item.style.width.mode == Length.AUTO;
+				item.flexWidth = borderWidthOf(item, contentWidth, isStretched);
+				item.flexHeight = layoutElement(item, item.flexWidth, definiteHeight(item, knownHeight));
+				used += item.flexHeight + item.style.marginTop + item.style.marginBottom;
+				grow += item.style.flexGrow;
+			}
 		}
-		var heights = [];
-		var used = container.gap * (items.length - 1);
-		var grow = 0.0;
-		for (index in 0...items.length) {
-			var item = items[index];
-			var height = layoutElement(item, widths[index], definiteHeight(item, knownHeight));
-			heights.push(height);
-			used += height + item.style.marginTop + item.style.marginBottom;
-			grow += item.style.flexGrow;
-		}
-		var free = knownHeight >= 0 ? Math.max(0.0, knownHeight - used) : 0.0;
+		var free = knownHeight >= 0 ? atLeastZero(knownHeight - used) : 0;
 		if (free > 0 && grow > 0) {
-			for (index in 0...items.length) {
-				var share = free * items[index].style.flexGrow / grow;
-				if (share > 0) {
-					heights[index] = layoutElement(items[index], widths[index], heights[index] + share);
+			for (item in children) {
+				if (item.isDisplayed()) {
+					var share = Std.int(free * item.style.flexGrow / grow);
+					if (share > 0) {
+						item.flexHeight = layoutElement(item, item.flexWidth, item.flexHeight + share);
+					}
 				}
 			}
-			free = 0.0;
+			free = 0;
 		}
 
-		var y = 0.0;
+		var y = 0;
 		var spacing = container.gap;
 		switch (container.justify) {
 			case Style.JUSTIFY_CENTER:
-				y = free / 2;
+				y = free >> 1;
 			case Style.JUSTIFY_END:
 				y = free;
-			case Style.JUSTIFY_BETWEEN if (items.length > 1):
-				spacing += free / (items.length - 1);
+			case Style.JUSTIFY_BETWEEN if (count > 1):
+				spacing += Std.int(free / (count - 1));
 			case _:
 		}
-		for (index in 0...items.length) {
-			var item = items[index];
-			var style = item.style;
-			var room = contentWidth - style.marginLeft - style.marginRight;
-			item.relX = style.marginLeft + crossOffset(container.alignItems, room - widths[index]);
-			item.relY = y + style.marginTop;
-			y += style.marginTop + heights[index] + style.marginBottom + spacing;
+		for (item in children) {
+			if (item.isDisplayed()) {
+				var style = item.style;
+				var room = contentWidth - style.marginLeft - style.marginRight;
+				item.relX = style.marginLeft + crossOffset(container.alignItems, room - item.flexWidth);
+				item.relY = y + style.marginTop;
+				y += style.marginTop + item.flexHeight + style.marginBottom + spacing;
+			}
 		}
 		return used;
 	}
 
 	// How far an item sits along the cross axis in the room it has, which is stretched to fill when it has none left over.
-	static function crossOffset(alignItems:Int, spare:Float):Float {
+	static function crossOffset(alignItems:Int, spare:Int):Int {
 		return switch (alignItems) {
-			case Style.ALIGN_CENTER: spare / 2;
+			case Style.ALIGN_CENTER: spare >> 1;
 			case Style.ALIGN_END: spare;
-			case _: 0.0;
+			case _: 0;
 		}
 	}
 
 	// The border box height the style fixes, or -1 when it is the content's to decide.
-	static function definiteHeight(element:UIElement, containerHeight:Float):Float {
+	static function definiteHeight(element:UIElement, containerHeight:Int):Int {
 		var style = element.style;
-		return switch (style.height) {
-			case Px(value): value + style.verticalExtras();
-			case Percent(value) if (containerHeight >= 0): containerHeight * value / 100 + style.verticalExtras();
-			case _: -1.0;
-		}
+		var height = style.height.resolve(containerHeight);
+		return height >= 0 ? height + style.verticalExtras() : -1;
 	}
 
 	// The border box width of an element in a container whose content is `available` wide. An auto width fills the container when `fill` is set and is what the content wants otherwise.
-	static function borderWidthOf(element:UIElement, available:Float, fill:Bool):Float {
+	static function borderWidthOf(element:UIElement, available:Int, fill:Bool):Int {
 		var style = element.style;
 		var extras = style.horizontalExtras();
-		var width:Float;
-		switch (style.width) {
-			case Px(value):
-				width = value + extras;
-			case Percent(value):
-				width = available * value / 100 + extras;
-			case _:
-				width = fill ? available - style.marginLeft - style.marginRight : preferredWidth(element);
+		var width = style.width.resolve(available);
+		if (width >= 0) {
+			width += extras;
+		} else {
+			width = fill ? available - style.marginLeft - style.marginRight : preferredWidth(element);
 		}
 		return clamp(width, style.minWidth, style.maxWidth, extras, available);
 	}
 
 	// The border box width an element takes with room to spare: the widest line of its text, the widest of its children, or the sum of them along a row.
-	static function preferredWidth(element:UIElement):Float {
+	static function preferredWidth(element:UIElement):Int {
 		if (element.intrinsicPass == pass) {
 			return element.intrinsic;
 		}
 		var style = element.style;
-		var content = 0.0;
-		if (Std.isOfType(element, UIText)) {
+		var content = 0;
+		if (element.kind == UIElement.TEXT) {
 			var font = style.font;
-			var text = cast(element, UIText).text;
-			if (font != null && text != null) {
-				for (line in text.split("\n")) {
-					content = Math.max(content, font.measureWidth(line));
-				}
+			var text = cast(element, UIText);
+			if (font != null && text.text != null) {
+				content = text.widest(font);
 			}
-		} else if (Std.isOfType(element, UIImage)) {
+		} else if (element.kind == UIElement.IMAGE) {
 			var texture = cast(element, UIImage).texture;
-			content = texture != null ? texture.width : 0.0;
+			content = texture != null ? texture.width : 0;
 		} else {
 			var isRow = style.display == Style.FLEX && !style.isColumn;
 			var count = 0;
@@ -247,43 +247,43 @@ class FlexLayout {
 				}
 				var childStyle = child.style;
 				var outer = preferredWidth(child) + childStyle.marginLeft + childStyle.marginRight;
-				content = isRow ? content + outer : Math.max(content, outer);
+				content = isRow ? content + outer : atLeast(content, outer);
 				count++;
 			}
 			if (isRow && count > 1) {
 				content += style.gap * (count - 1);
 			}
 		}
-		var width = switch (style.width) {
-			case Px(value): value + style.horizontalExtras();
-			case _: content + style.horizontalExtras();
-		}
+		var fixed = style.width.mode == Length.PX ? style.width.value : content;
+		var width = fixed + style.horizontalExtras();
 		element.intrinsic = width;
 		element.intrinsicPass = pass;
 		return width;
 	}
 
 	// Holds a border box size to the minimum and maximum the style gives, which are sizes of the content. A percentage is of `available`, or ignored when that is not known.
-	static function clamp(size:Float, minimum:StyleValue, maximum:StyleValue, extras:Float, available:Float):Float {
+	static function clamp(size:Int, minimum:Length, maximum:Length, extras:Int, available:Int):Int {
 		var result = size;
-		switch (maximum) {
-			case Px(value):
-				result = Math.min(result, value + extras);
-			case Percent(value) if (available >= 0):
-				result = Math.min(result, available * value / 100 + extras);
-			case _:
+		var most = maximum.resolve(available);
+		if (most >= 0 && result > most + extras) {
+			result = most + extras;
 		}
-		switch (minimum) {
-			case Px(value):
-				result = Math.max(result, value + extras);
-			case Percent(value) if (available >= 0):
-				result = Math.max(result, available * value / 100 + extras);
-			case _:
+		var least = minimum.resolve(available);
+		if (least >= 0 && result < least + extras) {
+			result = least + extras;
 		}
 		return result;
 	}
 
-	static function place(element:UIElement, x:Float, y:Float):Void {
+	static inline function atLeast(a:Int, b:Int):Int {
+		return a > b ? a : b;
+	}
+
+	static inline function atLeastZero(value:Int):Int {
+		return value > 0 ? value : 0;
+	}
+
+	static function place(element:UIElement, x:Int, y:Int):Void {
 		element.boxX = x;
 		element.boxY = y;
 		var style = element.style;

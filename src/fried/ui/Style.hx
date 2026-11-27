@@ -30,28 +30,30 @@ class Style {
 	public var isColumn:Bool = false;
 	public var justify:Int = JUSTIFY_START;
 	public var alignItems:Int = ALIGN_STRETCH;
-	public var gap:Float = 0.0;
-	public var flexGrow:Float = 0.0;
+	public var gap:Int = 0;
 
-	public var width:StyleValue = Auto;
-	public var height:StyleValue = Auto;
-	public var minWidth:StyleValue = Auto;
-	public var minHeight:StyleValue = Auto;
-	public var maxWidth:StyleValue = Auto;
-	public var maxHeight:StyleValue = Auto;
+	// In sixteenths, so that 1 is 16.
+	public var flexGrow:Int = 0;
 
-	public var marginTop:Float = 0.0;
-	public var marginRight:Float = 0.0;
-	public var marginBottom:Float = 0.0;
-	public var marginLeft:Float = 0.0;
-	public var paddingTop:Float = 0.0;
-	public var paddingRight:Float = 0.0;
-	public var paddingBottom:Float = 0.0;
-	public var paddingLeft:Float = 0.0;
-	public var borderTop:Float = 0.0;
-	public var borderRight:Float = 0.0;
-	public var borderBottom:Float = 0.0;
-	public var borderLeft:Float = 0.0;
+	public var width:Length = Length.auto;
+	public var height:Length = Length.auto;
+	public var minWidth:Length = Length.auto;
+	public var minHeight:Length = Length.auto;
+	public var maxWidth:Length = Length.auto;
+	public var maxHeight:Length = Length.auto;
+
+	public var marginTop:Int = 0;
+	public var marginRight:Int = 0;
+	public var marginBottom:Int = 0;
+	public var marginLeft:Int = 0;
+	public var paddingTop:Int = 0;
+	public var paddingRight:Int = 0;
+	public var paddingBottom:Int = 0;
+	public var paddingLeft:Int = 0;
+	public var borderTop:Int = 0;
+	public var borderRight:Int = 0;
+	public var borderBottom:Int = 0;
+	public var borderLeft:Int = 0;
 	public var isBorderSolid:Bool = false;
 
 	public var backgroundColor:Color = Color.rgba(0, 0, 0, 0);
@@ -62,15 +64,30 @@ class Style {
 
 	public var borderColor:Color = Color.rgb(0, 0, 0);
 	public var fontFamily:Array<String> = [];
-	public var fontSize:Float = 16.0;
+	public var fontSize:Int = 16;
 	public var textAlign:Int = TEXT_LEFT;
 	public var isVisible:Bool = true;
-	public var opacity:Float = 1.0;
+	// From 0 to 256, where 256 is opaque.
+	public var opacity:Int = 256;
 
 	// The font the family and size come to, which the resolver looks up once the declarations are in.
 	public var font:Null<Font>;
 
 	public function new() {}
+
+	// Whether anything the layout reads differs, which is what decides if a change of style needs the layout done again. A color or an opacity does not.
+	public function differsInLayout(other:Style):Bool {
+		return display != other.display || isColumn != other.isColumn || justify != other.justify || alignItems != other.alignItems || gap != other.gap
+			|| flexGrow != other.flexGrow || !same(width, other.width) || !same(height, other.height) || !same(minWidth, other.minWidth)
+			|| !same(minHeight, other.minHeight) || !same(maxWidth, other.maxWidth) || !same(maxHeight, other.maxHeight) || marginTop != other.marginTop
+			|| marginRight != other.marginRight || marginBottom != other.marginBottom || marginLeft != other.marginLeft || paddingTop != other.paddingTop
+			|| paddingRight != other.paddingRight || paddingBottom != other.paddingBottom || paddingLeft != other.paddingLeft || borderTop != other.borderTop
+			|| borderRight != other.borderRight || borderBottom != other.borderBottom || borderLeft != other.borderLeft || font != other.font;
+	}
+
+	static inline function same(a:Length, b:Length):Bool {
+		return a == b || (a.mode == b.mode && a.value == b.value);
+	}
 
 	public function inheritFrom(parent:Style):Void {
 		color = parent.color;
@@ -81,11 +98,11 @@ class Style {
 	}
 
 	// What a border or a padding adds to the width and to the height of the content.
-	public inline function horizontalExtras():Float {
+	public inline function horizontalExtras():Int {
 		return paddingLeft + paddingRight + borderLeft + borderRight;
 	}
 
-	public inline function verticalExtras():Float {
+	public inline function verticalExtras():Int {
 		return paddingTop + paddingBottom + borderTop + borderBottom;
 	}
 
@@ -117,19 +134,19 @@ class Style {
 			case CssProperties.GAP:
 				gap = pixels(value);
 			case CssProperties.FLEX_GROW:
-				flexGrow = number(value);
+				flexGrow = Math.round(number(value) * 16);
 			case CssProperties.WIDTH:
-				width = value;
+				width = Length.from(value);
 			case CssProperties.HEIGHT:
-				height = value;
+				height = Length.from(value);
 			case CssProperties.MIN_WIDTH:
-				minWidth = value;
+				minWidth = Length.from(value);
 			case CssProperties.MIN_HEIGHT:
-				minHeight = value;
+				minHeight = Length.from(value);
 			case CssProperties.MAX_WIDTH:
-				maxWidth = value;
+				maxWidth = Length.from(value);
 			case CssProperties.MAX_HEIGHT:
-				maxHeight = value;
+				maxHeight = Length.from(value);
 			case CssProperties.MARGIN_TOP:
 				marginTop = pixels(value);
 			case CssProperties.MARGIN_RIGHT:
@@ -169,7 +186,7 @@ class Style {
 					case _: fontFamily;
 				}
 			case CssProperties.FONT_SIZE:
-				fontSize = Math.max(1.0, pixels(value));
+				fontSize = Std.int(Math.max(1, pixels(value)));
 			case CssProperties.TEXT_ALIGN:
 				textAlign = switch (keyword(value)) {
 					case "center": TEXT_CENTER;
@@ -179,7 +196,7 @@ class Style {
 			case CssProperties.VISIBILITY:
 				isVisible = keyword(value) != "hidden";
 			case CssProperties.OPACITY:
-				opacity = Math.min(1.0, number(value));
+				opacity = Math.round(Math.min(1.0, number(value)) * 256);
 			case _:
 		}
 	}
@@ -187,10 +204,10 @@ class Style {
 	// A border whose style is none has no width, whatever it was given.
 	public function settle():Void {
 		if (!isBorderSolid) {
-			borderTop = 0.0;
-			borderRight = 0.0;
-			borderBottom = 0.0;
-			borderLeft = 0.0;
+			borderTop = 0;
+			borderRight = 0;
+			borderBottom = 0;
+			borderLeft = 0;
 		}
 	}
 
@@ -201,10 +218,10 @@ class Style {
 		}
 	}
 
-	static function pixels(value:StyleValue):Float {
+	static function pixels(value:StyleValue):Int {
 		return switch (value) {
-			case Px(amount): amount;
-			case _: 0.0;
+			case Px(amount): Math.round(amount);
+			case _: 0;
 		}
 	}
 

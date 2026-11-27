@@ -6,7 +6,7 @@
 
 namespace
 {
-    constexpr int s_sections = 8;
+    constexpr int s_sections = 10;
     constexpr int s_capacity = 240;
 
     int s_totals[s_sections];

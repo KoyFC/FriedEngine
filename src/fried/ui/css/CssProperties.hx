@@ -368,7 +368,7 @@ class CssProperties {
 		if (close < open) {
 			return null;
 		}
-		var arguments = ~/[,\/\s]+/g.split(StringTools.trim(text.substring(open + 1, close)));
+		var arguments = splitWords(StringTools.replace(StringTools.replace(text.substring(open + 1, close), ",", " "), "/", " "));
 		if (arguments.length != 3 && arguments.length != 4) {
 			return null;
 		}

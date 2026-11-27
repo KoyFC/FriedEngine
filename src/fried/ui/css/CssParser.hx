@@ -1,5 +1,6 @@
 package fried.ui.css;
 
+import fried.ui.SourceLines;
 import fried.ui.UIDiagnostics;
 
 // The rules and font faces a sheet's text holds.
@@ -16,7 +17,7 @@ class ParsedSheet {
 class CssParser {
 	var path:String;
 	var text:String;
-	var lineStarts:Array<Int>;
+	var lines:SourceLines;
 	var result:ParsedSheet;
 
 	public static function parse(path:String, text:String):ParsedSheet {
@@ -26,12 +27,7 @@ class CssParser {
 	function new(path:String, text:String) {
 		this.path = path;
 		this.text = text;
-		lineStarts = [0];
-		for (index in 0...text.length) {
-			if (text.charCodeAt(index) == 10) {
-				lineStarts.push(index + 1);
-			}
-		}
+		lines = new SourceLines(text);
 		result = new ParsedSheet();
 	}
 
@@ -189,11 +185,7 @@ class CssParser {
 	}
 
 	function problem(index:Int, message:String, fix:String):Void {
-		var line = 0;
-		while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
-			line++;
-		}
-		UIDiagnostics.report(path, line + 1, index - lineStarts[line] + 1, message, fix);
+		UIDiagnostics.report(path, lines.line(index), lines.column(index), message, fix);
 	}
 
 	// Where the block opened at `open` closes, or the end of the text.

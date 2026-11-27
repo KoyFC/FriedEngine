@@ -2,7 +2,8 @@ package fried.ui;
 
 // The classes of an element, which the stylesheet selects it by. Changing them makes the element's style be worked out again.
 class ClassList {
-	var names:Array<String>;
+	public var names(default, null):Array<String>;
+
 	var owner:UIElement;
 
 	public function new(owner:UIElement, names:Array<String>) {

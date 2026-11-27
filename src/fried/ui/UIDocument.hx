@@ -1,5 +1,6 @@
 package fried.ui;
 
+import fried.Profile;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
@@ -11,6 +12,7 @@ import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.scene.Control;
 import fried.ui.css.ElementState;
+import fried.ui.html.HtmlNode;
 
 // A screen written in HTML and CSS. It is one node: its box, which is placed like any control's, is the viewport of the document, and the elements inside are laid out and drawn by the document itself.
 //
@@ -43,6 +45,7 @@ class UIDocument extends Control {
 	static var scratch:Rect = new Rect(0, 0, 0, 0);
 
 	var path:String;
+	var loaded:Null<HtmlSource>;
 	var elementsById:Map<String, UIElement>;
 	var bindingValues:Map<String, String>;
 	var boundTexts:Map<String, Array<UIText>>;
@@ -53,8 +56,8 @@ class UIDocument extends Control {
 	var dirtyStyles:Array<UIElement>;
 	var isLayoutDirty:Bool;
 	var isLoaded:Bool;
-	var laidWidth:Float;
-	var laidHeight:Float;
+	var laidWidth:Int;
+	var laidHeight:Int;
 
 	var hoveredLeaf:Null<UIElement>;
 	var pressedTarget:Null<UIElement>;
@@ -80,8 +83,8 @@ class UIDocument extends Control {
 		dirtyStyles = [];
 		isLayoutDirty = true;
 		isLoaded = false;
-		laidWidth = -1.0;
-		laidHeight = -1.0;
+		laidWidth = -1;
+		laidHeight = -1;
 		heldFingerId = 0;
 		focusOnReady = true;
 		stickX = 0;
@@ -101,7 +104,7 @@ class UIDocument extends Control {
 		ensureLoaded();
 		ensureFresh();
 		if (root != null) {
-			drawElement(root, worldX, worldY, 1.0);
+			drawElement(root, Std.int(worldX), Std.int(worldY), 256);
 		}
 	}
 
@@ -197,11 +200,12 @@ class UIDocument extends Control {
 	}
 
 	function build(source:HtmlSource):Void {
+		loaded = source;
 		path = source.path;
-		var top = source.xml;
-		var html = firstElementNamed(top, "html");
-		var head = html != null ? firstElementNamed(html, "head") : top;
-		var body = html != null ? firstElementNamed(html, "body") : null;
+		var top = source.root;
+		var html = top.firstElement("html");
+		var head = html != null ? html.firstElement("head") : top;
+		var body = html != null ? html.firstElement("body") : null;
 		ownSheets = [];
 		if (head != null) {
 			for (child in head.elements()) {
@@ -209,7 +213,8 @@ class UIDocument extends Control {
 			}
 		}
 		var content = body != null ? body : (html != null ? html : top);
-		var bodyRoot = new UIElement("body", content.nodeType == Element ? content.get("id") : null, content.nodeType == Element ? classesOf(content) : null);
+		var isElement = content != top;
+		var bodyRoot = new UIElement("body", isElement ? content.get("id") : null, isElement ? classesOf(content) : null);
 		root = bodyRoot;
 		images = [];
 		elementsById = new Map();
@@ -223,54 +228,53 @@ class UIDocument extends Control {
 		invalidateStyle(bodyRoot);
 	}
 
-	function readHead(element:Xml):Void {
-		switch (element.nodeName.toLowerCase()) {
+	function readHead(node:HtmlNode):Void {
+		switch (node.tag) {
 			case "link":
-				if (element.get("rel") == "stylesheet" && element.get("href") != null) {
-					ownSheets.push(StyleSheet.from(UIPaths.resolve(path, element.get("href"))));
+				if (node.get("rel") == "stylesheet" && node.get("href") != null) {
+					ownSheets.push(StyleSheet.from(UIPaths.resolve(path, node.get("href"))));
 				}
 			case "style":
-				var text = [for (child in element) if (child.nodeType == PCData || child.nodeType == CData) child.nodeValue].join("");
+				var text = [for (child in node.children) child.text].join("");
 				ownSheets.push(StyleSheet.parse(path + "#style", text));
 			case "script":
-				UIDiagnostics.report(path, 0, 0, "a <script> is not run", "bind the document in Haxe");
+				loaded.report(node, "a <script> is not run", "bind the document in Haxe");
 			case _:
 		}
 	}
 
-	function buildChildren(xml:Xml, parent:UIElement):Void {
-		for (child in xml) {
-			switch (child.nodeType) {
-				case Element:
-					var element = createElement(child);
-					if (element != null) {
-						parent.appendChild(element);
-						buildChildren(child, element);
-					}
-				case PCData | CData:
-					var text = collapse(child.nodeValue);
-					if (text != "") {
-						var element = new UIText(text);
-						for (name in element.bindTemplate(text)) {
-							var texts = boundTexts.get(name);
-							if (texts == null) {
-								texts = [];
-								boundTexts.set(name, texts);
-							}
-							texts.push(element);
-						}
-						element.refresh(bindingValues);
-						parent.appendChild(element);
-					}
-				case _:
+	function buildChildren(node:HtmlNode, parent:UIElement):Void {
+		for (child in node.children) {
+			if (!child.isText) {
+				var element = createElement(child);
+				if (element != null) {
+					parent.appendChild(element);
+					buildChildren(child, element);
+				}
+				continue;
 			}
+			var text = UIText.collapse(child.text);
+			if (text == "") {
+				continue;
+			}
+			var element = new UIText(text);
+			for (name in element.bindTemplate(text)) {
+				var texts = boundTexts.get(name);
+				if (texts == null) {
+					texts = [];
+					boundTexts.set(name, texts);
+				}
+				texts.push(element);
+			}
+			element.refresh(bindingValues);
+			parent.appendChild(element);
 		}
 	}
 
-	function createElement(xml:Xml):Null<UIElement> {
-		var tag = xml.nodeName.toLowerCase();
-		var id = xml.get("id");
-		var classes = classesOf(xml);
+	function createElement(node:HtmlNode):Null<UIElement> {
+		var tag = node.tag;
+		var id = node.get("id");
+		var classes = classesOf(node);
 		var element:UIElement;
 		switch (tag) {
 			case "link" | "style" | "script" | "head" | "meta" | "title":
@@ -278,9 +282,9 @@ class UIDocument extends Control {
 			case "button":
 				element = new UIButton(id, classes);
 			case "img":
-				var source = xml.get("src");
+				var source = node.get("src");
 				if (source == null) {
-					UIDiagnostics.report(path, 0, 0, "an <img> has no src, so it is left out", 'write <img src="picture.png" />');
+					loaded.report(node, "an <img> has no src, so it is left out", 'write <img src="picture.png">');
 					return null;
 				}
 				var image = new UIImage(UIPaths.resolve(path, source), id, classes);
@@ -289,37 +293,24 @@ class UIDocument extends Control {
 			case "div" | "section" | "header" | "footer" | "nav" | "main" | "ul" | "li" | "p" | "span" | "label" | "h1" | "h2" | "h3":
 				element = new UIElement(tag, id, classes);
 			case _:
-				UIDiagnostics.report(path, 0, 0, '<$tag> is not an element the subset knows, so it is treated as a <div>', "use a <div>");
+				loaded.report(node, '<$tag> is not an element the subset knows, so it is treated as a <div>', "use a <div>");
 				element = new UIElement(tag, id, classes);
 		}
 		if (id != null) {
 			elementsById.set(id, element);
 		}
-		element.handlerName = xml.get("onclick");
-		if (xml.exists("tabindex")) {
+		element.handlerName = node.get("onclick");
+		if (node.exists("tabindex")) {
 			element.focusable = true;
 		}
-		element.hidden = xml.exists("hidden");
-		element.disabled = xml.exists("disabled");
+		element.hidden = node.exists("hidden");
+		element.disabled = node.exists("disabled");
 		return element;
 	}
 
-	static function classesOf(xml:Xml):Array<String> {
-		var value = xml.get("class");
-		return value == null ? [] : [for (name in ~/\s+/g.split(StringTools.trim(value))) if (name != "") name];
-	}
-
-	static function collapse(text:String):String {
-		return StringTools.trim(~/\s+/g.replace(text, " "));
-	}
-
-	static function firstElementNamed(xml:Xml, name:String):Null<Xml> {
-		for (child in xml.elements()) {
-			if (child.nodeName.toLowerCase() == name) {
-				return child;
-			}
-		}
-		return null;
+	static function classesOf(node:HtmlNode):Array<String> {
+		var value = node.get("class");
+		return value == null ? [] : UIText.collapse(value).split(" ").filter(name -> name != "");
 	}
 
 	function rebuildSheets():Void {
@@ -335,7 +326,6 @@ class UIDocument extends Control {
 			element.isStyleDirty = true;
 			dirtyStyles.push(element);
 		}
-		isLayoutDirty = true;
 	}
 
 	@:allow(fried.ui)
@@ -357,6 +347,7 @@ class UIDocument extends Control {
 			}
 		}
 		if (dirtyStyles.length > 0) {
+			var styleStart = Profile.begin();
 			for (element in dirtyStyles) {
 				if (!hasDirtyAncestor(element)) {
 					resolveSubtree(element);
@@ -366,11 +357,14 @@ class UIDocument extends Control {
 				element.isStyleDirty = false;
 			}
 			dirtyStyles = [];
+			Profile.end(Profile.UI_STYLE, styleStart);
 		}
-		var width = rectWidth;
-		var height = rectHeight;
+		var width = Std.int(rectWidth);
+		var height = Std.int(rectHeight);
 		if (isLayoutDirty || width != laidWidth || height != laidHeight) {
+			var layoutStart = Profile.begin();
 			FlexLayout.layoutRoot(root, width, height);
+			Profile.end(Profile.UI_LAYOUT, layoutStart);
 			laidWidth = width;
 			laidHeight = height;
 			isLayoutDirty = false;
@@ -389,18 +383,22 @@ class UIDocument extends Control {
 	}
 
 	function resolveSubtree(element:UIElement):Void {
+		var before = element.style;
 		StyleResolver.resolve(element, sheets, fontSizes, path);
+		if (before.differsInLayout(element.style)) {
+			isLayoutDirty = true;
+		}
 		for (child in element.children) {
 			resolveSubtree(child);
 		}
 	}
 
-	function drawElement(element:UIElement, originX:Float, originY:Float, parentOpacity:Float):Void {
+	function drawElement(element:UIElement, originX:Int, originY:Int, parentOpacity:Int):Void {
 		if (!element.isDisplayed()) {
 			return;
 		}
 		var style = element.style;
-		var opacity = parentOpacity * style.opacity;
+		var opacity = style.opacity == 256 ? parentOpacity : (parentOpacity * style.opacity) >> 8;
 		if (style.isVisible) {
 			var x = originX + element.boxX;
 			var y = originY + element.boxY;
@@ -410,9 +408,9 @@ class UIDocument extends Control {
 				fill(x, y, width, height, style.backgroundColor, opacity);
 			}
 			drawBorder(style, x, y, width, height, opacity);
-			if (Std.isOfType(element, UIText)) {
+			if (element.kind == UIElement.TEXT) {
 				drawText(cast element, x, y, opacity);
-			} else if (Std.isOfType(element, UIImage)) {
+			} else if (element.kind == UIElement.IMAGE) {
 				var texture = cast(element, UIImage).texture;
 				if (texture != null) {
 					DrawQueue.submitTexture(priority, texture, x + style.borderLeft + style.paddingLeft, y + style.borderTop + style.paddingTop, texture.width,
@@ -425,19 +423,23 @@ class UIDocument extends Control {
 		}
 	}
 
-	function drawBorder(style:Style, x:Float, y:Float, width:Float, height:Float, opacity:Float):Void {
-		if (style.borderTop <= 0 && style.borderRight <= 0 && style.borderBottom <= 0 && style.borderLeft <= 0) {
+	function drawBorder(style:Style, x:Int, y:Int, width:Int, height:Int, opacity:Int):Void {
+		var top = style.borderTop;
+		var right = style.borderRight;
+		var bottom = style.borderBottom;
+		var left = style.borderLeft;
+		if (top <= 0 && right <= 0 && bottom <= 0 && left <= 0) {
 			return;
 		}
 		var color = style.hasBorderColor ? style.borderColor : style.color;
-		fill(x, y, width, style.borderTop, color, opacity);
-		fill(x, y + height - style.borderBottom, width, style.borderBottom, color, opacity);
-		var sideHeight = height - style.borderTop - style.borderBottom;
-		fill(x, y + style.borderTop, style.borderLeft, sideHeight, color, opacity);
-		fill(x + width - style.borderRight, y + style.borderTop, style.borderRight, sideHeight, color, opacity);
+		fill(x, y, width, top, color, opacity);
+		fill(x, y + height - bottom, width, bottom, color, opacity);
+		var sideHeight = height - top - bottom;
+		fill(x, y + top, left, sideHeight, color, opacity);
+		fill(x + width - right, y + top, right, sideHeight, color, opacity);
 	}
 
-	function drawText(element:UIText, x:Float, y:Float, opacity:Float):Void {
+	function drawText(element:UIText, x:Int, y:Int, opacity:Int):Void {
 		var style = element.style;
 		var font = style.font;
 		if (font == null) {
@@ -446,6 +448,7 @@ class UIDocument extends Control {
 		var contentX = x + style.borderLeft + style.paddingLeft;
 		var contentWidth = element.boxWidth - style.horizontalExtras();
 		var lineY = y + style.borderTop + style.paddingTop;
+		var lineHeight = font.lineHeight;
 		var color = faded(style.color, opacity);
 		for (index in 0...element.lines.length) {
 			var line = element.lines[index];
@@ -453,37 +456,38 @@ class UIDocument extends Control {
 				var lineWidth = element.lineWidths[index];
 				var spare = contentWidth - lineWidth;
 				var lineX = contentX + switch (style.textAlign) {
-					case Style.TEXT_CENTER: spare / 2;
+					case Style.TEXT_CENTER: spare >> 1;
 					case Style.TEXT_RIGHT: spare;
-					case _: 0.0;
+					case _: 0;
 				}
-				DrawQueue.submitText(priority, font, line, lineX, lineY, lineWidth, font.lineHeight, color);
+				DrawQueue.submitText(priority, font, line, lineX, lineY, lineWidth, lineHeight, color);
 			}
-			lineY += font.lineHeight;
+			lineY += lineHeight;
 		}
 	}
 
-	function fill(x:Float, y:Float, width:Float, height:Float, color:Color, opacity:Float):Void {
+	function fill(x:Int, y:Int, width:Int, height:Int, color:Color, opacity:Int):Void {
 		if (width <= 0 || height <= 0) {
 			return;
 		}
-		scratch.x = Std.int(x);
-		scratch.y = Std.int(y);
-		scratch.width = Std.int(width);
-		scratch.height = Std.int(height);
+		scratch.x = x;
+		scratch.y = y;
+		scratch.width = width;
+		scratch.height = height;
 		DrawQueue.submitFillRect(priority, scratch, faded(color, opacity));
 	}
 
-	static function faded(color:Color, opacity:Float):Color {
-		return opacity >= 1.0 ? color : Color.rgba(color.red, color.green, color.blue, Std.int(color.alpha * opacity));
+	// The color with its alpha scaled by an opacity from 0 to 256.
+	static inline function faded(color:Color, opacity:Int):Color {
+		return opacity >= 256 ? color : Color.rgba(color.red, color.green, color.blue, (color.alpha * opacity) >> 8);
 	}
 
 	// The deepest element under the pointer, the last drawn of those that overlap.
 	function hitTest(event:InputEvent):Null<UIElement> {
-		return hitElement(root, eventX(event) - worldX, eventY(event) - worldY);
+		return hitElement(root, Std.int(eventX(event) - worldX), Std.int(eventY(event) - worldY));
 	}
 
-	function hitElement(element:UIElement, x:Float, y:Float):Null<UIElement> {
+	function hitElement(element:UIElement, x:Int, y:Int):Null<UIElement> {
 		if (!element.isDisplayed()) {
 			return null;
 		}
@@ -642,16 +646,16 @@ class UIDocument extends Control {
 			setFocus(list[0]);
 			return true;
 		}
-		var fromX = focused.boxX + focused.boxWidth / 2;
-		var fromY = focused.boxY + focused.boxHeight / 2;
+		var fromX = focused.boxX + (focused.boxWidth >> 1);
+		var fromY = focused.boxY + (focused.boxHeight >> 1);
 		var best:Null<UIElement> = null;
 		var bestScore = Math.POSITIVE_INFINITY;
 		for (candidate in list) {
 			if (candidate == focused) {
 				continue;
 			}
-			var offsetX = candidate.boxX + candidate.boxWidth / 2 - fromX;
-			var offsetY = candidate.boxY + candidate.boxHeight / 2 - fromY;
+			var offsetX = candidate.boxX + (candidate.boxWidth >> 1) - fromX;
+			var offsetY = candidate.boxY + (candidate.boxHeight >> 1) - fromY;
 			var ahead = offsetX * dx + offsetY * dy;
 			if (ahead <= 0) {
 				continue;

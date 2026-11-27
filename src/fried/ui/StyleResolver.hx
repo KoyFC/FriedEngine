@@ -14,12 +14,27 @@ private class Match {
 	}
 }
 
+private class FontEntry {
+	public var families:Array<String>;
+	public var size:Int;
+	public var sheets:Array<StyleSheet>;
+	public var font:Font;
+
+	public function new(families:Array<String>, size:Int, sheets:Array<StyleSheet>, font:Font) {
+		this.families = families;
+		this.size = size;
+		this.sheets = sheets;
+		this.font = font;
+	}
+}
+
 // Works out the style of an element from the sheets of its document: the rules that match it, laid over one another by specificity, then by sheet, then by place in the sheet, on top of what it inherits.
 class StyleResolver {
 	// The most sizes of one family a document may use before it is told, since each size is an atlas of glyphs on the device.
 	static inline var SIZES_PER_FAMILY:Int = 4;
 
 	static var matches:Array<Match> = [];
+	static var fonts:Array<FontEntry> = [];
 
 	public static function resolve(element:UIElement, sheets:Array<StyleSheet>, sizes:Map<String, Array<Int>>, path:String):Void {
 		var style = new Style();
@@ -27,16 +42,22 @@ class StyleResolver {
 		if (parent != null) {
 			style.inheritFrom(parent.style);
 		}
-		if (!Std.isOfType(element, UIText)) {
+		if (element.kind != UIElement.TEXT) {
 			matches.resize(0);
 			for (index in 0...sheets.length) {
-				for (rule in sheets[index].rules) {
-					if (rule.selector.matches(element)) {
-						matches.push(new Match(rule, index));
-					}
+				var sheet = sheets[index];
+				consider(sheet.universal, element, index);
+				consider(sheet.byTag.get(element.tag), element, index);
+				if (element.id != null) {
+					consider(sheet.byId.get(element.id), element, index);
+				}
+				for (name in element.classList.names) {
+					consider(sheet.byClass.get(name), element, index);
 				}
 			}
-			matches.sort(compare);
+			if (matches.length > 1) {
+				matches.sort(compare);
+			}
 			for (match in matches) {
 				for (declaration in match.rule.declarations) {
 					style.apply(declaration);
@@ -46,6 +67,17 @@ class StyleResolver {
 		}
 		style.font = fontFor(style, sheets, sizes, path);
 		element.style = style;
+	}
+
+	static function consider(rules:Null<Array<StyleRule>>, element:UIElement, sheet:Int):Void {
+		if (rules == null) {
+			return;
+		}
+		for (rule in rules) {
+			if (rule.selector.matches(element)) {
+				matches.push(new Match(rule, sheet));
+			}
+		}
 	}
 
 	static function compare(a:Match, b:Match):Int {
@@ -59,7 +91,18 @@ class StyleResolver {
 	}
 
 	static function fontFor(style:Style, sheets:Array<StyleSheet>, sizes:Map<String, Array<Int>>, path:String):Font {
-		var size = Std.int(Math.round(style.fontSize));
+		var size = style.fontSize;
+		for (entry in fonts) {
+			if (entry.families == style.fontFamily && entry.size == size && entry.sheets == sheets) {
+				return entry.font;
+			}
+		}
+		var font = findFont(style, size, sheets, sizes, path);
+		fonts.push(new FontEntry(style.fontFamily, size, sheets, font));
+		return font;
+	}
+
+	static function findFont(style:Style, size:Int, sheets:Array<StyleSheet>, sizes:Map<String, Array<Int>>, path:String):Font {
 		for (family in style.fontFamily) {
 			var index = sheets.length - 1;
 			while (index >= 0) {

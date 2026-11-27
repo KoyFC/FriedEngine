@@ -14,7 +14,7 @@ The `document` field names the HTML file and the `theme` field an optional CSS f
   "theme": {"root": "game", "path": "ui/theme.css"} }
 ```
 
-The HTML has to be well formed: every element is closed, and one without content ends with a slash, as in `<link rel="stylesheet" href="theme.css" />` and `<img src="icon.png" />`. A file that is not is refused with the parser's message. The `<body>` is the root of the document and fills the node's box, so `body { display: flex; justify-content: center; align-items: center; }` centers a panel on the screen. The text of an element is cut at spaces and its blanks are collapsed; there is no text mixed with elements in one line, so a `<span>` inside a sentence is a block of its own.
+The HTML is read by the engine's own small parser (`fried.ui.html.HtmlParser`), which is forgiving the way a browser is: an element with no content such as `<link>` or `<img>` needs no slash, an end tag that does not match closes what it can, and `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&nbsp;` (a plain space) and numeric entities are decoded. Every repair is reported with its line and column. The parser does not close an element a browser would close by itself, such as a `<li>` before the next `<li>`, so close every element. (The engine does not use Haxe's `Xml` or `EReg`, because they pull a regular expression library into the program, which does not build for the DS.) The `<body>` is the root of the document and fills the node's box, so `body { display: flex; justify-content: center; align-items: center; }` centers a panel on the screen. The text of an element is cut at spaces and its blanks are collapsed; there is no text mixed with elements in one line, so a `<span>` inside a sentence is a block of its own.
 
 The sheets apply in this order, each over the one before: the engine's own (`assets/ui/default.css`, which sets the font, the sizes of headings and the look of a `<button>`), the `<link rel="stylesheet">` and `<style>` of the file in order, and the `theme`. Across all of them the most specific selector wins, and between equal ones the later sheet and then the later rule, so a theme that styles `button` does not take away the `button:focus` of the engine's sheet. `!important` is not supported.
 
@@ -44,7 +44,7 @@ The scale and rotation of the node are not applied to the document.
 
 ## What is left out is said
 
-Every property, value, selector, element or rule that is not supported is reported once in the log with where it is and what to write instead, as `ui/theme.css:12:3: "foo" is not a color the subset reads (fix: ...)`, and the rest of the file still applies. An HTML problem is reported by its file, as the parser does not give lines. Examples are `@media`, `position`, `var()`, `calc()`, a pseudo-element, `margin: auto` (use `justify-content` and `align-items` on the parent), `rem` and `em` (read as 16 pixels each, and reported).
+Every property, value, selector, element or rule that is not supported is reported once in the log with where it is and what to write instead, as `ui/theme.css:12:3: "foo" is not a color the subset reads (fix: ...)`, and the rest of the file still applies. Examples are `@media`, `position`, `var()`, `calc()`, a pseudo-element, `margin: auto` (use `justify-content` and `align-items` on the parent), `rem` and `em` (read as 16 pixels each, and reported).
 
 Each size of a font is a separate atlas of glyphs in memory, so a document that uses more than four sizes of a family is told so.
 
@@ -89,3 +89,7 @@ A press on a `<button>`, or on an element with an `onClick`, is held until it is
 ## Layout is lazy
 
 The style of an element is worked out again only when its classes or states changed, and then for it and its descendants, and the layout only after a style, a text, a visibility or the size of the node changed.
+
+## Cost
+
+Everything per frame is whole numbers, since the DS has no floating point unit, and an `Int` costs a fraction of a `Float` there. The text measures are kept for as long as the text and the font stay the same, the rules of a sheet are indexed by what they select so an element is only tried against a few, and the font of a family and size is looked up once. A change of style that touches only paint (a color, an opacity, a visibility) does not lay the document out again. The measurements are in [UI measurements](../development/ui-measurements.md).

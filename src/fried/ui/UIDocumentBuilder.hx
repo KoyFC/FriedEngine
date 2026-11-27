@@ -3,6 +3,8 @@ package fried.ui;
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+import fried.ui.html.HtmlNode;
+import fried.ui.html.HtmlParser;
 
 using Lambda;
 
@@ -26,18 +28,14 @@ class UIDocumentBuilder {
 		var file = fried.io.Assets.gameSourcePath(relative);
 		Context.registerModuleDependency(Context.getLocalModule(), file);
 		var text = sys.io.File.getContent(file);
-		var xml = try {
-			Xml.parse(text);
-		} catch (error:Dynamic) {
-			Context.error('$relative is not well formed HTML: $error', meta[0].pos);
-		}
+		var parsed = HtmlParser.parse(text, (offset, message, fix) -> Context.warning('$message (fix: $fix)', positionAt(file, offset, 1)));
 
 		var fields = Context.getBuildFields();
 		var ids:Array<{id:String, name:String, type:String}> = [];
 		var handlers:Array<{name:String, id:String}> = [];
 		var bindings:Array<String> = [];
 		var ownNames = [for (field in fields) field.name => true];
-		collect(xml, file, text, fields, ownNames, ids, handlers, bindings);
+		collect(parsed, file, fields, ownNames, ids, handlers, bindings);
 
 		var position = cls.pos;
 		var bind = new StringBuf();
@@ -81,51 +79,55 @@ class UIDocumentBuilder {
 		return fields;
 	}
 
-	static function collect(xml:Xml, file:String, text:String, fields:Array<Field>, ownNames:Map<String, Bool>, ids:Array<{id:String, name:String, type:String}>,
+	static function collect(node:HtmlNode, file:String, fields:Array<Field>, ownNames:Map<String, Bool>, ids:Array<{id:String, name:String, type:String}>,
 			handlers:Array<{name:String, id:String}>, bindings:Array<String>):Void {
-		for (child in xml) {
-			switch (child.nodeType) {
-				case Element:
-					var id = child.get("id");
-					if (id != null) {
-						var name = nameOf(id);
-						if (!identifierPattern.match(name)) {
-							Context.error('The id "$id" cannot be a field, since "$name" is not a name.', position(file, text, 'id="$id"'));
-						}
-						if (ids.exists(entry -> entry.name == name)) {
-							Context.error('The id "$id" gives the field "$name" a second time.', position(file, text, 'id="$id"'));
-						}
-						if (ownNames.exists(name)) {
-							Context.error('The id "$id" would be the field "$name", which the class already declares.', position(file, text, 'id="$id"'));
-						}
-						ids.push({id: id, name: name, type: typeOf(child.nodeName.toLowerCase())});
-					}
-					var handler = child.get("onclick");
-					if (handler != null) {
-						var at = position(file, text, 'onclick="$handler"');
-						if (id == null) {
-							Context.error('An element with onclick="$handler" needs an id, so the class can reach it.', at);
-						}
-						if (!hasMethod(fields, handler)) {
-							Context.error('onclick="$handler" names no method with no arguments in this class. Declare "function $handler():Void".', at);
-						}
-						handlers.push({name: handler, id: id});
-					}
-					collect(child, file, text, fields, ownNames, ids, handlers, bindings);
-				case PCData | CData:
-					var remaining = child.nodeValue;
-					while (bindingPattern.match(remaining)) {
-						var name = bindingPattern.matched(1);
-						if (bindings.indexOf(name) < 0) {
-							if (!fields.exists(field -> field.name == name && isPlainVar(field))) {
-								Context.error('{{$name}} needs a "var $name" with a type in this class.', position(file, text, bindingPattern.matched(0)));
-							}
-							bindings.push(name);
-						}
-						remaining = bindingPattern.matchedRight();
-					}
-				case _:
+		for (child in node.children) {
+			if (child.isText) {
+				collectBindings(child, file, fields, bindings);
+				continue;
 			}
+			var id = child.get("id");
+			if (id != null) {
+				var name = nameOf(id);
+				var at = attributePosition(file, child, "id");
+				if (!identifierPattern.match(name)) {
+					Context.error('The id "$id" cannot be a field, since "$name" is not a name.', at);
+				}
+				if (ids.exists(entry -> entry.name == name)) {
+					Context.error('The id "$id" gives the field "$name" a second time.', at);
+				}
+				if (ownNames.exists(name)) {
+					Context.error('The id "$id" would be the field "$name", which the class already declares.', at);
+				}
+				ids.push({id: id, name: name, type: typeOf(child.tag)});
+			}
+			var handler = child.get("onclick");
+			if (handler != null) {
+				var at = attributePosition(file, child, "onclick");
+				if (id == null) {
+					Context.error('An element with onclick="$handler" needs an id, so the class can reach it.', at);
+				}
+				if (!hasMethod(fields, handler)) {
+					Context.error('onclick="$handler" names no method with no arguments in this class. Declare "function $handler():Void".', at);
+				}
+				handlers.push({name: handler, id: id});
+			}
+			collect(child, file, fields, ownNames, ids, handlers, bindings);
+		}
+	}
+
+	static function collectBindings(node:HtmlNode, file:String, fields:Array<Field>, bindings:Array<String>):Void {
+		var remaining = node.text;
+		while (bindingPattern.match(remaining)) {
+			var name = bindingPattern.matched(1);
+			if (bindings.indexOf(name) < 0) {
+				if (!fields.exists(field -> field.name == name && isPlainVar(field))) {
+					var matched = bindingPattern.matched(0);
+					Context.error('{{$name}} needs a "var $name" with a type in this class.', positionAt(file, node.offset + Std.int(Math.max(0, node.text.indexOf(matched))), matched.length));
+				}
+				bindings.push(name);
+			}
+			remaining = bindingPattern.matchedRight();
 		}
 	}
 
@@ -198,13 +200,13 @@ class UIDocumentBuilder {
 		}
 	}
 
-	// Where a text is in the file, so an error points at it. The XML parser gives no positions, so it is found by the text.
-	static function position(file:String, text:String, needle:String):Position {
-		var index = text.indexOf(needle);
-		if (index < 0) {
-			index = 0;
-		}
-		return Context.makePosition({file: file, min: index, max: index + needle.length});
+	static function attributePosition(file:String, node:HtmlNode, name:String):Position {
+		var value = node.get(name);
+		return positionAt(file, node.attributeOffsets.get(name), name.length + value.length + 3);
+	}
+
+	static function positionAt(file:String, offset:Int, length:Int):Position {
+		return Context.makePosition({file: file, min: offset, max: offset + length});
 	}
 }
 #end

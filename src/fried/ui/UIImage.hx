@@ -14,6 +14,7 @@ class UIImage extends UIElement {
 
 	public function new(source:String, id:Null<String> = null, classes:Array<String> = null) {
 		super("img", id, classes);
+		kind = UIElement.IMAGE;
 		this.source = source;
 		isFailed = false;
 	}

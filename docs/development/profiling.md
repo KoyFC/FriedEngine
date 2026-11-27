@@ -2,7 +2,7 @@
 
 `fried.Profile` times the sections of a frame in a build made with `-D fried_profile`. Without that define every call is inlined to nothing, so a game that ships has no timers, no code for them and no memory for their ring: a DS ROM built without the define is byte for byte the ROM of a build that never had the probes.
 
-A section is a constant of `Profile`: `FIXED` (the fixed steps), `UPDATE` (the game's update and the layers' updates), `DRAW` (the layers drawing), `SORT` and `FLUSH` (the draw queue's sort, and the whole flush that holds it), `BATCH` (the renderer's batch drawing, which `FLUSH` holds too), `PRESENT` and `WORK` (the frame's start up to the end of the flush, so a wait for vsync is not in it).
+A section is a constant of `Profile`: `FIXED` (the fixed steps), `UPDATE` (the game's update and the layers' updates), `DRAW` (the layers drawing), `SORT` and `FLUSH` (the draw queue's sort, and the whole flush that holds it), `BATCH` (the renderer's batch drawing, which `FLUSH` holds too), `PRESENT` and `WORK` (the frame's start up to the end of the flush, so a wait for vsync is not in it), and `UI_STYLE` and `UI_LAYOUT` (what a `UIDocument` spends working out styles and layout, which `DRAW` holds).
 
 ```haxe
 var start = Profile.begin();

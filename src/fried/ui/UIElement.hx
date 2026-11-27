@@ -5,6 +5,11 @@ import fried.ui.css.ElementState;
 // A box of a document, made from an HTML element. It is not a scene node: a document holds its elements and lays them out and draws them itself.
 @:allow(fried.ui)
 class UIElement {
+	// What the element is, so the layout and the drawing tell a text from a picture without a type test.
+	static inline var BOX:Int = 0;
+	static inline var TEXT:Int = 1;
+	static inline var IMAGE:Int = 2;
+
 	public var tag(default, null):String;
 	public var id(default, null):Null<String>;
 	public var classList(default, null):ClassList;
@@ -30,16 +35,22 @@ class UIElement {
 	public var textContent(get, set):String;
 
 	// The border box in document coordinates, set by the layout.
-	public var boxX(default, null):Float;
-	public var boxY(default, null):Float;
-	public var boxWidth(default, null):Float;
-	public var boxHeight(default, null):Float;
+	public var boxX(default, null):Int;
+	public var boxY(default, null):Int;
+	public var boxWidth(default, null):Int;
+	public var boxHeight(default, null):Int;
 
 	// The position under the content box of the parent, and the widest the element wants to be, as the layout works them out.
-	var relX:Float;
-	var relY:Float;
-	var intrinsic:Float;
+	var kind:Int;
+	var relX:Int;
+	var relY:Int;
+	var intrinsic:Int;
 	var intrinsicPass:Int;
+
+	// What a flex container works out for each of its items while it lays them out: the width, the height and the offset on the cross axis.
+	var flexWidth:Int;
+	var flexHeight:Int;
+	var flexOffset:Int;
 
 	var document:Null<UIDocument>;
 
@@ -57,13 +68,17 @@ class UIElement {
 		hidden = false;
 		disabled = false;
 		focusable = false;
-		boxX = 0.0;
-		boxY = 0.0;
-		boxWidth = 0.0;
-		boxHeight = 0.0;
-		relX = 0.0;
-		relY = 0.0;
-		intrinsic = 0.0;
+		boxX = 0;
+		boxY = 0;
+		boxWidth = 0;
+		boxHeight = 0;
+		kind = BOX;
+		relX = 0;
+		relY = 0;
+		flexWidth = 0;
+		flexHeight = 0;
+		flexOffset = 0;
+		intrinsic = 0;
 		intrinsicPass = 0;
 		isStyleDirty = false;
 	}
@@ -76,6 +91,9 @@ class UIElement {
 		children.push(child);
 		child.setDocument(document);
 		styleChanged();
+		if (document != null) {
+			document.invalidateLayout();
+		}
 	}
 
 	public function isDisplayed():Bool {

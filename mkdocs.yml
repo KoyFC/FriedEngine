@@ -82,4 +82,5 @@ nav:
       - development/ds-3d-measurements.md
       - development/physics-backends.md
       - development/profiling.md
+      - development/ui-measurements.md
       - development/releasing.md

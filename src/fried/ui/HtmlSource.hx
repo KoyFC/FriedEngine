@@ -1,13 +1,17 @@
 package fried.ui;
 
 import fried.io.Filesystem;
+import fried.ui.html.HtmlNode;
+import fried.ui.html.HtmlParser;
 
-// An HTML file read and parsed, once for its path. It has to be well formed, so an element with no end such as <link> or <img> is written with a closing slash.
+// An HTML file read and parsed, once for its path. What the parser has to repair, such as an element that was never closed, is reported with its line and column.
 class HtmlSource {
 	public var path(default, null):String;
 
-	// The XML document the file parsed to.
-	public var xml(default, null):Xml;
+	// The root of what the file parsed to, whose children are its top level elements.
+	public var root(default, null):HtmlNode;
+
+	var lines:SourceLines;
 
 	static var byPath:Map<String, HtmlSource> = new Map();
 
@@ -22,16 +26,19 @@ class HtmlSource {
 	}
 
 	public static function parse(path:String, text:String):HtmlSource {
-		var xml = try {
-			Xml.parse(text);
-		} catch (error:Dynamic) {
-			throw '$path: the HTML is not well formed, so it cannot be read: $error';
-		}
-		return new HtmlSource(path, xml);
+		var lines = new SourceLines(text);
+		var root = HtmlParser.parse(text, (offset, message, fix) -> UIDiagnostics.report(path, lines.line(offset), lines.column(offset), message, fix));
+		return new HtmlSource(path, root, lines);
 	}
 
-	function new(path:String, xml:Xml) {
+	function new(path:String, root:HtmlNode, lines:SourceLines) {
 		this.path = path;
-		this.xml = xml;
+		this.root = root;
+		this.lines = lines;
+	}
+
+	// Reports something about a node at its place in the file.
+	public function report(node:HtmlNode, message:String, fix:String):Void {
+		UIDiagnostics.report(path, lines.line(node.offset), lines.column(node.offset), message, fix);
 	}
 }

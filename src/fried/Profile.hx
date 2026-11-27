@@ -10,7 +10,9 @@ class Profile {
 	public static inline var BATCH:Int = 5;
 	public static inline var PRESENT:Int = 6;
 	public static inline var WORK:Int = 7;
-	public static inline var SECTIONS:Int = 8;
+	public static inline var UI_STYLE:Int = 8;
+	public static inline var UI_LAYOUT:Int = 9;
+	public static inline var SECTIONS:Int = 10;
 
 	#if fried_profile
 	public static inline function begin():Int {
