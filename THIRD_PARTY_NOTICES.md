@@ -6,6 +6,10 @@ Fried Engine itself is under the MIT License, see [`LICENSE`](LICENSE). These ar
 
 `native/third_party/stb_image.h` (v2.30), `native/third_party/stb_image_write.h` (v1.19, used only by the asset import tool) and `native/third_party/stb_truetype.h` (v1.26), by Sean Barrett and contributors, <https://github.com/nothings/stb>. Each header offers its terms as two alternatives at its end: the MIT License, or the public domain (Unlicense).
 
+## cgltf
+
+`native/third_party/cgltf.h` (v1.14), by Johannes Kuhlmann, <https://github.com/jkuhlmann/cgltf>, under the MIT License, which the header carries at its end. It reads glTF models in the asset import tool, and on PC in a game, where a model that has not been imported is converted as it is read.
+
 ## Nunito Sans
 
 `assets/NunitoSans.ttf`, Copyright 2016 The Nunito Sans Project Authors (<https://github.com/Fonthausen/NunitoSans>), licensed under the SIL Open Font License, Version 1.1. The full text is in [`licenses/NunitoSans-OFL.txt`](licenses/NunitoSans-OFL.txt).

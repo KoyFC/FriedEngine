@@ -10,8 +10,10 @@
 #include "font_import.h"
 #include "image_import.h"
 #include "import_settings.h"
+#include "model/model_convert.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -55,6 +57,21 @@ namespace
         std::ofstream stream(path, std::ios::binary | std::ios::trunc);
         stream.write((const char *)bytes.data(), (std::streamsize)bytes.size());
         return (bool)stream;
+    }
+
+    bool isModel(const std::string &extension)
+    {
+        return extension == ".obj" || extension == ".gltf" || extension == ".glb";
+    }
+
+    // The most triangles and vertices a platform's 3D hardware takes in a frame, which a model that is alone in the scene already comes near.
+    void warnAboutModelSize(const std::string &platform, const fs::path &relative, const fried_model::Result &model)
+    {
+        if (platform == "nds" && (model.m_triangleCount > 2048 || model.m_vertexCount > 6144))
+        {
+            std::cerr << "fried_import: " << relative.string() << " has " << model.m_triangleCount << " triangles and " << model.m_vertexCount
+                      << " vertices, and the DS draws 2048 polygons and 6144 vertices in a frame\n";
+        }
     }
 
     bool isUpToDate(const fs::path &destination, const fs::path &source, const fs::path &sidecar)
@@ -103,7 +120,9 @@ int main(int argc, char **argv)
         fs::path sidecar = entry.path();
         sidecar += ".import";
         bool hasSidecar = fs::exists(sidecar);
-        if (isUpToDate(destination, entry.path(), hasSidecar ? sidecar : fs::path()))
+        std::string extension = lowerExtension(entry.path());
+        // A model is made of more files than itself, so it is read again each time, and only written when it changed.
+        if (!isModel(extension) && isUpToDate(destination, entry.path(), hasSidecar ? sidecar : fs::path()))
         {
             continue;
         }
@@ -129,10 +148,47 @@ int main(int argc, char **argv)
             ++failures;
             continue;
         }
-        std::string extension = lowerExtension(entry.path());
         const std::vector<unsigned char> *result = &source;
         std::string warning;
-        if (extension == ".png" && settings.m_hasImage && fried_import::changesImage(settings.m_image))
+        if (isModel(extension))
+        {
+            fried_model::Options options;
+            options.m_stripImages = platform == "cg50";
+            // An image that is kept in the model's file is written beside the model, so that a platform loads it as it does any other image.
+            options.m_extract = [&](const std::vector<unsigned char> &png, const std::string &name) {
+                std::string safe = name;
+                std::replace_if(safe.begin(), safe.end(), [](unsigned char c) { return !std::isalnum(c) && c != '-' && c != '_'; }, '_');
+                fs::path image = destination;
+                image += "." + safe + ".png";
+                expected.insert(image.lexically_normal());
+                if (!writeFile(image, png))
+                {
+                    return std::string();
+                }
+                return image.filename().string();
+            };
+            fried_model::Result model;
+            if (fried_model::convert(entry.path().string(), options, &model, &message))
+            {
+                converted = model.m_bytes;
+                result = &converted;
+                for (const std::string &text : model.m_warnings)
+                {
+                    std::cerr << "fried_import: " << relative.string() << ": " << text << "\n";
+                }
+                warnAboutModelSize(platform, relative, model);
+                std::vector<unsigned char> existing;
+                if (readFile(destination, &existing) && existing == converted)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                std::cerr << "fried_import: " << relative.string() << ": " << message << ", copied as it is\n";
+            }
+        }
+        else if (extension == ".png" && settings.m_hasImage && fried_import::changesImage(settings.m_image))
         {
             if (fried_import::convertImage(source, settings.m_image, &converted, &warning, &message))
             {
