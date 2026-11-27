@@ -8,7 +8,7 @@ import haxe.macro.ExprTools;
 
 using Lambda;
 
-private typedef SerializedField = {
+typedef SerializedField = {
 	var name:String;
 	var codec:String;
 	var kind:String;
@@ -128,7 +128,7 @@ class NodeBuilder {
 	}
 
 	// The fields of every serializable class above this one, so a Sprite's data may set a Node2D's x as well as its own texture.
-	static function collectInherited(localClass:haxe.macro.Type.ClassType):Array<SerializedField> {
+	public static function collectInherited(localClass:haxe.macro.Type.ClassType):Array<SerializedField> {
 		var chain:Array<haxe.macro.Type.ClassType> = [];
 		var parent = localClass.superClass;
 		while (parent != null) {
@@ -179,7 +179,7 @@ class NodeBuilder {
 		return result;
 	}
 
-	static function collectFields(fields:Array<Field>, position:Position):Array<SerializedField> {
+	public static function collectFields(fields:Array<Field>, position:Position):Array<SerializedField> {
 		var result = [];
 		for (field in fields) {
 			if (field.access == null || field.access.indexOf(APublic) < 0 || field.access.indexOf(AStatic) >= 0 || field.access.indexOf(AFinal) >= 0) {
@@ -239,7 +239,9 @@ class NodeBuilder {
 			case "String": {name: "", codec: "Text", kind: "Text", needsContext: false};
 			case "Color": {name: "", codec: "Color", kind: "Rgba", needsContext: false};
 			case "FlipMode": {name: "", codec: "Flip", kind: "Flip", needsContext: false};
-			case "MeshShape": {name: "", codec: "Shape", kind: "Shape", needsContext: false};
+			case "PlaneOrientation": {name: "", codec: "Orientation", kind: "Orientation", needsContext: false};
+			case "Mesh": {name: "", codec: "Mesh", kind: "MeshRef", needsContext: true};
+			case "Material": {name: "", codec: "Material", kind: "MaterialRef", needsContext: true};
 			case "Rect": {name: "", codec: "Rect", kind: "Region", needsContext: false};
 			case "Texture": {name: "", codec: "Texture", kind: "TextureRef", needsContext: true};
 			case "Font": {name: "", codec: "Font", kind: "FontRef", needsContext: true};
@@ -262,7 +264,7 @@ class NodeBuilder {
 		return [];
 	}
 
-	static function convert(field:SerializedField, owner:String):String {
+	public static function convert(field:SerializedField, owner:String):String {
 		var context = field.needsContext ? ", ctx" : "";
 		var call = '$CODEC.to${field.codec}($CODEC.get(data, "${field.name}"), "$owner.${field.name}"$context)';
 		return field.codec == "Node" ? 'cast $call' : call;
