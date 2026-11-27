@@ -18,5 +18,20 @@ class MeshVariant {
 		this.versions = versions;
 		this.colors = colors;
 		this.textures = textures;
+		cpp.vm.Gc.setFinalizer(this, cpp.Function.fromStaticFunction(release));
 	}
+
+	// A mesh a scene made goes with the scene without anyone destroying it, so its native half is freed when the collector takes the variant. Mesh.destroy() has set nativeId to -1 if it already did.
+	static function release(variant:MeshVariant):Void {
+		if (variant.nativeId >= 0) {
+			MeshVariantNative.destroy(variant.nativeId);
+			variant.nativeId = -1;
+		}
+	}
+}
+
+@:include("graphics/mesh.h")
+private extern class MeshVariantNative {
+	@:native("fried_mesh_destroy")
+	static function destroy(meshId:Int):Void;
 }

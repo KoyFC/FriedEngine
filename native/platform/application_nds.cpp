@@ -6,6 +6,7 @@
 
 #include <nds.h>
 
+#include <calico/system/tick.h>
 #include <malloc.h>
 
 #include <cstdio>
@@ -16,6 +17,11 @@
 // The bottom screen is the text console that standard output prints to, so
 // the log and a crash report are read there, unless a game opens a window on
 // it (platform/console_nds.h).
+
+// hxcpp's collector, which the program links, and the system tick counter of cmake/nds/runtime.cpp.
+void __hxcpp_collect(bool inMajor);
+void __hxcpp_gc_compact();
+extern "C" uint64_t fried_nds_tick_count(void);
 
 namespace
 {
@@ -46,9 +52,20 @@ namespace
         std::exit(1);
     }
 
-    // Without the heap, so the number goes through a buffer of its own.
+    uint64_t s_lastCollectEnd = 0;
+    bool s_hasCollected = false;
+
+    // Native code asks for memory the collector is holding as garbage or as free blocks. The first time one cannot be had, the heap is collected and handed back, and the allocation is tried again; that attempt failing too, which is the handler being called again right after, is the end. Without the heap, so the number goes through a buffer of its own.
     void onOutOfMemory()
     {
+        if (!s_hasCollected || fried_nds_tick_count() - s_lastCollectEnd > TICK_FREQ / 2000)
+        {
+            s_hasCollected = true;
+            __hxcpp_collect(true);
+            __hxcpp_gc_compact();
+            s_lastCollectEnd = fried_nds_tick_count();
+            return;
+        }
         static char message[96];
         std::snprintf(message, sizeof message, "Out of memory: the game needs more than the DS has.\n%d KB were left.\n", fried_application_free_memory() / 1024);
         stopWithMessage(message);

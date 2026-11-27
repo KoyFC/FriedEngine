@@ -29,7 +29,7 @@ All notable changes to Fried Engine are written here, newest version first.
 - `fried.Profile`, section timers that exist only in a build made with `-D fried_profile`, and the game's frame stats carry them to the editor.
 
 ### Changed
-- A DS build compiles the Haxe code of the game as Thumb, which leaves a fifth of the program to the heap, and `fried_application_free_memory()` and `Application.freeMemoryKb()` count what the heap has left, which the DS also prints when it runs out. A scene change collects the heap first where it is counted.
+- A DS build compiles the Haxe code of the game as Thumb, which leaves a fifth of the program to the heap, and `fried_application_free_memory()` and `Application.freeMemoryKb()` count what the heap has left, which the DS also prints when it runs out. A scene change collects and compacts the heap first where it is counted, native code that cannot get memory on the DS collects and tries again before giving up, and a mesh frees its native half when the collector takes it, so the DS no longer runs out of memory after a few changes of scene.
 - `MeshInstance` is `MeshInstance3D`, and scene files that name the old type still load. Its `shape` and `color` are a `mesh` and a material: an older file is read as the primitive that comes nearest, and a `Pyramid` becomes a four sided cone that is turned an eighth of a turn about its axis.
 - `fillTriangles()` has a sibling, `fillTexturedTriangles()`, and `fried_mesh_create()` takes the texture coordinates and the surfaces of a mesh.
 
