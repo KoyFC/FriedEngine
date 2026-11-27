@@ -3,7 +3,7 @@ package fried.editor;
 #if fried_editor
 import fried.graphics3d.Rotation;
 import fried.scene.Camera3D;
-import fried.scene.MeshInstance;
+import fried.scene.MeshInstance3D;
 import fried.scene.Node3D;
 
 // Where a Node3D lands on the frame through the editor's 3D camera: the box a click on it is tested against, its distance, its origin, and where one more unit of each of its coordinates would land, which is what a gizmo's arrows follow.
@@ -26,7 +26,7 @@ class EditorBounds3D {
 		var top = originY - MARKER_SIZE / 2;
 		var right = originX + MARKER_SIZE / 2;
 		var bottom = originY + MARKER_SIZE / 2;
-		var instance = Std.downcast(node, MeshInstance);
+		var instance = Std.downcast(node, MeshInstance3D);
 		if (instance != null && instance.mesh != null) {
 			var mesh = instance.mesh;
 			Rotation.toMatrix(node.worldRotationX, node.worldRotationY, node.worldRotationZ, turn);

@@ -3,7 +3,7 @@
 
 // No renderer here draws meshes, so MeshPass draws them as triangles.
 
-int fried_mesh_create(const fried_real *, int, const int *, const int *, int)
+int fried_mesh_create(const fried_real *, const fried_real *, int, const int *, const int *, int, const int *, const int *, int)
 {
     return -1;
 }

@@ -254,6 +254,7 @@ class SceneLoader {
 			throw 'The node $fileId has the unknown type "$typeName".';
 		}
 
+		LegacyFields.migrate(type.name, data);
 		var node = type.create(data, context);
 		var id = instance != null ? instance.id : fileId;
 		node.id = id;

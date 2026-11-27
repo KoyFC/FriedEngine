@@ -62,7 +62,7 @@ class Scene {
 	var fixedUpdateList:Array<Node>;
 	var bodyList:Array<KinematicBody>;
 	var drawList:Array<Node>;
-	var meshList:Array<MeshInstance>;
+	var meshList:Array<MeshInstance3D>;
 	var lightList:Array<DirectionalLight>;
 	var eventTree:Array<Node>;
 	var eventList:Array<Node>;

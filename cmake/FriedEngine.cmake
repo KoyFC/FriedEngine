@@ -206,6 +206,11 @@ else()
         native/physics/collider_store.cpp
     )
 endif()
+# The renderers that are not SDL's answer for textured triangles with a stub.
+if(FRIED_CG50 OR NINTENDO_DS OR NINTENDO_3DS)
+    list(APPEND _fried_native_sources native/graphics/renderer_textured_stub.cpp)
+endif()
+
 list(APPEND _fried_native_sources
     native/last_error.cpp
     native/graphics/display.cpp

@@ -379,6 +379,40 @@ void fried_renderer_fill_triangles(int rendererId, const fried_real *points, con
     SDL_RenderGeometry(renderer, nullptr, s_triangleVertices.data(), vertexCount, nullptr, 0);
 }
 
+bool fried_renderer_draws_textured_triangles(int rendererId)
+{
+    return fried_renderer_get_sdl(rendererId) != nullptr;
+}
+
+void fried_renderer_fill_textured_triangles(int rendererId, int textureId, const fried_real *points, const fried_real *uvs, const int *argbColors,
+                                            int triangleCount)
+{
+    SDL_Texture *texture = fried_texture_get_sdl(textureId);
+    if (!texture)
+    {
+        fried_renderer_fill_triangles(rendererId, points, argbColors, triangleCount);
+        return;
+    }
+    fried_mesh_sdl_leave();
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer || triangleCount <= 0)
+    {
+        return;
+    }
+
+    int vertexCount = triangleCount * 3;
+    s_triangleVertices.resize(vertexCount);
+    for (int index = 0; index < vertexCount; ++index)
+    {
+        Uint32 color = (Uint32)argbColors[index / 3];
+        SDL_Vertex &vertex = s_triangleVertices[index];
+        vertex.position = {(float)points[index * 2], (float)points[index * 2 + 1]};
+        vertex.color = {(Uint8)(color >> 16), (Uint8)(color >> 8), (Uint8)color, (Uint8)(color >> 24)};
+        vertex.tex_coord = {(float)uvs[index * 2], (float)uvs[index * 2 + 1]};
+    }
+    SDL_RenderGeometry(renderer, texture, s_triangleVertices.data(), vertexCount, nullptr, 0);
+}
+
 void fried_renderer_window_to_logical(int windowId, int x, int y, int &logicalX, int &logicalY)
 {
     SDL_Renderer *renderer = rendererOfWindow(windowId);

@@ -1,7 +1,7 @@
 package nodes;
 
 import fried.graphics3d.Mesh;
-import fried.scene.MeshInstance;
+import fried.scene.MeshInstance3D;
 import fried.scene.Node3D;
 import scene3d.CubeMesh;
 
@@ -23,7 +23,7 @@ class CubeField extends Node3D {
 	var viewHeight:Int;
 	var fieldOfView:Float;
 	var mesh:Mesh;
-	var cubes:Array<MeshInstance>;
+	var cubes:Array<MeshInstance3D>;
 	var spinSpeedsX:Array<Float>;
 	var spinSpeedsY:Array<Float>;
 
@@ -49,7 +49,7 @@ class CubeField extends Node3D {
 	function set_cubeCount(count:Int):Int {
 		cubeCount = Std.int(Math.max(MIN_CUBES, Math.min(MAX_CUBES, count)));
 		while (cubes.length < cubeCount) {
-			var cube = new MeshInstance();
+			var cube = new MeshInstance3D();
 			cube.mesh = mesh;
 			addChild(cube);
 			cubes.push(cube);

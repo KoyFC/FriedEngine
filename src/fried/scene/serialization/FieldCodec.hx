@@ -4,7 +4,9 @@ import fried.graphics.Color;
 import fried.graphics.Font;
 import fried.graphics.FlipMode;
 import fried.graphics.Rect;
-import fried.graphics3d.MeshShape;
+import fried.graphics3d.Material;
+import fried.graphics3d.Mesh;
+import fried.graphics3d.PlaneOrientation;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
 import fried.ui.HtmlSource;
@@ -13,7 +15,7 @@ import fried.ui.StyleSheet;
 // Converts between the data of a scene file and the values of node fields. The code a node's build macro generates calls these.
 class FieldCodec {
 	static var flipNames:Array<String> = ["None", "Horizontal", "Vertical", "Both"];
-	static var shapeNames:Array<String> = ["Cube", "Plane", "Pyramid", "Sphere"];
+	static var orientationNames:Array<String> = ["FaceX", "FaceY", "FaceZ"];
 
 	public static function has(data:Dynamic, name:String):Bool {
 		return data != null && Reflect.hasField(data, name);
@@ -30,7 +32,7 @@ class FieldCodec {
 	public static function enumValues(kind:FieldKind):Array<String> {
 		return switch (kind) {
 			case Flip: flipNames.copy();
-			case Shape: shapeNames.copy();
+			case Orientation: orientationNames.copy();
 			case _: [];
 		}
 	}
@@ -91,14 +93,37 @@ class FieldCodec {
 		}
 	}
 
-	public static function toShape(value:Dynamic, field:String):MeshShape {
+	public static function toOrientation(value:Dynamic, field:String):PlaneOrientation {
 		return switch (value) {
-			case "Cube": MeshShape.Cube;
-			case "Plane": MeshShape.Plane;
-			case "Pyramid": MeshShape.Pyramid;
-			case "Sphere": MeshShape.Sphere;
-			case _: invalid(field, "one of " + shapeNames.join(", "));
+			case "FaceX": PlaneOrientation.FaceX;
+			case "FaceY": PlaneOrientation.FaceY;
+			case "FaceZ": PlaneOrientation.FaceZ;
+			case _: invalid(field, "one of " + orientationNames.join(", "));
 		}
+	}
+
+	// A mesh is the data of a primitive, with its "type", or the file it is read from.
+	public static function toMesh(value:Dynamic, field:String, context:LoadContext):Mesh {
+		if (value == null) {
+			return null;
+		}
+		if (!Reflect.isObject(value)) {
+			return invalid(field, "an object with a type, or with root and path");
+		}
+		if (has(value, "type")) {
+			return cast ResourceRegistry.build(value, "mesh", field, context);
+		}
+		return invalid(field, "an object with a type");
+	}
+
+	public static function toMaterial(value:Dynamic, field:String, context:LoadContext):Material {
+		if (value == null) {
+			return null;
+		}
+		if (!Reflect.isObject(value)) {
+			return invalid(field, "an object with a type");
+		}
+		return cast ResourceRegistry.build(value, "material", field, context);
 	}
 
 	public static function toRect(value:Dynamic, field:String):Rect {
@@ -203,8 +228,16 @@ class FieldCodec {
 		return flipNames[cast value];
 	}
 
-	public static function fromShape(value:MeshShape):Dynamic {
-		return shapeNames[cast value];
+	public static function fromOrientation(value:PlaneOrientation):Dynamic {
+		return orientationNames[cast value];
+	}
+
+	public static function fromMesh(value:Mesh):Dynamic {
+		return ResourceRegistry.describe(value);
+	}
+
+	public static function fromMaterial(value:Material):Dynamic {
+		return ResourceRegistry.describe(value);
 	}
 
 	public static function fromRect(value:Rect):Dynamic {
@@ -256,8 +289,16 @@ class FieldCodec {
 		return FlipMode.None;
 	}
 
-	public static function zeroShape():MeshShape {
-		return MeshShape.Cube;
+	public static function zeroOrientation():PlaneOrientation {
+		return PlaneOrientation.FaceY;
+	}
+
+	public static function zeroMesh():Mesh {
+		return null;
+	}
+
+	public static function zeroMaterial():Material {
+		return null;
 	}
 
 	public static function zeroRect():Rect {

@@ -4,6 +4,7 @@
 
 #include "graphics/display.h"
 #include "graphics/mesh_geometry.h"
+#include "graphics/texture.h"
 
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -22,16 +23,32 @@
 
 namespace
 {
+    // The texture coordinates are not on 3, which a compatibility context
+    // reads as the color array SDL draws its own triangles with.
     constexpr GLuint s_positionAttribute = 0;
     constexpr GLuint s_colorAttribute = 1;
     constexpr GLuint s_normalAttribute = 2;
-    constexpr int s_attributeCount = 3;
+    constexpr GLuint s_uvAttribute = 6;
+    constexpr GLuint s_attributes[] = {s_positionAttribute, s_colorAttribute, s_normalAttribute, s_uvAttribute};
+    constexpr int s_attributeCount = 4;
+    constexpr int s_clientStateCount = 3;
 
-    using Vertex = fried_mesh::Vertex;
+    using Vertex = fried_mesh::TexturedVertex;
+
+    // A run of the mesh's corners that one texture paints, or none.
+    struct Range
+    {
+        int m_first;
+        int m_count;
+        int m_textureId;
+        // Some corner reaches outside the image, which then repeats.
+        bool m_repeats;
+    };
 
     struct Mesh
     {
         std::vector<Vertex> m_vertices;
+        std::vector<Range> m_ranges;
         GLuint m_buffer;
         bool m_isUsed;
     };
@@ -76,6 +93,15 @@ namespace
         void (APIENTRY *m_disableVertexAttribArray)(GLuint);
         void (APIENTRY *m_vertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void *);
         void (APIENTRY *m_getVertexAttribiv)(GLuint, GLenum, GLint *);
+        void (APIENTRY *m_activeTexture)(GLenum);
+        void (APIENTRY *m_bindTexture)(GLenum, GLuint);
+        void (APIENTRY *m_genTextures)(GLsizei, GLuint *);
+        void (APIENTRY *m_deleteTextures)(GLsizei, const GLuint *);
+        void (APIENTRY *m_texImage2D)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void *);
+        void (APIENTRY *m_texParameteri)(GLenum, GLenum, GLint);
+        void (APIENTRY *m_getTexParameteriv)(GLenum, GLenum, GLint *);
+        void (APIENTRY *m_uniform1i)(GLint, GLint);
+        void (APIENTRY *m_uniform2f)(GLint, GLfloat, GLfloat);
         void (APIENTRY *m_enableClientState)(GLenum);
         void (APIENTRY *m_disableClientState)(GLenum);
     };
@@ -86,6 +112,8 @@ namespace
         GLint m_normalMatrix;
         GLint m_light;
         GLint m_ambient;
+        GLint m_texture;
+        GLint m_uvScale;
     };
 
     // What SDL had set that a mesh draws over.
@@ -94,9 +122,13 @@ namespace
         GLint m_program;
         GLint m_arrayBuffer;
         GLint m_viewport[4];
+        // SDL's own sense of what is bound is not told when a mesh binds a texture.
+        GLint m_activeTexture;
+        GLint m_texture;
+        bool m_isTextureEnabled;
         bool m_isScissorEnabled;
         bool m_isAttributeEnabled[s_attributeCount];
-        bool m_isClientStateEnabled[s_attributeCount];
+        bool m_isClientStateEnabled[s_clientStateCount];
     };
 
     std::vector<Mesh> s_meshes;
@@ -114,19 +146,25 @@ namespace
     bool s_isStateSet = false;
     bool s_isInMeshMode = false;
     SavedState s_saved;
+    // One white texel, which a surface with no image is painted with, so that every surface goes through the same shader.
+    GLuint s_whiteTexture = 0;
     fried_real s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
 
     const char *s_vertexSource =
         "attribute vec3 a_position;\n"
         "attribute vec4 a_color;\n"
         "attribute vec3 a_normal;\n"
+        "attribute vec2 a_uv;\n"
+        "uniform vec2 u_uvScale;\n"
         "uniform mat4 u_modelViewProjection;\n"
         "uniform mat3 u_normalMatrix;\n"
         "uniform vec3 u_light;\n"
         "uniform float u_ambient;\n"
         "varying vec4 v_color;\n"
+        "varying vec2 v_uv;\n"
         "void main()\n"
         "{\n"
+        "    v_uv = a_uv * u_uvScale;\n"
         "    gl_Position = u_modelViewProjection * vec4(a_position, 1.0);\n"
         "    vec3 normal = normalize(u_normalMatrix * a_normal);\n"
         "    float facing = -dot(normal, u_light);\n"
@@ -137,9 +175,16 @@ namespace
 
     const char *s_fragmentSource =
         "varying vec4 v_color;\n"
+        "varying vec2 v_uv;\n"
+        "uniform sampler2D u_texture;\n"
         "void main()\n"
         "{\n"
-        "    gl_FragColor = v_color;\n"
+        "    vec4 texel = texture2D(u_texture, v_uv);\n"
+        "    if (texel.a < 0.5)\n"
+        "    {\n"
+        "        discard;\n"
+        "    }\n"
+        "    gl_FragColor = v_color * texel;\n"
         "}\n";
 
     template <typename Function>
@@ -190,6 +235,15 @@ namespace
         ok &= load(s_gl.m_disableVertexAttribArray, "glDisableVertexAttribArray");
         ok &= load(s_gl.m_vertexAttribPointer, "glVertexAttribPointer");
         ok &= load(s_gl.m_getVertexAttribiv, "glGetVertexAttribiv");
+        ok &= load(s_gl.m_activeTexture, "glActiveTexture");
+        ok &= load(s_gl.m_bindTexture, "glBindTexture");
+        ok &= load(s_gl.m_genTextures, "glGenTextures");
+        ok &= load(s_gl.m_deleteTextures, "glDeleteTextures");
+        ok &= load(s_gl.m_texImage2D, "glTexImage2D");
+        ok &= load(s_gl.m_texParameteri, "glTexParameteri");
+        ok &= load(s_gl.m_getTexParameteriv, "glGetTexParameteriv");
+        ok &= load(s_gl.m_uniform1i, "glUniform1i");
+        ok &= load(s_gl.m_uniform2f, "glUniform2f");
         if (!s_isEs)
         {
             ok &= load(s_gl.m_enableClientState, "glEnableClientState");
@@ -240,6 +294,7 @@ namespace
         s_gl.m_bindAttribLocation(s_program, s_positionAttribute, "a_position");
         s_gl.m_bindAttribLocation(s_program, s_colorAttribute, "a_color");
         s_gl.m_bindAttribLocation(s_program, s_normalAttribute, "a_normal");
+        s_gl.m_bindAttribLocation(s_program, s_uvAttribute, "a_uv");
         s_gl.m_linkProgram(s_program);
         s_gl.m_deleteShader(vertex);
         s_gl.m_deleteShader(fragment);
@@ -257,6 +312,8 @@ namespace
         s_uniforms.m_normalMatrix = s_gl.m_getUniformLocation(s_program, "u_normalMatrix");
         s_uniforms.m_light = s_gl.m_getUniformLocation(s_program, "u_light");
         s_uniforms.m_ambient = s_gl.m_getUniformLocation(s_program, "u_ambient");
+        s_uniforms.m_texture = s_gl.m_getUniformLocation(s_program, "u_texture");
+        s_uniforms.m_uvScale = s_gl.m_getUniformLocation(s_program, "u_uvScale");
         return true;
     }
 
@@ -296,11 +353,14 @@ namespace
         s_gl.m_getIntegerv(GL_ARRAY_BUFFER_BINDING, &state.m_arrayBuffer);
         s_gl.m_getIntegerv(GL_VIEWPORT, state.m_viewport);
         state.m_isScissorEnabled = s_gl.m_isEnabled(GL_SCISSOR_TEST) != GL_FALSE;
-        for (int attribute = 0; attribute < s_attributeCount; ++attribute)
+        s_gl.m_getIntegerv(GL_ACTIVE_TEXTURE, &state.m_activeTexture);
+        s_gl.m_getIntegerv(GL_TEXTURE_BINDING_2D, &state.m_texture);
+        state.m_isTextureEnabled = !s_isEs && s_gl.m_isEnabled(GL_TEXTURE_2D) != GL_FALSE;
+        for (int index = 0; index < s_attributeCount; ++index)
         {
             GLint isEnabled = 0;
-            s_gl.m_getVertexAttribiv((GLuint)attribute, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &isEnabled);
-            state.m_isAttributeEnabled[attribute] = isEnabled != 0;
+            s_gl.m_getVertexAttribiv(s_attributes[index], GL_VERTEX_ATTRIB_ARRAY_ENABLED, &isEnabled);
+            state.m_isAttributeEnabled[index] = isEnabled != 0;
         }
         if (!s_isEs)
         {
@@ -314,21 +374,21 @@ namespace
     {
         s_gl.m_disable(GL_DEPTH_TEST);
         s_gl.m_disable(GL_CULL_FACE);
-        for (int attribute = 0; attribute < s_attributeCount; ++attribute)
+        for (int index = 0; index < s_attributeCount; ++index)
         {
-            if (state.m_isAttributeEnabled[attribute])
+            if (state.m_isAttributeEnabled[index])
             {
-                s_gl.m_enableVertexAttribArray((GLuint)attribute);
+                s_gl.m_enableVertexAttribArray(s_attributes[index]);
             }
             else
             {
-                s_gl.m_disableVertexAttribArray((GLuint)attribute);
+                s_gl.m_disableVertexAttribArray(s_attributes[index]);
             }
         }
         if (!s_isEs)
         {
-            static const GLenum clientStates[s_attributeCount] = {GL_VERTEX_ARRAY, GL_COLOR_ARRAY, GL_TEXTURE_COORD_ARRAY};
-            for (int index = 0; index < s_attributeCount; ++index)
+            static const GLenum clientStates[s_clientStateCount] = {GL_VERTEX_ARRAY, GL_COLOR_ARRAY, GL_TEXTURE_COORD_ARRAY};
+            for (int index = 0; index < s_clientStateCount; ++index)
             {
                 if (state.m_isClientStateEnabled[index])
                 {
@@ -341,6 +401,19 @@ namespace
             }
         }
         s_gl.m_bindBuffer(GL_ARRAY_BUFFER, (GLuint)state.m_arrayBuffer);
+        s_gl.m_activeTexture((GLenum)state.m_activeTexture);
+        s_gl.m_bindTexture(GL_TEXTURE_2D, (GLuint)state.m_texture);
+        if (!s_isEs)
+        {
+            if (state.m_isTextureEnabled)
+            {
+                s_gl.m_enable(GL_TEXTURE_2D);
+            }
+            else
+            {
+                s_gl.m_disable(GL_TEXTURE_2D);
+            }
+        }
         s_gl.m_useProgram((GLuint)state.m_program);
         s_gl.m_viewport(state.m_viewport[0], state.m_viewport[1], state.m_viewport[2], state.m_viewport[3]);
         if (state.m_isScissorEnabled)
@@ -369,10 +442,12 @@ namespace
             s_isStateSet = true;
         }
         s_gl.m_useProgram(s_program);
-        for (int attribute = 0; attribute < s_attributeCount; ++attribute)
+        for (int index = 0; index < s_attributeCount; ++index)
         {
-            s_gl.m_enableVertexAttribArray((GLuint)attribute);
+            s_gl.m_enableVertexAttribArray(s_attributes[index]);
         }
+        s_gl.m_activeTexture(GL_TEXTURE0);
+        s_gl.m_uniform1i(s_uniforms.m_texture, 0);
         s_gl.m_enable(GL_DEPTH_TEST);
         s_gl.m_enable(GL_CULL_FACE);
 
@@ -380,6 +455,42 @@ namespace
         s_isDepthCleared = false;
         s_isInMeshMode = true;
         return true;
+    }
+
+    // Paints a run of corners with its texture, which SDL binds and says how much of its storage the image fills, as a padded texture does not fill it all, and which the coordinates are scaled by. A texture SDL stores as a rectangle says its size in pixels instead, which is not a fraction, and a run with one is painted with its colors alone.
+    void drawRange(const Range &range)
+    {
+        float scaleU = 1.0f;
+        float scaleV = 1.0f;
+        bool isTextured = false;
+        SDL_Texture *texture = range.m_textureId >= 0 ? fried_texture_get_sdl(range.m_textureId) : nullptr;
+        GLint wrapS = 0, wrapT = 0;
+        bool isWrapChanged = false;
+        if (texture && SDL_GL_BindTexture(texture, &scaleU, &scaleV) == 0 && scaleU <= 1.0f && scaleV <= 1.0f)
+        {
+            isTextured = true;
+            if (range.m_repeats && scaleU == 1.0f && scaleV == 1.0f)
+            {
+                s_gl.m_getTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, &wrapS);
+                s_gl.m_getTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, &wrapT);
+                s_gl.m_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                s_gl.m_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                isWrapChanged = true;
+            }
+        }
+        if (!isTextured)
+        {
+            scaleU = 1.0f;
+            scaleV = 1.0f;
+            s_gl.m_bindTexture(GL_TEXTURE_2D, s_whiteTexture);
+        }
+        s_gl.m_uniform2f(s_uniforms.m_uvScale, scaleU, scaleV);
+        s_gl.m_drawArrays(GL_TRIANGLES, range.m_first, range.m_count);
+        if (isWrapChanged)
+        {
+            s_gl.m_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+            s_gl.m_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+        }
     }
 
     void releaseBuffers()
@@ -431,6 +542,19 @@ bool fried_mesh_sdl_attach(int rendererId, void *sdlRenderer)
         return false;
     }
 
+    {
+        // The texture SDL had bound is put back, since it is told of nothing.
+        GLint boundTexture = 0;
+        s_gl.m_getIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+        const unsigned char white[4] = {255, 255, 255, 255};
+        s_gl.m_genTextures(1, &s_whiteTexture);
+        s_gl.m_bindTexture(GL_TEXTURE_2D, s_whiteTexture);
+        s_gl.m_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        s_gl.m_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        s_gl.m_texImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
+        s_gl.m_bindTexture(GL_TEXTURE_2D, (GLuint)boundTexture);
+    }
+
     SDL_Log("Meshes are drawn by %s, %s, with %d depth bits", s_gl.m_getString(GL_RENDERER), s_gl.m_getString(GL_VERSION), depthBits);
     s_renderer = renderer;
     s_window = window;
@@ -451,7 +575,12 @@ void fried_mesh_sdl_detach(int rendererId)
     {
         releaseBuffers();
         s_gl.m_deleteProgram(s_program);
+        if (s_whiteTexture)
+        {
+            s_gl.m_deleteTextures(1, &s_whiteTexture);
+        }
     }
+    s_whiteTexture = 0;
     s_program = 0;
     s_rendererId = -1;
     s_renderer = nullptr;
@@ -476,9 +605,10 @@ void fried_mesh_sdl_leave()
     }
 }
 
-int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
+int fried_mesh_create(const fried_real *vertices, const fried_real *uvs, int vertexCount, const int *indices, const int *argbColors, int triangleCount,
+                      const int *surfaceFirstTriangles, const int *surfaceTextureIds, int surfaceCount)
 {
-    if (s_rendererId < 0 || !vertices || !indices || !argbColors || triangleCount <= 0)
+    if (s_rendererId < 0 || !vertices || !indices || !argbColors || triangleCount <= 0 || !surfaceFirstTriangles || !surfaceTextureIds || surfaceCount <= 0)
     {
         return -1;
     }
@@ -497,10 +627,46 @@ int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *in
 
     Mesh &mesh = s_meshes[id];
     mesh.m_buffer = 0;
-    mesh.m_isUsed = fried_mesh::expand(vertices, vertexCount, indices, argbColors, triangleCount, mesh.m_vertices);
+    mesh.m_ranges.clear();
+    mesh.m_isUsed = fried_mesh::expandInto<Vertex>(vertices, uvs, vertexCount, indices, argbColors, triangleCount, mesh.m_vertices);
+    // The surfaces have to be in order and end where the triangles do.
+    for (int surface = 0; mesh.m_isUsed && surface < surfaceCount; ++surface)
+    {
+        int first = surfaceFirstTriangles[surface];
+        int next = surfaceFirstTriangles[surface + 1];
+        if (first < 0 || next < first || next > triangleCount || (surface == 0 && first != 0) || (surface == surfaceCount - 1 && next != triangleCount))
+        {
+            mesh.m_isUsed = false;
+            break;
+        }
+        if (next == first)
+        {
+            continue;
+        }
+        bool isRepeating = false;
+        if (uvs && surfaceTextureIds[surface] >= 0)
+        {
+            for (int corner = first * 3; corner < next * 3 && !isRepeating; ++corner)
+            {
+                const Vertex &vertex = mesh.m_vertices[(size_t)corner];
+                isRepeating = vertex.m_uv[0] < 0.0f || vertex.m_uv[0] > 1.0f || vertex.m_uv[1] < 0.0f || vertex.m_uv[1] > 1.0f;
+            }
+        }
+        // Surfaces that follow each other with one texture are one draw.
+        if (!mesh.m_ranges.empty() && mesh.m_ranges.back().m_textureId == surfaceTextureIds[surface])
+        {
+            mesh.m_ranges.back().m_count += (next - first) * 3;
+            mesh.m_ranges.back().m_repeats = mesh.m_ranges.back().m_repeats || isRepeating;
+        }
+        else
+        {
+            mesh.m_ranges.push_back({first * 3, (next - first) * 3, surfaceTextureIds[surface], isRepeating});
+        }
+    }
     if (!mesh.m_isUsed)
     {
         mesh.m_vertices.clear();
+        mesh.m_ranges.clear();
         s_freeMeshes.push_back(id);
         return -1;
     }
@@ -522,6 +688,7 @@ void fried_mesh_destroy(int meshId)
     mesh.m_buffer = 0;
     mesh.m_isUsed = false;
     std::vector<Vertex>().swap(mesh.m_vertices);
+    mesh.m_ranges.clear();
     s_freeMeshes.push_back(meshId);
 }
 
@@ -602,6 +769,10 @@ void fried_renderer_draw_mesh(int rendererId, int meshId, const fried_real *plac
     s_gl.m_vertexAttribPointer(s_positionAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void *)offsetof(Vertex, m_position));
     s_gl.m_vertexAttribPointer(s_colorAttribute, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (const void *)offsetof(Vertex, m_color));
     s_gl.m_vertexAttribPointer(s_normalAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void *)offsetof(Vertex, m_normal));
+    s_gl.m_vertexAttribPointer(s_uvAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void *)offsetof(Vertex, m_uv));
 
-    s_gl.m_drawArrays(GL_TRIANGLES, 0, (GLsizei)mesh.m_vertices.size());
+    for (const Range &range : mesh.m_ranges)
+    {
+        drawRange(range);
+    }
 }

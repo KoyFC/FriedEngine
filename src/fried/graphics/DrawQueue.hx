@@ -135,6 +135,18 @@ class DrawQueue {
 		copyInto(colors, command.colors);
 	}
 
+	// Triangles painted with a texture, whose corners are at the texture coordinates in uvs. Only a renderer that says so paints them.
+	@:allow(fried.graphics3d.MeshPass)
+	static function submitTexturedTriangles(priority:Int, texture:Texture, points:Array<Float>, uvs:Array<Float>, colors:Array<Color>):Void {
+		Renderer.checkTriangles(points, colors);
+		var command = next(priority);
+		command.type = FillTexturedTriangles;
+		command.texture = texture;
+		copyInto(points, command.points);
+		copyInto(uvs, command.uvs);
+		copyInto(colors, command.colors);
+	}
+
 	static inline var CIRCLE_SEGMENTS:Int = 24;
 	static var circlePoints:Array<Float> = [];
 	static var circleColors:Array<Color> = [];
@@ -238,6 +250,9 @@ class DrawQueue {
 				case FillTriangles:
 					sendBatch(renderer);
 					renderer.fillTriangles(computeViewPoints(command), command.colors);
+				case FillTexturedTriangles:
+					sendBatch(renderer);
+					renderer.fillTexturedTriangles(command.texture, computeViewPoints(command), command.uvs, command.colors);
 				case TilemapRegion:
 					var record = addRecord(command, RECORD_TILEMAP, false);
 					NativeArray.unsafeSet(batchInts, (record << 3) + 1, command.texture.id);
@@ -558,6 +573,7 @@ private enum abstract DrawCommandType(Int) {
 	var ScaledTextureRegion = 6;
 	var SlotTextureRegion = 7;
 	var TilemapRegion = 8;
+	var FillTexturedTriangles = 9;
 }
 
 private class DrawCommand {
@@ -580,6 +596,7 @@ private class DrawCommand {
 	public var hasSource:Bool;
 	public var source:Rect;
 	public var points:Array<Float>;
+	public var uvs:Array<Float>;
 	public var meshId:Int;
 	public var tilemap:Int;
 	public var slot:Int;
@@ -590,6 +607,7 @@ private class DrawCommand {
 	public function new() {
 		source = new Rect(0, 0, 0, 0);
 		points = [];
+		uvs = [];
 		meshId = -1;
 		slot = -1;
 		colors = [];

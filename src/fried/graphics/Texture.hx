@@ -14,6 +14,9 @@ class Texture {
 	public var width(default, null):Int;
 	public var height(default, null):Int;
 
+	// The color of the image on average, which is what would stand for it where a mesh cannot be painted with it. No renderer reports it yet, so it is white, and such a mesh is painted with its albedo alone.
+	public var averageColor(get, never):Color;
+
 	public static function from(renderer:Renderer, path:String):Texture {
 		var cached = renderer.cachedTexture(path);
 		if (cached != null) {
@@ -40,6 +43,16 @@ class Texture {
 		if (downscale > 1) {
 			Log.warn('$path is ${width}x${height}, more than this GPU takes, so it is stored at 1/$downscale of that and drawn blurrier.');
 		}
+	}
+
+	// What a renderer knows the texture by, or -1 once it is destroyed.
+	@:allow(fried.graphics3d.Mesh)
+	function nativeId():Int {
+		return id;
+	}
+
+	function get_averageColor():Color {
+		return Color.rgb(255, 255, 255);
 	}
 
 	public function destroy():Void {

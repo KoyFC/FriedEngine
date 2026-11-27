@@ -2,9 +2,10 @@ package fried.graphics3d;
 
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
+import fried.graphics.Texture;
 import fried.scene.Camera3D;
 import fried.scene.DirectionalLight;
-import fried.scene.MeshInstance;
+import fried.scene.MeshInstance3D;
 
 // Draws every mesh of a scene through its camera. A triangle is seen from the side its corners turn clockwise on, and not drawn from the other.
 //
@@ -26,6 +27,10 @@ class MeshPass {
 	static var buckets:Array<Int> = [for (index in 0...256) 0];
 	static var points:Array<Float> = [];
 	static var colors:Array<Color> = [];
+	static var triangleUvs:Array<Float> = [];
+	static var triangleTextures:Array<Null<Texture>> = [];
+	static var pointUvs:Array<Float> = [];
+	static var drawsTextured:Bool = false;
 
 	static var triangleTotal:Int = 0;
 	static var isViewReady:Bool = false;
@@ -40,11 +45,13 @@ class MeshPass {
 	static var tanY:Float = 1.0;
 	static var sideX:Float = 1.0;
 	static var sideY:Float = 1.0;
-	static var clipped:Array<Float> = [for (index in 0...18) 0.0];
-	static var clippedOther:Array<Float> = [for (index in 0...18) 0.0];
+	// The corners of a polygon being cut, with x, y, depth, u and v for each.
+	static inline var CLIP_STRIDE = 5;
+	static var clipped:Array<Float> = [for (index in 0...CLIP_STRIDE * 6) 0.0];
+	static var clippedOther:Array<Float> = [for (index in 0...CLIP_STRIDE * 6) 0.0];
 	static var ambient:Float = 1.0;
 
-	public static function draw(camera:Camera3D, light:Null<DirectionalLight>, meshes:Array<MeshInstance>, width:Float, height:Float):Void {
+	public static function draw(camera:Camera3D, light:Null<DirectionalLight>, meshes:Array<MeshInstance3D>, width:Float, height:Float):Void {
 		var lightX = 0.0;
 		var lightY = 0.0;
 		var lightZ = 0.0;
@@ -59,12 +66,13 @@ class MeshPass {
 		triangleTotal = 0;
 		var target = DrawQueue.currentRenderTarget;
 		var drawsMeshes = target != null && target.drawsMeshes;
+		drawsTextured = target != null && target.drawsTexturedTriangles;
 		// Where the renderer draws the meshes, none of these arrays is used, and a mesh it could not take grows them when it is reached.
 		if (!drawsMeshes) {
 			var capacity = 0;
 			for (instance in meshes) {
 				if (instance.mesh != null) {
-					capacity += instance.mesh.triangleColors.length;
+					capacity += instance.mesh.triangleCount;
 				}
 			}
 			reserve(capacity);
@@ -76,36 +84,60 @@ class MeshPass {
 			if (!instance.shownInTree || mesh == null) {
 				continue;
 			}
+			var variant = mesh.variantFor(instance.materialOverride);
 			if (drawsMeshes) {
-				var meshId = mesh.copyForRenderer();
+				var meshId = mesh.nativeFor(variant);
 				if (meshId >= 0) {
 					place(DrawQueue.submitMesh(camera.priority, meshId, PLACEMENT_SIZE), instance, camera, width, height, lightX, lightY, lightZ);
-					total += mesh.triangleColors.length;
+					total += mesh.triangleCount;
 					continue;
 				}
 			}
 			if (drawsMeshes) {
-				reserve(triangleTotal + mesh.triangleColors.length);
+				reserve(triangleTotal + mesh.triangleCount);
 			}
 			if (!isViewReady) {
 				prepareView(camera, lightX, lightY, lightZ, width, height);
 			}
-			collect(instance, mesh, camera);
+			collect(instance, mesh, variant, camera);
 		}
 
 		if (triangleTotal > 0) {
 			var count = triangleTotal;
 			sortFarthestFirst(count);
-			points.resize(count * 6);
-			colors.resize(count);
-			for (slot in 0...count) {
-				var triangle = drawOrder[slot];
-				for (value in 0...6) {
-					points[slot * 6 + value] = corners[triangle * 6 + value];
+			// Triangles with the same texture that follow each other go together, since each batch is one call.
+			var start = 0;
+			while (start < count) {
+				var texture = triangleTextures[drawOrder[start]];
+				var end = start + 1;
+				while (end < count && triangleTextures[drawOrder[end]] == texture) {
+					end++;
 				}
-				colors[slot] = shades[triangle];
+				var length = end - start;
+				points.resize(length * 6);
+				colors.resize(length);
+				if (texture != null) {
+					pointUvs.resize(length * 6);
+				}
+				for (slot in 0...length) {
+					var triangle = drawOrder[start + slot];
+					for (value in 0...6) {
+						points[slot * 6 + value] = corners[triangle * 6 + value];
+					}
+					colors[slot] = shades[triangle];
+					if (texture != null) {
+						for (value in 0...6) {
+							pointUvs[slot * 6 + value] = triangleUvs[triangle * 6 + value];
+						}
+					}
+				}
+				if (texture == null) {
+					DrawQueue.submitTriangles(camera.priority, points, colors);
+				} else {
+					DrawQueue.submitTexturedTriangles(camera.priority, texture, points, pointUvs, colors);
+				}
+				start = end;
 			}
-			DrawQueue.submitTriangles(camera.priority, points, colors);
 			total += count;
 		}
 		camera.trianglesDrawn = total;
@@ -117,6 +149,8 @@ class MeshPass {
 			depths.resize(capacity);
 			shades.resize(capacity);
 			corners.resize(capacity * 6);
+			triangleUvs.resize(capacity * 6);
+			triangleTextures.resize(capacity);
 			drawOrder.resize(capacity);
 			keys.resize(capacity);
 			halfSorted.resize(capacity);
@@ -140,7 +174,7 @@ class MeshPass {
 		sideY = Math.sqrt(1.0 + tanY * tanY);
 	}
 
-	static function place(placement:Array<Float>, instance:MeshInstance, camera:Camera3D, width:Float, height:Float, lightX:Float, lightY:Float,
+	static function place(placement:Array<Float>, instance:MeshInstance3D, camera:Camera3D, width:Float, height:Float, lightX:Float, lightY:Float,
 			lightZ:Float):Void {
 		placement[0] = instance.worldX;
 		placement[1] = instance.worldY;
@@ -170,7 +204,7 @@ class MeshPass {
 		placement[25] = camera.far;
 	}
 
-	static function collect(instance:MeshInstance, mesh:Mesh, camera:Camera3D):Void {
+	static function collect(instance:MeshInstance3D, mesh:Mesh, variant:MeshVariant, camera:Camera3D):Void {
 		var near = camera.near;
 		var far = camera.far;
 		Rotation.toMatrix(instance.worldRotationX, instance.worldRotationY, instance.worldRotationZ, meshTurn);
@@ -193,13 +227,13 @@ class MeshPass {
 		var shiftZ = cameraTurn[2] * offsetX + cameraTurn[5] * offsetY + cameraTurn[8] * offsetZ;
 
 		// A mesh whose bounding sphere is wholly behind the near plane or outside a side of the view is not worth turning.
-		var radius = mesh.radius * Math.max(Math.abs(scaleX), Math.max(Math.abs(scaleY), Math.abs(scaleZ)));
+		var radius = mesh.boundingRadius * Math.max(Math.abs(scaleX), Math.max(Math.abs(scaleY), Math.abs(scaleZ)));
 		if (shiftZ + radius < near || shiftZ - radius > far || shiftX - tanX * shiftZ > radius * sideX || -shiftX - tanX * shiftZ > radius * sideX
 			|| shiftY - tanY * shiftZ > radius * sideY || -shiftY - tanY * shiftZ > radius * sideY) {
 			return;
 		}
 
-		var vertices = mesh.vertices;
+		var vertices = mesh.flatVertices;
 		viewVertices.resize(vertices.length);
 		var index = 0;
 		while (index < vertices.length) {
@@ -212,76 +246,106 @@ class MeshPass {
 			index += 3;
 		}
 
-		var indices = mesh.indices;
-		var triangleCount = mesh.triangleColors.length;
-		for (triangle in 0...triangleCount) {
-			var a = indices[triangle * 3] * 3;
-			var b = indices[triangle * 3 + 1] * 3;
-			var c = indices[triangle * 3 + 2] * 3;
-			var ax = viewVertices[a];
-			var ay = viewVertices[a + 1];
-			var az = viewVertices[a + 2];
-			var bz = viewVertices[b + 2];
-			var cz = viewVertices[c + 2];
-			if ((az < near && bz < near && cz < near) || (az > far && bz > far && cz > far)) {
-				continue;
-			}
-			var isCut = az < near || bz < near || cz < near || az > far || bz > far || cz > far;
+		var indices = mesh.flatIndices;
+		var uvs = mesh.flatUvs;
+		var surfaceStarts = mesh.surfaceStarts;
+		var triangleColors = variant.colors;
+		for (surface in 0...surfaceStarts.length - 1) {
+			var surfaceTexture = variant.textures[surface];
+			// A renderer that cannot paint with a texture fills the triangle with the color the texture is on average.
+			var isTextured = surfaceTexture != null && drawsTextured;
+			var average = surfaceTexture != null && !drawsTextured ? surfaceTexture.averageColor : Color.rgb(255, 255, 255);
+			for (triangle in surfaceStarts[surface]...surfaceStarts[surface + 1]) {
+				var a = indices[triangle * 3] * 3;
+				var b = indices[triangle * 3 + 1] * 3;
+				var c = indices[triangle * 3 + 2] * 3;
+				var ax = viewVertices[a];
+				var ay = viewVertices[a + 1];
+				var az = viewVertices[a + 2];
+				var bz = viewVertices[b + 2];
+				var cz = viewVertices[c + 2];
+				if ((az < near && bz < near && cz < near) || (az > far && bz > far && cz > far)) {
+					continue;
+				}
+				var isCut = az < near || bz < near || cz < near || az > far || bz > far || cz > far;
 
-			var abX = viewVertices[b] - ax;
-			var abY = viewVertices[b + 1] - ay;
-			var abZ = bz - az;
-			var acX = viewVertices[c] - ax;
-			var acY = viewVertices[c + 1] - ay;
-			var acZ = cz - az;
-			var normalX = abY * acZ - abZ * acY;
-			var normalY = abZ * acX - abX * acZ;
-			var normalZ = abX * acY - abY * acX;
-			if (normalX * ax + normalY * ay + normalZ * az >= 0.0) {
-				continue;
-			}
+				var abX = viewVertices[b] - ax;
+				var abY = viewVertices[b + 1] - ay;
+				var abZ = bz - az;
+				var acX = viewVertices[c] - ax;
+				var acY = viewVertices[c + 1] - ay;
+				var acZ = cz - az;
+				var normalX = abY * acZ - abZ * acY;
+				var normalY = abZ * acX - abX * acZ;
+				var normalZ = abX * acY - abY * acX;
+				if (normalX * ax + normalY * ay + normalZ * az >= 0.0) {
+					continue;
+				}
 
-			var facing = 0.0;
-			var normalLength = Math.sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
-			if (normalLength > 0.0 && lightLength > 0.0) {
-				facing = -(normalX * lightViewX + normalY * lightViewY + normalZ * lightViewZ) / (normalLength * lightLength);
-			}
-			var brightness = ambient + (1.0 - ambient) * Math.max(facing, 0.0);
-			var color = mesh.triangleColors[triangle];
-			var shade = Color.rgba(Std.int(color.red * brightness), Std.int(color.green * brightness), Std.int(color.blue * brightness), color.alpha);
-			if (isCut) {
-				emitClipped(shade, ax, ay, az, viewVertices[b], viewVertices[b + 1], bz, viewVertices[c], viewVertices[c + 1], cz, near, far);
-				continue;
-			}
-			var slot = triangleTotal++;
-			shades[slot] = shade;
-			depths[slot] = az + bz + cz;
+				var facing = 0.0;
+				var normalLength = Math.sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+				if (normalLength > 0.0 && lightLength > 0.0) {
+					facing = -(normalX * lightViewX + normalY * lightViewY + normalZ * lightViewZ) / (normalLength * lightLength);
+				}
+				var brightness = ambient + (1.0 - ambient) * Math.max(facing, 0.0);
+				var color = triangleColors[triangle];
+				if (surfaceTexture != null && !isTextured) {
+					color = MeshTools.multiply(color, average);
+				}
+				var shade = Color.rgba(Std.int(color.red * brightness), Std.int(color.green * brightness), Std.int(color.blue * brightness), color.alpha);
+				var texture = isTextured ? surfaceTexture : null;
+				if (isCut) {
+					writeClipCorner(0, ax, ay, az, uvs, a);
+					writeClipCorner(1, viewVertices[b], viewVertices[b + 1], bz, uvs, b);
+					writeClipCorner(2, viewVertices[c], viewVertices[c + 1], cz, uvs, c);
+					emitClipped(shade, texture, near, far);
+					continue;
+				}
+				var slot = triangleTotal++;
+				shades[slot] = shade;
+				triangleTextures[slot] = texture;
+				depths[slot] = az + bz + cz;
 
-			var bx = viewVertices[b];
-			var by = viewVertices[b + 1];
-			var cx = viewVertices[c];
-			var cy = viewVertices[c + 1];
-			var at = slot * 6;
-			corners[at] = centerX + ax * focalLength / az;
-			corners[at + 1] = centerY - ay * focalLength / az;
-			corners[at + 2] = centerX + bx * focalLength / bz;
-			corners[at + 3] = centerY - by * focalLength / bz;
-			corners[at + 4] = centerX + cx * focalLength / cz;
-			corners[at + 5] = centerY - cy * focalLength / cz;
+				var bx = viewVertices[b];
+				var by = viewVertices[b + 1];
+				var cx = viewVertices[c];
+				var cy = viewVertices[c + 1];
+				var at = slot * 6;
+				corners[at] = centerX + ax * focalLength / az;
+				corners[at + 1] = centerY - ay * focalLength / az;
+				corners[at + 2] = centerX + bx * focalLength / bz;
+				corners[at + 3] = centerY - by * focalLength / bz;
+				corners[at + 4] = centerX + cx * focalLength / cz;
+				corners[at + 5] = centerY - cy * focalLength / cz;
+				if (texture != null) {
+					// The coordinates of a vertex are two to the vertex's three, so its index is a third of the position's.
+					var uvA = Std.int(a / 3) * 2;
+					var uvB = Std.int(b / 3) * 2;
+					var uvC = Std.int(c / 3) * 2;
+					triangleUvs[at] = uvs[uvA];
+					triangleUvs[at + 1] = uvs[uvA + 1];
+					triangleUvs[at + 2] = uvs[uvB];
+					triangleUvs[at + 3] = uvs[uvB + 1];
+					triangleUvs[at + 4] = uvs[uvC];
+					triangleUvs[at + 5] = uvs[uvC + 1];
+				}
+			}
 		}
 	}
 
-	// A triangle with a corner outside the near or the far plane is cut at them, which leaves a polygon of up to five corners that goes as a fan of triangles.
-	static function emitClipped(shade:Color, ax:Float, ay:Float, az:Float, bx:Float, by:Float, bz:Float, cx:Float, cy:Float, cz:Float, near:Float, far:Float):Void {
-		clipped[0] = ax;
-		clipped[1] = ay;
-		clipped[2] = az;
-		clipped[3] = bx;
-		clipped[4] = by;
-		clipped[5] = bz;
-		clipped[6] = cx;
-		clipped[7] = cy;
-		clipped[8] = cz;
+	// A corner of the polygon that is to be cut, with its place in the camera's space and where it is in the image.
+	static function writeClipCorner(corner:Int, x:Float, y:Float, z:Float, uvs:Array<Float>, position:Int):Void {
+		var at = corner * CLIP_STRIDE;
+		var uv = Std.int(position / 3) * 2;
+		clipped[at] = x;
+		clipped[at + 1] = y;
+		clipped[at + 2] = z;
+		clipped[at + 3] = uvs[uv];
+		clipped[at + 4] = uvs[uv + 1];
+	}
+
+	// A triangle with a corner outside the near or the far plane is cut at them, which leaves a polygon of up to five corners that goes as a fan of triangles. Its three corners are in clipped when this is called.
+	static function emitClipped(shade:Color, texture:Null<Texture>, near:Float, far:Float):Void {
 		var count = clipPlane(clipped, 3, clippedOther, near, true);
 		count = clipPlane(clippedOther, count, clipped, far, false);
 		if (count < 3) {
@@ -289,67 +353,77 @@ class MeshPass {
 		}
 		var depth = 0.0;
 		for (corner in 0...count) {
-			depth += clipped[corner * 3 + 2];
+			depth += clipped[corner * CLIP_STRIDE + 2];
 		}
 		depth = depth * 3.0 / count;
 		for (corner in 1...count - 1) {
-			emitFan(shade, depth, 0, corner, corner + 1);
+			emitFan(shade, texture, depth, 0, corner, corner + 1);
 		}
 	}
 
-	// Copies the corners of a polygon that are on the kept side of a plane of constant depth, and the places its edges cross it, so the polygon goes round the same way.
+	// Copies the corners of a polygon that are on the kept side of a plane of constant depth, and the places its edges cross it, so the polygon goes round the same way. Where an edge is cut, the image's coordinates are cut with it.
 	static function clipPlane(source:Array<Float>, count:Int, destination:Array<Float>, plane:Float, isKeepingFarther:Bool):Int {
 		var written = 0;
 		for (corner in 0...count) {
 			var next = corner + 1 == count ? 0 : corner + 1;
-			var px = source[corner * 3];
-			var py = source[corner * 3 + 1];
-			var pz = source[corner * 3 + 2];
-			var qx = source[next * 3];
-			var qy = source[next * 3 + 1];
-			var qz = source[next * 3 + 2];
+			var from = corner * CLIP_STRIDE;
+			var to = next * CLIP_STRIDE;
+			var pz = source[from + 2];
+			var qz = source[to + 2];
 			var isPInside = isKeepingFarther ? pz >= plane : pz <= plane;
 			var isQInside = isKeepingFarther ? qz >= plane : qz <= plane;
 			if (isPInside) {
-				destination[written * 3] = px;
-				destination[written * 3 + 1] = py;
-				destination[written * 3 + 2] = pz;
+				for (value in 0...CLIP_STRIDE) {
+					destination[written * CLIP_STRIDE + value] = source[from + value];
+				}
 				written++;
 			}
 			if (isPInside != isQInside) {
 				var along = (plane - pz) / (qz - pz);
-				destination[written * 3] = px + (qx - px) * along;
-				destination[written * 3 + 1] = py + (qy - py) * along;
-				destination[written * 3 + 2] = plane;
+				for (value in 0...CLIP_STRIDE) {
+					destination[written * CLIP_STRIDE + value] = source[from + value] + (source[to + value] - source[from + value]) * along;
+				}
+				destination[written * CLIP_STRIDE + 2] = plane;
 				written++;
 			}
 		}
 		return written;
 	}
 
-	static function emitFan(shade:Color, depth:Float, first:Int, second:Int, third:Int):Void {
+	static function emitFan(shade:Color, texture:Null<Texture>, depth:Float, first:Int, second:Int, third:Int):Void {
 		var slot = triangleTotal++;
 		if (slot >= depths.length) {
 			var size = slot * 2 + 16;
 			depths.resize(size);
 			shades.resize(size);
 			corners.resize(size * 6);
+			triangleUvs.resize(size * 6);
+			triangleTextures.resize(size);
 			drawOrder.resize(size);
 			keys.resize(size);
 			halfSorted.resize(size);
 		}
 		shades[slot] = shade;
+		triangleTextures[slot] = texture;
 		depths[slot] = depth;
 		var at = slot * 6;
-		var one = first * 3;
-		var two = second * 3;
-		var three = third * 3;
+		var one = first * CLIP_STRIDE;
+		var two = second * CLIP_STRIDE;
+		var three = third * CLIP_STRIDE;
 		corners[at] = centerX + clipped[one] * focalLength / clipped[one + 2];
 		corners[at + 1] = centerY - clipped[one + 1] * focalLength / clipped[one + 2];
 		corners[at + 2] = centerX + clipped[two] * focalLength / clipped[two + 2];
 		corners[at + 3] = centerY - clipped[two + 1] * focalLength / clipped[two + 2];
 		corners[at + 4] = centerX + clipped[three] * focalLength / clipped[three + 2];
 		corners[at + 5] = centerY - clipped[three + 1] * focalLength / clipped[three + 2];
+		if (texture != null) {
+			triangleUvs[at] = clipped[one + 3];
+			triangleUvs[at + 1] = clipped[one + 4];
+			triangleUvs[at + 2] = clipped[two + 3];
+			triangleUvs[at + 3] = clipped[two + 4];
+			triangleUvs[at + 4] = clipped[three + 3];
+			triangleUvs[at + 5] = clipped[three + 4];
+		}
 	}
 
 	// Puts drawOrder in the order of the triangles' depths, farthest first, and triangles of the same depth in the order they were made. A comparison sort of the thousands of triangles a scene has takes longer than all the rest of the pass, so the depths are cut into 65536 steps between the nearest and the farthest and sorted a byte at a time.

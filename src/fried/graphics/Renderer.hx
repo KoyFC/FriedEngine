@@ -28,6 +28,10 @@ class Renderer {
 	@:allow(fried.graphics3d.MeshPass)
 	var drawsMeshes:Bool;
 
+	// Whether a textured triangle is painted with its texture, and not with a color.
+	@:allow(fried.graphics3d.MeshPass)
+	var drawsTexturedTriangles:Bool;
+
 	var texturesByPath:Map<String, Texture>;
 	var activeTextures:Array<Texture>;
 	var pendingLayerAdds:Array<Layer>;
@@ -44,6 +48,7 @@ class Renderer {
 		this.window = window;
 		isVsyncEnabled = RendererNative.hasVsync(id);
 		drawsMeshes = RendererNative.drawsMeshes(id);
+		drawsTexturedTriangles = RendererNative.drawsTexturedTriangles(id);
 		refreshSize();
 		drawColor = Color.rgb(255, 255, 255);
 		texturesByPath = new Map();
@@ -270,6 +275,17 @@ class Renderer {
 			colors.length);
 	}
 
+	// Six texture coordinates for each triangle, in the units of the image from (0, 0) at its top left to (1, 1).
+	@:allow(fried.graphics.DrawQueue)
+	function fillTexturedTriangles(texture:Texture, points:Array<Float>, uvs:Array<Float>, colors:Array<Color>):Void {
+		checkTriangles(points, colors);
+		if (colors.length == 0 || uvs.length != points.length) {
+			return;
+		}
+		RendererNative.fillTexturedTriangles(id, texture.id, cpp.Pointer.ofArray(points).constRaw, cpp.Pointer.ofArray(uvs).constRaw,
+			cpp.Pointer.ofArray((cast colors : Array<Int>)).constRaw, colors.length);
+	}
+
 	@:allow(fried.graphics.DrawQueue)
 	function drawMesh(meshId:Int, placement:Array<Float>, hasCamera:Bool, zoom:Float, cameraX:Float, cameraY:Float):Void {
 		RendererNative.drawMesh(id, meshId, cpp.Pointer.ofArray(placement).constRaw, hasCamera, zoom, cameraX, cameraY);
@@ -370,6 +386,13 @@ private extern class RendererNative {
 
 	@:native("fried_renderer_fill_triangles")
 	static function fillTriangles(id:Int, points:cpp.RawConstPointer<Float>, argbColors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;
+
+	@:native("fried_renderer_draws_textured_triangles")
+	static function drawsTexturedTriangles(id:Int):Bool;
+
+	@:native("fried_renderer_fill_textured_triangles")
+	static function fillTexturedTriangles(id:Int, textureId:Int, points:cpp.RawConstPointer<Float>, uvs:cpp.RawConstPointer<Float>,
+		argbColors:cpp.RawConstPointer<Int>, triangleCount:Int):Void;
 
 	@:native("fried_renderer_draws_meshes")
 	static function drawsMeshes(id:Int):Bool;

@@ -31,6 +31,12 @@ extern "C"
     void fried_draw_batch_with_calls(int rendererId, const int *ints, const float *floats, int count);
 
     void fried_renderer_fill_triangles(int rendererId, const fried_real *points, const int *argbColors, int triangleCount);
+
+    // True where triangles can be painted with a texture, which is bent over each one from its corners as a flat image is, with no account of depth. Elsewhere a triangle is filled with its color.
+    bool fried_renderer_draws_textured_triangles(int rendererId);
+
+    // Six points and six texture coordinates for each triangle, with (0, 0) the top left of the image and (1, 1) the bottom right, and the color it is multiplied by. A coordinate outside the image takes the color of the edge.
+    void fried_renderer_fill_textured_triangles(int rendererId, int textureId, const fried_real *points, const fried_real *uvs, const int *argbColors, int triangleCount);
 }
 
 // The pivot may lie outside the quad, so a line of glyphs turns as one.

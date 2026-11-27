@@ -4,9 +4,16 @@ class NodeRegistry {
 	static var types:Map<String, NodeType>;
 	static var ordered:Array<NodeType>;
 
+	// The names scenes used for types that were renamed, so that the files written before still load.
+	static var aliases:Map<String, String> = ["MeshInstance" => "MeshInstance3D"];
+
 	public static function get(name:String):Null<NodeType> {
 		ensureLoaded();
-		return types.get(name);
+		var found = types.get(name);
+		if (found == null && aliases.exists(name)) {
+			found = types.get(aliases.get(name));
+		}
+		return found;
 	}
 
 	// Adds the classes of a game, which the engine cannot name.

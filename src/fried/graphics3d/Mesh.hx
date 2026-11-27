@@ -1,92 +1,277 @@
 package fried.graphics3d;
 
 import fried.graphics.Color;
+import fried.graphics.Texture;
+import fried.resources.Resource;
 
-// A triangle is seen from the side its corners turn clockwise on, and not drawn from the other.
-// A renderer that draws meshes itself keeps a copy of one from the first time it draws it, so
-// changing its arrays after that changes nothing there.
-class Mesh {
-	public var vertices(default, null):Array<Float>;
-	public var indices(default, null):Array<Int>;
-	public var triangleColors(default, null):Array<Color>;
+// The triangles of one or more surfaces. A renderer that draws meshes itself keeps a copy of each variant from the first time it draws it, so changing the arrays of a surface after that changes nothing there.
+class Mesh extends Resource {
+	public var surfaces(get, never):Array<Surface>;
+	public var triangleCount(get, never):Int;
 
 	// How far the farthest vertex is from the origin, and the box that holds them all, which is what a scene skips a mesh by and an editor outlines it by.
-	public var radius(default, null):Float;
-	public var minX(default, null):Float;
-	public var maxX(default, null):Float;
-	public var minY(default, null):Float;
-	public var maxY(default, null):Float;
-	public var minZ(default, null):Float;
-	public var maxZ(default, null):Float;
+	public var boundingRadius(get, never):Float;
+	public var minX(get, never):Float;
+	public var maxX(get, never):Float;
+	public var minY(get, never):Float;
+	public var maxY(get, never):Float;
+	public var minZ(get, never):Float;
+	public var maxZ(get, never):Float;
 
-	var nativeId:Int;
+	// The file the mesh was read from, which is what a scene file writes for it.
+	public var sourceRoot:Null<String>;
+	public var sourcePath:Null<String>;
 
-	public function new(vertices:Array<Float>, indices:Array<Int>, triangleColors:Array<Color>) {
-		if (vertices.length % 3 != 0) {
-			throw 'A mesh takes three coordinates per vertex, but got ${vertices.length}.';
+	// Every surface in one pool, which is what the arrays below are made of.
+	public var flatVertices(get, never):Array<Float>;
+	public var flatUvs(get, never):Array<Float>;
+	public var flatIndices(get, never):Array<Int>;
+
+	// Where each surface starts in the triangles, and one more at the end that holds the count.
+	public var surfaceStarts(get, never):Array<Int>;
+
+	var surfaceList:Array<Surface> = [];
+	var isFlat:Bool = false;
+	var flatVertexList:Array<Float>;
+	var flatUvList:Array<Float>;
+	var flatIndexList:Array<Int>;
+	var surfaceStartList:Array<Int>;
+	var isBounded:Bool = false;
+	var boundsRadius:Float = 0.0;
+	var boundsMin:Array<Float> = [0.0, 0.0, 0.0];
+	var boundsMax:Array<Float> = [0.0, 0.0, 0.0];
+	var variants:Array<MeshVariant> = [];
+
+	public function new(?vertices:Array<Float>, ?indices:Array<Int>, ?triangleColors:Array<Color>) {
+		super();
+		if (vertices != null && indices != null) {
+			surfaceList.push(new Surface(vertices, indices, null, triangleColors));
 		}
-		if (indices.length != triangleColors.length * 3) {
-			throw 'A mesh takes three indices per color, but ${indices.length} came with ${triangleColors.length} colors.';
+	}
+
+	public function addSurface(surface:Surface):Void {
+		surfaceList.push(surface);
+		invalidate();
+	}
+
+	// Makes the arrays again from the surfaces, and frees the copies a renderer keeps. A class that builds its surfaces calls this when it does.
+	public function invalidate():Void {
+		isFlat = false;
+		isBounded = false;
+		for (variant in variants) {
+			destroyVariant(variant);
 		}
-		var vertexCount = Std.int(vertices.length / 3);
-		for (index in indices) {
-			if (index < 0 || index >= vertexCount) {
-				throw 'A mesh index of $index is outside its $vertexCount vertices.';
+		variants = [];
+	}
+
+	// Frees the copies a renderer keeps, which drawing the mesh again makes anew.
+	public function destroy():Void {
+		for (variant in variants) {
+			destroyVariant(variant);
+		}
+		variants = [];
+	}
+
+	// A class that makes its surfaces when asked, and not before, does it here.
+	function ensureBuilt():Void {}
+
+	// The variant for a node that paints every surface with the given material, or with their own when it is null. It is made again if a material has changed since.
+	public function variantFor(overriding:Null<Material>):MeshVariant {
+		var surfaces = this.surfaces;
+		ensureFlat();
+		for (position in 0...variants.length) {
+			var variant = variants[position];
+			if (variant.overriding != overriding) {
+				continue;
+			}
+			var isCurrent = true;
+			for (index in 0...surfaces.length) {
+				var material = overriding != null ? overriding : surfaces[index].material;
+				if (variant.versions[index] != (material != null ? material.version : -1)) {
+					isCurrent = false;
+					break;
+				}
+			}
+			if (isCurrent) {
+				return variant;
+			}
+			destroyVariant(variant);
+			variants.splice(position, 1);
+			break;
+		}
+
+		var versions = [];
+		var colors:Array<Color> = [];
+		var textures = [];
+		for (surface in surfaces) {
+			var material = overriding != null ? overriding : surface.material;
+			versions.push(material != null ? material.version : -1);
+			textures.push(material != null ? material.albedoImage() : null);
+			var albedo = material != null ? material.albedo() : Color.rgb(255, 255, 255);
+			for (triangle in 0...surface.triangleCount) {
+				colors.push(surface.triangleColors != null ? MeshTools.multiply(albedo, surface.triangleColors[triangle]) : albedo);
 			}
 		}
-		this.vertices = vertices;
-		this.indices = indices;
-		this.triangleColors = triangleColors;
-		nativeId = -1;
+		var variant = new MeshVariant(overriding, versions, colors, textures);
+		variants.push(variant);
+		return variant;
+	}
 
-		radius = 0.0;
-		minX = 0.0;
-		maxX = 0.0;
-		minY = 0.0;
-		maxY = 0.0;
-		minZ = 0.0;
-		maxZ = 0.0;
+	// The renderer's copy of a variant, or -1 where no renderer draws meshes, or the copy did not fit in memory.
+	@:allow(fried.graphics3d.MeshPass)
+	function nativeFor(variant:MeshVariant):Int {
+		if (variant.nativeId < 0) {
+			var vertices = flatVertices;
+			var textureIds = [for (texture in variant.textures) texture != null ? texture.nativeId() : -1];
+			variant.nativeId = MeshNative.create(cpp.Pointer.ofArray(vertices).constRaw, cpp.Pointer.ofArray(flatUvs).constRaw, Std.int(vertices.length / 3),
+				cpp.Pointer.ofArray(flatIndices).constRaw, cpp.Pointer.ofArray((cast variant.colors : Array<Int>)).constRaw, variant.colors.length,
+				cpp.Pointer.ofArray(surfaceStarts).constRaw, cpp.Pointer.ofArray(textureIds).constRaw, textureIds.length);
+		}
+		return variant.nativeId;
+	}
+
+	function destroyVariant(variant:MeshVariant):Void {
+		if (variant.nativeId >= 0) {
+			MeshNative.destroy(variant.nativeId);
+			variant.nativeId = -1;
+		}
+	}
+
+	function ensureFlat():Void {
+		ensureBuilt();
+		if (isFlat) {
+			return;
+		}
+		flatVertexList = [];
+		flatUvList = [];
+		flatIndexList = [];
+		surfaceStartList = [];
+		var triangles = 0;
+		for (surface in surfaceList) {
+			var offset = Std.int(flatVertexList.length / 3);
+			surfaceStartList.push(triangles);
+			for (value in surface.vertices) {
+				flatVertexList.push(value);
+			}
+			for (index in 0...Std.int(surface.vertices.length / 3)) {
+				flatUvList.push(surface.uvs != null ? surface.uvs[index * 2] : 0.0);
+				flatUvList.push(surface.uvs != null ? surface.uvs[index * 2 + 1] : 0.0);
+			}
+			for (index in surface.indices) {
+				flatIndexList.push(index + offset);
+			}
+			triangles += surface.triangleCount;
+		}
+		surfaceStartList.push(triangles);
+		isFlat = true;
+	}
+
+	function ensureBounds():Void {
+		if (isBounded) {
+			return;
+		}
+		var vertices = flatVertices;
+		boundsRadius = 0.0;
+		for (axis in 0...3) {
+			boundsMin[axis] = 0.0;
+			boundsMax[axis] = 0.0;
+		}
 		var corner = 0;
 		while (corner < vertices.length) {
 			var x = vertices[corner];
 			var y = vertices[corner + 1];
 			var z = vertices[corner + 2];
-			radius = Math.max(radius, Math.sqrt(x * x + y * y + z * z));
-			minX = Math.min(minX, x);
-			maxX = Math.max(maxX, x);
-			minY = Math.min(minY, y);
-			maxY = Math.max(maxY, y);
-			minZ = Math.min(minZ, z);
-			maxZ = Math.max(maxZ, z);
+			boundsRadius = Math.max(boundsRadius, Math.sqrt(x * x + y * y + z * z));
+			boundsMin[0] = Math.min(boundsMin[0], x);
+			boundsMax[0] = Math.max(boundsMax[0], x);
+			boundsMin[1] = Math.min(boundsMin[1], y);
+			boundsMax[1] = Math.max(boundsMax[1], y);
+			boundsMin[2] = Math.min(boundsMin[2], z);
+			boundsMax[2] = Math.max(boundsMax[2], z);
 			corner += 3;
 		}
+		isBounded = true;
 	}
 
-	// Frees the copy a renderer keeps, which drawing the mesh again makes anew.
-	public function destroy():Void {
-		if (nativeId < 0) {
-			return;
-		}
-		MeshNative.destroy(nativeId);
-		nativeId = -1;
+	function get_surfaces():Array<Surface> {
+		ensureBuilt();
+		return surfaceList;
 	}
 
-	// -1 where no renderer draws meshes, or the copy did not fit in memory.
-	@:allow(fried.graphics3d.MeshPass)
-	function copyForRenderer():Int {
-		if (nativeId < 0) {
-			nativeId = MeshNative.create(cpp.Pointer.ofArray(vertices).constRaw, Std.int(vertices.length / 3), cpp.Pointer.ofArray(indices).constRaw,
-				cpp.Pointer.ofArray((cast triangleColors : Array<Int>)).constRaw, triangleColors.length);
-		}
-		return nativeId;
+	function get_triangleCount():Int {
+		ensureFlat();
+		return surfaceStartList[surfaceStartList.length - 1];
+	}
+
+	function get_flatVertices():Array<Float> {
+		ensureFlat();
+		return flatVertexList;
+	}
+
+	function get_flatUvs():Array<Float> {
+		ensureFlat();
+		return flatUvList;
+	}
+
+	function get_flatIndices():Array<Int> {
+		ensureFlat();
+		return flatIndexList;
+	}
+
+	function get_surfaceStarts():Array<Int> {
+		ensureFlat();
+		return surfaceStartList;
+	}
+
+	function get_boundingRadius():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsRadius;
+	}
+
+	function get_minX():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsMin[0];
+	}
+
+	function get_maxX():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsMax[0];
+	}
+
+	function get_minY():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsMin[1];
+	}
+
+	function get_maxY():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsMax[1];
+	}
+
+	function get_minZ():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsMin[2];
+	}
+
+	function get_maxZ():Float {
+		ensureFlat();
+		ensureBounds();
+		return boundsMax[2];
 	}
 }
 
 @:include("graphics/mesh.h")
 private extern class MeshNative {
 	@:native("fried_mesh_create")
-	static function create(vertices:cpp.RawConstPointer<Float>, vertexCount:Int, indices:cpp.RawConstPointer<Int>,
-		argbColors:cpp.RawConstPointer<Int>, triangleCount:Int):Int;
+	static function create(vertices:cpp.RawConstPointer<Float>, uvs:cpp.RawConstPointer<Float>, vertexCount:Int, indices:cpp.RawConstPointer<Int>,
+		argbColors:cpp.RawConstPointer<Int>, triangleCount:Int, surfaceFirstTriangles:cpp.RawConstPointer<Int>, surfaceTextureIds:cpp.RawConstPointer<Int>,
+		surfaceCount:Int):Int;
 
 	@:native("fried_mesh_destroy")
 	static function destroy(meshId:Int):Void;

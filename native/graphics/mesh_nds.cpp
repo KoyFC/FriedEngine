@@ -354,7 +354,9 @@ namespace
     }
 }
 
-int fried_mesh_create(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount)
+// The texture coordinates and the surfaces are not read yet: a mesh is painted with its triangle colors alone.
+int fried_mesh_create(const fried_real *vertices, const fried_real *, int vertexCount, const int *indices, const int *argbColors, int triangleCount,
+                      const int *, const int *, int)
 {
     if (!vertices || !indices || !argbColors || vertexCount <= 0 || triangleCount <= 0)
     {

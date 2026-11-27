@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 
 // What the renderers that draw meshes with a GPU work out the same way, in the
@@ -26,13 +27,28 @@ namespace fried_mesh
         float m_normal[3];
     };
 
+    // A corner that carries where it is in the image too, for a renderer that
+    // paints with textures.
+    struct TexturedVertex
+    {
+        float m_position[3];
+        uint8_t m_color[4];
+        float m_normal[3];
+        float m_uv[2];
+    };
+
     // Each triangle's three corners, with the normal MeshPass works out from
-    // them and the triangle's color as bytes. False if an index is out of range.
-    inline bool expand(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount, std::vector<Vertex> &out)
+    // them and the triangle's color as bytes, and the corner's texture
+    // coordinates where the vertex type has them. False if an index is out of
+    // range.
+    template <typename V>
+    inline bool expandInto(const fried_real *vertices, const fried_real *uvs, int vertexCount, const int *indices, const int *argbColors, int triangleCount,
+                           std::vector<V> &out)
     {
         out.resize((size_t)triangleCount * 3);
         for (int triangle = 0; triangle < triangleCount; ++triangle)
         {
+            int vertexOf[3];
             const fried_real *corner[3];
             for (int index = 0; index < 3; ++index)
             {
@@ -41,6 +57,7 @@ namespace fried_mesh
                 {
                     return false;
                 }
+                vertexOf[index] = vertex;
                 corner[index] = vertices + vertex * 3;
             }
 
@@ -64,7 +81,7 @@ namespace fried_mesh
             uint32_t color = (uint32_t)argbColors[triangle];
             for (int index = 0; index < 3; ++index)
             {
-                Vertex &vertex = out[(size_t)triangle * 3 + index];
+                V &vertex = out[(size_t)triangle * 3 + index];
                 vertex.m_position[0] = (float)corner[index][0];
                 vertex.m_position[1] = (float)corner[index][1];
                 vertex.m_position[2] = (float)corner[index][2];
@@ -75,9 +92,19 @@ namespace fried_mesh
                 vertex.m_normal[0] = (float)normalX;
                 vertex.m_normal[1] = (float)normalY;
                 vertex.m_normal[2] = (float)normalZ;
+                if constexpr (std::is_same<V, TexturedVertex>::value)
+                {
+                    vertex.m_uv[0] = uvs ? (float)uvs[vertexOf[index] * 2] : 0.0f;
+                    vertex.m_uv[1] = uvs ? (float)uvs[vertexOf[index] * 2 + 1] : 0.0f;
+                }
             }
         }
         return true;
+    }
+
+    inline bool expand(const fried_real *vertices, int vertexCount, const int *indices, const int *argbColors, int triangleCount, std::vector<Vertex> &out)
+    {
+        return expandInto<Vertex>(vertices, nullptr, vertexCount, indices, argbColors, triangleCount, out);
     }
 
     // 3x3 and row-major, the same as Rotation.hx has them.
