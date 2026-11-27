@@ -34,46 +34,252 @@
 				{
 					"children": [
 						{
-							"color": {
-								"a": 255,
-								"b": 110,
-								"g": 90,
-								"r": 90
-							},
 							"id": "floor",
 							"name": "Floor",
 							"scaleX": 6,
 							"scaleZ": 3,
-							"shape": "Plane",
-							"type": "MeshInstance"
+							"type": "MeshInstance3D",
+							"mesh": {
+								"type": "PlaneMesh",
+								"sizeX": 1,
+								"sizeZ": 1,
+								"subdivideWidth": 15,
+								"subdivideDepth": 15,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 90,
+										"g": 90,
+										"b": 110,
+										"a": 255
+									}
+								}
+							}
 						},
 						{
-							"color": {
-								"a": 255,
-								"b": 80,
-								"g": 200,
-								"r": 240
-							},
 							"id": "pyramid",
 							"name": "Pyramid",
-							"shape": "Pyramid",
-							"type": "MeshInstance",
+							"type": "MeshInstance3D",
 							"x": -1.5,
-							"y": 0.5
+							"y": 0.5,
+							"mesh": {
+								"type": "CylinderMesh",
+								"topRadius": 0,
+								"bottomRadius": 0.7071,
+								"height": 1,
+								"radialSegments": 4,
+								"rings": 0,
+								"capTop": false,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 240,
+										"g": 200,
+										"b": 80,
+										"a": 255
+									}
+								}
+							}
 						},
 						{
-							"color": {
-								"a": 255,
-								"b": 240,
-								"g": 160,
-								"r": 80
-							},
 							"id": "ball",
 							"name": "Ball",
-							"shape": "Sphere",
-							"type": "MeshInstance",
+							"type": "MeshInstance3D",
 							"x": 1.5,
-							"y": 0.5
+							"y": 0.5,
+							"mesh": {
+								"type": "SphereMesh",
+								"radialSegments": 16,
+								"rings": 8,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 80,
+										"g": 160,
+										"b": 240,
+										"a": 255
+									}
+								}
+							}
+						},
+						{
+							"id": "box",
+							"name": "Box",
+							"type": "MeshInstance3D",
+							"x": -4.5,
+							"y": 0.5,
+							"z": 0,
+							"mesh": {
+								"type": "BoxMesh",
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 255,
+										"g": 255,
+										"b": 255,
+										"a": 255
+									},
+									"albedoTexture": {
+										"root": "game",
+										"path": "sprite.png"
+									}
+								}
+							},
+							"rotationY": 25
+						},
+						{
+							"id": "cylinder",
+							"name": "Cylinder",
+							"type": "MeshInstance3D",
+							"x": -3,
+							"y": 0.5,
+							"z": 2.5,
+							"mesh": {
+								"type": "CylinderMesh",
+								"height": 1,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 120,
+										"g": 220,
+										"b": 120,
+										"a": 255
+									}
+								}
+							}
+						},
+						{
+							"id": "capsule",
+							"name": "Capsule",
+							"type": "MeshInstance3D",
+							"x": -1.5,
+							"y": 0.5,
+							"z": 2.5,
+							"mesh": {
+								"type": "CapsuleMesh",
+								"height": 1.2,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 230,
+										"g": 90,
+										"b": 100,
+										"a": 255
+									}
+								}
+							}
+						},
+						{
+							"id": "prism",
+							"name": "Prism",
+							"type": "MeshInstance3D",
+							"x": 0,
+							"y": 0.5,
+							"z": 2.5,
+							"mesh": {
+								"type": "PrismMesh",
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 240,
+										"g": 160,
+										"b": 60,
+										"a": 255
+									}
+								}
+							}
+						},
+						{
+							"id": "torus",
+							"name": "Torus",
+							"type": "MeshInstance3D",
+							"x": 1.5,
+							"y": 0.5,
+							"z": 2.5,
+							"mesh": {
+								"type": "TorusMesh",
+								"innerRadius": 0.2,
+								"outerRadius": 0.5,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 100,
+										"g": 230,
+										"b": 220,
+										"a": 255
+									}
+								}
+							}
+						},
+						{
+							"id": "hemisphere",
+							"name": "Hemisphere",
+							"type": "MeshInstance3D",
+							"x": 3,
+							"y": 0,
+							"z": 2.5,
+							"mesh": {
+								"type": "SphereMesh",
+								"height": 0.5,
+								"isHemisphere": true,
+								"material": {
+									"type": "StandardMaterial3D",
+									"albedoColor": {
+										"r": 220,
+										"g": 220,
+										"b": 220,
+										"a": 255
+									}
+								}
+							}
+						},
+						{
+							"id": "crate-obj",
+							"name": "Crate OBJ",
+							"type": "MeshInstance3D",
+							"x": -3,
+							"y": 0.5,
+							"z": -1,
+							"mesh": {
+								"root": "game",
+								"path": "models/crate.obj"
+							},
+							"rotationY": 20
+						},
+						{
+							"id": "crate-glb",
+							"name": "Crate GLB",
+							"type": "MeshInstance3D",
+							"x": 3,
+							"y": 0.5,
+							"z": -1,
+							"mesh": {
+								"root": "game",
+								"path": "models/crate.glb"
+							},
+							"rotationY": -20
+						},
+						{
+							"id": "crate-tinted",
+							"name": "Crate tinted",
+							"type": "MeshInstance3D",
+							"x": 4.5,
+							"y": 0.5,
+							"z": 0,
+							"mesh": {
+								"root": "game",
+								"path": "models/crate.obj"
+							},
+							"materialOverride": {
+								"type": "StandardMaterial3D",
+								"albedoColor": {
+									"r": 255,
+									"g": 120,
+									"b": 120,
+									"a": 255
+								}
+							},
+							"rotationY": -25
 						}
 					],
 					"id": "shapes",

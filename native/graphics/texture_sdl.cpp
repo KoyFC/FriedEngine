@@ -76,6 +76,29 @@ int fried_texture_load(int rendererId, const char *path)
     return storeFiltered(texture, info.m_filter, fried_import_downscale(info, width));
 }
 
+int fried_texture_load_memory(int rendererId, const unsigned char *data, int size)
+{
+    fried_mesh_sdl_leave();
+    SDL_Renderer *renderer = fried_renderer_get_sdl(rendererId);
+    if (!renderer || !data || size <= 0)
+    {
+        fried_set_last_error("No such renderer, or no image given");
+        return -1;
+    }
+
+    FriedImportInfo info = fried_read_import_chunk(data, (size_t)size);
+    SDL_Texture *texture = IMG_LoadTexture_RW(renderer, SDL_RWFromConstMem(data, size), 1);
+    if (!texture)
+    {
+        fried_capture_sdl_error();
+        return -1;
+    }
+
+    int width = 0;
+    SDL_QueryTexture(texture, nullptr, nullptr, &width, nullptr);
+    return storeFiltered(texture, info.m_filter, fried_import_downscale(info, width));
+}
+
 int fried_texture_create_blank(int rendererId, int width, int height)
 {
     fried_mesh_sdl_leave();

@@ -6,6 +6,7 @@ import fried.graphics.FlipMode;
 import fried.graphics.Rect;
 import fried.graphics3d.Material;
 import fried.graphics3d.Mesh;
+import fried.graphics3d.MeshFile;
 import fried.graphics3d.PlaneOrientation;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
@@ -113,7 +114,10 @@ class FieldCodec {
 		if (has(value, "type")) {
 			return cast ResourceRegistry.build(value, "mesh", field, context);
 		}
-		return invalid(field, "an object with a type");
+		if (context.renderer == null) {
+			throw 'Field "$field" names a model, which needs a renderer to load its images into.';
+		}
+		return MeshFile.load(context.renderer, assetPath(value, field), toText(get(value, "root"), field), toText(get(value, "path"), field));
 	}
 
 	public static function toMaterial(value:Dynamic, field:String, context:LoadContext):Material {
@@ -233,6 +237,9 @@ class FieldCodec {
 	}
 
 	public static function fromMesh(value:Mesh):Dynamic {
+		if (value != null && value.sourcePath != null) {
+			return {root: value.sourceRoot, path: value.sourcePath};
+		}
 		return ResourceRegistry.describe(value);
 	}
 

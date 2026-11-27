@@ -31,6 +31,21 @@ class Texture {
 		return new Texture(renderer, id, path);
 	}
 
+	// The texture that a PNG already in memory is, kept under the name it is asked for by so that asking again gives the same one.
+	public static function fromBytes(renderer:Renderer, bytes:haxe.io.Bytes, name:String):Texture {
+		var cached = renderer.cachedTexture(name);
+		if (cached != null) {
+			return cached;
+		}
+
+		var id = TextureNative.loadMemory(renderer.id, cpp.Pointer.ofArray(bytes.getData()).constRaw, bytes.length);
+		if (id < 0) {
+			throw NativeError.describe('Failed to load texture: $name');
+		}
+
+		return new Texture(renderer, id, name);
+	}
+
 	function new(renderer:Renderer, id:Int, path:String) {
 		this.renderer = renderer;
 		this.id = id;
@@ -75,6 +90,9 @@ class Texture {
 private extern class TextureNative {
 	@:native("fried_texture_load")
 	static function load(rendererId:Int, path:cpp.ConstCharStar):Int;
+
+	@:native("fried_texture_load_memory")
+	static function loadMemory(rendererId:Int, data:cpp.RawConstPointer<cpp.UInt8>, size:Int):Int;
 
 	@:native("fried_texture_destroy")
 	static function destroy(id:Int):Void;

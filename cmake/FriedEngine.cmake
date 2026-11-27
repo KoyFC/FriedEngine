@@ -206,11 +206,17 @@ else()
         native/physics/collider_store.cpp
     )
 endif()
-# The renderers that are not SDL's answer for textured triangles with a stub.
+# The renderers that are not SDL's answer for textured triangles with a stub, and their textures for one that is not read from a file.
 if(FRIED_CG50 OR NINTENDO_DS OR NINTENDO_3DS)
-    list(APPEND _fried_native_sources native/graphics/renderer_textured_stub.cpp)
+    list(APPEND _fried_native_sources native/graphics/renderer_textured_stub.cpp native/graphics/texture_memory_stub.cpp)
 endif()
 
+# A game on a desktop reads the models it is given as they come from other tools, which the asset import tool has not changed when the game is being edited. The rest only load what was imported.
+if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS OR FRIED_CG50 OR FRIED_WEB OR FRIED_ANDROID)
+    list(APPEND _fried_native_sources native/model/model_native_stub.cpp)
+else()
+    list(APPEND _fried_native_sources native/model/model_native.cpp native/model/model_convert.cpp)
+endif()
 list(APPEND _fried_native_sources
     native/last_error.cpp
     native/graphics/display.cpp

@@ -6,6 +6,8 @@ struct SDL_Surface;
 extern "C"
 {
     int fried_texture_load(int rendererId, const char *path);
+    // The same for the bytes of a PNG that something else has already read.
+    int fried_texture_load_memory(int rendererId, const unsigned char *data, int size);
     void fried_texture_destroy(int textureId);
 
     int fried_texture_get_width(int textureId);
