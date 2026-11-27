@@ -1,11 +1,9 @@
 package fried.scene.serialization;
 
 import fried.graphics.Renderer;
-import fried.io.Filesystem;
 import fried.scene.SceneManager;
 import fried.scene.serialization.FieldCodec;
 import fried.scene.serialization.LoadContext;
-import haxe.Json;
 
 // The fields of a node that name other nodes, which can only be assigned once every node of the scene exists.
 private typedef PendingReferences = {
@@ -39,13 +37,12 @@ class SceneLoader {
 
 	// Builds the scene of a file under the game's assets for the platform that is running.
 	public static function load(assetPath:String, renderer:Renderer):Scene {
-		var path = Filesystem.resolveAsset("game", assetPath);
-		var data = try {
-			Json.parse(Filesystem.readBytes(path).toString());
-		} catch (error:Dynamic) {
-			throw 'Cannot read the scene file $assetPath: $error';
-		}
-		return build(data, renderer);
+		return build(SceneFiles.readPath(assetPath), renderer);
+	}
+
+	// Builds the scene with the name the project lists, wherever its data is kept.
+	public static function loadNamed(name:String, renderer:Renderer):Scene {
+		return build(SceneFiles.read(name), renderer);
 	}
 
 	// Nodes become ready once every node and reference exists, unless the caller only wants to look at the scene, as the editor does.
@@ -71,7 +68,7 @@ class SceneLoader {
 	static function assemble(data:Dynamic, renderer:Renderer):Scene {
 		var version = FieldCodec.get(data, "version");
 		if (version != FORMAT_VERSION) {
-			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION. Scenes are rewritten by hand: see https://koyfc.github.io/FriedEngine/architecture/scene-files/.';
+			throw 'The scene file is version $version, and this engine reads version $FORMAT_VERSION. Open the scene in the editor to bring it up to date: see https://koyfc.github.io/FriedEngine/architecture/scene-files/.';
 		}
 
 		var scene = new Scene(FieldCodec.toText(FieldCodec.get(data, "name"), "name"));

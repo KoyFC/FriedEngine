@@ -93,8 +93,17 @@ class Project {
 		var names = [];
 		if (sys.FileSystem.exists(directory)) {
 			for (entry in sys.FileSystem.readDirectory(directory)) {
-				if (StringTools.endsWith(entry, ".scene.json")) {
-					names.push(entry.substr(0, entry.length - ".scene.json".length));
+				var name:Null<String> = null;
+				for (suffix in [".scene.yaml", ".scene.json"]) {
+					if (StringTools.endsWith(entry, suffix)) {
+						name = entry.substr(0, entry.length - suffix.length);
+					}
+				}
+				if (name != null) {
+					if (names.indexOf(name) >= 0) {
+						Context.error('The scene "$name" has two files in $directory, which is one too many: keep either the .scene.yaml or the .scene.json.', Context.currentPos());
+					}
+					names.push(name);
 				}
 			}
 		}

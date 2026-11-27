@@ -32,7 +32,7 @@ class Bootstrap {
 	static function loadAutoload(name:String):Scene {
 		var type = NodeRegistry.get(name);
 		if (type == null) {
-			return SceneLoader.load('scenes/$name.scene.json', renderer);
+			return SceneLoader.loadNamed(name, renderer);
 		}
 		var scene = new Scene(name);
 		var node = type.create({}, new LoadContext(renderer));
@@ -69,7 +69,7 @@ class Bootstrap {
 		var scenes = Project.sceneNames();
 		for (name in scenes) {
 			SceneManager.register(name, function(context) {
-				var scene = SceneLoader.load('scenes/$name.scene.json', renderer);
+				var scene = SceneLoader.loadNamed(name, renderer);
 				context.pushLayer(renderer, new SceneLayer(scene));
 				context.onUnload(scene.destroy);
 				#if fried_editor

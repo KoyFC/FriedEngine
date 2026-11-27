@@ -2,9 +2,8 @@ package fried.scene;
 
 import fried.Bootstrap;
 import fried.graphics.Renderer;
-import fried.io.Filesystem;
+import fried.scene.serialization.SceneFiles;
 import fried.scene.serialization.SceneLoader;
-import haxe.Json;
 
 // A scene file read once, ready to be built into a node as often as a game wants: a bullet, an enemy, a piece of the interface. Only a scene with one top-level node can be instanced, and that node is what `instantiate` returns, with the rest of the file under it.
 //
@@ -22,19 +21,13 @@ class PackedScene {
 		this.rootData = rootData;
 	}
 
-	// The scene file `scenes/<name>.scene.json` of the game's assets.
+	// The scene file of that name in the game's assets.
 	public static function load(name:String):PackedScene {
 		var found = cache.get(name);
 		if (found != null) {
 			return found;
 		}
-		var assetPath = 'scenes/$name.scene.json';
-		var data = try {
-			Json.parse(Filesystem.readBytes(Filesystem.resolveAsset("game", assetPath)).toString());
-		} catch (error:Dynamic) {
-			throw 'Cannot read the scene file $assetPath: $error';
-		}
-		var packed = new PackedScene(name, SceneLoader.instanceRoot(data, name));
+		var packed = new PackedScene(name, SceneLoader.instanceRoot(SceneFiles.read(name), name));
 		cache.set(name, packed);
 		return packed;
 	}
