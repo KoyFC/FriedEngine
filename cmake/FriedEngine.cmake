@@ -27,6 +27,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectPlatforms.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectPrecision.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ProjectOptimize.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/AssetImport.cmake")
 
 # fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
@@ -360,6 +361,7 @@ function(fried_add_game target_name)
 
     fried_add_hxcpp_executable(${target_name} ${_generated_dir})
     target_link_libraries(${target_name} PRIVATE fried::engine)
+    fried_apply_project_optimize(${target_name} "${_project_json}" ${_platform} "${_game_EDITOR_PLAYER}")
 
     # SDL's JNI functions are only called from Java, so nothing in the game pulls them out of the archive.
     if(FRIED_ANDROID)
@@ -483,6 +485,7 @@ function(fried_add_game target_name)
             ENGINE_ASSETS ${_engine_assets}
             GAME_ASSETS ${_game_assets}
         )
+        fried_precompress_web(${target_name})
     elseif(FRIED_ANDROID)
         # The APK carries the identity project.fried declares, with "android.package" naming it on the device, "android.versionCode" the number stores compare, and "android.orientation" the way it is held.
         string(JSON _name GET "${_project_json}" name)
