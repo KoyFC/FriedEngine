@@ -114,9 +114,10 @@ bool engineCanUnpack(const std::string &extension, const std::string &platform)
     return extension == ".fscene" || isModel(extension) || extension == ".html" || extension == ".css" || (extension == ".ttf" && usesSoftwareText(platform));
 }
 
-bool compressesByDefault(const std::string &platform)
+// Unpacking holds the packed and the unpacked file in memory at once, which the DS and the calculator have the least of, so nothing is compressed unless a sidecar asks for it.
+bool compressesByDefault(const std::string &)
 {
-    return platform == "nds" || platform == "3ds" || platform == "cg50";
+    return false;
 }
 
 struct CompressionTotals
