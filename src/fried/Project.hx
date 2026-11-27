@@ -144,9 +144,9 @@ class Project {
 		}
 
 		try {
-			file = haxe.Json.parse(sys.io.File.getContent(filePath));
+			file = fried.io.Yaml.parse(sys.io.File.getContent(filePath), filePath);
 		} catch (e:Dynamic) {
-			Context.fatalError('$filePath is not valid JSON: $e', Context.currentPos());
+			Context.fatalError('$filePath is not valid YAML: $e', Context.currentPos());
 		}
 
 		if (Reflect.hasField(file, "gameClass")) {
