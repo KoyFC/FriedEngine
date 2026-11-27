@@ -63,6 +63,12 @@ class Application {
 		isRunning = false;
 	}
 
+	// Kilobytes the heap has left on the DS, and -1 where nothing counts them.
+	public static function freeMemoryKb():Int {
+		var bytes = ApplicationNative.freeMemory();
+		return bytes < 0 ? -1 : Std.int(bytes / 1024);
+	}
+
 	public static function quit():Void {
 		isRunning = false;
 	}
@@ -250,6 +256,9 @@ private extern class ApplicationNative {
 
 	@:native("fried_application_platform_name")
 	static function platformName():cpp.ConstCharStar;
+
+	@:native("fried_application_free_memory")
+	static function freeMemory():Int;
 
 	@:native("fried_application_wait_for_host_frame")
 	static function waitForHostFrame():Int;

@@ -1,5 +1,6 @@
 package nodes;
 
+import fried.Application;
 import debug.DebugOverlay;
 import fried.Bootstrap;
 import fried.Log;
@@ -61,7 +62,7 @@ class SandboxWorld extends Node {
 		overlay.addSceneButton(this, () -> 'Interface ${hud.visible ? "on" : "off"}', toggleInterface);
 		overlay.addSceneButton(this, () -> 'Colliders ${colliders[0].isDebugVisible ? "on" : "off"}', toggleColliders);
 
-		Log.success('Scene "${scene.name}" holds ${scene.nodeCount} nodes, the interface among them');
+		Log.success('Scene "${scene.name}" holds ${scene.nodeCount} nodes, the interface among them' + (Application.freeMemoryKb() >= 0 ? ', ${Application.freeMemoryKb()} KB of heap left' : ""));
 		Log.info('The player starts at world ${player.x}, ${player.y}, and the ${colliders.length - 1} posts are what it cannot walk through');
 	}
 

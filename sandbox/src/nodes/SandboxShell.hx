@@ -233,8 +233,13 @@ class SandboxShell extends Node {
 	function loadNextScene():Void {
 		var screens = ["sandbox", "sandbox_3d", "sandbox_html"];
 		var next = screens[(screens.indexOf(SceneManager.activeName) + 1) % screens.length];
-		Log.info('Loading scene $next');
+		Log.info('Loading scene $next' + memoryNote());
 		SceneManager.load(next);
+	}
+
+	static function memoryNote():String {
+		var free = Application.freeMemoryKb();
+		return free >= 0 ? ', $free KB of heap left' : "";
 	}
 
 	static function checkAsset(path:String):Void {

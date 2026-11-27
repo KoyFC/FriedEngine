@@ -6,6 +6,8 @@
 
 #include <nds.h>
 
+#include <malloc.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -44,15 +46,24 @@ namespace
         std::exit(1);
     }
 
+    // Without the heap, so the number goes through a buffer of its own.
     void onOutOfMemory()
     {
-        stopWithMessage("Out of memory: the game needs more than the DS has.\n");
+        static char message[96];
+        std::snprintf(message, sizeof message, "Out of memory: the game needs more than the DS has.\n%d KB were left.\n", fried_application_free_memory() / 1024);
+        stopWithMessage(message);
     }
 
     void onTerminate()
     {
         stopWithMessage("The program stopped on an exception nothing caught.\n");
     }
+}
+
+int fried_application_free_memory()
+{
+    struct mallinfo info = mallinfo();
+    return (int)info.fordblks + (int)(getHeapLimit() - getHeapEnd());
 }
 
 int fried_application_init()
