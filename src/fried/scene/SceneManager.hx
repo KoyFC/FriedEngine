@@ -1,5 +1,7 @@
 package fried.scene;
 
+import fried.Application;
+import fried.Log;
 import fried.graphics.Renderer;
 
 class SceneManager {
@@ -95,6 +97,7 @@ class SceneManager {
 			var name = pendingName;
 			pendingName = null;
 			unloadActive();
+			releaseMemory(name);
 			active = new SceneContext(name);
 			loaders.get(name)(active);
 		}
@@ -113,6 +116,16 @@ class SceneManager {
 			loaders.get(name)(context);
 		}
 		pendingAdditive.resize(0);
+	}
+
+	// Where memory is counted, which is where it runs out, the scene that went is collected and its blocks handed back before the next one loads, so the native code that makes meshes and textures finds them free.
+	static function releaseMemory(name:String):Void {
+		if (Application.freeMemoryKb() < 0) {
+			return;
+		}
+		cpp.vm.Gc.run(true);
+		cpp.vm.Gc.compact();
+		Log.info('Memory before loading $name: ${Application.freeMemoryKb()} KB');
 	}
 
 	@:allow(fried.Application)
