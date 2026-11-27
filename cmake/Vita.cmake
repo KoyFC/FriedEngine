@@ -51,13 +51,12 @@ endfunction()
 # Appends every file under <source_dir> to <out_var> as the FILE <src> <dest>
 # pairs vita_create_vpk() takes, rooted at <destination>.
 function(fried_collect_vita_assets source_dir destination out_var)
-    file(GLOB_RECURSE _assets CONFIGURE_DEPENDS "${source_dir}/*")
-    list(FILTER _assets EXCLUDE REGEX "\\.import$")
     fried_imported_dir("${source_dir}" _imported_dir)
+    file(GLOB_RECURSE _assets CONFIGURE_DEPENDS "${_imported_dir}/*")
 
     set(_files ${${out_var}})
     foreach(_asset ${_assets})
-        file(RELATIVE_PATH _relative "${source_dir}" "${_asset}")
+        file(RELATIVE_PATH _relative "${_imported_dir}" "${_asset}")
         list(APPEND _files FILE "${_imported_dir}/${_relative}" "${destination}/${_relative}")
     endforeach()
 

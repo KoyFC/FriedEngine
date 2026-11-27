@@ -5,16 +5,16 @@
 function(fried_stage_romfs_assets asset_target source_dir destination out_var)
     get_target_property(_romfs_dir ${asset_target} DKP_ASSET_FOLDER)
 
-    file(GLOB_RECURSE _assets CONFIGURE_DEPENDS "${source_dir}/*")
-    list(FILTER _assets EXCLUDE REGEX "\\.import$")
+    # The files come from the imported copy, whose names are not always the source's: a scene is a .fscene there.
     fried_imported_dir("${source_dir}" _imported_dir)
+    file(GLOB_RECURSE _assets CONFIGURE_DEPENDS "${_imported_dir}/*")
     fried_depend_on_import(${asset_target})
 
     set(_files ${${out_var}})
     foreach(_asset ${_assets})
-        file(RELATIVE_PATH _relative "${source_dir}" "${_asset}")
+        file(RELATIVE_PATH _relative "${_imported_dir}" "${_asset}")
         set(_staged "${_romfs_dir}/${destination}/${_relative}")
-        file(GLOB _sidecar CONFIGURE_DEPENDS "${_asset}.import")
+        file(GLOB _sidecar CONFIGURE_DEPENDS "${source_dir}/${_relative}.import")
         get_filename_component(_staged_dir "${_staged}" DIRECTORY)
 
         add_custom_command(

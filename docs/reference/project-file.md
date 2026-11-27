@@ -19,7 +19,7 @@ A game declares itself in a `project.fried` at its own root, in YAML (see [YAML 
 | `startScene` | string | the first scene, by name | The scene the game loads when it starts. |
 | `autoload` | list of strings | none | Node classes or scenes loaded once at startup, in order, and kept while the game runs, for what the whole game needs: music, a pause menu, a debug overlay. A name that is a node class is made as it is, and any other is a scene file. |
 | `input` | object | none | The input actions of the game, declared as data: a list of `maps`, each with a `name`, an optional `enabled` and its `actions`. See [Input](../architecture/input.md) for the format. A mistake in it is an error of the build. |
-| `<platform>.optimize` | `speed` or `size` | `speed` | `size` builds for size and drops what nothing uses at link time. |
+| `<platform>.optimize` | `speed` or `size` | `size` on the DS, `speed` elsewhere | `size` builds for size and drops what nothing uses at link time. |
 | `<platform>.lto` | boolean | false | Links with link time optimization. |
 | `pc.compressExecutable` | boolean | false | Packs the computer's executable with UPX. |
 | `3ds.description` | string, up to 128 characters | `Version <version>` | The SMDH's description line. |
