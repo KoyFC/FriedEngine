@@ -4,7 +4,7 @@ import sys.FileSystem;
 import sys.io.File;
 
 class YamlCorpusTest {
-	static function same(a:Dynamic, b:Dynamic):Bool {
+	public static function same(a:Dynamic, b:Dynamic):Bool {
 		if (Std.isOfType(a, Array) && Std.isOfType(b, Array)) {
 			var x:Array<Dynamic> = a;
 			var y:Array<Dynamic> = b;

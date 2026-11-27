@@ -12,6 +12,7 @@
 #include "import_settings.h"
 #include "yaml.h"
 #include "model/model_convert.h"
+#include "scene_compile.h"
 
 #include <algorithm>
 #include <cctype>
@@ -88,6 +89,43 @@ namespace
         }
         return sidecar.empty() || built >= fs::last_write_time(sidecar, ignored);
     }
+}
+
+// The name of the scene a .scene.yaml or .scene.json file holds, or empty for any other file.
+std::string sceneNameOf(const fs::path &path)
+{
+    std::string name = path.filename().string();
+    for (const char *suffix : {".scene.yaml", ".scene.json"})
+    {
+        std::string end = suffix;
+        if (name.size() > end.size() && name.compare(name.size() - end.size(), end.size(), end) == 0)
+        {
+            return name.substr(0, name.size() - end.size());
+        }
+    }
+    return std::string();
+}
+
+bool compileSceneFile(const fs::path &source, const std::string &name, const fs::path &destination)
+{
+    std::string other = source.extension() == ".yaml" ? ".scene.json" : ".scene.yaml";
+    if (fs::exists(source.parent_path() / (name + other)))
+    {
+        std::cerr << "fried_import: " << source.string() << ": the scene " << name << " has both a .scene.yaml and a .scene.json file, which is one too many\n";
+        return false;
+    }
+    std::ifstream stream(source, std::ios::binary);
+    std::stringstream text;
+    text << stream.rdbuf();
+    fried_import::Value scene;
+    std::string error;
+    std::vector<unsigned char> bytes;
+    if (!fried_import::parseYaml(text.str(), &scene, &error) || !fried_import::compileScene(scene, name, &bytes, &error))
+    {
+        std::cerr << "fried_import: " << source.string() << ":" << error << "\n";
+        return false;
+    }
+    return writeFile(destination, bytes);
 }
 
 bool sameValue(const fried_import::Value &a, const fried_import::Value &b)
@@ -253,6 +291,11 @@ int main(int argc, char **argv)
         }
         fs::path relative = fs::relative(entry.path(), input);
         fs::path destination = fs::path(output) / relative;
+        std::string sceneName = sceneNameOf(entry.path());
+        if (!sceneName.empty())
+        {
+            destination = fs::path(output) / relative.parent_path() / (sceneName + ".fscene");
+        }
         expected.insert(destination.lexically_normal());
 
         fs::path sidecar = entry.path();
@@ -262,6 +305,15 @@ int main(int argc, char **argv)
         // A model depends on more files than itself, so it is read each time and only written when it changed.
         if (!isModel(extension) && isUpToDate(destination, entry.path(), hasSidecar ? sidecar : fs::path()))
         {
+            continue;
+        }
+
+        if (!sceneName.empty())
+        {
+            if (!compileSceneFile(entry.path(), sceneName, destination))
+            {
+                ++failures;
+            }
             continue;
         }
 
