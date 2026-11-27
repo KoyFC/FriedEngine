@@ -23,20 +23,20 @@ class PrismMesh extends PrimitiveMesh {
 		var down = -sizeY / 2.0;
 		var near = -sizeZ / 2.0;
 		var far = sizeZ / 2.0;
-		triangle(builder, left, down, near, 0.0, 1.0, right, down, near, 1.0, 1.0, top, up, near, leftToRight, 0.0);
-		triangle(builder, left, down, far, 0.0, 1.0, right, down, far, 1.0, 1.0, top, up, far, leftToRight, 0.0);
-		quad(builder, left, down, near, right, down, near, right, down, far, left, down, far);
-		quad(builder, left, down, near, top, up, near, top, up, far, left, down, far);
-		quad(builder, right, down, near, top, up, near, top, up, far, right, down, far);
+		addTriangle(builder, left, down, near, 0.0, 1.0, right, down, near, 1.0, 1.0, top, up, near, leftToRight, 0.0);
+		addTriangle(builder, left, down, far, 0.0, 1.0, right, down, far, 1.0, 1.0, top, up, far, leftToRight, 0.0);
+		addQuad(builder, left, down, near, right, down, near, right, down, far, left, down, far);
+		addQuad(builder, left, down, near, top, up, near, top, up, far, left, down, far);
+		addQuad(builder, right, down, near, top, up, near, top, up, far, right, down, far);
 		MeshTools.orientOutward(builder.vertices, builder.indices, (left + right + top) / 3.0, (down + down + up) / 3.0, 0.0);
 	}
 
-	function triangle(builder:MeshBuilder, ax:Float, ay:Float, az:Float, au:Float, av:Float, bx:Float, by:Float, bz:Float, bu:Float, bv:Float, cx:Float,
+	function addTriangle(builder:MeshBuilder, ax:Float, ay:Float, az:Float, au:Float, av:Float, bx:Float, by:Float, bz:Float, bu:Float, bv:Float, cx:Float,
 			cy:Float, cz:Float, cu:Float, cv:Float):Void {
 		builder.triangle(builder.vertex(ax, ay, az, au, av), builder.vertex(bx, by, bz, bu, bv), builder.vertex(cx, cy, cz, cu, cv));
 	}
 
-	function quad(builder:MeshBuilder, ax:Float, ay:Float, az:Float, bx:Float, by:Float, bz:Float, cx:Float, cy:Float, cz:Float, dx:Float, dy:Float,
+	function addQuad(builder:MeshBuilder, ax:Float, ay:Float, az:Float, bx:Float, by:Float, bz:Float, cx:Float, cy:Float, cz:Float, dx:Float, dy:Float,
 			dz:Float):Void {
 		var a = builder.vertex(ax, ay, az, 0.0, 0.0);
 		var b = builder.vertex(bx, by, bz, 1.0, 0.0);
