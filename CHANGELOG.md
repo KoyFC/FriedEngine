@@ -10,10 +10,23 @@ All notable changes to Fried Engine are written here, newest version first.
 ## vX.Y.Z
 
 ### Added
+- Primitive meshes for a `MeshInstance3D`, `BoxMesh`, `SphereMesh`, `CylinderMesh`, `CapsuleMesh`, `PlaneMesh`, `PrismMesh` and `TorusMesh`, which a scene file writes inside the node's `mesh` field with their own numbers, and `StandardMaterial3D`, a color and an image for a surface.
+- Textures on meshes where the renderer can paint them: the SDL renderer's GL on PC and the Switch, and triangles bent over the image everywhere SDL draws them, such as the web.
+- Models read from `.obj` with `.mtl`, `.gltf` and `.glb` files: the asset import tool converts them to a compact format, a PC game that is being edited converts them as it reads them, and `MeshInstance3D.mesh` can be one. Every node of a file is one mesh with a surface for each material.
+- `MeshInstance3D.materialOverride`, which paints every surface of the mesh with one material.
+- `fried.resources.Resource`, the base of the data a scene file keeps inside a field, with its own `@:serializable` and the `mesh` and `material` kinds of field.
+- The editor player sends the resources a field can hold, and the protocol is 6.
 - `Tilemap`, a node that draws a grid of tiles from one picture out of a native cell store, drawing only the tiles the screen shows, with `isSolid` to cover its cells with merged colliders.
 - `UIDocument`, a node that shows a screen written in HTML and CSS: a small parser for each, a flex layout, `:hover`, `:active`, `:focus` and `:disabled`, a `StyleSheet` shared by every document that uses it, focus moved with a keyboard or a gamepad, and `@:ui("file.html")` classes compiled against their HTML so an element's id, its `onclick` and its `{{text}}` are typed fields and methods.
 - Rounded corners, gradients and shadows in a `UIDocument`, drawn plain on the DS and the fx-CG50.
 - `fried.Profile`, section timers that exist only in a build made with `-D fried_profile`, and the game's frame stats carry them to the editor.
+
+### Changed
+- `MeshInstance` is `MeshInstance3D`, and scene files that name the old type still load. Its `shape` and `color` are a `mesh` and a material: an older file is read as the primitive that comes nearest, and a `Pyramid` becomes a four sided cone that is turned an eighth of a turn about its axis.
+- `fillTriangles()` has a sibling, `fillTexturedTriangles()`, and `fried_mesh_create()` takes the texture coordinates and the surfaces of a mesh.
+
+### Removed
+- `MeshShape` and `Primitives`, in favor of the primitive meshes.
 
 ## v0.1.0 - 2026-11-26
 
