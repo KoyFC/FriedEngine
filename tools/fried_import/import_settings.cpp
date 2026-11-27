@@ -36,6 +36,10 @@ namespace fried_import
 
         void applyBlock(const Value &block, Settings *settings)
         {
+            if (const Value *compress = block.find("compress"); compress && compress->m_kind == Value::Kind::String)
+            {
+                settings->m_compress = compress->m_string == "none" ? 1 : (compress->m_string == "lz" ? 2 : 0);
+            }
             if (const Value *image = block.find("image"))
             {
                 settings->m_hasImage = true;

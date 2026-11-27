@@ -7,5 +7,5 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_executable(fried_import main.cpp yaml.cpp scene_compile.cpp import_settings.cpp image_import.cpp audio_import.cpp font_import.cpp ../../native/model/model_convert.cpp)
+add_executable(fried_import main.cpp yaml.cpp scene_compile.cpp lz10.cpp ../../native/platform/lz10.cpp import_settings.cpp image_import.cpp audio_import.cpp font_import.cpp ../../native/model/model_convert.cpp)
 target_include_directories(fried_import PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../native/third_party ${CMAKE_CURRENT_SOURCE_DIR}/../../native)

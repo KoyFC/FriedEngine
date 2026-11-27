@@ -6,6 +6,7 @@
 
 #include "handle_pool.h"
 #include "last_error.h"
+#include "platform/lz10.h"
 #include "graphics/pixel_font.h"
 #include "graphics/renderer.h"
 #include "graphics/texture.h"
@@ -617,14 +618,14 @@ namespace
 
         bool read = contents && lseek(fd, 0, SEEK_SET) == 0 && ::read(fd, contents, end) == end;
         close(fd);
-        if (!read)
+        size = (int)end;
+        if (!read || !fried_unpack_asset(contents, size))
         {
             delete[] contents;
             contents = nullptr;
             fried_set_last_error("Failed to read the file");
             return ReadResult::Failed;
         }
-        size = (int)end;
         return ReadResult::Read;
     }
 

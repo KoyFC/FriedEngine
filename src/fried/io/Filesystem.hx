@@ -45,7 +45,12 @@ class Filesystem {
 		return sys.FileSystem.exists(path);
 	}
 
+	// The file as the engine finds it: a file that fried_import compressed comes back unpacked.
 	public static function readBytes(path:String):haxe.io.Bytes {
+		return unpack(path, readRaw(path));
+	}
+
+	static function readRaw(path:String):haxe.io.Bytes {
 		if (!isPacked) {
 			return sys.io.File.getBytes(path);
 		}
@@ -56,6 +61,22 @@ class Filesystem {
 		var bytes = haxe.io.Bytes.alloc(size);
 		FilesystemNative.takeLoaded(size > 0 ? cpp.Pointer.ofArray(bytes.getData()).raw : null);
 		return bytes;
+	}
+
+	static function unpack(path:String, bytes:haxe.io.Bytes):haxe.io.Bytes {
+		if (bytes.length < 8 || bytes.get(0) != 0x46 || bytes.get(1) != 0x52 || bytes.get(2) != 0x4c || bytes.get(3) != 0x5a) {
+			return bytes;
+		}
+		var packed = cpp.Pointer.ofArray(bytes.getData()).raw;
+		var size = Lz10Native.unpackedSize(packed, bytes.length);
+		if (size < 0) {
+			return bytes;
+		}
+		var unpacked = haxe.io.Bytes.alloc(size > 0 ? size : 1);
+		if (Lz10Native.unpack(packed, bytes.length, cpp.Pointer.ofArray(unpacked.getData()).raw, size) == 0) {
+			throw 'The compressed file $path is damaged.';
+		}
+		return size > 0 ? unpacked : haxe.io.Bytes.alloc(0);
 	}
 
 	@:allow(fried.Application)
@@ -97,4 +118,13 @@ private extern class FilesystemNative {
 
 	@:native("fried_filesystem_take_loaded")
 	static function takeLoaded(destination:cpp.RawPointer<cpp.UInt8>):Void;
+}
+
+@:include("platform/lz10.h")
+private extern class Lz10Native {
+	@:native("fried_lz10_unpacked_size")
+	static function unpackedSize(data:cpp.RawPointer<cpp.UInt8>, size:Int):Int;
+
+	@:native("fried_lz10_unpack")
+	static function unpack(data:cpp.RawPointer<cpp.UInt8>, size:Int, destination:cpp.RawPointer<cpp.UInt8>, destinationSize:Int):Int;
 }

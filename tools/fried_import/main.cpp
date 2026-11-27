@@ -10,6 +10,8 @@
 #include "font_import.h"
 #include "image_import.h"
 #include "import_settings.h"
+#include "lz10.h"
+#include "platform/lz10.h"
 #include "yaml.h"
 #include "model/model_convert.h"
 #include "scene_compile.h"
@@ -106,7 +108,50 @@ std::string sceneNameOf(const fs::path &path)
     return std::string();
 }
 
-bool compileSceneFile(const fs::path &source, const std::string &name, const fs::path &destination)
+// What a platform's own rule compresses: the files the engine reads through Filesystem.readBytes, which unpacks them, and the fonts the software text of the DS and the calculator reads itself.
+bool engineCanUnpack(const std::string &extension, const std::string &platform)
+{
+    return extension == ".fscene" || isModel(extension) || extension == ".html" || extension == ".css" || (extension == ".ttf" && usesSoftwareText(platform));
+}
+
+bool compressesByDefault(const std::string &platform)
+{
+    return platform == "nds" || platform == "3ds" || platform == "cg50";
+}
+
+struct CompressionTotals
+{
+    size_t m_before = 0;
+    size_t m_after = 0;
+};
+
+// Applies the rule to the bytes of a file about to be written, and keeps them packed when that saves a tenth or, if asked for, anything.
+void compressForPlatform(const std::string &platform, int rule, const std::string &extension, const fs::path &relative, std::vector<unsigned char> *bytes,
+                         CompressionTotals *totals)
+{
+    if (rule == 1 || (rule == 0 && !compressesByDefault(platform)))
+    {
+        return;
+    }
+    if (!engineCanUnpack(extension, platform))
+    {
+        if (rule == 2)
+        {
+            std::cerr << "fried_import: " << relative.string() << " cannot be compressed, since the engine reads this kind of file itself, so it is written as it is\n";
+        }
+        return;
+    }
+    std::vector<unsigned char> packed = fried_import::compressLz10(*bytes);
+    if (packed.empty() || (rule == 0 ? packed.size() * 10 > bytes->size() * 9 : packed.size() >= bytes->size()))
+    {
+        return;
+    }
+    totals->m_before += bytes->size();
+    totals->m_after += packed.size();
+    *bytes = std::move(packed);
+}
+
+bool compileSceneFile(const std::string &platform, const fs::path &source, const std::string &name, const fs::path &destination, CompressionTotals *totals)
 {
     std::string other = source.extension() == ".yaml" ? ".scene.json" : ".scene.yaml";
     if (fs::exists(source.parent_path() / (name + other)))
@@ -125,6 +170,7 @@ bool compileSceneFile(const fs::path &source, const std::string &name, const fs:
         std::cerr << "fried_import: " << source.string() << ":" << error << "\n";
         return false;
     }
+    compressForPlatform(platform, 0, ".fscene", destination.filename(), &bytes, totals);
     return writeFile(destination, bytes);
 }
 
@@ -258,8 +304,37 @@ int runProjectJson(const std::string &input, const std::string &output)
     return writeFile(output, bytes) ? 0 : 1;
 }
 
+int runCheckLz(const std::string &path)
+{
+    std::vector<unsigned char> bytes, unpacked;
+    if (!readFile(path, &bytes))
+    {
+        std::cerr << "cannot read " << path << "\n";
+        return 1;
+    }
+    std::vector<unsigned char> packed = fried_import::compressLz10(bytes);
+    if (packed.empty())
+    {
+        std::cerr << path << ": nothing to compress\n";
+        return bytes.empty() ? 0 : 1;
+    }
+    int size = fried_lz10_unpacked_size(packed.data(), (int)packed.size());
+    unpacked.resize((size_t)size);
+    if (size < 0 || !fried_lz10_unpack(packed.data(), (int)packed.size(), unpacked.data(), size) || unpacked != bytes)
+    {
+        std::cerr << "FAIL " << path << "\n";
+        return 1;
+    }
+    std::cerr << "ok " << path << " " << bytes.size() << " -> " << packed.size() << "\n";
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
+    if (argc == 3 && std::string(argv[1]) == "--check-lz")
+    {
+        return runCheckLz(argv[2]);
+    }
     if (argc == 3 && std::string(argv[1]) == "--check-yaml")
     {
         return runCheckYaml(argv[2]);
@@ -281,6 +356,7 @@ int main(int argc, char **argv)
     }
 
     std::set<fs::path> expected;
+    CompressionTotals totals;
     int failures = 0;
     std::error_code error;
     for (const fs::directory_entry &entry : fs::recursive_directory_iterator(input, error))
@@ -310,7 +386,7 @@ int main(int argc, char **argv)
 
         if (!sceneName.empty())
         {
-            if (!compileSceneFile(entry.path(), sceneName, destination))
+            if (!compileSceneFile(platform, entry.path(), sceneName, destination, &totals))
             {
                 ++failures;
             }
@@ -340,6 +416,7 @@ int main(int argc, char **argv)
         }
         const std::vector<unsigned char> *result = &source;
         std::string warning;
+        bool engineMadeIt = false;
         if (isModel(extension))
         {
             fried_model::Options options;
@@ -361,6 +438,7 @@ int main(int argc, char **argv)
             {
                 converted = model.m_bytes;
                 result = &converted;
+                engineMadeIt = true;
                 for (const std::string &text : model.m_warnings)
                 {
                     std::cerr << "fried_import: " << relative.string() << ": " << text << "\n";
@@ -418,6 +496,17 @@ int main(int argc, char **argv)
         {
             std::cerr << "fried_import: " << relative.string() << " " << warning << "\n";
         }
+        std::vector<unsigned char> packed;
+        if (!isModel(extension) || engineMadeIt)
+        {
+            packed = *result;
+            size_t before = totals.m_before;
+            compressForPlatform(platform, settings.m_compress, extension, relative, &packed, &totals);
+            if (totals.m_before != before)
+            {
+                result = &packed;
+            }
+        }
         if (!writeFile(destination, *result))
         {
             std::cerr << "fried_import: cannot write " << destination.string() << "\n";
@@ -425,6 +514,10 @@ int main(int argc, char **argv)
         }
     }
 
+    if (totals.m_before > 0)
+    {
+        std::cerr << "fried_import: " << output << " compressed " << (totals.m_before + 1023) / 1024 << " KB into " << (totals.m_after + 1023) / 1024 << " KB\n";
+    }
     if (fs::exists(output))
     {
         std::vector<fs::path> stale;

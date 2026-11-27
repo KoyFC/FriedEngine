@@ -24,6 +24,8 @@ namespace fried_import
 
     struct Settings
     {
+        // 0 the platform's own rule, 1 never, 2 always where the engine can read it.
+        int m_compress = 0;
         bool m_hasImage = false;
         bool m_hasAudio = false;
         ImageSettings m_image;

@@ -134,6 +134,7 @@ if(FRIED_CG50)
         native/platform/profile.cpp
         native/platform/events_gint.cpp
         native/platform/filesystem_gint.cpp
+        native/platform/lz10.cpp
         native/platform/gamepad_gint.cpp
         native/platform/input_gint.cpp
         native/platform/mouse_gint.cpp
@@ -163,6 +164,7 @@ elseif(NINTENDO_DS)
         native/platform/console_nds.cpp
         native/platform/events_nds.cpp
         native/platform/filesystem_nds.cpp
+        native/platform/lz10.cpp
         native/platform/gamepad_nds.cpp
         native/platform/input_gint.cpp
         native/platform/mouse_gint.cpp
@@ -190,6 +192,7 @@ else()
         native/platform/profile.cpp
         native/platform/events.cpp
         native/platform/filesystem.cpp
+        native/platform/lz10.cpp
         native/platform/gamepad.cpp
         native/platform/input.cpp
         native/platform/mouse.cpp
