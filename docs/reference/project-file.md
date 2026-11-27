@@ -1,6 +1,6 @@
 # The project file
 
-A game declares itself in a `project.fried` at its own root, in JSON. Each side reads only the keys it consumes, and unknown keys are ignored, so a file declaring more than this version consumes still builds. Why the file is shaped this way is in [Project file and user data](../architecture/project-file.md).
+A game declares itself in a `project.fried` at its own root, in YAML (see [YAML in Fried files](yaml.md)). Each side reads only the keys it consumes, and unknown keys are ignored, so a file declaring more than this version consumes still builds. Why the file is shaped this way is in [Project file and user data](../architecture/project-file.md).
 
 | Field | Type | Default | What it does |
 |---|---|---|---|
@@ -19,6 +19,9 @@ A game declares itself in a `project.fried` at its own root, in JSON. Each side 
 | `startScene` | string | the first scene, by name | The scene the game loads when it starts. |
 | `autoload` | list of strings | none | Node classes or scenes loaded once at startup, in order, and kept while the game runs, for what the whole game needs: music, a pause menu, a debug overlay. A name that is a node class is made as it is, and any other is a scene file. |
 | `input` | object | none | The input actions of the game, declared as data: a list of `maps`, each with a `name`, an optional `enabled` and its `actions`. See [Input](../architecture/input.md) for the format. A mistake in it is an error of the build. |
+| `<platform>.optimize` | `speed` or `size` | `speed` | `size` builds for size and drops what nothing uses at link time. |
+| `<platform>.lto` | boolean | false | Links with link time optimization. |
+| `pc.compressExecutable` | boolean | false | Packs the computer's executable with UPX. |
 | `3ds.description` | string, up to 128 characters | `Version <version>` | The SMDH's description line. |
 | `nds.subtitle1` | string, up to 31 characters | the organization | The DS banner's second line. |
 | `nds.subtitle2` | string, up to 31 characters | `Version <version>` | The DS banner's third line. |
@@ -29,21 +32,19 @@ A text too long for its package is refused at configure time rather than cut whe
 
 The sandbox's own file:
 
-```json
-{
-	"display": {
-		"height": 480,
-		"mode": "height",
-		"width": 640
-	},
-	"name": "Fried Sandbox",
-	"organization": "Fried Engine",
-	"version": "01.00",
-	"vita": {
-		"titleId": "FRIE00001"
-	},
-	"window": {
-		"title": "Fried Engine sandbox !!!"
-	}
-}
+```yaml
+autoload: [SandboxShell]
+display:
+  height: 480
+  mode: height
+  width: 640
+name: Fried Sandbox
+organization: Fried Engine
+physicsRate: 50
+startScene: sandbox
+version: "01.00"
+vita:
+  titleId: FRIE00001
+window:
+  title: Fried Engine sandbox !!!
 ```

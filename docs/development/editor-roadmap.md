@@ -5,7 +5,7 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 ## Decisions
 
 - A scene is a tree of typed nodes, 2D and 3D, and a game adds its own with `NodeRegistry.register()` (see [Scene files](../architecture/scene-files.md)).
-- A scene is a JSON file under `assets/scenes/`, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a node that differs on a platform decides so in its own code.
+- A scene is a YAML file under `assets/scenes/`, compiled to a binary file for the game,, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a node that differs on a platform decides so in its own code.
 - The reference resolution is the project's `display` block, not a field of the scene.
 - Nodes are serialized through the `NodeBuilder` build macro, with no runtime reflection and an explicit registry of the built-ins (`Builtins` and `NodeRegistry`).
 - The viewport is a separate engine process, driven by a small protocol (see [the editor player page](../architecture/editor-player.md)): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User nodes are compiled Haxe, so each project has a player of its own, built from its `editor.hxml` and rebuilt when its sources change.

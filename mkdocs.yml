@@ -74,6 +74,7 @@ nav:
       - architecture/project-file.md
   - Reference:
       - reference/project-file.md
+      - reference/yaml.md
       - reference/import-settings.md
   - API reference: https://koyfc.github.io/FriedEngine/api/
   - Development:

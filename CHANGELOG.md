@@ -10,6 +10,10 @@ All notable changes to Fried Engine are written here, newest version first.
 ## vX.Y.Z
 
 ### Added
+- YAML for `project.fried`, scenes (`.scene.yaml`) and import settings, in a small subset that is a superset of JSON, so a project in JSON still builds and loads. `fried.io.Yaml` reads it in Haxe, `fried_import` in C++, and errors name the line and column.
+- Scenes compiled to a binary `.fscene` by `fried_import`, read without parsing any text. The build refuses a scene the loader would refuse, and the YAML reader is left out of a game; the editor's player and `-D fried_text_scenes` read the text.
+- LZ10 compression of compiled scenes, models, HTML and CSS, and of the fonts the DS and the fx-CG50 draw, by default on the DS, the 3DS and the fx-CG50, and `compress` in an import sidecar to choose.
+- `optimize`, `lto` and `pc.compressExecutable` in `project.fried`: a build for size, link time optimization and UPX, and a `.gz` and `.br` of the web build. A computer build now drops unused functions at link time and strips its executable.
 - Primitive meshes for a `MeshInstance3D`, `BoxMesh`, `SphereMesh`, `CylinderMesh`, `CapsuleMesh`, `PlaneMesh`, `PrismMesh` and `TorusMesh`, which a scene file writes inside the node's `mesh` field with their own numbers, and `StandardMaterial3D`, a color and an image for a surface.
 - Textures on meshes where the renderer can paint them: the SDL renderer's GL on PC and the Switch, and triangles bent over the image everywhere SDL draws them, such as the web.
 - Models read from `.obj` with `.mtl`, `.gltf` and `.glb` files: the asset import tool converts them to a compact format, a PC game that is being edited converts them as it reads them, and `MeshInstance3D.mesh` can be one. Every node of a file is one mesh with a surface for each material.

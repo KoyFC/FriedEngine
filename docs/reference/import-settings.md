@@ -1,15 +1,14 @@
 # Import settings
 
-An asset can have a sidecar file next to it that says how it is prepared for each platform. The sidecar of `sprite.png` is `sprite.png.import`, in JSON. Without one the asset is copied as it is. The editor writes the sidecar from the inspector, but it is plain text and can be edited by hand.
+An asset can have a sidecar file next to it that says how it is prepared for each platform. The sidecar of `sprite.png` is `sprite.png.import`, in YAML (JSON reads too: see [YAML in Fried files](yaml.md)). Without one the asset is copied as it is. The editor writes the sidecar from the inspector, but it is plain text and can be edited by hand.
 
-```json
-{
-  "image": { "maxSize": 1024, "filter": "default", "format": "rgba8" },
-  "audio": { "mono": false, "sampleRate": 0, "bits": 0 },
-  "platforms": {
-    "3ds": { "image": { "maxSize": 256 } }
-  }
-}
+```yaml
+image: {maxSize: 1024, filter: default, format: rgba8}
+audio: {mono: false, sampleRate: 0, bits: 0}
+compress: auto
+platforms:
+  3ds:
+    image: {maxSize: 256}
 ```
 
 The top level applies to every platform. A block under `platforms`, named as in the `platforms` list of the [project file](project-file.md) (`pc`, `vita`, `switch`, `3ds`, `nds`, `cg50`, `web`), is laid over it for that platform, field by field.
@@ -39,6 +38,10 @@ Only PCM WAV files of 8 or 16 bits are converted. Other formats are copied as th
 ## Fonts
 
 A TrueType font needs no sidecar. For the DS and the calculator, which draw text themselves and read a whole font file into RAM, the import leaves out the tables the engine never reads: the variation tables of a variable font (`gvar`, `HVAR`, `MVAR`, `STAT`, `fvar`, `avar`) and the glyph substitution and definition tables (`GSUB`, `GDEF`). Outlines, metrics, the character map and kerning are kept, so every glyph draws as it did. The engine's own `NunitoSans.ttf` goes from 569 KB to 133 KB this way, and every font of a project gets the same. The other platforms, which draw text with SDL_ttf, get the file as it is. A file that is not a single TrueType font is copied as it is.
+
+## Compression
+
+`compress` is `auto`, `none` or `lz`, at the top and in a platform's block. The converted file of the kinds the engine unpacks itself, which are compiled scenes, models, `.html` and `.css` files and, where text is drawn by the engine, fonts, is written as `FRLZ` and an LZ10 stream, the one the DS's BIOS reads, and `Filesystem.readBytes()` and the software fonts unpack it as they read. `auto`, the default, does it on the DS, the 3DS and the fx-CG50 and keeps a file packed only if that saves a tenth of it; `lz` does it everywhere and keeps any saving; `none` never does. A PNG, a sound or a song is never compressed, since they are compressed already or are streamed, and `lz` on one is reported and ignored. The sandbox's DS build goes from 13 KB to 7 KB of scenes and interface files, and the engine's font from 569 KB to 337 KB.
 
 ## When it runs
 
