@@ -1,0 +1,1 @@
+2:1: Fried YAML does not support several documents in a file

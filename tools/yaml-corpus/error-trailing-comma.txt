@@ -1,0 +1,1 @@
+1:10: a comma cannot come before the end of a collection

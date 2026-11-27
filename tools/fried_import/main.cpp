@@ -10,6 +10,7 @@
 #include "font_import.h"
 #include "image_import.h"
 #include "import_settings.h"
+#include "yaml.h"
 #include "model/model_convert.h"
 
 #include <algorithm>
@@ -89,8 +90,146 @@ namespace
     }
 }
 
+bool sameValue(const fried_import::Value &a, const fried_import::Value &b)
+{
+    using Kind = fried_import::Value::Kind;
+    if (a.m_kind != b.m_kind)
+    {
+        return false;
+    }
+    switch (a.m_kind)
+    {
+    case Kind::Null: return true;
+    case Kind::Bool: return a.m_bool == b.m_bool;
+    case Kind::Number: return a.m_number == b.m_number && a.m_isInteger == b.m_isInteger;
+    case Kind::String: return a.m_string == b.m_string;
+    case Kind::Array:
+        if (a.m_array.size() != b.m_array.size())
+        {
+            return false;
+        }
+        for (size_t i = 0; i < a.m_array.size(); ++i)
+        {
+            if (!sameValue(a.m_array[i], b.m_array[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    case Kind::Object:
+        if (a.m_object.size() != b.m_object.size())
+        {
+            return false;
+        }
+        for (const auto &pair : a.m_object)
+        {
+            const fried_import::Value *other = b.find(pair.first);
+            if (!other || !sameValue(pair.second, *other))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+std::string trimmed(std::string text)
+{
+    while (!text.empty() && std::isspace((unsigned char)text.back()))
+    {
+        text.pop_back();
+    }
+    return text;
+}
+
+std::string readText(const fs::path &path)
+{
+    std::ifstream stream(path, std::ios::binary);
+    std::stringstream text;
+    text << stream.rdbuf();
+    return text.str();
+}
+
+// A case is name.yaml with the value it must give in name.json, or error-name.yaml with the message in error-name.txt.
+int runCheckYaml(const std::string &directory)
+{
+    int failures = 0, checked = 0;
+    std::vector<fs::path> files;
+    for (const fs::directory_entry &entry : fs::directory_iterator(directory))
+    {
+        if (entry.path().extension() == ".yaml")
+        {
+            files.push_back(entry.path());
+        }
+    }
+    std::sort(files.begin(), files.end());
+    for (const fs::path &file : files)
+    {
+        ++checked;
+        std::string name = file.stem().string();
+        fried_import::Value parsed;
+        std::string error;
+        bool parsedOk = fried_import::parseYaml(readText(file), &parsed, &error);
+        if (name.rfind("error-", 0) == 0)
+        {
+            fs::path expected = file;
+            expected.replace_extension(".txt");
+            if (parsedOk || error != trimmed(readText(expected)))
+            {
+                std::cerr << "FAIL " << name << ": expected the error \"" << trimmed(readText(expected)) << "\", got " << (parsedOk ? "a value" : "\"" + error + "\"") << "\n";
+                ++failures;
+            }
+            continue;
+        }
+        fs::path expected = file;
+        expected.replace_extension(".json");
+        fried_import::Value wanted;
+        std::string expectedError;
+        if (!fried_import::parseYaml(readText(expected), &wanted, &expectedError))
+        {
+            std::cerr << "FAIL " << name << ": the expected JSON is wrong: " << expectedError << "\n";
+            ++failures;
+        }
+        else if (!parsedOk || !sameValue(parsed, wanted))
+        {
+            std::cerr << "FAIL " << name << ": " << (parsedOk ? "the value differs from the JSON" : error) << "\n";
+            ++failures;
+        }
+    }
+    std::cerr << checked << " YAML cases, " << failures << " failed\n";
+    return failures == 0 ? 0 : 1;
+}
+
+int runProjectJson(const std::string &input, const std::string &output)
+{
+    fried_import::Value value;
+    std::string error;
+    if (!fried_import::parseYaml(readText(input), &value, &error))
+    {
+        std::cerr << input << ":" << error << "\n";
+        return 1;
+    }
+    if (value.m_kind != fried_import::Value::Kind::Object)
+    {
+        std::cerr << input << " must hold a map of keys and values\n";
+        return 1;
+    }
+    std::string json = fried_import::toJson(value);
+    std::vector<unsigned char> bytes(json.begin(), json.end());
+    return writeFile(output, bytes) ? 0 : 1;
+}
+
 int main(int argc, char **argv)
 {
+    if (argc == 3 && std::string(argv[1]) == "--check-yaml")
+    {
+        return runCheckYaml(argv[2]);
+    }
+    if (argc == 4 && std::string(argv[1]) == "--project-json")
+    {
+        return runProjectJson(argv[2], argv[3]);
+    }
     std::string platform, input, output;
     for (int index = 1; index + 1 < argc; index += 2)
     {

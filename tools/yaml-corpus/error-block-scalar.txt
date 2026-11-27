@@ -1,0 +1,1 @@
+1:4: Fried YAML does not support block scalars: write the text in double quotes with \n

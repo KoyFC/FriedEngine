@@ -1,0 +1,6 @@
+{
+	"camera": "camera",
+	"nodes": [
+		{ "id": "a", "x": -1.5, "ok": true, "none": null }
+	]
+}

@@ -1,0 +1,5 @@
+plain: 01.00
+quoted: "01.00"
+single: '01.00'
+zero: 01
+word: 1.0.0

@@ -1,0 +1,6 @@
+name: Fried
+window:
+  title: Hello
+  size:
+    w: 640
+    h: 480

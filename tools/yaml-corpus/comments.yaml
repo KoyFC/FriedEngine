@@ -1,0 +1,11 @@
+# first
+---
+# before
+a: 1 # after
+# between
+b:   # empty then list
+  - x # item
+
+  # inside
+  - y
+c: "a # b"

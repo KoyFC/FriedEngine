@@ -1,0 +1,7 @@
+color: {r: 90,
+  g: 90, # comment
+  b: 110, a: 255}
+list: [1,
+ 2, [3, 4]]
+empty: {}
+none: []

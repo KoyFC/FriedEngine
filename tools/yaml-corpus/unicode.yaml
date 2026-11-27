@@ -1,0 +1,4 @@
+a: "caf\u00e9"
+b: café
+c: "\ud83d\ude00"
+d: "tab\tnew\nline"

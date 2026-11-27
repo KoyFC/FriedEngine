@@ -1,0 +1,9 @@
+nodes:
+  - type: Node2D
+    id: root
+    children:
+      - type: Camera
+        id: camera
+        x: 320
+  - type: Sprite
+    id: s
