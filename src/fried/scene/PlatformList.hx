@@ -18,9 +18,17 @@ class PlatformList {
 		if (list == null || StringTools.trim(list) == "") {
 			return isAuto;
 		}
-		for (entry in ~/[\s,]+/g.split(list.toLowerCase())) {
-			if (entry == platform || (entry == "auto" && isAuto)) {
-				return true;
+		var entry = "";
+		var text = list.toLowerCase() + " ";
+		for (index in 0...text.length) {
+			var code = text.charCodeAt(index);
+			if (code == " ".code || code == ",".code || code == "\t".code || code == "\n".code || code == "\r".code) {
+				if (entry == platform || (entry == "auto" && isAuto)) {
+					return true;
+				}
+				entry = "";
+			} else {
+				entry += text.charAt(index);
 			}
 		}
 		return false;
