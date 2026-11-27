@@ -45,3 +45,7 @@ A TrueType font needs no sidecar. For the DS and the calculator, which draw text
 `tools/fried_import` is built for the machine doing the build, with any C++17 compiler, and runs at configure time and before each build, so the copy of the assets that is staged next to the executable, packed into the VPK, the romfs or the page is the converted one. It writes under `imported/` in the build folder, only touches what changed, and removes what no longer comes from an asset. The editor's player reads the assets as they are, so the editor shows the sources.
 
 A setting that does not fit a file, as `mono` on an Ogg, is reported when it is built and the file is copied as it is.
+
+## Models
+
+An `.obj`, `.gltf` or `.glb` file is converted without a sidecar, into the format [Meshes, materials and models](../architecture/meshes.md#model-files) describes. The images it names are PNG files of their own, and take a sidecar as any image does. On the DS the tool warns about a model with more than 2048 triangles or 6144 vertices, and on the fx-CG50 it leaves the images out and keeps their average color.

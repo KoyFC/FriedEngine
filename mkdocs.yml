@@ -68,6 +68,7 @@ nav:
       - architecture/starting-a-game.md
       - architecture/editor-player.md
       - architecture/3d.md
+      - architecture/meshes.md
       - architecture/collisions.md
       - architecture/asset-roots.md
       - architecture/project-file.md

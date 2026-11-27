@@ -19,6 +19,7 @@ These pages describe the decisions behind what is currently implemented, and why
 - [Starting a game](starting-a-game.md)
 - [Editor player](editor-player.md)
 - [3D](3d.md)
+- [Meshes, materials and models](meshes.md)
 - [Collisions](collisions.md)
 - [Asset roots](asset-roots.md)
 - [Project file and user data](project-file.md)
