@@ -4,7 +4,6 @@ package fried.scene.serialization;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 
-// Runs on every subclass of Resource. A class marked @:serializable gets a static describeResource() that returns how to create and read its fields, with the same rules a node's fields follow: a public writable var of a supported type is a serialized field, unless it is marked @:noSerialize. An abstract class only passes its fields on to the classes under it.
 class ResourceBuilder {
 	static inline var CODEC = "fried.scene.serialization.FieldCodec";
 	static inline var FIELDS = "fried.scene.serialization";

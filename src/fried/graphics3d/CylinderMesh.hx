@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A cylinder, or a cone when one of its radii is zero, with a flat cap at each end unless it is turned off.
 @:serializable
 class CylinderMesh extends PrimitiveMesh {
 	public var topRadius(default, set):Float;
@@ -44,11 +43,9 @@ class CylinderMesh extends PrimitiveMesh {
 		if (capBottom) {
 			cap(builder, -height / 2.0, bottomRadius, segments);
 		}
-		// The shape is convex, so a triangle faces outward when it faces away from a point inside.
 		MeshTools.orientOutward(builder.vertices, builder.indices, 0.0, 0.0, 0.0);
 	}
 
-	// A fan of triangles from the middle of a circle, with the image laid over it as a disc.
 	function cap(builder:MeshBuilder, y:Float, radius:Float, segments:Int):Void {
 		var middle = builder.vertex(0.0, y, 0.0, 0.5, 0.5);
 		var first = Std.int(builder.vertices.length / 3);

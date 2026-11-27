@@ -2,16 +2,13 @@ package fried.graphics3d;
 
 import fried.graphics.Color;
 
-// The part of a mesh that one material paints. A triangle is seen from the side its corners turn clockwise on.
 class Surface {
 	public var vertices(default, null):Array<Float>;
 
-	// Two per vertex, with (0, 0) at the top left of the image and v growing downward.
 	public var uvs(default, null):Null<Array<Float>>;
 
 	public var indices(default, null):Array<Int>;
 
-	// One per triangle, or null for white.
 	public var triangleColors(default, null):Null<Array<Color>>;
 
 	public var material:Null<Material>;

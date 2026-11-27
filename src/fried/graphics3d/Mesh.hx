@@ -4,7 +4,6 @@ import fried.graphics.Color;
 import fried.graphics.Texture;
 import fried.resources.Resource;
 
-// The triangles of one or more surfaces. A renderer that draws meshes itself keeps a copy of each variant from the first time it draws it, so changing the arrays of a surface after that changes nothing there.
 class Mesh extends Resource {
 	public var surfaces(get, never):Array<Surface>;
 	public var triangleCount(get, never):Int;
@@ -18,16 +17,13 @@ class Mesh extends Resource {
 	public var minZ(get, never):Float;
 	public var maxZ(get, never):Float;
 
-	// The file the mesh was read from, which is what a scene file writes for it.
 	public var sourceRoot:Null<String>;
 	public var sourcePath:Null<String>;
 
-	// Every surface in one pool, which is what the arrays below are made of.
 	public var flatVertices(get, never):Array<Float>;
 	public var flatUvs(get, never):Array<Float>;
 	public var flatIndices(get, never):Array<Int>;
 
-	// Where each surface starts in the triangles, and one more at the end that holds the count.
 	public var surfaceStarts(get, never):Array<Int>;
 
 	var surfaceList:Array<Surface> = [];
@@ -54,7 +50,6 @@ class Mesh extends Resource {
 		invalidate();
 	}
 
-	// Makes the arrays again from the surfaces, and frees the copies a renderer keeps. A class that builds its surfaces calls this when it does.
 	public function invalidate():Void {
 		isFlat = false;
 		isBounded = false;
@@ -64,7 +59,6 @@ class Mesh extends Resource {
 		variants = [];
 	}
 
-	// Frees the copies a renderer keeps, which drawing the mesh again makes anew.
 	public function destroy():Void {
 		for (variant in variants) {
 			destroyVariant(variant);
@@ -72,10 +66,8 @@ class Mesh extends Resource {
 		variants = [];
 	}
 
-	// A class that makes its surfaces when asked, and not before, does it here.
 	function ensureBuilt():Void {}
 
-	// The variant for a node that paints every surface with the given material, or with their own when it is null. It is made again if a material has changed since.
 	public function variantFor(overriding:Null<Material>):MeshVariant {
 		var surfaces = this.surfaces;
 		ensureFlat();
@@ -117,7 +109,6 @@ class Mesh extends Resource {
 		return variant;
 	}
 
-	// The renderer's copy of a variant, or -1 where no renderer draws meshes, or the copy did not fit in memory.
 	@:allow(fried.graphics3d.MeshPass)
 	function nativeFor(variant:MeshVariant):Int {
 		if (variant.nativeId < 0) {

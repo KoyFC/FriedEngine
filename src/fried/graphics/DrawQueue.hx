@@ -135,7 +135,6 @@ class DrawQueue {
 		copyInto(colors, command.colors);
 	}
 
-	// Triangles painted with a texture, whose corners are at the texture coordinates in uvs. Only a renderer that says so paints them.
 	@:allow(fried.graphics3d.MeshPass)
 	static function submitTexturedTriangles(priority:Int, texture:Texture, points:Array<Float>, uvs:Array<Float>, colors:Array<Color>):Void {
 		Renderer.checkTriangles(points, colors);

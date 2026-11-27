@@ -103,7 +103,6 @@ class FieldCodec {
 		}
 	}
 
-	// A mesh is the data of a primitive, with its "type", or the file it is read from.
 	public static function toMesh(value:Dynamic, field:String, context:LoadContext):Mesh {
 		if (value == null) {
 			return null;

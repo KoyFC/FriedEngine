@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A cylinder with a half sphere at each end. The height is the whole length, ends included, so it cannot be less than twice the radius.
 @:serializable
 class CapsuleMesh extends PrimitiveMesh {
 	public var radius(default, set):Float;
@@ -21,11 +20,10 @@ class CapsuleMesh extends PrimitiveMesh {
 		var steps = Std.int(Math.max(rings, 1));
 		var half = Math.max(height - 2.0 * radius, 0.0) / 2.0;
 		var first = Std.int(builder.vertices.length / 3);
-		// Rows run from the top pole down to the bottom one, each half sphere in as many steps as there are rings.
 		for (row in 0...2 * (steps + 1)) {
 			var isTop = row <= steps;
 			var angle = (isTop ? row : row - steps - 1 + steps) / steps * Math.PI / 2.0;
-			// The pole's ring is set exactly, since the sine of pi is not zero.
+			// The pole is set exactly, since sin(pi) is not zero.
 			var ring = row == 2 * (steps + 1) - 1 ? 0.0 : Math.sin(angle);
 			var y = (isTop ? half : -half) + radius * Math.cos(angle);
 			var v = (half + radius - y) / (2.0 * (half + radius));

@@ -14,7 +14,7 @@ class Texture {
 	public var width(default, null):Int;
 	public var height(default, null):Int;
 
-	// The color of the image on average, which is what would stand for it where a mesh cannot be painted with it. No renderer reports it yet, so it is white, and such a mesh is painted with its albedo alone.
+	// White until a renderer reports it.
 	public var averageColor(get, never):Color;
 
 	public static function from(renderer:Renderer, path:String):Texture {
@@ -31,7 +31,6 @@ class Texture {
 		return new Texture(renderer, id, path);
 	}
 
-	// The texture that a PNG already in memory is, kept under the name it is asked for by so that asking again gives the same one.
 	public static function fromBytes(renderer:Renderer, bytes:haxe.io.Bytes, name:String):Texture {
 		var cached = renderer.cachedTexture(name);
 		if (cached != null) {
@@ -60,7 +59,6 @@ class Texture {
 		}
 	}
 
-	// What a renderer knows the texture by, or -1 once it is destroyed.
 	@:allow(fried.graphics3d.Mesh)
 	function nativeId():Int {
 		return id;

@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A sphere cut into rings that go from pole to pole and segments that go round it, which is as many triangles as 2 × segments × (rings + 1) less the ones at the poles. A taller height than twice the radius stretches it, and a hemisphere is flat below the middle.
 @:serializable
 class SphereMesh extends PrimitiveMesh {
 	public var radius(default, set):Float;
@@ -25,7 +24,7 @@ class SphereMesh extends PrimitiveMesh {
 		var first = Std.int(builder.vertices.length / 3);
 		for (row in 0...rows + 1) {
 			var v = row / rows;
-			// The ends of the last row are set exactly, since the sine of pi is not zero.
+			// The pole is set exactly, since sin(pi) is not zero.
 			var ring = row == rows ? 0.0 : Math.sin(Math.PI * v);
 			var y = row == rows ? -1.0 : Math.cos(Math.PI * v);
 			for (column in 0...segments + 1) {
@@ -40,7 +39,6 @@ class SphereMesh extends PrimitiveMesh {
 			}
 		}
 		builder.strips(first, segments + 1, rows + 1);
-		// A hemisphere's inside is a quarter of its height above its flat side, and a whole sphere's is the origin.
 		MeshTools.orientOutward(builder.vertices, builder.indices, 0.0, isHemisphere ? Math.abs(height) / 4.0 : 0.0, 0.0);
 	}
 

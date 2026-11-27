@@ -45,7 +45,7 @@ class MeshPass {
 	static var tanY:Float = 1.0;
 	static var sideX:Float = 1.0;
 	static var sideY:Float = 1.0;
-	// The corners of a polygon being cut, with x, y, depth, u and v for each.
+	// x, y, depth, u, v.
 	static inline var CLIP_STRIDE = 5;
 	static var clipped:Array<Float> = [for (index in 0...CLIP_STRIDE * 6) 0.0];
 	static var clippedOther:Array<Float> = [for (index in 0...CLIP_STRIDE * 6) 0.0];
@@ -105,7 +105,6 @@ class MeshPass {
 		if (triangleTotal > 0) {
 			var count = triangleTotal;
 			sortFarthestFirst(count);
-			// Triangles with the same texture that follow each other go together, since each batch is one call.
 			var start = 0;
 			while (start < count) {
 				var texture = triangleTextures[drawOrder[start]];
@@ -252,7 +251,6 @@ class MeshPass {
 		var triangleColors = variant.colors;
 		for (surface in 0...surfaceStarts.length - 1) {
 			var surfaceTexture = variant.textures[surface];
-			// A renderer that cannot paint with a texture fills the triangle with the color the texture is on average.
 			var isTextured = surfaceTexture != null && drawsTextured;
 			var average = surfaceTexture != null && !drawsTextured ? surfaceTexture.averageColor : Color.rgb(255, 255, 255);
 			for (triangle in surfaceStarts[surface]...surfaceStarts[surface + 1]) {
@@ -318,7 +316,6 @@ class MeshPass {
 				corners[at + 4] = centerX + cx * focalLength / cz;
 				corners[at + 5] = centerY - cy * focalLength / cz;
 				if (texture != null) {
-					// The coordinates of a vertex are two to the vertex's three, so its index is a third of the position's.
 					var uvA = Std.int(a / 3) * 2;
 					var uvB = Std.int(b / 3) * 2;
 					var uvC = Std.int(c / 3) * 2;
@@ -333,7 +330,6 @@ class MeshPass {
 		}
 	}
 
-	// A corner of the polygon that is to be cut, with its place in the camera's space and where it is in the image.
 	static function writeClipCorner(corner:Int, x:Float, y:Float, z:Float, uvs:Array<Float>, position:Int):Void {
 		var at = corner * CLIP_STRIDE;
 		var uv = Std.int(position / 3) * 2;
@@ -344,7 +340,6 @@ class MeshPass {
 		clipped[at + 4] = uvs[uv + 1];
 	}
 
-	// A triangle with a corner outside the near or the far plane is cut at them, which leaves a polygon of up to five corners that goes as a fan of triangles. Its three corners are in clipped when this is called.
 	static function emitClipped(shade:Color, texture:Null<Texture>, near:Float, far:Float):Void {
 		var count = clipPlane(clipped, 3, clippedOther, near, true);
 		count = clipPlane(clippedOther, count, clipped, far, false);
@@ -361,7 +356,6 @@ class MeshPass {
 		}
 	}
 
-	// Copies the corners of a polygon that are on the kept side of a plane of constant depth, and the places its edges cross it, so the polygon goes round the same way. Where an edge is cut, the image's coordinates are cut with it.
 	static function clipPlane(source:Array<Float>, count:Int, destination:Array<Float>, plane:Float, isKeepingFarther:Bool):Int {
 		var written = 0;
 		for (corner in 0...count) {

@@ -3,7 +3,6 @@ package fried.graphics3d;
 import fried.graphics.Color;
 import fried.graphics.Texture;
 
-// A color, and optionally an image that it multiplies. A mesh is lit by flat shading, so there is no more to it than that.
 @:serializable
 class StandardMaterial3D extends Material {
 	public var albedoColor(default, set):Color;

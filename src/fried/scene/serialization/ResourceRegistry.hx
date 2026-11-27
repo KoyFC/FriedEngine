@@ -16,7 +16,6 @@ class ResourceRegistry {
 		return ordered.copy();
 	}
 
-	// Builds the resource that data with a "type" describes, which has to be of the category the field takes.
 	public static function build(data:Dynamic, category:String, field:String, context:LoadContext):Resource {
 		var name = FieldCodec.toText(FieldCodec.get(data, "type"), '$field type');
 		var type = get(name);
@@ -26,7 +25,6 @@ class ResourceRegistry {
 		return type.create(data, context);
 	}
 
-	// The data of a resource with its "type", or null for one a scene file does not know how to write.
 	public static function describe(resource:Resource):Dynamic {
 		if (resource == null) {
 			return null;

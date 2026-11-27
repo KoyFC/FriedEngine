@@ -290,7 +290,6 @@ class EditorPlayer {
 		layer.scene = scene;
 	}
 
-	// The resources a field can hold, which the editor lists for it to pick from and shows the fields of.
 	function describeResources():Array<Dynamic> {
 		var resources = [];
 		for (type in ResourceRegistry.all()) {

@@ -23,8 +23,7 @@
 
 namespace
 {
-    // The texture coordinates are not on 3, which a compatibility context
-    // reads as the color array SDL draws its own triangles with.
+    // Not 3, which a compatibility context reads as SDL's color array.
     constexpr GLuint s_positionAttribute = 0;
     constexpr GLuint s_colorAttribute = 1;
     constexpr GLuint s_normalAttribute = 2;
@@ -35,13 +34,11 @@ namespace
 
     using Vertex = fried_mesh::TexturedVertex;
 
-    // A run of the mesh's corners that one texture paints, or none.
     struct Range
     {
         int m_first;
         int m_count;
         int m_textureId;
-        // Some corner reaches outside the image, which then repeats.
         bool m_repeats;
     };
 
@@ -122,7 +119,7 @@ namespace
         GLint m_program;
         GLint m_arrayBuffer;
         GLint m_viewport[4];
-        // SDL's own sense of what is bound is not told when a mesh binds a texture.
+        // SDL is not told when a mesh binds a texture, so its binding is put back.
         GLint m_activeTexture;
         GLint m_texture;
         bool m_isTextureEnabled;
@@ -146,7 +143,7 @@ namespace
     bool s_isStateSet = false;
     bool s_isInMeshMode = false;
     SavedState s_saved;
-    // One white texel, which a surface with no image is painted with, so that every surface goes through the same shader.
+    // What a surface with no image is painted with.
     GLuint s_whiteTexture = 0;
     fried_real s_lastView[FRIED_MESH_PLACEMENT_SIZE - FRIED_MESH_CAMERA_X + 3];
 
@@ -457,7 +454,6 @@ namespace
         return true;
     }
 
-    // Paints a run of corners with its texture, which SDL binds and says how much of its storage the image fills, as a padded texture does not fill it all, and which the coordinates are scaled by. A texture SDL stores as a rectangle says its size in pixels instead, which is not a fraction, and a run with one is painted with its colors alone.
     void drawRange(const Range &range)
     {
         float scaleU = 1.0f;
@@ -543,7 +539,6 @@ bool fried_mesh_sdl_attach(int rendererId, void *sdlRenderer)
     }
 
     {
-        // The texture SDL had bound is put back, since it is told of nothing.
         GLint boundTexture = 0;
         s_gl.m_getIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
         const unsigned char white[4] = {255, 255, 255, 255};
@@ -629,7 +624,6 @@ int fried_mesh_create(const fried_real *vertices, const fried_real *uvs, int ver
     mesh.m_buffer = 0;
     mesh.m_ranges.clear();
     mesh.m_isUsed = fried_mesh::expandInto<Vertex>(vertices, uvs, vertexCount, indices, argbColors, triangleCount, mesh.m_vertices);
-    // The surfaces have to be in order and end where the triangles do.
     for (int surface = 0; mesh.m_isUsed && surface < surfaceCount; ++surface)
     {
         int first = surfaceFirstTriangles[surface];
@@ -652,7 +646,6 @@ int fried_mesh_create(const fried_real *vertices, const fried_real *uvs, int ver
                 isRepeating = vertex.m_uv[0] < 0.0f || vertex.m_uv[0] > 1.0f || vertex.m_uv[1] < 0.0f || vertex.m_uv[1] > 1.0f;
             }
         }
-        // Surfaces that follow each other with one texture are one draw.
         if (!mesh.m_ranges.empty() && mesh.m_ranges.back().m_textureId == surfaceTextureIds[surface])
         {
             mesh.m_ranges.back().m_count += (next - first) * 3;

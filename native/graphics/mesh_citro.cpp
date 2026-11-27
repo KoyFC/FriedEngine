@@ -241,7 +241,6 @@ void fried_mesh_citro_draw(int meshId, const fried_real *placement, bool hasCame
     C3D_DrawArrays(GPU_TRIANGLES, 0, mesh.m_vertexCount);
 }
 
-// The texture coordinates and the surfaces are not read yet: a mesh is painted with its triangle colors alone.
 int fried_mesh_create(const fried_real *vertices, const fried_real *, int vertexCount, const int *indices, const int *argbColors, int triangleCount,
                       const int *, const int *, int)
 {

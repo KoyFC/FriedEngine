@@ -49,15 +49,8 @@ enum FriedMeshPlacement
 
 extern "C"
 {
-    // One pool of vertices, with two texture coordinates each in uvs, where
-    // (0, 0) is the top left of the image. Triangle t has the three corners
-    // indices holds for it and the color argbColors holds, which is already its
-    // surface's albedo times its own. Surface s is the triangles from
-    // surfaceFirstTriangles[s] up to surfaceFirstTriangles[s + 1], which has
-    // surfaceCount + 1 numbers, and is painted with the texture
-    // surfaceTextureIds[s], or with its colors alone for -1. A renderer that
-    // cannot paint with a texture draws the colors. A texture is looked up
-    // each time a mesh is drawn, so one that was destroyed since is not drawn.
+    // Surface s is the triangles from surfaceFirstTriangles[s] up to surfaceFirstTriangles[s + 1],
+    // painted with texture surfaceTextureIds[s], or by color alone for -1.
     // -1 where no renderer draws meshes.
     int fried_mesh_create(const fried_real *vertices, const fried_real *uvs, int vertexCount, const int *indices, const int *argbColors, int triangleCount,
                           const int *surfaceFirstTriangles, const int *surfaceTextureIds, int surfaceCount);

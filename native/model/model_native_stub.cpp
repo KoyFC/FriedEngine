@@ -2,7 +2,6 @@
 
 #include "last_error.h"
 
-// A game that is not on a desktop only has models the import tool already turned into FRMS, so there is nothing here to convert.
 
 int fried_model_convert_file(const char *)
 {

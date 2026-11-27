@@ -27,8 +27,6 @@ namespace fried_mesh
         float m_normal[3];
     };
 
-    // A corner that carries where it is in the image too, for a renderer that
-    // paints with textures.
     struct TexturedVertex
     {
         float m_position[3];
@@ -38,9 +36,7 @@ namespace fried_mesh
     };
 
     // Each triangle's three corners, with the normal MeshPass works out from
-    // them and the triangle's color as bytes, and the corner's texture
-    // coordinates where the vertex type has them. False if an index is out of
-    // range.
+    // them and the triangle's color as bytes. False if an index is out of range.
     template <typename V>
     inline bool expandInto(const fried_real *vertices, const fried_real *uvs, int vertexCount, const int *indices, const int *argbColors, int triangleCount,
                            std::vector<V> &out)

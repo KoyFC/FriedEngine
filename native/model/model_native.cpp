@@ -1,5 +1,3 @@
-// Where stb_image and stb_image_write are made, for the converter: no other
-// file of a game on PC reads or writes an image with them.
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "third_party/stb_image.h"

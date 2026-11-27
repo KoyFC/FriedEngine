@@ -1,6 +1,5 @@
 package fried.scene.serialization;
 
-// Brings the data of a node that an older scene file wrote to the fields it has now.
 class LegacyFields {
 	public static function migrate(typeName:String, data:Dynamic):Void {
 		if (typeName == "MeshInstance3D") {
@@ -8,7 +7,6 @@ class LegacyFields {
 		}
 	}
 
-	// A MeshInstance had a shape named by a word and a color, and a MeshInstance3D has a mesh that holds both.
 	static function meshInstance(data:Dynamic):Void {
 		if (!Reflect.hasField(data, "shape") && !Reflect.hasField(data, "color")) {
 			return;
@@ -22,12 +20,12 @@ class LegacyFields {
 		}
 		var mesh:Dynamic = switch (shape) {
 			case "Plane":
-				// The old plane was cut into 16 by 16 tiles, which the sorting of triangles by depth needs.
+				// 16 by 16 tiles, which sorting by depth needs.
 				{type: "PlaneMesh", sizeX: 1, sizeZ: 1, subdivideWidth: 15, subdivideDepth: 15};
 			case "Sphere":
 				{type: "SphereMesh", radialSegments: 8, rings: 6};
 			case "Pyramid":
-				// A cone of four sides, which is the pyramid turned an eighth of a turn about its axis.
+				// A four sided cone, turned an eighth of a turn about its axis.
 				{
 					type: "CylinderMesh",
 					topRadius: 0,

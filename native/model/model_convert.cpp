@@ -22,17 +22,14 @@ namespace fs = std::filesystem;
 
 namespace
 {
-    // A surface as it is read, before it is written.
     struct Surface
     {
         std::vector<float> m_positions;
         std::vector<float> m_uvs;
         std::vector<uint32_t> m_indices;
         uint32_t m_albedo = 0xffffffffu;
-        // A texture that is a file of the model's folder, as a path relative to it, or one that is held as the bytes of a PNG.
         std::string m_path;
         std::vector<unsigned char> m_png;
-        // What makes two surfaces the same one, so they are merged.
         std::string m_key;
     };
 
@@ -93,7 +90,6 @@ namespace
         return path.lexically_normal().lexically_relative(directory.lexically_normal()).generic_string();
     }
 
-    // The color of an image on average, weighted by how opaque each pixel is.
     uint32_t averageColor(const std::vector<unsigned char> &file)
     {
         int width = 0, height = 0, channels = 0;
@@ -127,7 +123,6 @@ namespace
         out->insert(out->end(), (unsigned char *)data, (unsigned char *)data + size);
     }
 
-    // Any image the engine cannot read as the model's own file, as a PNG.
     bool encodePng(const std::vector<unsigned char> &file, std::vector<unsigned char> *png)
     {
         int width = 0, height = 0, channels = 0;
@@ -148,7 +143,6 @@ namespace
         return file.size() >= 8 && std::memcmp(file.data(), signature, 8) == 0;
     }
 
-    // Gives a surface the image whose bytes these are. A PNG a file of the model's folder holds is named by its path, and any other image is written as a PNG, to a file if the options can make one and inside the model if they cannot.
     void setImage(Reading &reading, Surface &surface, const std::vector<unsigned char> &file, const fs::path &source, const std::string &name)
     {
         if (!source.empty() && isPng(file) && !reading.m_options->m_stripImages)
@@ -186,7 +180,6 @@ namespace
         surface.m_key = "png:" + name;
     }
 
-    // The surface of a key, which a source makes with its material the first time and then adds to.
     Surface &surfaceOf(Reading &reading, const std::string &key, const Surface &fresh)
     {
         auto found = reading.m_surfaceByKey.find(key);
@@ -199,7 +192,6 @@ namespace
         return reading.m_surfaces.back();
     }
 
-    // OBJ
 
     struct ObjMaterials
     {
@@ -270,7 +262,6 @@ namespace
         }
     }
 
-    // One corner of a face: indices into the file's positions and texture coordinates, or -1.
     struct Corner
     {
         int m_position;
@@ -302,7 +293,6 @@ namespace
         std::vector<float> positions, uvs;
         ObjMaterials materials;
         std::string materialName;
-        // Corners of a surface that have been given an index in it already.
         std::map<std::pair<int, std::array<int, 2>>, uint32_t> vertexOf;
         int skippedFaces = 0;
 
@@ -395,7 +385,6 @@ namespace
                     auto existing = reading.m_surfaceByKey.find(key);
                     if (existing == reading.m_surfaceByKey.end())
                     {
-                        // The image is read once, when the material is first used.
                         if (!material.m_texture.empty())
                         {
                             std::vector<unsigned char> file;
@@ -435,7 +424,6 @@ namespace
                     }
                     indices.push_back(place->second);
                 }
-                // A polygon is a fan of triangles from its first corner.
                 for (size_t corner = 1; corner + 1 < indices.size(); ++corner)
                 {
                     surface.m_indices.insert(surface.m_indices.end(), {indices[0], indices[corner], indices[corner + 1]});
@@ -449,7 +437,6 @@ namespace
         return true;
     }
 
-    // glTF
 
     void addPrimitive(Reading &reading, const cgltf_primitive &primitive, const float *world, const cgltf_data *data, const fs::path &modelPath)
     {
@@ -477,7 +464,6 @@ namespace
             return;
         }
 
-        // The surface of a material, whose color and image are set the first time it is used.
         const cgltf_material *material = primitive.material;
         std::string key = "gltf:" + std::to_string(material ? material - data->materials : -1);
         Surface fresh;
@@ -505,7 +491,7 @@ namespace
                     cgltf_options options = {};
                     if (comma)
                     {
-                        // Four characters make three bytes, less one for each "=" that pads the last four.
+                        // Three bytes for four characters, less one for each "=".
                         size_t length = std::strlen(comma + 1);
                         size_t padding = 0;
                         while (padding < length && padding < 2 && comma[length - padding] == '=')
@@ -545,7 +531,7 @@ namespace
         }
         Surface &surface = surfaceOf(reading, key, fresh);
 
-        // The transform's determinant says whether it is a mirror, which turns the triangles round.
+        // A negative determinant is a mirror, which turns the triangles round.
         double determinant = world[0] * (world[5] * world[10] - world[9] * world[6]) - world[4] * (world[1] * world[10] - world[9] * world[2])
                            + world[8] * (world[1] * world[6] - world[5] * world[2]);
         bool isMirrored = determinant < 0.0;
@@ -671,7 +657,6 @@ namespace
         return true;
     }
 
-    // Output
 
     void put32(std::vector<unsigned char> &out, uint32_t value)
     {
@@ -702,7 +687,6 @@ namespace
         }
     }
 
-    // The vertices to the engine's space: a mirror on x, which turns every triangle round.
     void toEngineSpace(Surface &surface)
     {
         for (size_t index = 0; index < surface.m_positions.size(); index += 3)

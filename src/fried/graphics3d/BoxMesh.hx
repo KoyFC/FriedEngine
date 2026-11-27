@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A box whose faces share one image laid out in three columns and two rows: front, right and back above, left, top and bottom below.
 @:serializable
 class BoxMesh extends PrimitiveMesh {
 	public var sizeX(default, set):Float;
@@ -28,7 +27,6 @@ class BoxMesh extends PrimitiveMesh {
 		var height = Std.int(Math.max(subdivideHeight, 0)) + 1;
 		var depth = Std.int(Math.max(subdivideDepth, 0)) + 1;
 		var third = 1.0 / 3.0;
-		// Each face as seen from outside, from its top left corner: the side that goes right and the side that goes down.
 		builder.grid(-x, y, -z, sizeX, 0, 0, 0, -sizeY, 0, width, height, 0, 0, third, 0.5);
 		builder.grid(x, y, -z, 0, 0, sizeZ, 0, -sizeY, 0, depth, height, third, 0, third, 0.5);
 		builder.grid(x, y, z, -sizeX, 0, 0, 0, -sizeY, 0, width, height, 2 * third, 0, third, 0.5);

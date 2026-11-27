@@ -17,7 +17,6 @@ class Builtins {
 		return [Node.describeNode(), CanvasLayer.describeNode(), KinematicBody.describeNode(), CanvasItem.describeNode(), Node2D.describeNode(), Sprite.describeNode(), Tilemap.describeNode(), Camera.describeNode(), Collider.describeNode(), Control.describeNode(), fried.ui.UIDocument.describeNode(), Label.describeNode(), Button.describeNode(), TextureRect.describeNode(), TouchButton.describeNode(), VirtualJoystick.describeNode(), Node3D.describeNode(), Camera3D.describeNode(), DirectionalLight.describeNode(), MeshInstance3D.describeNode()];
 	}
 
-	// The same for the resources a field of a node may hold.
 	public static function resources():Array<ResourceType> {
 		return [
 			StandardMaterial3D.describeResource(),

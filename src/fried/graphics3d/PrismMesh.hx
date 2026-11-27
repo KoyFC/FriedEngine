@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A triangular prism: a triangle as wide as sizeX and as tall as sizeY, whose top corner is leftToRight of the way along it, pulled out to sizeZ deep.
 @:serializable
 class PrismMesh extends PrimitiveMesh {
 	public var leftToRight(default, set):Float;
@@ -24,13 +23,11 @@ class PrismMesh extends PrimitiveMesh {
 		var down = -sizeY / 2.0;
 		var near = -sizeZ / 2.0;
 		var far = sizeZ / 2.0;
-		// A face is a polygon of corners and the image's coordinates at each.
 		triangle(builder, left, down, near, 0.0, 1.0, right, down, near, 1.0, 1.0, top, up, near, leftToRight, 0.0);
 		triangle(builder, left, down, far, 0.0, 1.0, right, down, far, 1.0, 1.0, top, up, far, leftToRight, 0.0);
 		quad(builder, left, down, near, right, down, near, right, down, far, left, down, far);
 		quad(builder, left, down, near, top, up, near, top, up, far, left, down, far);
 		quad(builder, right, down, near, top, up, near, top, up, far, right, down, far);
-		// A prism is convex, so a triangle faces outward when it faces away from a point inside.
 		MeshTools.orientOutward(builder.vertices, builder.indices, (left + right + top) / 3.0, (down + down + up) / 3.0, 0.0);
 	}
 

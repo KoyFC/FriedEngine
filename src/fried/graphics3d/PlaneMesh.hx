@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A flat rectangle, drawn from one side only. sizeX is how far it goes across, as seen from the side that is drawn, and sizeZ how far it goes down, which for a plane that faces up is how deep it is.
 @:serializable
 class PlaneMesh extends PrimitiveMesh {
 	public var sizeX(default, set):Float;

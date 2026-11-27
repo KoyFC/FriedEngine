@@ -64,7 +64,6 @@ namespace
         return extension == ".obj" || extension == ".gltf" || extension == ".glb";
     }
 
-    // The most triangles and vertices a platform's 3D hardware takes in a frame, which a model that is alone in the scene already comes near.
     void warnAboutModelSize(const std::string &platform, const fs::path &relative, const fried_model::Result &model)
     {
         if (platform == "nds" && (model.m_triangleCount > 2048 || model.m_vertexCount > 6144))
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
         sidecar += ".import";
         bool hasSidecar = fs::exists(sidecar);
         std::string extension = lowerExtension(entry.path());
-        // A model is made of more files than itself, so it is read again each time, and only written when it changed.
+        // A model depends on more files than itself, so it is read each time and only written when it changed.
         if (!isModel(extension) && isUpToDate(destination, entry.path(), hasSidecar ? sidecar : fs::path()))
         {
             continue;
@@ -154,7 +153,6 @@ int main(int argc, char **argv)
         {
             fried_model::Options options;
             options.m_stripImages = platform == "cg50";
-            // An image that is kept in the model's file is written beside the model, so that a platform loads it as it does any other image.
             options.m_extract = [&](const std::vector<unsigned char> &png, const std::string &name) {
                 std::string safe = name;
                 std::replace_if(safe.begin(), safe.end(), [](unsigned char c) { return !std::isalnum(c) && c != '-' && c != '_'; }, '_');

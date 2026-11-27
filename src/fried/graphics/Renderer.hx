@@ -28,7 +28,6 @@ class Renderer {
 	@:allow(fried.graphics3d.MeshPass)
 	var drawsMeshes:Bool;
 
-	// Whether a textured triangle is painted with its texture, and not with a color.
 	@:allow(fried.graphics3d.MeshPass)
 	var drawsTexturedTriangles:Bool;
 
@@ -275,7 +274,6 @@ class Renderer {
 			colors.length);
 	}
 
-	// Six texture coordinates for each triangle, in the units of the image from (0, 0) at its top left to (1, 1).
 	@:allow(fried.graphics.DrawQueue)
 	function fillTexturedTriangles(texture:Texture, points:Array<Float>, uvs:Array<Float>, colors:Array<Color>):Void {
 		checkTriangles(points, colors);

@@ -1,6 +1,5 @@
 package fried.graphics3d;
 
-// A ring, like a doughnut, lying flat around the y axis. innerRadius is how far its hole reaches and outerRadius how far it goes out.
 @:serializable
 class TorusMesh extends PrimitiveMesh {
 	public var innerRadius(default, set):Float;
