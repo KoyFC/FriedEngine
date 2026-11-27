@@ -413,3 +413,6 @@ packaging/*/*/src/
 packaging/*/*/pkg/
 packaging/*/*/*.tar.gz
 packaging/*/*/*.pkg.tar.*
+
+# A project's backup of the files the YAML migration rewrote
+.fried/

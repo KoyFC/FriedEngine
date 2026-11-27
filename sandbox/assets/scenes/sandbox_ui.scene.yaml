@@ -1,0 +1,118 @@
+version: 2
+name: Sandbox UI
+nodes:
+  - type: SandboxInterface
+    id: interface
+    name: Interface
+    layer: 1
+    children:
+      - type: HintPanel
+        id: hint-panel
+        name: Hint panel
+        borderColor: {r: 90, g: 200, b: 140, a: 255}
+        fillColor: {r: 40, g: 40, b: 55, a: 255}
+        height: 96
+        width: 490
+        x: 12
+        y: 12
+      - type: Label
+        id: hints
+        name: Hints
+        color: {r: 220, g: 220, b: 230, a: 255}
+        font: {root: engine, path: NunitoSans.ttf, size: 16}
+        maxWidth: 528
+        offsetX: 16
+        offsetY: 16
+        priority: 1
+        text: "Run 1   Space/Enter/A/click: sound   M/F6/B: music   WASD/arrows/stick/d-pad: move   Q/E/L/R: zoom   Shift+arrows: move window   F2/North: next scene   F3/Select: overlay   F4: interface   F5: collider bounds   F7: gameplay actions   Esc/Start: quit"
+      - type: TextureRect
+        id: region-icon
+        name: Region icon
+        anchorMaxX: 1
+        anchorMaxY: 0
+        anchorMinX: 1
+        anchorMinY: 0
+        offsetX: -16
+        offsetY: 96
+        pivotX: 1
+        pivotY: 0
+        scaleX: 8
+        scaleY: 8
+        source: {x: 0, y: 0, height: 8, width: 8}
+        texture: {root: game, path: sprite.png}
+        children:
+          - type: RegionScroller
+            id: region-scroller
+            name: Region scroller
+            pixelsPerSecond: 8
+      - type: Label
+        id: region-label
+        name: Region label
+        anchorMaxX: 1
+        anchorMaxY: 0
+        anchorMinX: 1
+        anchorMinY: 0
+        color: {r: 220, g: 220, b: 230, a: 255}
+        font: {root: engine, path: NunitoSans.ttf, size: 16}
+        offsetX: -16
+        offsetY: 164
+        pivotX: 1
+        pivotY: 0
+        priority: 1
+        text: region x 0
+        children:
+          - type: RegionLabel
+            id: region-readout
+            name: Region readout
+            source: region-icon
+      - type: TextureRect
+        id: spinning-icon
+        name: Spinning icon
+        anchorMaxX: 1
+        anchorMaxY: 0
+        anchorMinX: 1
+        anchorMinY: 0
+        offsetX: -16
+        offsetY: 16
+        pivotX: 1
+        pivotY: 0
+        scaleX: 4
+        scaleY: 4
+        texture: {root: game, path: sprite.png}
+        children:
+          - type: Spinner
+            id: spinner
+            name: Spinner
+            degreesPerSecond: 90
+      - type: VirtualJoystick
+        id: touch-stick
+        name: Touch stick
+        action: Move
+        anchorMaxX: 0
+        anchorMaxY: 0.42
+        anchorMinX: 0
+        anchorMinY: 0.42
+        baseSize: 140
+        height: 160
+        offsetX: 24
+        offsetY: 0
+        pivotX: 0
+        pivotY: 0.5
+        platforms: android
+        tipSize: 60
+        width: 160
+      - type: TouchButton
+        id: touch-beep
+        name: Touch beep
+        action: PlaySound
+        anchorMaxX: 1
+        anchorMaxY: 0.47
+        anchorMinX: 1
+        anchorMinY: 0.47
+        height: 96
+        offsetX: -24
+        offsetY: 0
+        pivotX: 1
+        pivotY: 0.5
+        platforms: android
+        width: 96

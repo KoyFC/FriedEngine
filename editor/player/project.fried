@@ -1,8 +1,5 @@
-{
-	"name": "Fried Editor Player",
-	"organization": "Fried Engine",
-	"version": "01.00",
-	"window": {
-		"title": "Fried Editor Player"
-	}
-}
+name: Fried Editor Player
+organization: Fried Engine
+version: "01.00"
+window:
+  title: Fried Editor Player

@@ -1,0 +1,21 @@
+version: 2
+name: Player
+nodes:
+  - type: Player
+    id: player
+    name: Player
+    scaleX: 8
+    scaleY: 8
+    speed: 240
+    texture: {root: game, path: sprite.png}
+    children:
+      - type: Collider
+        id: player-hitbox
+        name: Player hitbox
+        height: 16
+        width: 16
+      - type: KinematicBody
+        id: player-body
+        name: Player body
+        velocityX: 0
+        velocityY: 0

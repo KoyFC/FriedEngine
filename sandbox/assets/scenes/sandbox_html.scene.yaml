@@ -1,0 +1,16 @@
+version: 2
+name: Sandbox HTML
+nodes:
+  - type: Node
+    id: sandbox-html
+    name: Sandbox HTML
+    children:
+      - type: MainMenu
+        id: menu
+        name: Menu
+      - type: UIDocument
+        id: hud
+        name: HUD
+        document: {root: game, path: ui/hud.html}
+        priority: 1
+        theme: {root: game, path: ui/theme.css}

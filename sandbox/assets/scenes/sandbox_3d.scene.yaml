@@ -1,0 +1,189 @@
+version: 2
+name: Sandbox 3D
+camera: camera
+nodes:
+  - type: Node
+    id: sandbox-3d-root
+    name: Sandbox 3D
+    children:
+      - type: Camera3D
+        id: camera
+        name: Camera
+        children:
+          - type: FreeCamera
+            id: free-camera
+            name: Free camera
+      - type: DirectionalLight
+        id: light
+        name: Light
+        ambient: 0.3
+        rotationX: 33
+        rotationY: -21.8
+      - type: CubeField
+        id: cube-field
+        name: Cube field
+        cubeCount: 16
+        z: 10
+      - type: Node3D
+        id: shapes
+        name: Shapes
+        y: -2.2
+        z: 6
+        children:
+          - type: MeshInstance3D
+            id: floor
+            name: Floor
+            mesh:
+              type: PlaneMesh
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 90, g: 90, b: 110, a: 255}
+              sizeX: 1
+              sizeZ: 1
+              subdivideDepth: 15
+              subdivideWidth: 15
+            scaleX: 6
+            scaleZ: 3
+          - type: MeshInstance3D
+            id: pyramid
+            name: Pyramid
+            mesh:
+              type: CylinderMesh
+              bottomRadius: 0.7071
+              capTop: false
+              height: 1
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 240, g: 200, b: 80, a: 255}
+              radialSegments: 4
+              rings: 0
+              topRadius: 0
+            x: -1.5
+            y: 0.5
+          - type: MeshInstance3D
+            id: ball
+            name: Ball
+            mesh:
+              type: SphereMesh
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 80, g: 160, b: 240, a: 255}
+              radialSegments: 16
+              rings: 8
+            x: 1.5
+            y: 0.5
+          - type: MeshInstance3D
+            id: box
+            name: Box
+            mesh:
+              type: BoxMesh
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 255, g: 255, b: 255, a: 255}
+                albedoTexture: {root: game, path: sprite.png}
+            rotationY: 25
+            x: -4.5
+            y: 0.5
+            z: 0
+          - type: MeshInstance3D
+            id: cylinder
+            name: Cylinder
+            mesh:
+              type: CylinderMesh
+              height: 1
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 120, g: 220, b: 120, a: 255}
+            x: -3
+            y: 0.5
+            z: 2.5
+          - type: MeshInstance3D
+            id: capsule
+            name: Capsule
+            mesh:
+              type: CapsuleMesh
+              height: 1.2
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 230, g: 90, b: 100, a: 255}
+            x: -1.5
+            y: 0.5
+            z: 2.5
+          - type: MeshInstance3D
+            id: prism
+            name: Prism
+            mesh:
+              type: PrismMesh
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 240, g: 160, b: 60, a: 255}
+            x: 0
+            y: 0.5
+            z: 2.5
+          - type: MeshInstance3D
+            id: torus
+            name: Torus
+            mesh:
+              type: TorusMesh
+              innerRadius: 0.2
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 100, g: 230, b: 220, a: 255}
+              outerRadius: 0.5
+            x: 1.5
+            y: 0.5
+            z: 2.5
+          - type: MeshInstance3D
+            id: hemisphere
+            name: Hemisphere
+            mesh:
+              type: SphereMesh
+              height: 0.5
+              isHemisphere: true
+              material:
+                type: StandardMaterial3D
+                albedoColor: {r: 220, g: 220, b: 220, a: 255}
+            x: 3
+            y: 0
+            z: 2.5
+          - type: MeshInstance3D
+            id: crate-obj
+            name: Crate OBJ
+            mesh: {root: game, path: models/crate.obj}
+            rotationY: 20
+            x: -3
+            y: 0.5
+            z: -1
+          - type: MeshInstance3D
+            id: crate-glb
+            name: Crate GLB
+            mesh: {root: game, path: models/crate.glb}
+            rotationY: -20
+            x: 3
+            y: 0.5
+            z: -1
+          - type: MeshInstance3D
+            id: crate-tinted
+            name: Crate tinted
+            materialOverride:
+              type: StandardMaterial3D
+              albedoColor: {r: 255, g: 120, b: 120, a: 255}
+            mesh: {root: game, path: models/crate.obj}
+            rotationY: -25
+            x: 4.5
+            y: 0.5
+            z: 0
+      - type: Label
+        id: hint
+        name: Hint
+        color: {r: 220, g: 220, b: 230, a: 255}
+        font: {root: engine, path: NunitoSans.ttf, size: 16}
+        offsetX: 12
+        offsetY: 12
+        priority: 1
+        text: "Up/Down keys: cubes x2 or /2   WASD, D-pad, J/L/I/K, right mouse, ABXY: camera   F2/R1: next scene"
+      - type: CubeControls
+        id: controls
+        name: Controls
+        field: cube-field
+        hint: hint
