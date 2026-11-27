@@ -1,6 +1,7 @@
 package debug;
 
 import scene2d.LinePacker;
+import fried.Application;
 import fried.Time;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
@@ -154,6 +155,7 @@ class DebugOverlay extends SceneLayer {
 			'frame ${Time.frameCount}',
 			'fps $framesPerSecond',
 			'queue ${DrawQueue.capacity}',
+			Application.freeMemoryKb() >= 0 ? 'heap ${Application.freeMemoryKb()} KB' : 'heap n/a',
 			'scene ${SceneManager.activeName}'
 		];
 		if (sceneDetails != null) {

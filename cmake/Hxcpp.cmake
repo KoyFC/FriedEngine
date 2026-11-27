@@ -156,6 +156,12 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     list(FILTER _generated_sources EXCLUDE REGEX "__lib__\\.cpp$")
     list(FILTER _generated_sources EXCLUDE REGEX "__files__\\.cpp$")
 
+    # Thumb code is about a third smaller, which on the DS is heap: the program and the heap share 4 MB. The generated code only, since it was the collector that freed what was still reachable when all of it was built as Thumb.
+    option(FRIED_DS_THUMB "Build the Haxe code of a DS game as Thumb" ON)
+    if(NINTENDO_DS AND FRIED_DS_THUMB)
+        set_property(SOURCE ${_generated_sources} APPEND PROPERTY COMPILE_OPTIONS "-mthumb")
+    endif()
+
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
     set(_std_source_names ${_hxcpp_std_sources})
     if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS OR FRIED_CG50 OR FRIED_WEB)

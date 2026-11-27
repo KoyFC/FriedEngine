@@ -9,6 +9,9 @@ All notable changes to Fried Engine are written here, newest version first.
 
 ## vX.Y.Z
 
+### Fixed
+- The romfs and VPK packaging listed assets by the name of the source, so a scene, which is a `.fscene` once imported, was missing from the DS, 3DS, Switch and Vita packages.
+
 ### Added
 - YAML for `project.fried`, scenes (`.scene.yaml`) and import settings, in a small subset that is a superset of JSON, so a project in JSON still builds and loads. `fried.io.Yaml` reads it in Haxe, `fried_import` in C++, and errors name the line and column.
 - Scenes compiled to a binary `.fscene` by `fried_import`, read without parsing any text. The build refuses a scene the loader would refuse, and the YAML reader is left out of a game; the editor's player and `-D fried_text_scenes` read the text.
@@ -26,6 +29,7 @@ All notable changes to Fried Engine are written here, newest version first.
 - `fried.Profile`, section timers that exist only in a build made with `-D fried_profile`, and the game's frame stats carry them to the editor.
 
 ### Changed
+- A DS build compiles the Haxe code of the game as Thumb, which leaves a fifth of the program to the heap, and `fried_application_free_memory()` and `Application.freeMemoryKb()` count what the heap has left, which the DS also prints when it runs out. A scene change collects the heap first where it is counted.
 - `MeshInstance` is `MeshInstance3D`, and scene files that name the old type still load. Its `shape` and `color` are a `mesh` and a material: an older file is read as the primitive that comes nearest, and a `Pyramid` becomes a four sided cone that is turned an eighth of a turn about its axis.
 - `fillTriangles()` has a sibling, `fillTexturedTriangles()`, and `fried_mesh_create()` takes the texture coordinates and the surfaces of a mesh.
 
