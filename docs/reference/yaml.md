@@ -11,10 +11,12 @@ display:
   width: 640
   height: 480
 autoload: [SandboxShell]
-nodes:
-  - type: Sprite
-    id: player
-    texture: {root: game, path: sprite.png}
+objects:
+  - id: player
+    transform: {type: Transform2D}
+    components:
+      - type: SpriteRenderer
+        texture: {root: game, path: sprite.png}
 ```
 
 ## What is read
@@ -32,7 +34,7 @@ Anchors and aliases (`&`, `*`), tags (`!`), complex keys (`? `), block scalars (
 
 ## The same file in both
 
-A tool that writes the files, such as the editor, writes maps in block form and short lists and maps of plain values in one line when they fit in 80 columns, with the keys of a scene in the order a person reads them: `version`, `name`, `camera` and `nodes` for the file, and `type`, `id`, `name` and `instance` first with `children` last for a node. It quotes only the text that would otherwise read as another kind of value.
+A tool that writes the files, such as the editor, writes maps in block form and short lists and maps of plain values in one line when they fit in 80 columns, with the keys of a scene in the order a person reads them: `version`, `name`, `camera` and `objects` for the file, and `id`, `name`, `instance` and `active` first, then `transform` and `components`, with `children` last for an object. It quotes only the text that would otherwise read as another kind of value.
 
 ## Moving a project from JSON
 

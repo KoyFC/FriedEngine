@@ -17,11 +17,11 @@ Its documentation is at [koyfc.github.io/FriedProjectManager](https://koyfc.gith
 
 It is where a project is edited, and the recommended way to make its scenes. It opens the folder of a project, the one with `project.fried`, and finds the engine in the project's `engine/` folder.
 
-- **Scenes.** The viewport shows a scene without running it. A node is selected with a click and moved by dragging it, and the scene is saved as a JSON file under the project's `assets/scenes/`, which the engine only reads (see [Scene files](../architecture/scene-files.md)). A scene that has a `Node3D` opens in 3D.
+- **Scenes.** The viewport shows a scene without running it. An object is selected with a click and moved by dragging it, and the scene is saved as a JSON file under the project's `assets/scenes/`, which the engine only reads (see [Scene files](../architecture/scene-files.md)). A scene that has a `Transform3D` opens in 3D.
 - **Project settings.** The project's identity, start scene and display, saved to `project.fried`, and a page for each platform with its icon, its packaging text and its build.
 - **Play.** It builds and runs the game for PC from the editor.
 
-The engine is designed around the Editor: a game made its way has no `main` of its own and opens the scene `project.fried` names (see [Starting a game](../architecture/starting-a-game.md)). A scene can also be built in code or written by hand as JSON (see [Scene files](../architecture/scene-files.md)), but placing nodes that way is tedious, so the Editor is the recommended way to make scenes.
+The engine is designed around the Editor: a game made its way has no `main` of its own and opens the scene `project.fried` names (see [Starting a game](../architecture/starting-a-game.md)). A scene can also be built in code or written by hand as JSON (see [Scene files](../architecture/scene-files.md)), but placing objects that way is tedious, so the Editor is the recommended way to make scenes.
 
 The first run builds the editor player from the engine, which needs Haxe, hxcpp and CMake as building a game does (see [Installing](installing.md)). It is released as an AppImage for Linux and a zip for Windows, and the Project Manager downloads it from there.
 

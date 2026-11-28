@@ -1,14 +1,14 @@
 # Editor roadmap
 
-A scene editor for Fried Engine lives in its own repository, [FriedEditor](https://github.com/KoyFC/FriedEditor), with the same roadmap in its `ROADMAP.md`. The engine owns the runtime half: a scene file format and loader, node serialization, and a headless "editor player" the editor drives to draw its viewport. The editor owns everything the user sees. Items below say which repository owns them.
+A scene editor for Fried Engine lives in its own repository, [FriedEditor](https://github.com/KoyFC/FriedEditor), with the same roadmap in its `ROADMAP.md`. The engine owns the runtime half: a scene file format and loader, component serialization, and a headless "editor player" the editor drives to draw its viewport. The editor owns everything the user sees. Items below say which repository owns them.
 
 ## Decisions
 
-- A scene is a tree of typed nodes, 2D and 3D, and a game adds its own with `NodeRegistry.register()` (see [Scene files](../architecture/scene-files.md)).
-- A scene is a YAML file under `assets/scenes/`, compiled to a binary file for the game,, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a node that differs on a platform decides so in its own code.
+- A scene is a tree of game objects, each with a transform and components, 2D and 3D, and a game adds its own components with `ComponentRegistry.register()` (see [Scene files](../architecture/scene-files.md)).
+- A scene is a YAML file under `assets/scenes/`, compiled to a binary file for the game,, written by the editor and only read by the engine. Objects have stable ids, and there are no per-platform values: a component that differs on a platform decides so in its own code.
 - The reference resolution is the project's `display` block, not a field of the scene.
-- Nodes are serialized through the `NodeBuilder` build macro, with no runtime reflection and an explicit registry of the built-ins (`Builtins` and `NodeRegistry`).
-- The viewport is a separate engine process, driven by a small protocol (see [the editor player page](../architecture/editor-player.md)): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User nodes are compiled Haxe, so each project has a player of its own, built from its `editor.hxml` and rebuilt when its sources change.
+- Components are serialized through the `ComponentBuilder` build macro, with no runtime reflection and an explicit registry of the built-ins (`Builtins` and `ComponentRegistry`).
+- The viewport is a separate engine process, driven by a small protocol (see [the editor player page](../architecture/editor-player.md)): `schema`, `load` for structural changes, `setField` for edits, `render` (`-D fried-editor`) that renders offscreen on request and talks to the editor over loopback TCP. User components are compiled Haxe, so each project has a player of its own, built from its `editor.hxml` and rebuilt when its sources change.
 - The editor is split into a UI-independent core and swappable UI backends: Dear ImGui is the one in use, and Qt stays as a second backend.
 
 ## Open work
@@ -17,10 +17,10 @@ A scene editor for Fried Engine lives in its own repository, [FriedEditor](https
 
 - [ ] A: loader round trip, sandbox scene from JSON on PC and on a console, plus `haxe.Json` cost on the DS and fx-CG50
 
-### 14. Nodes (FriedEngine, then FriedEditor)
+### 14. Game objects (FriedEngine, then FriedEditor)
 
-- [ ] The editor on nodes: a tree in the hierarchy panel, one inspector section per class, and structural changes sent as `addNode`, `removeNode` and `moveNode`
-- [ ] The Project Manager's template and WhiteCellSimulator on nodes
+- [ ] The editor on game objects: a tree in the hierarchy panel, one inspector section per component with Add Component and Remove, and structural changes sent as `addObject`, `removeObject`, `moveObject`, `addComponent` and `removeComponent`
+- [ ] The Project Manager's template and WhiteCellSimulator on game objects
 
 ## Notes
 

@@ -1,6 +1,6 @@
 # Documents in HTML and CSS
 
-A `fried.ui.UIDocument` is a screen written as an HTML file and styled by CSS files. It is one scene node, a `Control`: its box is the viewport of the document, so it is placed with anchors like any control, and by default it stretches over its parent. Inside, the document keeps its own tree of `UIElement`s, made from the HTML elements, and lays them out, draws them and gives them the pointer itself. A document costs the scene one node however many elements it has.
+A `fried.ui.UIDocument` is a screen written as an HTML file and styled by CSS files. It is one component, on an object with a `RectTransform`: its box is the viewport of the document, so it is placed with anchors like any control, and by default it stretches over its parent. Inside, the document keeps its own tree of `UIElement`s, made from the HTML elements, and lays them out, draws them and gives them the pointer itself. A document costs the scene one object however many elements it has.
 
 Nothing is converted at build time. The engine reads and parses the `.html` and `.css` files when the document loads, on every platform, so the editor's player, which reads assets as they are, shows the same as a console does. Everything is drawn with the primitives of the [draw queue](draw-queue.md): filled rectangles, text and textures.
 
@@ -14,7 +14,7 @@ The `document` field names the HTML file and the `theme` field an optional CSS f
   "theme": {"root": "game", "path": "ui/theme.css"} }
 ```
 
-The HTML is read by the engine's own small parser (`fried.ui.html.HtmlParser`), which is forgiving the way a browser is: an element with no content such as `<link>` or `<img>` needs no slash, an end tag that does not match closes what it can, and `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&nbsp;` (a plain space) and numeric entities are decoded. Every repair is reported with its line and column. The parser does not close an element a browser would close by itself, such as a `<li>` before the next `<li>`, so close every element. (The engine does not use Haxe's `Xml` or `EReg`, because they pull a regular expression library into the program, which does not build for the DS.) The `<body>` is the root of the document and fills the node's box, so `body { display: flex; justify-content: center; align-items: center; }` centers a panel on the screen. The text of an element is cut at spaces and its blanks are collapsed; there is no text mixed with elements in one line, so a `<span>` inside a sentence is a block of its own.
+The HTML is read by the engine's own small parser (`fried.ui.html.HtmlParser`), which is forgiving the way a browser is: an element with no content such as `<link>` or `<img>` needs no slash, an end tag that does not match closes what it can, and `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&nbsp;` (a plain space) and numeric entities are decoded. Every repair is reported with its line and column. The parser does not close an element a browser would close by itself, such as a `<li>` before the next `<li>`, so close every element. (The engine does not use Haxe's `Xml` or `EReg`, because they pull a regular expression library into the program, which does not build for the DS.) The `<body>` is the root of the document and fills the object's box, so `body { display: flex; justify-content: center; align-items: center; }` centers a panel on the screen. The text of an element is cut at spaces and its blanks are collapsed; there is no text mixed with elements in one line, so a `<span>` inside a sentence is a block of its own.
 
 The sheets apply in this order, each over the one before: the engine's own (`assets/ui/default.css`, which sets the font, the sizes of headings and the look of a `<button>`), the `<link rel="stylesheet">` and `<style>` of the file in order, and the `theme`. Across all of them the most specific selector wins, and between equal ones the later sheet and then the later rule, so a theme that styles `button` does not take away the `button:focus` of the engine's sheet. `!important` is not supported.
 
@@ -40,7 +40,7 @@ Properties:
 
 A block stacks its children and an auto width fills the space. A flex container lays its children in a row or a column, shares what is left over by `flex-grow`, and never shrinks them, so what does not fit overflows. Nothing is clipped. Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()` and `white black red green blue gray transparent`.
 
-The scale and rotation of the node are not applied to the document.
+The scale and rotation of the transform are not applied to the document.
 
 Rounded corners, gradients and shadows are drawn on every platform but the DS and the fx-CG50, where a box is drawn plain (square, in the color halfway along the gradient, with no shadow). A rounded border needs a `background-color` to be drawn rounded, and a gradient ignores `border-radius`. The corners are fans of four triangles, the gradient is eight bands of one color, and the cost on the DS made them not worth drawing there, see [UI measurements](../development/ui-measurements.md).
 
@@ -76,7 +76,7 @@ class MainMenu extends UIDocument {
 - `{{score}}` in a text shows the field `score`, which needs a type. Assigning it rewrites that text and lays the document out again, and nothing runs each frame.
 - A method that does not exist, a `{{name}}` with no field, or an id that cannot be a field (`1x`, or two that give the same name) is a compile error that points at the place in the HTML file.
 
-The file is read again when the game runs, so its styles, layout and fixed text can change without compiling. What the class was compiled against cannot: if an id the class needs is gone from the file, loading fails and says to build the game again. A scene file names a `@:ui` class as the node's `type`, with no `document`. A document that is not a `@:ui` class has no handlers, and an `onclick` in it is reported.
+The file is read again when the game runs, so its styles, layout and fixed text can change without compiling. What the class was compiled against cannot: if an id the class needs is gone from the file, loading fails and says to build the game again. A scene file names a `@:ui` class as the `type` of a component, with no `document`. A document that is not a `@:ui` class has no handlers, and an `onclick` in it is reported.
 
 ## Focus, keyboard and gamepad
 

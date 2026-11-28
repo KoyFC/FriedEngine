@@ -55,7 +55,7 @@ nav:
       - architecture/native-layer.md
       - architecture/ownership.md
       - architecture/input.md
-      - architecture/nodes.md
+      - architecture/game-objects.md
       - architecture/draw-queue.md
       - architecture/tilemaps.md
       - architecture/text.md

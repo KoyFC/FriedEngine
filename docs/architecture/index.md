@@ -6,7 +6,7 @@ These pages describe the decisions behind what is currently implemented, and why
 - [SDL2 and the native layer](native-layer.md)
 - [Ownership in the runtime](ownership.md)
 - [Input](input.md)
-- [Nodes](nodes.md)
+- [Game objects](game-objects.md)
 - [The draw queue](draw-queue.md)
 - [Tilemaps](tilemaps.md)
 - [Text](text.md)
