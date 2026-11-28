@@ -45,11 +45,11 @@ platforms:
   cg50: {}
   nds:
     lto: true
-  pc:
-    modules:
-      physics2d: box2d
+  pc: {}
   switch: {}
   vita:
+    modules:
+      physics2d: box2d
     titleId: FRIE00001
   web: {}
 startScene: sandbox
