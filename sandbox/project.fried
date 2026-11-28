@@ -39,11 +39,18 @@ input:
 name: Fried Sandbox
 organization: Fried Engine
 physicsRate: 50
+platforms:
+  3ds: {}
+  android: {}
+  cg50: {}
+  nds:
+    lto: true
+  pc: {}
+  switch: {}
+  vita:
+    titleId: FRIE00001
+  web: {}
 startScene: sandbox
 version: "01.00"
-vita:
-  titleId: FRIE00001
 window:
   title: Fried Engine sandbox !!!
-nds:
-  lto: true

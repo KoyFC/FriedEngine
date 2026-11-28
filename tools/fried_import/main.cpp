@@ -15,6 +15,7 @@
 #include "yaml.h"
 #include "model/model_convert.h"
 #include "migrate_scenes.h"
+#include "project_profiles.h"
 #include "scene_compile.h"
 
 #include <algorithm>
@@ -299,6 +300,15 @@ int runProjectJson(const std::string &input, const std::string &output)
     if (value.m_kind != fried_import::Value::Kind::Object)
     {
         std::cerr << input << " must hold a map of keys and values\n";
+        return 1;
+    }
+    if (fried_import::normalizeProfiles(&value, &error))
+    {
+        std::cerr << input << " uses the old per-platform layout; saving it from the editor upgrades it\n";
+    }
+    if (!error.empty())
+    {
+        std::cerr << error << "\n";
         return 1;
     }
     std::string json = fried_import::toJson(value);
