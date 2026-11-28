@@ -3,18 +3,18 @@ package fried.scene.serialization;
 #if macro
 import haxe.macro.Context;
 
-// The node and resource types the scenes of the project name, which is all a game that does not build nodes by name needs registered.
+// The component and resource types the scenes of the project name, which is all a game that does not build components by name needs registered.
 class UsedTypes {
 	static var cached:Null<Map<String, Bool>>;
 
-	// Null when every type has to be registered: the editor, text scenes, -D fried_all_nodes or no project file to read.
+	// Null when every type has to be registered: the editor, text scenes, -D fried_all_components or no project file to read.
 	public static function names():Null<Map<String, Bool>> {
-		if (Context.defined("fried_editor") || Context.defined("fried_text_scenes") || Context.defined("fried_all_nodes") || !Project.projectExists()) {
+		if (Context.defined("fried_editor") || Context.defined("fried_text_scenes") || Context.defined("fried_all_components") || !Project.projectExists()) {
 			return null;
 		}
 		if (cached == null) {
 			cached = new Map();
-			cached.set("Node", true);
+			cached.set("Component", true);
 			for (name in Project.autoloadList()) {
 				cached.set(name, true);
 			}
@@ -44,14 +44,7 @@ class UsedTypes {
 	}
 
 	static function addType(type:String, data:Dynamic, names:Map<String, Bool>):Void {
-		if (type == "MeshInstance") {
-			type = "MeshInstance3D";
-		}
 		names.set(type, true);
-		if (type == "MeshInstance3D" && (Reflect.hasField(data, "shape") || Reflect.hasField(data, "color"))) {
-			names.set("StandardMaterial3D", true);
-			names.set(LegacyFields.legacyMeshType(Reflect.hasField(data, "shape") ? Reflect.field(data, "shape") : "Cube"), true);
-		}
 	}
 }
 #end

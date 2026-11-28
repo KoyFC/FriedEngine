@@ -6,7 +6,7 @@ import fried.physics.Collider;
 
 // A grid of tiles taken from one picture, which is drawn as the cells it holds. The grid lives in the native layer and the renderer draws only the tiles the screen shows, so a large map costs no more than the part in view. Its position is its top left corner, it is scaled with its parent and it is never turned.
 @:serializable
-class Tilemap extends Node2D {
+class Tilemap extends Renderer2D {
 	public var texture(default, set):Texture;
 
 	// The size of a tile in pixels of the picture, which is cut into tiles along its rows.
@@ -20,17 +20,17 @@ class Tilemap extends Node2D {
 	// The tiles as a scene file keeps them: one line for each row, and in it the number of each cell separated by spaces, 0 for no tile and otherwise the tile's place in the picture counting along its rows from 1. setCell() changes the map that is running and not this.
 	public var cells(default, set):String;
 
-	// Whether every cell that holds a tile stops what is on the layer below. The cells are covered by as few boxes as the native layer finds, which are colliders that are children of this node and that Physics finds like any other.
+	// Whether every cell that holds a tile stops what is on the layer below. The cells are covered by as few boxes as the native layer finds, which are colliders on objects below this one and that Physics finds like any other.
 	public var isSolid(default, set):Bool;
 	public var collisionLayer(default, set):Int;
 
 	var store:Int;
-	var colliders:Array<Collider>;
+	var colliders:Array<GameObject>;
+	var place:Transform2D;
 	static var solidValues:Array<Int> = [0, 0, 0, 0];
 
 	public function new(texture:Texture = null, tileWidth:Int = 16, tileHeight:Int = 16, mapWidth:Int = 0, mapHeight:Int = 0) {
 		super();
-		name = "Tilemap";
 		store = -1;
 		colliders = [];
 		isSolid = false;
@@ -55,10 +55,7 @@ class Tilemap extends Node2D {
 
 	// Makes the colliders again from the cells as they are now, which a game does once after a run of setCell() calls that changed what is solid.
 	public function refreshColliders():Void {
-		for (collider in colliders) {
-			removeChild(collider);
-		}
-		colliders.resize(0);
+		releaseColliders();
 		if (!isSolid || store < 0) {
 			return;
 		}
@@ -66,37 +63,38 @@ class Tilemap extends Node2D {
 		var values = solidValues;
 		for (index in 0...count) {
 			TilemapNative.solidRect(index, cpp.Pointer.ofArray(values).raw);
-			var collider = new Collider(values[2] * tileWidth, values[3] * tileHeight);
-			collider.x = values[0] * tileWidth;
-			collider.y = values[1] * tileHeight;
+			var object = new GameObject("Collider", new Transform2D(values[0] * tileWidth, values[1] * tileHeight));
+			var collider = object.addComponent(new Collider(values[2] * tileWidth, values[3] * tileHeight));
 			collider.collisionLayer = collisionLayer;
-			colliders.push(collider);
-			addChild(collider);
+			colliders.push(object);
+			object.transform.setParent(transform);
 		}
 	}
 
-	override function enterScene(entered:Scene):Void {
-		super.enterScene(entered);
+	override function awake():Void {
+		place = need(Transform2D);
+	}
+
+	override function sceneEntered():Void {
 		build();
 	}
 
-	override function leaveScene():Void {
+	override function sceneLeft():Void {
 		release();
-		super.leaveScene();
 	}
 
 	override function draw():Void {
 		if (store < 0) {
 			return;
 		}
-		ensureSlot();
-		DrawQueue.submitTilemap(priority, texture, store, slot);
+		place.ensureSlot();
+		DrawQueue.submitTilemap(priority, texture, store, place.slot);
 	}
 
-	// Makes the native map again from the fields, which is what a change of any of them does while the node is in a scene.
+	// Makes the native map again from the fields, which is what a change of any of them does while the object is in a scene.
 	function build():Void {
 		release();
-		if (slot < 0 || texture == null || mapWidth <= 0 || mapHeight <= 0 || tileWidth <= 0 || tileHeight <= 0) {
+		if (place == null || place.slot < 0 || texture == null || mapWidth <= 0 || mapHeight <= 0 || tileWidth <= 0 || tileHeight <= 0) {
 			return;
 		}
 		var columns = Std.int(texture.width / tileWidth);
@@ -132,11 +130,15 @@ class Tilemap extends Node2D {
 		refreshColliders();
 	}
 
-	function release():Void {
-		for (collider in colliders) {
-			removeChild(collider);
+	function releaseColliders():Void {
+		for (object in colliders) {
+			object.destroy();
 		}
 		colliders.resize(0);
+	}
+
+	function release():Void {
+		releaseColliders();
 		if (store >= 0) {
 			TilemapNative.release(store);
 			store = -1;

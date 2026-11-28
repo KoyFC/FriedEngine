@@ -211,7 +211,7 @@ class DrawQueue {
 			command.camera = null;
 		}
 		pendingDrawCommands.resize(0);
-		fried.scene.Transform2D.collect();
+		fried.scene.TransformStore2D.collect();
 	}
 
 	static function draw(renderer:Renderer):Void {

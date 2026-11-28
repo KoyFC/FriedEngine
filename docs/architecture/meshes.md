@@ -40,7 +40,7 @@ A model is written as the file it is read from, which is how a texture is:
 | `PrismMesh` | `leftToRight` (0.5), `sizeX`, `sizeY`, `sizeZ` (1) |
 | `TorusMesh` | `innerRadius` (0.5), `outerRadius` (1), `rings` (16), `ringSegments` (8) |
 
-They are the shapes of Godot's `PrimitiveMesh` classes, with fewer segments by default because the DS draws 2048 polygons a frame, and without normals, since every face is shaded flat. A primitive is made when it is first drawn and again after a field changes. `PlaneMesh` is drawn from one side, the one it faces, and its `sizeX` goes across as seen from that side and its `sizeZ` down. A mesh that is not shared with other nodes is not shared in the renderer either, so a scene with many equal primitives should use one `Mesh` object from code.
+They are the shapes of Godot's `PrimitiveMesh` classes, with fewer segments by default because the DS draws 2048 polygons a frame, and without normals, since every face is shaded flat. A primitive is made when it is first drawn and again after a field changes. `PlaneMesh` is drawn from one side, the one it faces, and its `sizeX` goes across as seen from that side and its `sizeZ` down. A mesh that is not shared with other objects is not shared in the renderer either, so a scene with many equal primitives should use one `Mesh` object from code.
 
 In the editor the `mesh` field is a list of these types and `File...`, and the fields of the one chosen appear under it.
 

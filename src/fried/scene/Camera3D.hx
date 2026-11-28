@@ -5,7 +5,7 @@ import fried.graphics3d.Rotation;
 // Looks along its own forward, which is +z when it is not turned, with y up. A scene draws its meshes through its camera3D.
 @:allow(fried.graphics3d.MeshPass)
 @:serializable
-class Camera3D extends Node3D {
+class Camera3D extends Renderer2D {
 	// Vertical, in degrees.
 	public var fieldOfView:Float;
 
@@ -25,11 +25,16 @@ class Camera3D extends Node3D {
 	// How far in front of the camera it is.
 	@:noSerialize public var projectedDepth(default, null):Float;
 
+	var place:Transform3D;
+
 	static var turn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+	override function awake():Void {
+		place = need(Transform3D);
+	}
 
 	public function new() {
 		super();
-		name = "Camera3D";
 		fieldOfView = 60.0;
 		near = 0.1;
 		far = 100.0;
@@ -41,10 +46,10 @@ class Camera3D extends Node3D {
 
 	// Where a point of the world lands on a view of that size, in projectedX and projectedY, with its distance in front of the camera in projectedDepth. False for a point nearer than the near plane, which is not drawn.
 	public function project(pointX:Float, pointY:Float, pointZ:Float, width:Float, height:Float):Bool {
-		Rotation.toMatrix(worldRotationX, worldRotationY, worldRotationZ, turn);
-		var offsetX = pointX - worldX;
-		var offsetY = pointY - worldY;
-		var offsetZ = pointZ - worldZ;
+		Rotation.toMatrix(place.worldRotationX, place.worldRotationY, place.worldRotationZ, turn);
+		var offsetX = pointX - place.worldX;
+		var offsetY = pointY - place.worldY;
+		var offsetZ = pointZ - place.worldZ;
 		var viewZ = turn[2] * offsetX + turn[5] * offsetY + turn[8] * offsetZ;
 		if (viewZ < near) {
 			return false;
@@ -60,15 +65,15 @@ class Camera3D extends Node3D {
 
 	// Turns the camera to face a point of the world. Under a turned parent the angles are the parent's.
 	public function lookAt(targetX:Float, targetY:Float, targetZ:Float):Void {
-		var forwardX = targetX - worldX;
-		var forwardY = targetY - worldY;
-		var forwardZ = targetZ - worldZ;
+		var forwardX = targetX - place.worldX;
+		var forwardY = targetY - place.worldY;
+		var forwardZ = targetZ - place.worldZ;
 		var length = Math.sqrt(forwardX * forwardX + forwardY * forwardY + forwardZ * forwardZ);
 		if (length == 0.0) {
 			return;
 		}
-		rotationX = Math.asin(-forwardY / length) * (180.0 / Math.PI);
-		rotationY = Math.atan2(forwardX, forwardZ) * (180.0 / Math.PI);
-		rotationZ = 0.0;
+		place.rotationX = Math.asin(-forwardY / length) * (180.0 / Math.PI);
+		place.rotationY = Math.atan2(forwardX, forwardZ) * (180.0 / Math.PI);
+		place.rotationZ = 0.0;
 	}
 }

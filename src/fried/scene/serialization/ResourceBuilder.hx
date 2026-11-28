@@ -20,12 +20,12 @@ class ResourceBuilder {
 		if (category == null) {
 			Context.error("A serializable resource has to be a Mesh or a Material.", localClass.pos);
 		}
-		var serialized = NodeBuilder.collectInherited(localClass).concat(NodeBuilder.collectFields(fields, localClass.pos));
+		var serialized = ComponentBuilder.collectInherited(localClass).concat(ComponentBuilder.collectFields(fields, localClass.pos));
 
 		var create = new StringBuf();
 		create.add('var instance = new $className();\n');
 		for (field in serialized) {
-			create.add('if ($CODEC.has(data, "${field.name}")) instance.${field.name} = ${NodeBuilder.convert(field, localClass.name)};\n');
+			create.add('if ($CODEC.has(data, "${field.name}")) instance.${field.name} = ${ComponentBuilder.convert(field, localClass.name)};\n');
 		}
 		create.add("return instance;\n");
 

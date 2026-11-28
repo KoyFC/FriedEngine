@@ -8,14 +8,15 @@ import fried.graphics.Renderer;
 import fried.io.Filesystem;
 import fried.scene.Camera;
 import fried.scene.Camera3D;
-import fried.scene.CanvasItem;
-import fried.scene.Node;
-import fried.scene.Node3D;
+import fried.scene.GameObject;
 import fried.scene.Scene;
+import fried.scene.Transform;
+import fried.scene.Transform2D;
+import fried.scene.Transform3D;
+import fried.scene.serialization.ComponentRegistry;
 import fried.scene.serialization.FieldCodec;
-import fried.scene.serialization.NodeRegistry;
 import fried.scene.serialization.ResourceRegistry;
-import fried.scene.PackedScene;
+import fried.scene.Prefab;
 import fried.scene.PlatformList;
 import fried.scene.serialization.Builtins;
 import fried.scene.serialization.SceneLoader;
@@ -34,7 +35,9 @@ class EditorPlayer {
 	var layer:EditorSceneLayer;
 	var scene:Scene;
 	var camera:Camera;
+	var cameraPlace:Transform2D;
 	var camera3D:Camera3D;
+	var camera3DPlace:Transform3D;
 	var isRenderRequested:Bool;
 	var isJustResized:Bool;
 	var window:Window;
@@ -93,13 +96,15 @@ class EditorPlayer {
 		renderer.pushLayer(layer);
 
 		// The editor's own view, never part of a scene file. It starts with the world's origin at the top left.
-		camera = new Camera();
-		camera.x = renderer.width / 2;
-		camera.y = renderer.height / 2;
+		cameraPlace = new Transform2D();
+		camera = new GameObject("Editor camera", cameraPlace).addComponent(new Camera());
+		cameraPlace.x = renderer.width / 2;
+		cameraPlace.y = renderer.height / 2;
 
 		// The editor's view of a 3D scene, which replaces whatever camera the scene names.
-		camera3D = new Camera3D();
-		camera3D.z = -10.0;
+		camera3DPlace = new Transform3D();
+		camera3D = new GameObject("Editor camera 3D", camera3DPlace).addComponent(new Camera3D());
+		camera3DPlace.z = -10.0;
 
 		connection.send({type: "hello", protocol: EditorConnection.PROTOCOL, platform: Application.platformName});
 	}
@@ -145,45 +150,44 @@ class EditorPlayer {
 		connection.send({type: "frame", width: renderer.width, height: renderer.height, bounds: bounds, bounds3D: bounds3D, frusta: frusta}, renderer.readPixels());
 	}
 
-	// Every node that is drawn, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the node's own coordinates. What is inside an instanced scene is not a node of the scene the editor shows, so an instance is one entry whose box holds all of it.
-	function collectBounds(parent:Node, bounds:Array<Dynamic>, owner:Null<Dynamic>):Void {
-		for (node in parent.children) {
-			var item = Std.downcast(node, CanvasItem);
-			var isFlat = item != null && !Std.isOfType(item, Node3D);
-			var next = owner;
+	// Every object placed on the plane, in tree order, with its origin in the world, which its box does not always start at, and what its parent gives it so a drag can be turned into the object's own coordinates. What is inside an instanced scene is not an object of the scene the editor shows, so an instance is one entry whose box holds all of it.
+	function collectBounds(parent:Transform, bounds:Array<Dynamic>, owner:Null<Dynamic>):Void {
+		for (child in parent.children) {
+			var object = child.gameObject;
+			var isFlat = child.isPlaced2D();
 			if (owner != null) {
 				if (isFlat) {
-					unite(owner, EditorBounds.of(item));
+					unite(owner, EditorBounds.of(object));
 				}
-			} else if (node.isInstanceRoot && node.id != "") {
-				var entry:Dynamic = {id: node.id, x: 0.0, y: 0.0, width: 0.0, height: 0.0, originX: 0.0, originY: 0.0, isEmpty: true};
+			} else if (object.isInstanceRoot && object.id != "") {
+				var entry:Dynamic = {id: object.id, x: 0.0, y: 0.0, width: 0.0, height: 0.0, originX: 0.0, originY: 0.0, isEmpty: true};
 				if (isFlat) {
-					var box = EditorBounds.of(item);
-					entry = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: item.worldX, originY: item.worldY, isEmpty: false};
-					var around = EditorBounds.parentOf(item);
+					var box = EditorBounds.of(object);
+					entry = {id: object.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: child.worldX, originY: child.worldY, isEmpty: false};
+					var around = EditorBounds.parentOf(object);
 					if (around != null) {
 						entry.parent = around;
 					}
 				}
 				var slot = bounds.length;
 				bounds.push(entry);
-				collectBounds(node, bounds, entry);
+				collectBounds(child, bounds, entry);
 				if (entry.isEmpty) {
 					bounds.splice(slot, 1);
 				}
 				Reflect.deleteField(entry, "isEmpty");
 				continue;
-			} else if (isFlat && item.id != "") {
-				// A node of the game that code made has no id, and a Node3D is not in the plane the editor shows.
-				var box = EditorBounds.of(item);
-				var entry:Dynamic = {id: item.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: item.worldX, originY: item.worldY};
-				var around = EditorBounds.parentOf(item);
+			} else if (isFlat && object.id != "") {
+				// An object that code made has no id, and a 3D one is not in the plane the editor shows.
+				var box = EditorBounds.of(object);
+				var entry:Dynamic = {id: object.id, x: box.x, y: box.y, width: box.width, height: box.height, originX: child.worldX, originY: child.worldY};
+				var around = EditorBounds.parentOf(object);
 				if (around != null) {
 					entry.parent = around;
 				}
 				bounds.push(entry);
 			}
-			collectBounds(node, bounds, next);
+			collectBounds(child, bounds, owner);
 		}
 	}
 
@@ -206,28 +210,30 @@ class EditorPlayer {
 		entry.height = bottom - top;
 	}
 
-	// Every Node3D that code did not make, in tree order, where the editor's camera sees it.
-	function collectBounds3D(parent:Node, bounds:Array<Dynamic>):Void {
-		for (node in parent.children) {
-			var item = Std.downcast(node, Node3D);
-			if (item != null && item.id != "" && node.scopeOwner == null) {
-				var entry = EditorBounds3D.of(item, camera3D, renderer.width, renderer.height);
+	// Every object with a Transform3D that code did not make, in tree order, where the editor's camera sees it.
+	function collectBounds3D(parent:Transform, bounds:Array<Dynamic>):Void {
+		for (child in parent.children) {
+			var item = Std.downcast(child, Transform3D);
+			var object = child.gameObject;
+			if (item != null && object.id != "" && object.scopeOwner == null) {
+				var entry = EditorBounds3D.of(object, item, camera3D, renderer.width, renderer.height);
 				if (entry != null) {
 					bounds.push(entry);
 				}
 			}
-			collectBounds3D(node, bounds);
+			collectBounds3D(child, bounds);
 		}
 	}
 
 	// The view of every Camera3D the scene file has, shaped by the size of the screen the scene is laid out for.
-	function collectFrusta(parent:Node, frusta:Array<Dynamic>):Void {
-		for (node in parent.children) {
-			var item = Std.downcast(node, Camera3D);
-			if (item != null && item.id != "" && node.scopeOwner == null && scene.viewHeight > 0) {
+	function collectFrusta(parent:Transform, frusta:Array<Dynamic>):Void {
+		for (child in parent.children) {
+			var object = child.gameObject;
+			var item = object.getComponent(Camera3D);
+			if (item != null && object.id != "" && object.scopeOwner == null && scene.viewHeight > 0) {
 				frusta.push(EditorFrustum.of(item, scene.viewWidth / scene.viewHeight));
 			}
-			collectFrusta(node, frusta);
+			collectFrusta(child, frusta);
 		}
 	}
 
@@ -242,16 +248,16 @@ class EditorPlayer {
 				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});
 			case "setEditorCamera":
-				camera.x = message.x;
-				camera.y = message.y;
+				cameraPlace.x = message.x;
+				cameraPlace.y = message.y;
 				camera.zoom = message.zoom;
 			case "setEditorCamera3D":
-				camera3D.x = message.x;
-				camera3D.y = message.y;
-				camera3D.z = message.z;
-				camera3D.rotationX = message.rotationX;
-				camera3D.rotationY = message.rotationY;
-				camera3D.rotationZ = 0.0;
+				camera3DPlace.x = message.x;
+				camera3DPlace.y = message.y;
+				camera3DPlace.z = message.z;
+				camera3DPlace.rotationX = message.rotationX;
+				camera3DPlace.rotationY = message.rotationY;
+				camera3DPlace.rotationZ = 0.0;
 				camera3D.fieldOfView = message.fieldOfView;
 			case "setEditorView":
 				layer.is3D = message.mode == "3d";
@@ -272,7 +278,7 @@ class EditorPlayer {
 
 	// Builds the new scene before the old one goes, so a scene that fails to load leaves what was showing.
 	function load(data:Dynamic, viewWidth:Null<Int>, viewHeight:Null<Int>):Void {
-		PackedScene.clearCache();
+		Prefab.clearCache();
 		fried.graphics3d.MeshFile.clearCache();
 		var next = SceneLoader.build(data, renderer, false);
 		// The window follows the editor's panel, so laying out against it would move what is anchored to an edge whenever the panel is resized. The view is the size of the game's screen that the editor shows as the display's frame, or the size the project designs for when the editor does not say.
@@ -311,7 +317,7 @@ class EditorPlayer {
 	function describeClasses():Array<Dynamic> {
 		var classes = [];
 		var builtin = [for (type in Builtins.all()) type.name];
-		for (type in NodeRegistry.all()) {
+		for (type in ComponentRegistry.all()) {
 			var defaults = type.defaultValues();
 			var fields:Array<Dynamic> = [];
 			for (field in type.fields) {
@@ -322,9 +328,42 @@ class EditorPlayer {
 					defaultValue: Reflect.field(defaults, field.name)
 				});
 			}
-			classes.push({name: type.name, parent: type.parent, fields: fields, builtin: builtin.indexOf(type.name) >= 0});
+			var chain = [for (step in ComponentRegistry.chain(type.name)) step.name];
+			var requires:Null<String> = null;
+			for (name in chain) {
+				if (REQUIRES.exists(name)) {
+					requires = REQUIRES.get(name);
+					break;
+				}
+			}
+			classes.push({
+				name: type.name,
+				parent: type.parent,
+				kind: chain.indexOf("Transform") >= 0 ? "transform" : "component",
+				requires: requires,
+				fields: fields,
+				builtin: builtin.indexOf(type.name) >= 0
+			});
 		}
 		return classes;
 	}
+
+	// The transform an engine component needs on its object, by name. A component of the game that needs one takes it from the engine component it extends.
+	static var REQUIRES:Map<String, String> = [
+		"SpriteRenderer" => "Transform2D",
+		"Camera" => "Transform2D",
+		"Collider" => "Transform2D",
+		"KinematicBody" => "Transform2D",
+		"Tilemap" => "Transform2D",
+		"Label" => "RectTransform",
+		"TextureRect" => "RectTransform",
+		"Button" => "RectTransform",
+		"TouchButton" => "RectTransform",
+		"VirtualJoystick" => "RectTransform",
+		"UIDocument" => "RectTransform",
+		"Camera3D" => "Transform3D",
+		"MeshRenderer" => "Transform3D",
+		"Light" => "Transform3D"
+	];
 }
 #end

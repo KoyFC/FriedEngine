@@ -123,6 +123,28 @@ cmake --version
 
 Haxe should report 4.3 or later and `haxelib list` should show hxcpp.
 
+### Faster rebuilds of the editor player
+
+Optional. The editor player is built again for every project, and ccache keeps what it compiled so that the next build, in the same project or another one, skips the files that did not change. Without it the player builds as it always did.
+
+=== "Linux"
+
+    ```sh
+    sudo dnf install ccache
+    sudo apt install ccache
+    sudo pacman -S ccache
+    ```
+
+=== "Windows, w64devkit"
+
+    Install [ccache](https://ccache.dev/download.html) (`winget install ccache` or `scoop install ccache`) and put it on the `PATH` of the terminal `w64devkit.exe` opens, which does not see the system's.
+
+=== "Windows, Visual Studio"
+
+    There is nothing to install: Visual Studio's generator does not use ccache, and the player is built with `/MP` instead, so it compiles several files at once.
+
+See [Rebuilding faster](building.md#rebuilding-faster).
+
 ## Consoles and the calculator
 
 Each needs its SDK and SDL2 built for it, and these have only been verified from Linux. Install them after the section for your system above.

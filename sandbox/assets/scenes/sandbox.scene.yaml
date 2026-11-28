@@ -1,125 +1,119 @@
-version: 2
+version: 3
 name: Sandbox
 camera: camera
-nodes:
-  - type: Node
-    id: sandbox-root
+objects:
+  - id: sandbox-root
     name: Sandbox
     children:
-      - type: Box
-        id: wall
+      - id: wall
         name: Wall
-        borderColor: {r: 150, g: 150, b: 190, a: 255}
-        fillColor: {r: 70, g: 70, b: 90, a: 255}
-        height: 48
-        width: 900
-        x: -450
-        y: 160
-      - type: Box
-        id: post-0
+        transform: {type: Transform2D, x: -450, y: 160}
+        components:
+          - type: Box
+            borderColor: {r: 150, g: 150, b: 190, a: 255}
+            fillColor: {r: 70, g: 70, b: 90, a: 255}
+            height: 48
+            width: 900
+      - id: post-0
         name: Post 0
-        borderColor: {r: 120, g: 100, b: 80, a: 255}
-        fillColor: {r: 58, g: 48, b: 44, a: 255}
-        height: 96
-        priority: -2
-        width: 32
-        x: -600
-        y: -220
+        transform: {type: Transform2D, x: -600, y: -220}
+        components:
+          - type: Box
+            borderColor: {r: 120, g: 100, b: 80, a: 255}
+            fillColor: {r: 58, g: 48, b: 44, a: 255}
+            height: 96
+            priority: -2
+            width: 32
         children:
-          - type: Collider
-            id: post-0-hitbox
+          - id: post-0-hitbox
             name: Post 0 hitbox
-            height: 96
-            width: 32
-      - type: Box
-        id: post-1
+            transform: {type: Transform2D}
+            components:
+              - {type: Collider, height: 96, width: 32}
+      - id: post-1
         name: Post 1
-        borderColor: {r: 120, g: 100, b: 80, a: 255}
-        fillColor: {r: 58, g: 48, b: 44, a: 255}
-        height: 96
-        priority: -2
-        width: 32
-        x: -300
-        y: -220
+        transform: {type: Transform2D, x: -300, y: -220}
+        components:
+          - type: Box
+            borderColor: {r: 120, g: 100, b: 80, a: 255}
+            fillColor: {r: 58, g: 48, b: 44, a: 255}
+            height: 96
+            priority: -2
+            width: 32
         children:
-          - type: Collider
-            id: post-1-hitbox
+          - id: post-1-hitbox
             name: Post 1 hitbox
-            height: 96
-            width: 32
-      - type: Box
-        id: post-2
+            transform: {type: Transform2D}
+            components:
+              - {type: Collider, height: 96, width: 32}
+      - id: post-2
         name: Post 2
-        borderColor: {r: 120, g: 100, b: 80, a: 255}
-        fillColor: {r: 58, g: 48, b: 44, a: 255}
-        height: 96
-        priority: -2
-        width: 32
-        x: 0
-        y: -220
+        transform: {type: Transform2D, x: 0, y: -220}
+        components:
+          - type: Box
+            borderColor: {r: 120, g: 100, b: 80, a: 255}
+            fillColor: {r: 58, g: 48, b: 44, a: 255}
+            height: 96
+            priority: -2
+            width: 32
         children:
-          - type: Collider
-            id: post-2-hitbox
+          - id: post-2-hitbox
             name: Post 2 hitbox
-            height: 96
-            width: 32
-      - type: Box
-        id: post-3
+            transform: {type: Transform2D}
+            components:
+              - {type: Collider, height: 96, width: 32}
+      - id: post-3
         name: Post 3
-        borderColor: {r: 120, g: 100, b: 80, a: 255}
-        fillColor: {r: 58, g: 48, b: 44, a: 255}
-        height: 96
-        priority: -2
-        width: 32
-        x: 300
-        y: -220
+        transform: {type: Transform2D, x: 300, y: -220}
+        components:
+          - type: Box
+            borderColor: {r: 120, g: 100, b: 80, a: 255}
+            fillColor: {r: 58, g: 48, b: 44, a: 255}
+            height: 96
+            priority: -2
+            width: 32
         children:
-          - type: Collider
-            id: post-3-hitbox
+          - id: post-3-hitbox
             name: Post 3 hitbox
-            height: 96
-            width: 32
-      - type: Box
-        id: post-4
+            transform: {type: Transform2D}
+            components:
+              - {type: Collider, height: 96, width: 32}
+      - id: post-4
         name: Post 4
-        borderColor: {r: 120, g: 100, b: 80, a: 255}
-        fillColor: {r: 58, g: 48, b: 44, a: 255}
-        height: 96
-        priority: -2
-        width: 32
-        x: 600
-        y: -220
-        children:
-          - type: Collider
-            id: post-4-hitbox
-            name: Post 4 hitbox
+        transform: {type: Transform2D, x: 600, y: -220}
+        components:
+          - type: Box
+            borderColor: {r: 120, g: 100, b: 80, a: 255}
+            fillColor: {r: 58, g: 48, b: 44, a: 255}
             height: 96
+            priority: -2
             width: 32
+        children:
+          - id: post-4-hitbox
+            name: Post 4 hitbox
+            transform: {type: Transform2D}
+            components:
+              - {type: Collider, height: 96, width: 32}
       - id: player
         name: Player
         instance: player
-        wall: wall
-        x: -64
-        y: -64
-      - type: Camera
-        id: camera
+        transform: {x: -64, y: -64}
+        components:
+          - {type: Player, wall: wall}
+      - id: camera
         name: Camera
-        x: 0
-        y: 0
-        zoom: 1
+        transform: {type: Transform2D, x: 0, y: 0}
+        components:
+          - {type: Camera, zoom: 1}
         children:
-          - type: CameraFollow
-            id: camera-follow
+          - id: camera-follow
             name: Camera follow
-            offsetX: 64
-            offsetY: 64
-            target: player
+            components:
+              - {type: CameraFollow, offsetX: 64, offsetY: 64, target: player}
       - id: hud
         name: Interface
         instance: sandbox_ui
-      - type: SandboxWorld
-        id: world
+      - id: world
         name: World
-        camera: camera
-        hud: hud
-        player: player
+        components:
+          - {type: SandboxWorld, camera: camera, hud: hud, player: player}

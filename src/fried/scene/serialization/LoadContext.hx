@@ -6,13 +6,13 @@ class LoadContext {
 	// Textures belong to a renderer, so loading an asset reference needs one.
 	public var renderer(default, null):Renderer;
 
-	// Builds a node with a zero value for every constructor argument the data leaves out, instead of failing.
+	// Builds a object with a zero value for every constructor argument the data leaves out, instead of failing.
 	public var usesZeroDefaults(default, null):Bool;
 
-	// The scene being built. It is null until every node exists, so a reference to another node cannot be resolved before then.
+	// The scene being built. It is null until every object exists, so a reference to another object cannot be resolved before then.
 	public var scene:Scene;
 
-	// The instance whose own references are being resolved, which look in its nodes and not in the scene.
+	// The instance whose own references are being resolved, which look in its objects and not in the scene.
 	public var scope:Null<InstanceScope>;
 
 	public function new(renderer:Renderer, usesZeroDefaults:Bool = false) {

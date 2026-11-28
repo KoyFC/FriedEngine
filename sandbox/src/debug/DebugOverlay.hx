@@ -11,7 +11,9 @@ import fried.graphics.Renderer;
 import fried.input.Input;
 import fried.scene.Button;
 import fried.scene.Scene;
-import fried.scene.Node;
+import fried.scene.Component;
+import fried.scene.GameObject;
+import fried.scene.RectTransform;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
 
@@ -25,10 +27,11 @@ class DebugOverlay extends SceneLayer {
 	var lines:Array<String>;
 	var lineWidths:Array<Int>;
 	var buttons:Array<Button>;
+	var buttonPlaces:Array<RectTransform>;
 	var buttonLabels:Array<Void->String>;
 	var sceneDetails:Void->Array<String>;
-	var detailsOwner:Null<Node>;
-	var buttonOwners:Array<Null<Node>>;
+	var detailsOwner:Null<Component>;
+	var buttonOwners:Array<Null<Component>>;
 	var nextRefresh:Float;
 	var framesPerSecond:Int;
 	var lastRefreshFrame:Int;
@@ -51,6 +54,7 @@ class DebugOverlay extends SceneLayer {
 		lines = [];
 		lineWidths = [];
 		buttons = [];
+		buttonPlaces = [];
 		buttonLabels = [];
 		buttonOwners = [];
 		sceneDetails = null;
@@ -62,32 +66,39 @@ class DebugOverlay extends SceneLayer {
 	}
 
 	public function addButton(label:Void->String, onClick:Void->Void):Button {
-		var button = scene.add(new Button(BUTTON_WIDTH, BUTTON_HEIGHT, font, label()));
-		button.name = 'Debug button ${buttons.length + 1}';
+		var place = new RectTransform();
+		place.width = BUTTON_WIDTH;
+		place.height = BUTTON_HEIGHT;
+		var object = new GameObject('Debug button ${buttons.length + 1}', place);
+		var button = object.addComponent(new Button());
+		button.font = font;
+		button.label = label();
 		button.priority = 1;
+		scene.add(object);
 		button.onClick = function() {
 			onClick();
 			button.label = label();
 		};
 		buttons.push(button);
+		buttonPlaces.push(place);
 		buttonLabels.push(label);
 		buttonOwners.push(null);
 		nextRefresh = 0.0;
 		return button;
 	}
 
-	// A button that belongs to a node, and goes when the node does: the node calls removeOwner from its destroyed().
-	public function addSceneButton(owner:Node, label:Void->String, onClick:Void->Void):Void {
+	// A button that belongs to a component, and goes when it does: the component calls removeOwner from its onDestroy().
+	public function addSceneButton(owner:Component, label:Void->String, onClick:Void->Void):Void {
 		addButton(label, onClick);
 		buttonOwners[buttonOwners.length - 1] = owner;
 	}
 
-	public function setSceneDetails(owner:Node, details:Void->Array<String>):Void {
+	public function setSceneDetails(owner:Component, details:Void->Array<String>):Void {
 		sceneDetails = details;
 		detailsOwner = owner;
 	}
 
-	public function removeOwner(owner:Node):Void {
+	public function removeOwner(owner:Component):Void {
 		if (detailsOwner == owner) {
 			sceneDetails = null;
 			detailsOwner = null;
@@ -107,9 +118,10 @@ class DebugOverlay extends SceneLayer {
 			return;
 		}
 		buttons.splice(index, 1);
+		buttonPlaces.splice(index, 1);
 		buttonLabels.splice(index, 1);
 		buttonOwners.splice(index, 1);
-		button.destroy();
+		button.gameObject.destroy();
 		nextRefresh = 0.0;
 	}
 
@@ -210,9 +222,10 @@ class DebugOverlay extends SceneLayer {
 		var buttonsTop = background.y + background.height - PADDING - buttonsHeight + BUTTON_SPACING;
 		for (index in 0...buttons.length) {
 			var button = buttons[index];
-			button.width = buttonWidth;
-			button.offsetX = background.x + PADDING + (index % BUTTON_COLUMNS) * (buttonWidth + BUTTON_SPACING);
-			button.offsetY = buttonsTop + Std.int(index / BUTTON_COLUMNS) * (BUTTON_HEIGHT + BUTTON_SPACING);
+			var place = buttonPlaces[index];
+			place.width = buttonWidth;
+			place.offsetX = background.x + PADDING + (index % BUTTON_COLUMNS) * (buttonWidth + BUTTON_SPACING);
+			place.offsetY = buttonsTop + Std.int(index / BUTTON_COLUMNS) * (BUTTON_HEIGHT + BUTTON_SPACING);
 		}
 	}
 }

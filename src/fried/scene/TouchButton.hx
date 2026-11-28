@@ -10,7 +10,7 @@ import fried.input.MouseButton;
 
 // A round button on the screen that holds an input action while a finger is on it, so a game reads it as it reads a key bound to that action. The left mouse button stands in for a finger, which is how it is tried on a computer. Its circle fills the shorter side of its control.
 @:serializable
-class TouchButton extends Control {
+class TouchButton extends Renderer2D {
 	// The action it holds, by its name in the "input" block of project.fried, or empty for none.
 	public var action:String;
 	public var font(default, set):Font;
@@ -39,10 +39,8 @@ class TouchButton extends Control {
 	var labelWidth:Int;
 	var isLabelMeasured:Bool;
 
-	public function new(width:Float = 80.0, height:Float = 80.0, action:String = "") {
-		super("TouchButton");
-		this.width = width;
-		this.height = height;
+	public function new(action:String = "") {
+		super();
 		this.action = action;
 		label = "";
 		isPassBy = false;
@@ -54,19 +52,29 @@ class TouchButton extends Control {
 		heldFinger = NO_FINGER;
 	}
 
+	var place:RectTransform;
+
+	override function awake():Void {
+		place = need(RectTransform);
+		if (place.width == 0 && place.height == 0) {
+			place.width = 80;
+			place.height = 80;
+		}
+	}
+
 	override function onEvent(event:InputEvent):Void {
 		if (!isShown()) {
 			return;
 		}
 		switch (event.type) {
-			case TouchDown if (heldFinger == NO_FINGER && event.touchDevice == FRONT_TOUCH_DEVICE && containsEvent(event)):
+			case TouchDown if (heldFinger == NO_FINGER && event.touchDevice == FRONT_TOUCH_DEVICE && place.containsEvent(event)):
 				press(event.fingerId);
 				event.handled = true;
-			case MouseButtonDown if (heldFinger == NO_FINGER && event.mouseButton == MouseButton.Left && containsEvent(event)):
+			case MouseButtonDown if (heldFinger == NO_FINGER && event.mouseButton == MouseButton.Left && place.containsEvent(event)):
 				press(MOUSE_FINGER);
 				event.handled = true;
 			case TouchMoved if (isPassBy && event.touchDevice == FRONT_TOUCH_DEVICE):
-				var isInside = containsEvent(event);
+				var isInside = place.containsEvent(event);
 				if (heldFinger == NO_FINGER && isInside) {
 					press(event.fingerId);
 				} else if (heldFinger == event.fingerId && !isInside) {
@@ -86,28 +94,27 @@ class TouchButton extends Control {
 		if (!isShown()) {
 			return;
 		}
-		var radius = Math.min(Math.abs(rectWidth), Math.abs(rectHeight)) / 2;
-		var centerX = worldX + rectWidth / 2;
-		var centerY = worldY + rectHeight / 2;
+		var radius = Math.min(Math.abs(place.rectWidth), Math.abs(place.rectHeight)) / 2;
+		var centerX = place.worldX + place.rectWidth / 2;
+		var centerY = place.worldY + place.rectHeight / 2;
 		DrawQueue.submitFillCircle(priority, centerX, centerY, radius, isPressed ? pressedColor : color);
 
 		if (font == null || label == null || label == "") {
 			return;
 		}
-		var drawnWidth = Std.int(measuredLabelWidth() * worldScaleX);
-		var drawnHeight = Std.int(font.lineHeight * worldScaleY);
+		var drawnWidth = Std.int(measuredLabelWidth() * place.worldScaleX);
+		var drawnHeight = Std.int(font.lineHeight * place.worldScaleY);
 		DrawQueue.submitText(priority, font, label, Std.int(centerX - drawnWidth / 2), Std.int(centerY - drawnHeight / 2), drawnWidth, drawnHeight, labelColor);
 	}
 
-	override function leaveScene():Void {
+	override function sceneLeft():Void {
 		if (heldFinger != NO_FINGER) {
 			release();
 		}
-		super.leaveScene();
 	}
 
 	function isShown():Bool {
-		return visible && PlatformList.shows(platforms);
+		return PlatformList.shows(platforms);
 	}
 
 	function press(finger:Int):Void {

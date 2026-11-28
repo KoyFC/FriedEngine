@@ -10,7 +10,7 @@ Box2D is a rigid body dynamics library: forces, restitution and friction, rotati
 
 ## What would fit
 
-A node would stay the face of a body, with the library's world held by the scene the way the collider grid is, and the nodes and the bodies synchronized in the fixed step, which already exists. Layers and masks map to Box2D's filter bits, a trigger to a sensor, and overlap and raycast queries exist in it. Box2D 3 is plain C under an MIT license with no dependencies, so it would be built like the other dependencies. Whether it compiles for the Vita, the Switch, the 3DS and the web build has to be checked, and so does the claim that version 3.1 gives the same result on every platform, which was not verified.
+A node would stay the face of a body, with the library's world held by the scene the way the collider grid is, and the objects and the bodies synchronized in the fixed step, which already exists. Layers and masks map to Box2D's filter bits, a trigger to a sensor, and overlap and raycast queries exist in it. Box2D 3 is plain C under an MIT license with no dependencies, so it would be built like the other dependencies. Whether it compiles for the Vita, the Switch, the 3DS and the web build has to be checked, and so does the claim that version 3.1 gives the same result on every platform, which was not verified.
 
 ## Why it cannot be the only physics
 

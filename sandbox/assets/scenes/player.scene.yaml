@@ -1,21 +1,20 @@
-version: 2
+version: 3
 name: Player
-nodes:
-  - type: Player
-    id: player
+objects:
+  - id: player
     name: Player
-    scaleX: 8
-    scaleY: 8
-    speed: 240
-    texture: {root: game, path: sprite.png}
+    transform: {type: Transform2D, scaleX: 8, scaleY: 8}
+    components:
+      - type: SpriteRenderer
+        texture: {root: game, path: sprite.png}
+      - {type: Player, speed: 240}
     children:
-      - type: Collider
-        id: player-hitbox
+      - id: player-hitbox
         name: Player hitbox
-        height: 16
-        width: 16
-      - type: KinematicBody
-        id: player-body
+        transform: {type: Transform2D}
+        components:
+          - {type: Collider, height: 16, width: 16}
+      - id: player-body
         name: Player body
-        velocityX: 0
-        velocityY: 0
+        components:
+          - {type: KinematicBody, velocityX: 0, velocityY: 0}

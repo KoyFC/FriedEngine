@@ -17,7 +17,7 @@ A game declares itself in a `project.fried` at its own root, in YAML (see [YAML 
 | `vsync` | boolean | true unless it is `false` | Passed to the renderer `fried.Bootstrap.run()` creates. It is only a request: the consoles and the calculator always present at their own refresh. |
 | `defaultTargetFramerate` | integer | `0`, which is no limit | The frame rate `Bootstrap` starts the loop at when vsync is off. It is read only then and only to start the game. |
 | `startScene` | string | the first scene, by name | The scene the game loads when it starts. |
-| `autoload` | list of strings | none | Node classes or scenes loaded once at startup, in order, and kept while the game runs, for what the whole game needs: music, a pause menu, a debug overlay. A name that is a node class is made as it is, and any other is a scene file. |
+| `autoload` | list of strings | none | Component classes or scenes loaded once at startup, in order, and kept while the game runs, for what the whole game needs: music, a pause menu, a debug overlay. A name that is a component class is made on an object of its own, and any other is a scene file. |
 | `input` | object | none | The input actions of the game, declared as data: a list of `maps`, each with a `name`, an optional `enabled` and its `actions`. See [Input](../architecture/input.md) for the format. A mistake in it is an error of the build. |
 | `<platform>.optimize` | `speed` or `size` | `size` on the DS, `speed` elsewhere | `size` builds for size and drops what nothing uses at link time. |
 | `<platform>.lto` | boolean | false | Links with link time optimization. |

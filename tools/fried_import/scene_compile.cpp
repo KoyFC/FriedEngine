@@ -7,7 +7,7 @@ namespace fried_import
 {
     namespace
     {
-        const int s_sceneVersion = 2;
+        const int s_sceneVersion = 3;
         const unsigned short s_format = 1;
 
         enum Tag : unsigned char
@@ -178,19 +178,19 @@ namespace fried_import
         const Value *version = scene.find("version");
         if (!version || version->m_kind != Value::Kind::Number || (int)version->m_number != s_sceneVersion)
         {
-            *error = "the scene is not version " + std::to_string(s_sceneVersion) + ", which is the one this engine reads: open it in the editor to bring it up to date";
+            *error = "the scene is not version " + std::to_string(s_sceneVersion) + ", which is the one this engine reads: bring it up to date with fried_import migrate-scenes";
             return false;
         }
-        const Value *nodes = scene.find("nodes");
+        const Value *nodes = scene.find("objects");
         if (!nodes || nodes->m_kind != Value::Kind::Array)
         {
-            *error = "the scene has no nodes list";
+            *error = "the scene has no objects list";
             return false;
         }
         if (nodes->m_array.size() != 1)
         {
             *error = "the scene " + name + " has " + std::to_string(nodes->m_array.size()) +
-                     " top-level nodes, and a scene has exactly one root node: put them under a new root node, which the editor does when it opens the file";
+                     " top-level objects, and a scene has exactly one root object: put them under a new root object, which the editor does when it opens the file";
             return false;
         }
         Writer writer;

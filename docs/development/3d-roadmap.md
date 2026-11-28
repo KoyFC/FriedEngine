@@ -8,5 +8,5 @@ Software 3D in Haxe, drawn with `fillTriangles()`, or meshes drawn by the render
 - The average color of an image, for the renderers that cannot paint it
 - Smooth shading, with normals in a mesh and in the files that have them
 - Point lights, vertex colors
-- A material for each surface of a model that a node can replace, and not only all of them
-- Parenting a mesh under another mesh, and keeping the nodes of a glTF scene as nodes
+- A material for each surface of a model that an object can replace, and not only all of them
+- Parenting a mesh under another mesh, and keeping the nodes of a glTF scene as objects

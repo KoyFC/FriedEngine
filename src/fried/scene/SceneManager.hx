@@ -55,7 +55,7 @@ class SceneManager {
 		pendingUnloads.push(name);
 	}
 
-	// Keeps a scene for as long as the game runs: loading another scene does not unload it, and its layer stays above the one that is loaded. It is a way for what the whole game needs, such as music, a pause menu or a debug overlay, to be nodes like anything else.
+	// Keeps a scene for as long as the game runs: loading another scene does not unload it, and its layer stays above the one that is loaded. It is a way for what the whole game needs, such as music, a pause menu or a debug overlay, to be objects like anything else.
 	public static function addAutoload(name:String, renderer:Renderer, scene:Scene):Scene {
 		if (autoloaded.exists(name)) {
 			throw 'The autoload $name was already added.';
@@ -68,7 +68,7 @@ class SceneManager {
 		return scene;
 	}
 
-	// The scene an autoload is, from which its nodes are reached by id.
+	// The scene an autoload is, from which its objects are reached by id.
 	public static function autoload(name:String):Scene {
 		var scene = autoloaded.get(name);
 		if (scene == null) {

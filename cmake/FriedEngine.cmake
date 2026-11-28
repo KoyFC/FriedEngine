@@ -361,6 +361,9 @@ function(fried_add_game target_name)
     endif()
 
     fried_add_hxcpp_executable(${target_name} ${_generated_dir})
+    if(_game_EDITOR_PLAYER)
+        target_precompile_headers(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${HXCPP_INCLUDE_DIR}/hxcpp.h>")
+    endif()
     target_link_libraries(${target_name} PRIVATE fried::engine)
     fried_apply_project_optimize(${target_name} "${_project_json}" ${_platform} "${_game_EDITOR_PLAYER}")
 

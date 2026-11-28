@@ -1,32 +1,230 @@
 package fried.scene;
 
-@:include("scene/transform2d.h")
-extern class Transform2D {
-	@:native("fried_transform2d_create") static function create():Int;
+// A transform with a position, a rotation in degrees and a scale in the plane, relative to its parent.
+@:serializable
+@:allow(fried.scene)
+@:allow(fried.physics)
+class Transform2D extends Transform {
+	public var x(default, set):Single;
+	public var y(default, set):Single;
+	public var rotation(default, set):Single;
+	public var scaleX(default, set):Single;
+	public var scaleY(default, set):Single;
 
-	@:native("fried_transform2d_release") static function release(slot:Int):Void;
+	// The place this transform's transform has in the native store while it is in a scene, and -1 when it is not in one.
+	var slot:Int;
 
-	@:native("fried_transform2d_collect") static function collect():Void;
+	var collider:Null<fried.physics.Collider>;
 
-	@:native("fried_transform2d_set_parent") static function setParent(slot:Int, parentSlot:Int):Void;
+	// A transform in a scene whose parent is no CanvasItem or another Node2D, which the store places without Haxe, and that parent when it is a Node2D.
+	var isStored:Bool;
+	var storedParent:Null<Transform2D>;
 
-	@:native("fried_transform2d_set_local") static function setLocal(slot:Int, x:Single, y:Single, rotation:Single, scaleX:Single, scaleY:Single):Void;
+	// The store's world values are out of date. What the renderer and the colliders read is the store, so they ask for it alone; the doubles that worldDirty guards are then out of date too, and are worked out from the store only when a game or a layout reads them.
+	var slotDirty:Bool;
 
-	@:native("fried_transform2d_set_x") static function setX(slot:Int, value:Single):Void;
+	static var worldValues:Array<Single> = [0.0, 0.0, 0.0, 0.0, 0.0];
 
-	@:native("fried_transform2d_set_y") static function setY(slot:Int, value:Single):Void;
+	static inline var DEGREES_TO_RADIANS:Single = 0.017453292519943295;
+	static inline var ZERO:Single = 0.0;
+	static inline var ONE:Single = 1.0;
 
-	@:native("fried_transform2d_set_rotation") static function setRotation(slot:Int, degrees:Single):Void;
+	public function new(x:Single = 0.0, y:Single = 0.0) {
+		super();
+		slot = -1;
+		isStored = false;
+		storedParent = null;
+		slotDirty = true;
+		this.x = x;
+		this.y = y;
+		rotation = 0.0;
+		scaleX = 1.0;
+		scaleY = 1.0;
+	}
 
-	@:native("fried_transform2d_set_scale_x") static function setScaleX(slot:Int, value:Single):Void;
+	public function translate(dx:Single, dy:Single):Void {
+		x += dx;
+		y += dy;
+	}
 
-	@:native("fried_transform2d_set_scale_y") static function setScaleY(slot:Int, value:Single):Void;
+	public function setScale(scale:Single):Void {
+		scaleX = scale;
+		scaleY = scale;
+	}
 
-	@:native("fried_transform2d_update") static function update(slot:Int):Void;
+	override function isPlaced2D():Bool {
+		return true;
+	}
 
-	@:native("fried_transform2d_bounds") static function bounds(slot:Int, width:Single, height:Single, out:cpp.RawPointer<Int>):Void;
+	override function sceneEntered():Void {
+		slot = TransformStore2D.create();
+		storedParent = Std.downcast(parentItem, Transform2D);
+		isStored = parentItem == null || storedParent != null;
+		TransformStore2D.setParent(slot, storedParent != null ? storedParent.slot : -1);
+		TransformStore2D.setLocal(slot, x, y, rotation, scaleX, scaleY);
+		invalidateWorld();
+	}
 
-	@:native("fried_transform2d_set_world") static function setWorld(slot:Int, values:cpp.RawConstPointer<Single>):Void;
+	override function sceneLeft():Void {
+		TransformStore2D.release(slot);
+		slot = -1;
+		isStored = false;
+		storedParent = null;
+	}
 
-	@:native("fried_transform2d_read_world") static function readWorld(slot:Int, out:cpp.RawPointer<Single>):Void;
+	// Stops at a transform whose world values and whose store are both out of date, whose subtree is out of date with it.
+	override function markWorldDirty():Void {
+		if (collider != null) {
+			collider.moved();
+		}
+		if (slotDirty && worldDirty) {
+			return;
+		}
+		invalidateWorld();
+	}
+
+	function invalidateWorld():Void {
+		slotDirty = true;
+		worldDirty = true;
+		for (child in children) {
+			child.parentTransformChanged();
+		}
+	}
+
+	// Makes the store's world values current, which is all a draw or a collider needs. A transform the store cannot place is worked out in Haxe, which hands the result to the store.
+	function ensureSlot():Void {
+		if (!slotDirty) {
+			return;
+		}
+		if (!isStored) {
+			ensureWorld();
+			return;
+		}
+		if (storedParent != null && storedParent.slotDirty) {
+			storedParent.ensureSlot();
+		}
+		slotDirty = false;
+		TransformStore2D.update(slot);
+	}
+
+	// In a scene, under another node of the store, the world values are worked out natively, in fixed point on the DS, and read out as doubles here. A transform under no parent is its own world, and one outside a scene, or under a Control, whose layout reads the cache, is worked out in Haxe.
+	override function ensureWorld():Void {
+		if (isStored) {
+			if (storedParent == null) {
+				worldDirty = false;
+				wx = x;
+				wy = y;
+				wrot = rotation;
+				wsx = scaleX;
+				wsy = scaleY;
+				return;
+			}
+			ensureSlot();
+			worldDirty = false;
+			var out = worldValues;
+			TransformStore2D.readWorld(slot, cpp.Pointer.ofArray(out).raw);
+			wx = out[0];
+			wy = out[1];
+			wrot = out[2];
+			wsx = out[3];
+			wsy = out[4];
+			return;
+		}
+		computeWorldInHaxe();
+		if (slot >= 0) {
+			var out = worldValues;
+			out[0] = wx;
+			out[1] = wy;
+			out[2] = wrot;
+			out[3] = wsx;
+			out[4] = wsy;
+			TransformStore2D.setWorld(slot, cpp.Pointer.ofArray(out).constRaw);
+			slotDirty = false;
+		}
+	}
+
+	// With a parent that is not turned or scaled, which is most of them, the world position is the parent's plus this one's, and the DS has no hardware floating point to spare.
+	function computeWorldInHaxe():Void {
+		worldDirty = false;
+		var p = parentItem;
+		if (p == null) {
+			wx = x;
+			wy = y;
+			wrot = rotation;
+			wsx = scaleX;
+			wsy = scaleY;
+			return;
+		}
+		if (p.worldDirty) {
+			p.ensureWorld();
+		}
+		if (p.wrot == ZERO && p.wsx == ONE && p.wsy == ONE) {
+			wx = p.wx + x;
+			wy = p.wy + y;
+			wrot = rotation;
+			wsx = scaleX;
+			wsy = scaleY;
+			return;
+		}
+		var scaledX:Single = x * p.wsx;
+		var scaledY:Single = y * p.wsy;
+		if (p.wrot != ZERO) {
+			var radians:Single = p.wrot * DEGREES_TO_RADIANS;
+			var cosine:Single = Math.cos(radians);
+			var sine:Single = Math.sin(radians);
+			wx = p.wx + scaledX * cosine - scaledY * sine;
+			wy = p.wy + scaledX * sine + scaledY * cosine;
+		} else {
+			wx = p.wx + scaledX;
+			wy = p.wy + scaledY;
+		}
+		wrot = p.wrot + rotation;
+		wsx = p.wsx * scaleX;
+		wsy = p.wsy * scaleY;
+	}
+
+	function set_x(value:Single):Single {
+		x = value;
+		markWorldDirty();
+		if (slot >= 0) {
+			TransformStore2D.setX(slot, value);
+		}
+		return value;
+	}
+
+	function set_y(value:Single):Single {
+		y = value;
+		markWorldDirty();
+		if (slot >= 0) {
+			TransformStore2D.setY(slot, value);
+		}
+		return value;
+	}
+
+	function set_rotation(value:Single):Single {
+		rotation = value;
+		markWorldDirty();
+		if (slot >= 0) {
+			TransformStore2D.setRotation(slot, value);
+		}
+		return value;
+	}
+
+	function set_scaleX(value:Single):Single {
+		scaleX = value;
+		markWorldDirty();
+		if (slot >= 0) {
+			TransformStore2D.setScaleX(slot, value);
+		}
+		return value;
+	}
+
+	function set_scaleY(value:Single):Single {
+		scaleY = value;
+		markWorldDirty();
+		if (slot >= 0) {
+			TransformStore2D.setScaleY(slot, value);
+		}
+		return value;
+	}
 }
