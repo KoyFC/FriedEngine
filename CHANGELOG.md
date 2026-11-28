@@ -15,6 +15,7 @@ All notable changes to Fried Engine are written here, newest version first.
 - Build profiles: `platforms` in `project.fried` is a map with one profile per platform, holding its optimization, packaging keys and `modules`. See [Build profiles](https://koyfc.github.io/FriedEngine/architecture/build-profiles/).
 
 ### Changed
+- A root `modules` choice that a platform cannot run, such as `box2d` on the DS, makes that platform use the module's default instead of failing the build.
 - The 2D physics classes are in `fried.physics2d` and have a 2D suffix: `Collider2D`, `Body2D` (was `KinematicBody`), `Physics2D` and `RaycastHit2D`. Scenes name the components `Collider2D` and `Body2D`, and `fried_import migrate-scenes` writes them.
 - The editor protocol is 8: `schema` carries the modules and the module and backend of each class.
 - The old per-platform layout of `project.fried` still builds with a warning.

@@ -89,6 +89,9 @@ class Modules {
 			var chosen = new Map<String, String>();
 			for (module in Reflect.fields(manifest())) {
 				var name = own.exists(module) ? own.get(module) : shared.exists(module) ? shared.get(module) : Reflect.field(Reflect.field(manifest(), module), "default");
+				if (!own.exists(module) && !runsOn(Reflect.field(backendsOf(module), name), platform)) {
+					name = Reflect.field(Reflect.field(manifest(), module), "default");
+				}
 				if (!runsOn(Reflect.field(backendsOf(module), name), platform)) {
 					var fallback = Reflect.field(Reflect.field(manifest(), module), "default");
 					Context.error('project.fried: $module: $name does not run on $platform. Set "platforms.$platform.modules.$module" to $fallback.', Context.currentPos());

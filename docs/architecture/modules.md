@@ -14,7 +14,7 @@ Backends of the same module share their components when they can: `physics2d` ha
 
 ## Choosing
 
-A profile picks a backend with `modules`, and the root `modules` is the default for every profile. Configuring fails when a profile asks for a backend that does not run on its platform, one that is planned, or a module that does not exist, and says which key to change.
+A profile picks a backend with `modules`, and the root `modules` is the default for every profile. A root choice that does not run on a platform, such as `box2d` on the DS, is not an error there: that platform uses the module's default backend. Configuring fails when a profile asks for itself for a backend that does not run on its platform, one that is planned, or a module that does not exist, and says which key to change.
 
 ## One Haxe build, many platforms
 

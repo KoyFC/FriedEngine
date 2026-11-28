@@ -234,6 +234,10 @@ namespace fried_import
                     backendName = shared[moduleName];
                 }
 
+                if (!isOwn && !runsOn(*module.find("backends")->find(backendName), platform))
+                {
+                    backendName = module.find("default")->m_string;
+                }
                 const Value &backend = *module.find("backends")->find(backendName);
                 if (!runsOn(backend, platform))
                 {

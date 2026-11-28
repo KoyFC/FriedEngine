@@ -28,7 +28,7 @@ A game declares itself in a `project.fried` at its own root, in YAML (see [YAML 
 | `platforms.nds.subtitle2` | string, up to 31 characters | `Version <version>` | The DS banner's third line. |
 | `platforms.android.package`, `.versionCode`, `.orientation` | string, whole number, string | see the Android page | The application id, version code and orientation. |
 | `modules` | map of module to backend | each module's default | The backend every platform uses for a module, unless its profile says otherwise. See [Modules](../architecture/modules.md). |
-| `platforms.<p>.modules` | map of module to backend | the root `modules` | The backends this platform uses. Choosing one that does not run on the platform is refused at configure time. |
+| `platforms.<p>.modules` | map of module to backend | the root `modules` | The backends this platform uses. Choosing one that does not run on the platform is refused at configure time. A root `modules` choice the platform cannot run is replaced by the module's default there. |
 | `physics2d.pixelsPerMeter` | number above zero | 32 | Pixels in a Box2D meter. |
 | `physics2d.gravity` | `[x, y]` | `[0, 980]` | Box2D's gravity in pixels a second squared. |
 
