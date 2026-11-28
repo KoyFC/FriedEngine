@@ -26,6 +26,9 @@ class Mesh extends Resource {
 
 	public var surfaceStarts(get, never):Array<Int>;
 
+	// A mesh the cache keeps is drawn with a new override material by every scene that loads it, and each of those would stay as a variant, with its native copy, for good.
+	static inline var MAX_VARIANTS:Int = 4;
+
 	var surfaceList:Array<Surface> = [];
 	var isFlat:Bool = false;
 	var flatVertexList:Array<Float>;
@@ -106,6 +109,9 @@ class Mesh extends Resource {
 		}
 		var variant = new MeshVariant(overriding, versions, colors, textures);
 		variants.push(variant);
+		if (variants.length > MAX_VARIANTS) {
+			destroyVariant(variants.shift());
+		}
 		return variant;
 	}
 
