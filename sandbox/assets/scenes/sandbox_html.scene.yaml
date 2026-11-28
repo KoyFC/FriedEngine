@@ -1,16 +1,20 @@
-version: 2
+version: 3
 name: Sandbox HTML
-nodes:
-  - type: Node
-    id: sandbox-html
+objects:
+  - id: sandbox-html
     name: Sandbox HTML
     children:
-      - type: MainMenu
-        id: menu
+      - id: menu
         name: Menu
-      - type: UIDocument
-        id: hud
+        transform: {type: RectTransform}
+        components:
+          - type: UIDocument
+          - type: MainMenu
+      - id: hud
         name: HUD
-        document: {root: game, path: ui/hud.html}
-        priority: 1
-        theme: {root: game, path: ui/theme.css}
+        transform: {type: RectTransform}
+        components:
+          - type: UIDocument
+            document: {root: game, path: ui/hud.html}
+            priority: 1
+            theme: {root: game, path: ui/theme.css}
