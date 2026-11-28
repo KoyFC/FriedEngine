@@ -169,8 +169,8 @@ class FieldCodec {
 		return value == null ? null : StyleSheet.from(assetPath(value, field));
 	}
 
-	// A reference is the id of another node of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
-	public static function toNode(value:Dynamic, field:String, context:LoadContext):fried.scene.Node {
+	// A reference is the id of another object of the same scene. It stays null while the scene is still being built, and the loader assigns it afterward.
+	public static function toObject(value:Dynamic, field:String, context:LoadContext):fried.scene.GameObject {
 		if (value == null) {
 			return null;
 		}
@@ -178,18 +178,38 @@ class FieldCodec {
 		if (context.scene == null && context.scope == null) {
 			return null;
 		}
-		var target = context.scope != null ? context.scope.nodes.get(id) : context.scene.findById(id);
+		var target = context.scope != null ? context.scope.objects.get(id) : context.scene.findById(id);
 		if (target == null) {
-			throw 'The field "$field" refers to the node "$id", which the scene does not have.';
+			throw 'The field "$field" refers to the object "$id", which the scene does not have.';
 		}
 		return target;
 	}
 
-	public static function fromNode(value:fried.scene.Node):Dynamic {
+	public static function toComponent(value:Dynamic, field:String, context:LoadContext, type:Class<Dynamic>):fried.scene.Component {
+		var target = toObject(value, field, context);
+		if (target == null) {
+			return null;
+		}
+		var found = target.getComponent(cast type);
+		if (found == null) {
+			throw 'The field "$field" refers to the object "${target.id}", which has no ${Type.getClassName(type)}.';
+		}
+		return found;
+	}
+
+	public static function fromObject(value:fried.scene.GameObject):Dynamic {
 		return value == null ? null : value.id;
 	}
 
-	public static function zeroNode():fried.scene.Node {
+	public static function fromComponent(value:fried.scene.Component):Dynamic {
+		return value == null ? null : value.gameObject.id;
+	}
+
+	public static function zeroObject():fried.scene.GameObject {
+		return null;
+	}
+
+	public static function zeroComponent():fried.scene.Component {
 		return null;
 	}
 

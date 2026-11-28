@@ -7,8 +7,9 @@ import fried.scene.Scene;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
 import fried.scene.serialization.LoadContext;
-import fried.scene.serialization.NodeDiscovery;
-import fried.scene.serialization.NodeRegistry;
+import fried.scene.GameObject;
+import fried.scene.serialization.ComponentDiscovery;
+import fried.scene.serialization.ComponentRegistry;
 import fried.scene.serialization.SceneLoader;
 
 // Starts a game the way the editor describes it: a window and a renderer from project.fried, the game's nodes and scene files registered, and the scene the project names opened. A game's own code is its nodes and, if it needs one, a Game.
@@ -28,17 +29,17 @@ class Bootstrap {
 	public static var windowHeightOverride:Int = 0;
 	#end
 
-	// An autoload is the name of a node class, which becomes a scene holding one node of that class with the class's name as its id, or else the name of a scene file.
+	// An autoload is the name of a component class, which becomes a scene holding one object with that component and the class's name as its id, or else the name of a scene file.
 	static function loadAutoload(name:String):Scene {
-		var type = NodeRegistry.get(name);
+		var type = ComponentRegistry.get(name);
 		if (type == null) {
 			return SceneLoader.loadNamed(name, renderer);
 		}
 		var scene = new Scene(name);
-		var node = type.create({}, new LoadContext(renderer));
-		node.id = name;
-		node.name = name;
-		scene.add(node);
+		var object = new GameObject(name);
+		object.id = name;
+		object.addComponent(type.create({}, new LoadContext(renderer)));
+		scene.add(object);
 		return scene;
 	}
 
@@ -65,7 +66,7 @@ class Bootstrap {
 		Time.setFixedRate(Project.physicsRate());
 		renderer.drawColor = Color.rgb(24, 24, 32);
 
-		NodeDiscovery.register();
+		ComponentDiscovery.register();
 		var scenes = Project.sceneNames();
 		for (name in scenes) {
 			SceneManager.register(name, function(context) {

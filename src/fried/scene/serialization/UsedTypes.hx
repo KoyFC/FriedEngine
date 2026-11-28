@@ -3,7 +3,7 @@ package fried.scene.serialization;
 #if macro
 import haxe.macro.Context;
 
-// The node and resource types the scenes of the project name, which is all a game that does not build nodes by name needs registered.
+// The component and resource types the scenes of the project name, which is all a game that does not build components by name needs registered.
 class UsedTypes {
 	static var cached:Null<Map<String, Bool>>;
 
@@ -14,7 +14,7 @@ class UsedTypes {
 		}
 		if (cached == null) {
 			cached = new Map();
-			cached.set("Node", true);
+			cached.set("Component", true);
 			for (name in Project.autoloadList()) {
 				cached.set(name, true);
 			}
@@ -44,14 +44,7 @@ class UsedTypes {
 	}
 
 	static function addType(type:String, data:Dynamic, names:Map<String, Bool>):Void {
-		if (type == "MeshInstance") {
-			type = "MeshInstance3D";
-		}
 		names.set(type, true);
-		if (type == "MeshInstance3D" && (Reflect.hasField(data, "shape") || Reflect.hasField(data, "color"))) {
-			names.set("StandardMaterial3D", true);
-			names.set(LegacyFields.legacyMeshType(Reflect.hasField(data, "shape") ? Reflect.field(data, "shape") : "Cube"), true);
-		}
 	}
 }
 #end

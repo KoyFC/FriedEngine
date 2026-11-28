@@ -13,26 +13,28 @@ typedef SerializedField = {
 	var codec:String;
 	var kind:String;
 	var needsContext:Bool;
+	@:optional var target:String;
 }
 
-// Runs on every subclass of Node.
+// Runs on every subclass of Component.
 //
-// A class that declares update, draw or onEvent gets an override of hookFlags that says so, which is how a scene knows which nodes a frame has to call.
+// A class that declares update, draw or onEvent gets an override of hookFlags that says so, which is how a scene knows which components a frame has to call.
 //
-// A class marked @:serializable also gets a static describeNode() that returns how to create, assign and read its fields. A public writable var of a supported type is a serialized field, unless it is marked @:noSerialize. A field whose type is a node is a reference to another node of the scene, by its id.
-class NodeBuilder {
+// A class marked @:serializable also gets a static describeComponent() that returns how to create, assign and read its fields. A public writable var of a supported type is a serialized field, unless it is marked @:noSerialize. A field whose type is a game object or a component is a reference to another object of the scene, by its id.
+class ComponentBuilder {
 	static inline var CODEC = "fried.scene.serialization.FieldCodec";
 	static inline var FIELDS = "fried.scene.serialization";
-	static inline var NODES = "fried.scene.serialization";
-	static inline var NODE = "fried.scene.Node";
-	static var reserved = ["type", "id", "name", "children"];
+	static inline var TYPES = "fried.scene.serialization";
+	static inline var COMPONENT = "fried.scene.Component";
+	static inline var OBJECT = "fried.scene.GameObject";
+	static var reserved = ["type"];
 
 	public static function build():Array<Field> {
 		var localClass = Context.getLocalClass().get();
 		var fields = Context.getBuildFields();
 		var className = localClass.pack.concat([localClass.name]).join(".");
 
-		if (className != NODE) {
+		if (className != COMPONENT) {
 			addHookFlags(localClass, fields);
 		}
 		if (!localClass.meta.has(":serializable")) {
@@ -47,13 +49,13 @@ class NodeBuilder {
 		switch (describe.expr) {
 			case EFunction(_, definition):
 				fields.push({
-					name: "describeNode",
+					name: "describeComponent",
 					access: [APublic, AStatic],
 					kind: FFun(definition),
 					pos: localClass.pos
 				});
 			case _:
-				Context.error("The generated describeNode is not a function.", localClass.pos);
+				Context.error("The generated describeComponent is not a function.", localClass.pos);
 		}
 		return fields;
 	}
@@ -123,23 +125,33 @@ class NodeBuilder {
 		return null;
 	}
 
-	static function isNode(type:haxe.macro.Type):Bool {
+	// The class a reference field points at: a game object, or the component of that class an object has.
+	static function referenceTarget(type:haxe.macro.Type):Null<SerializedField> {
 		return switch (type) {
 			case TInst(reference, _):
-				var current:Null<haxe.macro.Type.ClassType> = reference.get();
+				var start = reference.get();
+				var startPath = start.pack.concat([start.name]).join(".");
+				if (startPath == OBJECT) {
+					return {name: "", codec: "Object", kind: "ObjectRef", needsContext: true};
+				}
+				var current:Null<haxe.macro.Type.ClassType> = start;
 				while (current != null) {
-					if (current.pack.concat([current.name]).join(".") == NODE) {
-						return true;
+					if (current.pack.concat([current.name]).join(".") == COMPONENT) {
+						return {name: "", codec: "Component", kind: "ObjectRef", needsContext: true, target: startPath};
 					}
 					current = current.superClass != null ? current.superClass.t.get() : null;
 				}
-				false;
+				null;
 			case _:
-				false;
+				null;
 		}
 	}
 
-	// The fields of every serializable class above this one, so a Sprite's data may set a Node2D's x as well as its own texture.
+	static function isReference(field:SerializedField):Bool {
+		return field.codec == "Object" || field.codec == "Component";
+	}
+
+	// The fields of every serializable class above this one, so a SpriteRenderer's data may set its priority as well as its own texture.
 	public static function collectInherited(localClass:haxe.macro.Type.ClassType):Array<SerializedField> {
 		var chain:Array<haxe.macro.Type.ClassType> = [];
 		var parent = localClass.superClass;
@@ -166,10 +178,8 @@ class NodeBuilder {
 				if (!isWritable) {
 					continue;
 				}
-				var classified:Null<SerializedField> = null;
-				if (isNode(field.type)) {
-					classified = nodeReference();
-				} else {
+				var classified:Null<SerializedField> = referenceTarget(field.type);
+				if (classified == null) {
 					var typeName = switch (field.type) {
 						case TAbstract(reference, _):
 							reference.get().name;
@@ -209,12 +219,12 @@ class NodeBuilder {
 					null;
 			}
 			var classified = type == null ? null : classify(type);
-			if (classified == null && type != null && isNodeType(type, position)) {
-				classified = nodeReference();
+			if (classified == null && type != null) {
+				classified = referenceOf(type, position);
 			}
 			if (classified != null) {
 				if (reserved.indexOf(field.name) >= 0) {
-					Context.error('The field "${field.name}" is a key of a scene file\'s node, so it cannot also be a serialized field.', position);
+					Context.error('The field "${field.name}" is a key of a scene file\'s entry, so it cannot also be a serialized field.', position);
 				}
 				classified.name = field.name;
 				result.push(classified);
@@ -223,17 +233,13 @@ class NodeBuilder {
 		return result;
 	}
 
-	static function isNodeType(type:ComplexType, position:Position):Bool {
+	static function referenceOf(type:ComplexType, position:Position):Null<SerializedField> {
 		var resolved = try {
 			Context.resolveType(type, position);
 		} catch (_:Dynamic) {
 			null;
 		}
-		return resolved != null && isNode(resolved);
-	}
-
-	static function nodeReference():SerializedField {
-		return {name: "", codec: "Node", kind: "ObjectRef", needsContext: true};
+		return resolved == null ? null : referenceTarget(resolved);
 	}
 
 	static function classify(type:ComplexType):Null<SerializedField> {
@@ -278,8 +284,9 @@ class NodeBuilder {
 
 	public static function convert(field:SerializedField, owner:String):String {
 		var context = field.needsContext ? ", ctx" : "";
-		var call = '$CODEC.to${field.codec}($CODEC.get(data, "${field.name}"), "$owner.${field.name}"$context)';
-		return field.codec == "Node" ? 'cast $call' : call;
+		var extra = field.codec == "Component" ? ", " + field.target : "";
+		var call = '$CODEC.to${field.codec}($CODEC.get(data, "${field.name}"), "$owner.${field.name}"$context$extra)';
+		return field.codec == "Component" ? 'cast $call' : call;
 	}
 
 	static function describeSource(name:String, className:String, parent:Null<String>, parentPath:Null<String>, own:Array<SerializedField>, serialized:Array<SerializedField>,
@@ -291,7 +298,7 @@ class NodeBuilder {
 			var match = serialized.filter(field -> field.name == argument.name)[0];
 			var defaultValue = argument.value != null ? ExprTools.toString(argument.value) : null;
 			var variable = 'argument$index';
-			var declared = match != null && match.codec == "Node" && argument.type != null ? ":" + ComplexTypeTools.toString(argument.type) : "";
+			var declared = match != null && isReference(match) && argument.type != null ? ":" + ComplexTypeTools.toString(argument.type) : "";
 			argumentNames.push(variable);
 			if (match == null) {
 				if (defaultValue == null && !argument.opt) {
@@ -300,7 +307,7 @@ class NodeBuilder {
 				create.add('var $variable$declared = ${defaultValue != null ? defaultValue : "null"};\n');
 				continue;
 			}
-			var absent = defaultValue != null ? defaultValue : argument.opt ? "null" : 'ctx.usesZeroDefaults ? ${match.codec == "Node" ? "null" : '$CODEC.zero${match.codec}()'} : $CODEC.missing("$name", "${match.name}")';
+			var absent = defaultValue != null ? defaultValue : argument.opt ? "null" : 'ctx.usesZeroDefaults ? ${isReference(match) ? "null" : '$CODEC.zero${match.codec}()'} : $CODEC.missing("$name", "${match.name}")';
 			create.add('var $variable$declared = $CODEC.has(data, "${match.name}") ? ${convert(match, name)} : $absent;\n');
 		}
 		create.add('var instance = new $className(${argumentNames.join(", ")});\n');
@@ -313,27 +320,27 @@ class NodeBuilder {
 		create.add("return instance;\n");
 
 		var apply = new StringBuf();
-		apply.add('var self:$className = cast node;\n');
+		apply.add('var self:$className = cast component;\n');
 		for (field in serialized) {
 			apply.add('if ($CODEC.has(data, "${field.name}")) self.${field.name} = ${convert(field, name)};\n');
 		}
 
 		var read = new StringBuf();
-		read.add('var self:$className = cast node;\n');
+		read.add('var self:$className = cast component;\n');
 		read.add("return {" + serialized.map(field -> '${field.name}: $CODEC.from${field.codec}(self.${field.name})').join(", ") + "};\n");
 
 		var infos = own.map(field -> 'new $FIELDS.FieldInfo("${field.name}", $FIELDS.FieldKind.${field.kind})').join(", ");
 		var parentText = parent == null ? "null" : '"$parent"';
-		var parentTypeText = parentPath == null ? "null" : 'function():$NODES.NodeType return $parentPath.describeNode()';
-		return 'function():$NODES.NodeType {
-			return new $NODES.NodeType("$name", $parentText, [$infos],
-				function(data:Dynamic, ctx:$FIELDS.LoadContext):$NODE {
+		var parentTypeText = parentPath == null ? "null" : 'function():$TYPES.ComponentType return $parentPath.describeComponent()';
+		return 'function():$TYPES.ComponentType {
+			return new $TYPES.ComponentType("$name", $parentText, [$infos],
+				function(data:Dynamic, ctx:$FIELDS.LoadContext):$COMPONENT {
 					${create.toString()}
 				},
-				function(node:$NODE, data:Dynamic, ctx:$FIELDS.LoadContext):Void {
+				function(component:$COMPONENT, data:Dynamic, ctx:$FIELDS.LoadContext):Void {
 					${apply.toString()}
 				},
-				function(node:$NODE):Dynamic {
+				function(component:$COMPONENT):Dynamic {
 					${read.toString()}
 				}, $parentTypeText);
 		}';

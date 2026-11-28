@@ -6,13 +6,14 @@ import haxe.macro.Context;
 #end
 
 class BuiltinsMacro {
-	public static macro function nodeList():Expr {
+	public static macro function componentList():Expr {
 		return describe([
-			"fried.scene.Node", "fried.scene.CanvasLayer", "fried.physics.KinematicBody", "fried.scene.CanvasItem", "fried.scene.Node2D", "fried.scene.Sprite",
-			"fried.scene.Tilemap", "fried.scene.Camera", "fried.physics.Collider", "fried.scene.Control", "fried.ui.UIDocument", "fried.scene.Label",
-			"fried.scene.Button", "fried.scene.TextureRect", "fried.scene.TouchButton", "fried.scene.VirtualJoystick", "fried.scene.Node3D",
-			"fried.scene.Camera3D", "fried.scene.DirectionalLight", "fried.scene.MeshInstance3D"
-		], "describeNode");
+			"fried.scene.Component", "fried.scene.Transform", "fried.scene.Transform2D", "fried.scene.Transform3D", "fried.scene.RectTransform",
+			"fried.scene.Renderer2D", "fried.scene.SpriteRenderer", "fried.scene.Camera", "fried.scene.Canvas", "fried.scene.Label",
+			"fried.scene.TextureRect", "fried.scene.Button", "fried.scene.TouchButton", "fried.scene.VirtualJoystick", "fried.scene.Tilemap",
+			"fried.physics.Collider", "fried.physics.KinematicBody", "fried.ui.UIDocument", "fried.scene.Camera3D", "fried.scene.MeshRenderer",
+			"fried.scene.Light"
+		], "describeComponent");
 	}
 
 	public static macro function resourceList():Expr {

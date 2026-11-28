@@ -1,32 +1,26 @@
 package fried.scene.serialization;
 
-class NodeRegistry {
-	static var types:Map<String, NodeType>;
-	static var ordered:Array<NodeType>;
+class ComponentRegistry {
+	static var types:Map<String, ComponentType>;
+	static var ordered:Array<ComponentType>;
 
-	static var aliases:Map<String, String> = ["MeshInstance" => "MeshInstance3D"];
-
-	public static function get(name:String):Null<NodeType> {
+	public static function get(name:String):Null<ComponentType> {
 		ensureLoaded();
-		var found = types.get(name);
-		if (found == null && aliases.exists(name)) {
-			found = types.get(aliases.get(name));
-		}
-		return found;
+		return types.get(name);
 	}
 
 	// Adds the classes of a game, which the engine cannot name.
-	public static function register(added:Array<NodeType>):Void {
+	public static function register(added:Array<ComponentType>):Void {
 		ensureLoaded();
 		for (type in added) {
 			if (types.exists(type.name)) {
-				throw 'The node type "${type.name}" is registered twice.';
+				throw 'The component type "${type.name}" is registered twice.';
 			}
 			add(type);
 		}
 	}
 
-	static function add(type:NodeType):Void {
+	static function add(type:ComponentType):Void {
 		if (types.exists(type.name)) {
 			return;
 		}
@@ -38,13 +32,13 @@ class NodeRegistry {
 	}
 
 	// Every type, each after the one it inherits from.
-	public static function all():Array<NodeType> {
+	public static function all():Array<ComponentType> {
 		ensureLoaded();
 		return ordered.copy();
 	}
 
 	// The type and every type above it, most derived first.
-	public static function chain(name:String):Array<NodeType> {
+	public static function chain(name:String):Array<ComponentType> {
 		var result = [];
 		var type = get(name);
 		while (type != null) {
