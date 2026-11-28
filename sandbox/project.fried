@@ -45,3 +45,5 @@ vita:
   titleId: FRIE00001
 window:
   title: Fried Engine sandbox !!!
+nds:
+  lto: true
