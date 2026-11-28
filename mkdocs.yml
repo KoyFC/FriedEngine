@@ -70,6 +70,9 @@ nav:
       - architecture/3d.md
       - architecture/meshes.md
       - architecture/collisions.md
+      - architecture/physics-2d-box2d.md
+      - architecture/modules.md
+      - architecture/build-profiles.md
       - architecture/asset-roots.md
       - architecture/project-file.md
   - Reference:

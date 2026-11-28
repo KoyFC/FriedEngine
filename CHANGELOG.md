@@ -9,6 +9,19 @@ All notable changes to Fried Engine are written here, newest version first.
 
 ## vX.Y.Z
 
+### Added
+- Box2D 3.1 as the `box2d` backend of the `physics2d` module, with `RigidBody2D`, `BoxShape2D`, `CircleShape2D`, `CapsuleShape2D`, `PolygonShape2D` and `Physics2D` queries. The DS and the fx-CG50 keep the kinematic physics. See [2D physics with Box2D](https://koyfc.github.io/FriedEngine/architecture/physics-2d-box2d/).
+- Modules (`modules.json`): `physics2d`, `audio` and a planned `physics3d` with Jolt, each backend naming the platforms it runs on. Components of a backend a platform does not use are left out of its scenes and of the Haxe build.
+- Build profiles: `platforms` in `project.fried` is a map with one profile per platform, holding its optimization, packaging keys and `modules`. See [Build profiles](https://koyfc.github.io/FriedEngine/architecture/build-profiles/).
+
+### Changed
+- The editor protocol is 8: `schema` carries the modules and the module and backend of each class.
+- The old per-platform layout of `project.fried` still builds with a warning.
+- The fx-CG50 audio warning now comes from the `audio` module.
+
+### Fixed
+- The editor player's build no longer warns that the precompiled header is not used.
+
 ## v0.2.0 - 2026-11-28
 
 ### Changed

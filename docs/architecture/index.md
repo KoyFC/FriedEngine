@@ -21,6 +21,9 @@ These pages describe the decisions behind what is currently implemented, and why
 - [3D](3d.md)
 - [Meshes, materials and models](meshes.md)
 - [Collisions](collisions.md)
+- [2D physics with Box2D](physics-2d-box2d.md)
+- [Modules](modules.md)
+- [Build profiles](build-profiles.md)
 - [Asset roots](asset-roots.md)
 - [Project file and user data](project-file.md)
 

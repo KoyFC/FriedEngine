@@ -1,6 +1,6 @@
 # Physics backends
 
-Nothing here is built. It records what was considered about using a third-party physics library, Box2D, so that the question does not have to be worked out again. The physics that exists is described in [Collisions](../architecture/collisions.md).
+Box2D is built as an optional backend of the `physics2d` [module](../architecture/modules.md), see [2D physics with Box2D](../architecture/physics-2d-box2d.md). This page records what was considered, and what is still open. The kinematic physics is described in [Collisions](../architecture/collisions.md).
 
 ## What the engine has and what Box2D is
 
@@ -17,6 +17,14 @@ A node would stay the face of a body, with the library's world held by the scene
 Its cost has not been measured here, so what follows is an estimate. It would be fine on the PC and the Switch for hundreds of bodies, and probably on the Vita for tens or hundreds. The 3DS has a floating point unit and is the platform to measure. The DS is out: every float operation of the solver is a call into software, and a step with a few dozen bodies in contact would take tens of milliseconds, besides the memory. The fx-CG50 is out for its memory.
 
 So a game that needs dynamic bodies would run on a different set of platforms from one that does not, and the engine would have two physics backends: the kinematic one, on every platform, and a Box2D one, on the platforms that can afford it. They would not behave alike, so they would not be hidden behind one API. A project would choose by the `platforms` it declares in `project.fried`, which already excludes the others: a game that uses Box2D does not list the DS or the fx-CG50.
+
+## What was built
+
+A project chooses the backend per platform in its build profile, and a platform that does not use Box2D gets a stub and loses the components. The manifest allows Box2D on the PC, Vita, Switch, 3DS, web and Android. It compiles for the PC, the Switch and the 3DS (without SIMD), and the Vita, web and Android builds were not tried. Its cost on the 3DS and the Vita is still to be measured.
+
+## Jolt
+
+`physics3d` registers `jolt` as planned, for the PC, Switch, web and Android. Nothing of it exists: there is no 3D physics in the engine yet, and the Vita and the 3DS are left out until a world of the size a game needs is measured there.
 
 ## Before building it
 
