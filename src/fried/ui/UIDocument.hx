@@ -199,6 +199,10 @@ class UIDocument extends Control {
 		}
 	}
 
+	override function destroyed():Void {
+		StyleResolver.forget(sheets);
+	}
+
 	function build(source:HtmlSource):Void {
 		loaded = source;
 		path = source.path;
