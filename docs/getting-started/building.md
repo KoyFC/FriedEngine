@@ -54,7 +54,7 @@ Ninja builds one configuration per build tree, Release unless `-DCMAKE_BUILD_TYP
 
 ## Rebuilding faster
 
-The editor player (see [Editor player](../architecture/editor-player.md)) is built with `-O1` and a precompiled `hxcpp.h`, and a game never is: its flags are the ones its `project.fried` asks for. When `ccache` is on the `PATH` at configure time, the player uses it too (see [Faster rebuilds of the editor player](installing.md#faster-rebuilds-of-the-editor-player)). The cache is shared by every project, and the hxcpp runtime, the engine's native code and the Haxe code of the engine are the same in all of them. Setting `CCACHE_BASEDIR` to your home folder and `CCACHE_NOHASHDIR=1` lets the cache match files across projects in different folders, and `ccache -s` shows how many it matched. With ccache and the precompiled header together, `ccache` needs `CCACHE_SLOPPINESS=pch_defines,time_macros`.
+The editor player (see [Editor player](../architecture/editor-player.md)) is built with `-O1` and a precompiled `hxcpp.h`, and a game never is: its flags are the ones its `project.fried` asks for. When `ccache` is on the `PATH` at configure time, the player uses it too (see [Faster rebuilds of the editor player](installing.md#faster-rebuilds-of-the-editor-player)). The cache is shared by every project, and the hxcpp runtime, the engine's native code and the Haxe code of the engine are the same in all of them. The player runs ccache with `CCACHE_BASEDIR` set to your home folder, `CCACHE_NOHASHDIR=1` and `CCACHE_SLOPPINESS=pch_defines,time_macros`, so projects in different folders find each other's objects even with the precompiled header, and `ccache -s` shows how many it matched.
 
 On Linux the player links with lld when it is installed.
 

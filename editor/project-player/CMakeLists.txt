@@ -26,8 +26,20 @@ endif()
 if(NOT CMAKE_GENERATOR MATCHES "Visual Studio")
     find_program(FRIED_CCACHE_PROGRAM ccache)
     if(FRIED_CCACHE_PROGRAM)
-        set(CMAKE_C_COMPILER_LAUNCHER "${FRIED_CCACHE_PROGRAM}")
-        set(CMAKE_CXX_COMPILER_LAUNCHER "${FRIED_CCACHE_PROGRAM}")
+        # Relative to the home folder and without the working directory, so one project's objects are found by another's, and with the precompiled header allowed.
+        if(WIN32)
+            set(_fried_home "$ENV{USERPROFILE}")
+        else()
+            set(_fried_home "$ENV{HOME}")
+        endif()
+        set(_fried_ccache_launcher "${CMAKE_COMMAND}" -E env
+            CCACHE_NOHASHDIR=1 CCACHE_SLOPPINESS=pch_defines,time_macros
+            "${FRIED_CCACHE_PROGRAM}")
+        if(_fried_home)
+            list(INSERT _fried_ccache_launcher 3 "CCACHE_BASEDIR=${_fried_home}")
+        endif()
+        set(CMAKE_C_COMPILER_LAUNCHER "${_fried_ccache_launcher}")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${_fried_ccache_launcher}")
     endif()
 endif()
 
