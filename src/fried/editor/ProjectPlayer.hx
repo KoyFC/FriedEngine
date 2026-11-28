@@ -1,9 +1,9 @@
 package fried.editor;
 
 #if fried_editor
-import fried.scene.serialization.NodeDiscovery;
+import fried.scene.serialization.ComponentDiscovery;
 
-// The entry point of a project's own editor player, named by the project's editor.hxml: the engine's player with the project's nodes registered, or, started with `--mode play`, the project's game itself.
+// The entry point of a project's own editor player, named by the project's editor.hxml: the engine's player with the project's components registered, or, started with `--mode play`, the project's game itself.
 class ProjectPlayer {
 	public static function main():Void {
 		var options = EditorPlayer.parseArguments(Sys.args());
@@ -13,7 +13,7 @@ class ProjectPlayer {
 			PlayRunner.run(options);
 			return;
 		}
-		NodeDiscovery.register();
+		ComponentDiscovery.register();
 		EditorPlayer.run();
 	}
 }

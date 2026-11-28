@@ -15,7 +15,9 @@ import fried.scene.SceneContext;
 import fried.scene.SceneLayer;
 import fried.scene.SceneManager;
 import fried.scene.serialization.FieldKind;
-import fried.scene.serialization.NodeRegistry;
+import fried.scene.GameObject;
+import fried.scene.Transform;
+import fried.scene.serialization.ComponentRegistry;
 import fried.scene.serialization.SceneLoader;
 import haxe.Json;
 
@@ -46,9 +48,9 @@ class PlayRunner extends BootObserver {
 	var statsStart:Float = 0.0;
 	var statsFrames:Int = 0;
 	var statsWorkSeconds:Float = 0.0;
-	var stats:Dynamic = {fps: 0.0, frameMs: 0.0, workMs: 0.0, nodes: 0};
+	var stats:Dynamic = {fps: 0.0, frameMs: 0.0, workMs: 0.0, objects: 0};
 
-	// What the editor looks at: the selected node, and every node while its scene view is on screen. Only what changed since it was last sent goes out.
+	// What the editor looks at: the selected object, and every object while its scene view is on screen. Only what changed since it was last sent goes out.
 	var watchedId:String = "";
 	var isWatchingAll:Bool = false;
 	var sentFields:Map<String, Map<String, String>> = new Map();
@@ -97,7 +99,7 @@ class PlayRunner extends BootObserver {
 		}
 	}
 
-	// The values of the nodes the editor watches, a few times a second, so its scene view and its inspector follow the game.
+	// The values of the objects the editor watches, a few times a second, so its scene view and its inspector follow the game.
 	function sendState():Void {
 		var now = Sys.time();
 		if (scene == null || now - stateSentAt < STATE_SECONDS) {
@@ -108,49 +110,66 @@ class PlayRunner extends BootObserver {
 		if (isWatchingAll) {
 			collectState(scene.root, changed);
 		} else if (watchedId != "") {
-			var node = scene.findById(watchedId);
-			if (node != null) {
-				collectNode(node, changed);
+			var object = scene.findById(watchedId);
+			if (object != null) {
+				collectObject(object, changed);
 			}
 		}
 		if (changed.length > 0) {
-			connection.send({type: "state", nodes: changed});
+			connection.send({type: "state", objects: changed});
 		}
 	}
 
-	function collectState(parent:fried.scene.Node, changed:Array<Dynamic>):Void {
-		for (node in parent.children) {
-			collectNode(node, changed);
-			collectState(node, changed);
+	function collectState(parent:Transform, changed:Array<Dynamic>):Void {
+		for (child in parent.children) {
+			collectObject(child.gameObject, changed);
+			collectState(child, changed);
 		}
 	}
 
-	// Nodes that code made have no id and are not in the editor's scene, so they are left out.
-	function collectNode(node:fried.scene.Node, changed:Array<Dynamic>):Void {
-		if (node.id == null || node.id == "" || node.scopeOwner != null) {
+	// Objects that code made have no id and are not in the editor's scene, so they are left out.
+	function collectObject(object:GameObject, changed:Array<Dynamic>):Void {
+		if (object.id == null || object.id == "" || object.scopeOwner != null) {
 			return;
 		}
-		var className = Type.getClassName(Type.getClass(node)).split(".").pop();
-		var type = NodeRegistry.get(className);
+		var components:Array<Dynamic> = [];
+		var counts = new Map<String, Int>();
+		for (component in SceneEdits.all(object)) {
+			var className = SceneEdits.className(component);
+			var index = counts.exists(className) ? counts.get(className) : 0;
+			counts.set(className, index + 1);
+			var diff = collectComponent(object.id, className, index, component);
+			if (diff != null) {
+				components.push({type: className, index: index, fields: diff});
+			}
+		}
+		if (components.length > 0) {
+			changed.push({id: object.id, components: components});
+		}
+	}
+
+	function collectComponent(id:String, className:String, index:Int, component:fried.scene.Component):Null<Dynamic> {
+		var type = ComponentRegistry.get(className);
 		if (type == null) {
-			return;
+			return null;
 		}
 		var shown = shownFields.get(className);
 		if (shown == null) {
-			// Pictures, fonts and references to other nodes do not come back from the node as what the file spelled, so they are left to the file.
+			// Pictures, fonts and references to other objects do not come back from the component as what the file spelled, so they are left to the file.
 			shown = new Map();
-			for (step in NodeRegistry.chain(className)) {
+			for (step in ComponentRegistry.chain(className)) {
 				for (info in step.fields) {
 					shown.set(info.name, info.kind != TextureRef && info.kind != FontRef && info.kind != ObjectRef);
 				}
 			}
 			shownFields.set(className, shown);
 		}
-		var values = type.read(node);
-		var known = sentFields.get(node.id);
+		var values = type.read(component);
+		var key = '$id/$className/$index';
+		var known = sentFields.get(key);
 		if (known == null) {
 			known = new Map();
-			sentFields.set(node.id, known);
+			sentFields.set(key, known);
 		}
 		var diff = {};
 		var isChanged = false;
@@ -166,9 +185,7 @@ class PlayRunner extends BootObserver {
 				isChanged = true;
 			}
 		}
-		if (isChanged) {
-			changed.push({id: node.id, fields: diff});
-		}
+		return isChanged ? diff : null;
 	}
 
 	override function sceneLoaded(context:SceneContext, loaded:Scene):Void {
@@ -239,9 +256,9 @@ class PlayRunner extends BootObserver {
 	}
 
 	function handle(message:Dynamic):Void {
-		// A node the editor changed is sent whole again, so the editor sees what the game made of it.
+		// An object the editor changed is sent whole again, so the editor sees what the game made of it.
 		if (message.type == "setField") {
-			sentFields.remove(message.id);
+			forget(message.id);
 		}
 		if (scene != null && SceneEdits.apply(scene, Bootstrap.renderer, message)) {
 			return;
@@ -276,7 +293,7 @@ class PlayRunner extends BootObserver {
 					sentFields = new Map();
 				}
 				if (message.selected != watchedId) {
-					sentFields.remove(message.selected);
+					forget(message.selected);
 				}
 				isWatchingAll = all;
 				watchedId = message.selected;
@@ -301,7 +318,7 @@ class PlayRunner extends BootObserver {
 				isShowing = message.visible == true;
 			case "quit":
 				Application.quit();
-			case "setField", "addNode", "removeNode", "moveNode":
+			case "setField", "addObject", "removeObject", "moveObject", "addComponent", "removeComponent":
 				throw "The game has no scene on screen.";
 			case other:
 				throw 'Unknown request "$other".';
@@ -320,7 +337,7 @@ class PlayRunner extends BootObserver {
 				fps: statsFrames / elapsed,
 				frameMs: elapsed / statsFrames * 1000.0,
 				workMs: statsWorkSeconds / statsFrames * 1000.0,
-				nodes: scene != null ? countNodes(scene.root) : 0
+				objects: scene != null ? countObjects(scene.root) : 0
 			};
 			#if fried_profile
 			stats.sections = [for (section in 0...Profile.SECTIONS) Profile.average(section) / 1000.0];
@@ -359,10 +376,19 @@ class PlayRunner extends BootObserver {
 		return true;
 	}
 
-	function countNodes(parent:fried.scene.Node):Int {
+	function forget(id:String):Void {
+		var prefix = id + "/";
+		for (key in sentFields.keys()) {
+			if (StringTools.startsWith(key, prefix)) {
+				sentFields.remove(key);
+			}
+		}
+	}
+
+	function countObjects(parent:Transform):Int {
 		var count = 0;
-		for (node in parent.children) {
-			count += 1 + countNodes(node);
+		for (child in parent.children) {
+			count += 1 + countObjects(child);
 		}
 		return count;
 	}

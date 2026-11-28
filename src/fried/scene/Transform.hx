@@ -3,6 +3,7 @@ package fried.scene;
 // The place of a game object in the scene: its parent and children, and where it is in the world. This one has no position of its own, and the classes under it add the kind a place has.
 @:serializable
 @:allow(fried.scene)
+@:allow(fried.editor)
 class Transform extends Component {
 	@:noSerialize public var parent(default, null):Null<Transform>;
 	@:noSerialize public var childCount(get, never):Int;

@@ -3,18 +3,19 @@ package fried.editor;
 #if fried_editor
 import fried.graphics3d.Rotation;
 import fried.scene.Camera3D;
-import fried.scene.MeshInstance3D;
-import fried.scene.Node3D;
+import fried.scene.GameObject;
+import fried.scene.MeshRenderer;
+import fried.scene.Transform3D;
 
-// Where a Node3D lands on the frame through the editor's 3D camera: the box a click on it is tested against, its distance, its origin, and where one more unit of each of its coordinates would land, which is what a gizmo's arrows follow.
+// Where an object with a Transform3D lands on the frame through the editor's 3D camera: the box a click on it is tested against, its distance, its origin, and where one more unit of each of its coordinates would land, which is what a gizmo's arrows follow.
 class EditorBounds3D {
 	static inline var MARKER_SIZE:Float = 16.0;
 
 	static var turn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 	static var parentTurn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
-	// Null when the node's origin is nearer than the camera's near plane.
-	public static function of(node:Node3D, camera:Camera3D, width:Float, height:Float):Null<Dynamic> {
+	// Null when the object's origin is nearer than the camera's near plane.
+	public static function of(object:GameObject, node:Transform3D, camera:Camera3D, width:Float, height:Float):Null<Dynamic> {
 		if (!camera.project(node.worldX, node.worldY, node.worldZ, width, height)) {
 			return null;
 		}
@@ -26,7 +27,7 @@ class EditorBounds3D {
 		var top = originY - MARKER_SIZE / 2;
 		var right = originX + MARKER_SIZE / 2;
 		var bottom = originY + MARKER_SIZE / 2;
-		var instance = Std.downcast(node, MeshInstance3D);
+		var instance = object.getComponent(MeshRenderer);
 		if (instance != null && instance.mesh != null) {
 			var mesh = instance.mesh;
 			Rotation.toMatrix(node.worldRotationX, node.worldRotationY, node.worldRotationZ, turn);
@@ -57,7 +58,7 @@ class EditorBounds3D {
 		}
 
 		return {
-			id: node.id,
+			id: object.id,
 			x: left,
 			y: top,
 			width: right - left,
@@ -72,9 +73,9 @@ class EditorBounds3D {
 		};
 	}
 
-	// The node's x, y and z are in the space of its parent, so one more unit of each goes along the parent's axes, as long and as turned as the parent makes them. Empty when any of them falls behind the camera.
-	static function axesOf(node:Node3D, camera:Camera3D, width:Float, height:Float):Array<Dynamic> {
-		var parent = Std.downcast(node.parent, Node3D);
+	// The transform's x, y and z are in the space of its parent, so one more unit of each goes along the parent's axes, as long and as turned as the parent makes them. Empty when any of them falls behind the camera.
+	static function axesOf(node:Transform3D, camera:Camera3D, width:Float, height:Float):Array<Dynamic> {
+		var parent = Std.downcast(node.parent, Transform3D);
 		var scaleX = 1.0;
 		var scaleY = 1.0;
 		var scaleZ = 1.0;

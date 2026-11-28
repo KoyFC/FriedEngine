@@ -3,55 +3,62 @@ package fried.editor;
 #if fried_editor
 import fried.physics.Collider;
 import fried.scene.Camera;
-import fried.scene.CanvasItem;
-import fried.scene.Control;
-import fried.scene.Sprite;
+import fried.scene.GameObject;
+import fried.scene.RectTransform;
+import fried.scene.SpriteRenderer;
 import fried.scene.Tilemap;
+import fried.scene.Transform;
 
 typedef Box = {x:Float, y:Float, width:Float, height:Float}
 
-// The box a node takes up in the world, which is what a click on it is tested against.
+// The box an object takes up in the world, which is what a click on it is tested against.
 class EditorBounds {
 	static inline var MARKER_SIZE:Float = 16.0;
 
-	public static function of(node:CanvasItem):Box {
-		var control = Std.downcast(node, Control);
+	public static function of(object:GameObject):Box {
+		var place = object.transform;
+		var control = Std.downcast(place, RectTransform);
 		if (control != null) {
 			return box(control.worldX, control.worldY, control.rectWidth, control.rectHeight);
 		}
-		var sprite = Std.downcast(node, Sprite);
+		var sprite = object.getComponent(SpriteRenderer);
 		if (sprite != null && sprite.texture != null) {
 			var width = sprite.source != null ? sprite.source.width : sprite.texture.width;
 			var height = sprite.source != null ? sprite.source.height : sprite.texture.height;
-			return box(sprite.worldX, sprite.worldY, width * sprite.worldScaleX, height * sprite.worldScaleY);
+			return box(place.worldX, place.worldY, width * place.worldScaleX, height * place.worldScaleY);
 		}
-		var tilemap = Std.downcast(node, Tilemap);
+		var tilemap = object.getComponent(Tilemap);
 		if (tilemap != null) {
-			return box(tilemap.worldX, tilemap.worldY, tilemap.mapWidth * tilemap.tileWidth * tilemap.worldScaleX, tilemap.mapHeight * tilemap.tileHeight * tilemap.worldScaleY);
+			return box(place.worldX, place.worldY, tilemap.mapWidth * tilemap.tileWidth * place.worldScaleX, tilemap.mapHeight * tilemap.tileHeight * place.worldScaleY);
 		}
-		var collider = Std.downcast(node, Collider);
+		var collider = object.getComponent(Collider);
 		if (collider != null) {
 			return box(collider.left, collider.top, collider.right - collider.left, collider.bottom - collider.top);
 		}
-		// A node of the game that has a size of its own, such as a box, is measured by it.
-		var width:Dynamic = Reflect.field(node, "width");
-		var height:Dynamic = Reflect.field(node, "height");
-		if (Std.isOfType(width, Int) && Std.isOfType(height, Int)) {
-			return box(node.worldX, node.worldY, (width : Float) * node.worldScaleX, (height : Float) * node.worldScaleY);
+		// A component of the game that has a size of its own, such as a box, is measured by it.
+		for (component in object.getComponents(fried.scene.Component)) {
+			var width:Dynamic = Reflect.field(component, "width");
+			var height:Dynamic = Reflect.field(component, "height");
+			if (Std.isOfType(width, Int) && Std.isOfType(height, Int)) {
+				return box(place.worldX, place.worldY, (width : Float) * place.worldScaleX, (height : Float) * place.worldScaleY);
+			}
 		}
-		if (Std.isOfType(node, Camera)) {
-			return box(node.worldX - MARKER_SIZE / 2, node.worldY - MARKER_SIZE / 2, MARKER_SIZE, MARKER_SIZE);
+		if (object.getComponent(Camera) != null) {
+			return box(place.worldX - MARKER_SIZE / 2, place.worldY - MARKER_SIZE / 2, MARKER_SIZE, MARKER_SIZE);
 		}
-		return box(node.worldX, node.worldY, MARKER_SIZE, MARKER_SIZE);
+		return box(place.worldX, place.worldY, MARKER_SIZE, MARKER_SIZE);
 	}
 
-	// What the nearest ancestor that is drawn gives a node, so the editor can turn a world position into the node's own.
-	public static function parentOf(node:CanvasItem):Null<Dynamic> {
-		var parent = Std.downcast(node.parent, CanvasItem);
+	// What the nearest ancestor that is placed on the plane gives an object, so the editor can turn a world position into the object's own.
+	public static function parentOf(object:GameObject):Null<Dynamic> {
+		var parent:Null<Transform> = object.transform.parent;
+		while (parent != null && !parent.isPlaced2D()) {
+			parent = parent.parent;
+		}
 		if (parent == null) {
 			return null;
 		}
-		var control = Std.downcast(parent, Control);
+		var control = Std.downcast(parent, RectTransform);
 		return {
 			x: parent.worldX,
 			y: parent.worldY,
