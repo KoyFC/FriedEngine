@@ -61,6 +61,7 @@ class Scene {
 	var updateList:Array<Component>;
 	var fixedUpdateList:Array<Component>;
 	var bodyList:Array<KinematicBody>;
+	var steppers:Array<SceneStepper>;
 	var drawList:Array<Component>;
 	var meshList:Array<MeshRenderer>;
 	var lightList:Array<Light>;
@@ -92,6 +93,7 @@ class Scene {
 		canvasBuckets = [];
 		colliders = [];
 		colliderGrid = new ColliderGrid();
+		steppers = [];
 		areListsDirty = false;
 		areCollidersDirty = false;
 		isEventOrderDirty = false;
@@ -331,6 +333,21 @@ class Scene {
 		simulate(delta);
 	}
 
+	// Adds what a module steps with the scene, such as the world of a physics backend.
+	public function addStepper(stepper:SceneStepper):Void {
+		steppers.push(stepper);
+	}
+
+	public function findStepper<T:SceneStepper>(type:Class<T>):Null<T> {
+		for (stepper in steppers) {
+			var found = Std.downcast(stepper, type);
+			if (found != null) {
+				return found;
+			}
+		}
+		return null;
+	}
+
 	// Moves every body by its velocity once the fixed updates have set them. A body that is switched off does not move, and one that moved earlier is an obstacle to the ones after it.
 	function simulate(delta:Float):Void {
 		if (areListsDirty) {
@@ -345,6 +362,9 @@ class Scene {
 				body.step(delta);
 			}
 			index++;
+		}
+		for (stepper in steppers) {
+			stepper.step(delta);
 		}
 	}
 
@@ -487,6 +507,10 @@ class Scene {
 		camera = null;
 		camera3D = null;
 		colliderGrid.dispose();
+		for (stepper in steppers) {
+			stepper.dispose();
+		}
+		steppers.resize(0);
 	}
 
 	static function byCanvasLayer(first:CanvasBucket, second:CanvasBucket):Int {

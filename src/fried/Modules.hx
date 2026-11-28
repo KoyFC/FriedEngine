@@ -105,9 +105,11 @@ class Modules {
 		for (module in Reflect.fields(manifest())) {
 			var backends = backendsOf(module);
 			for (backend in Reflect.fields(backends)) {
-				var components:Dynamic = Reflect.field(Reflect.field(backends, backend), "components");
-				if (Std.isOfType(components, Array) && (components : Array<String>).indexOf(component) >= 0) {
-					return {module: module, backend: backend};
+				for (list in ["components", "classes"]) {
+					var names:Dynamic = Reflect.field(Reflect.field(backends, backend), list);
+					if (Std.isOfType(names, Array) && (names : Array<String>).indexOf(component) >= 0) {
+						return {module: module, backend: backend};
+					}
 				}
 			}
 		}

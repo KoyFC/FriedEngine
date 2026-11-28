@@ -354,6 +354,8 @@ class EditorPlayer {
 		"Camera" => "Transform2D",
 		"Collider" => "Transform2D",
 		"KinematicBody" => "Transform2D",
+		"RigidBody2D" => "Transform2D",
+		"Shape2D" => "Transform2D",
 		"Tilemap" => "Transform2D",
 		"Label" => "RectTransform",
 		"TextureRect" => "RectTransform",

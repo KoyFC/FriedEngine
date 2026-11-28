@@ -9,6 +9,7 @@
       "box2d": {
         "platforms": ["pc", "vita", "switch", "3ds", "web", "android"],
         "components": ["RigidBody2D", "BoxShape2D", "CircleShape2D", "CapsuleShape2D", "PolygonShape2D"],
+        "classes": ["Shape2D", "Physics2D", "Physics2DWorld", "Box2DNative", "RaycastHit2D"],
         "native": "box2d"
       }
     }

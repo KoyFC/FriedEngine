@@ -8,6 +8,7 @@ import fried.graphics3d.Material;
 import fried.graphics3d.Mesh;
 import fried.graphics3d.MeshFile;
 import fried.graphics3d.PlaneOrientation;
+import fried.physics2d.BodyType;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
 import fried.ui.HtmlSource;
@@ -17,6 +18,7 @@ import fried.ui.StyleSheet;
 class FieldCodec {
 	static var flipNames:Array<String> = ["None", "Horizontal", "Vertical", "Both"];
 	static var orientationNames:Array<String> = ["FaceX", "FaceY", "FaceZ"];
+	static var bodyTypeNames:Array<String> = ["Static", "Kinematic", "Dynamic"];
 
 	public static function has(data:Dynamic, name:String):Bool {
 		return data != null && Reflect.hasField(data, name);
@@ -34,6 +36,7 @@ class FieldCodec {
 		return switch (kind) {
 			case Flip: flipNames.copy();
 			case Orientation: orientationNames.copy();
+			case Body: bodyTypeNames.copy();
 			case _: [];
 		}
 	}
@@ -100,6 +103,15 @@ class FieldCodec {
 			case "FaceY": PlaneOrientation.FaceY;
 			case "FaceZ": PlaneOrientation.FaceZ;
 			case _: invalid(field, "one of " + orientationNames.join(", "));
+		}
+	}
+
+	public static function toBodyType(value:Dynamic, field:String):BodyType {
+		return switch (value) {
+			case "Static": BodyType.Static;
+			case "Kinematic": BodyType.Kinematic;
+			case "Dynamic": BodyType.Dynamic;
+			case _: invalid(field, "one of " + bodyTypeNames.join(", "));
 		}
 	}
 
@@ -251,6 +263,10 @@ class FieldCodec {
 		return flipNames[cast value];
 	}
 
+	public static function fromBodyType(value:BodyType):Dynamic {
+		return bodyTypeNames[cast value];
+	}
+
 	public static function fromOrientation(value:PlaneOrientation):Dynamic {
 		return orientationNames[cast value];
 	}
@@ -313,6 +329,10 @@ class FieldCodec {
 
 	public static function zeroFlip():FlipMode {
 		return FlipMode.None;
+	}
+
+	public static function zeroBodyType():BodyType {
+		return BodyType.Dynamic;
 	}
 
 	public static function zeroOrientation():PlaneOrientation {

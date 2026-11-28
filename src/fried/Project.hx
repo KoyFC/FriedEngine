@@ -47,6 +47,19 @@ class Project {
 		return number(["physicsRate"], 60);
 	}
 
+	// The scale of the box2d backend of physics2d, pixels to a meter, and its gravity in pixels a second squared, which points down the screen.
+	public static macro function physics2dPixelsPerMeter():ExprOf<Float> {
+		return macro $v{decimal(["physics2d", "pixelsPerMeter"], 32.0)};
+	}
+
+	public static macro function physics2dGravityX():ExprOf<Float> {
+		return macro $v{gravity(0, 0.0)};
+	}
+
+	public static macro function physics2dGravityY():ExprOf<Float> {
+		return macro $v{gravity(1, 980.0)};
+	}
+
 	// The scene the game opens with, or an empty string when project.fried names none.
 	public static macro function startScene():ExprOf<String> {
 		var node:Dynamic = read();
@@ -128,6 +141,19 @@ class Project {
 		}
 		files.sort((a, b) -> Reflect.compare(a.name, b.name));
 		return files;
+	}
+
+	static function decimal(keys:Array<String>, fallback:Float):Float {
+		var node:Dynamic = read();
+		for (key in keys) {
+			node = Reflect.isObject(node) ? Reflect.field(node, key) : null;
+		}
+		return Std.isOfType(node, Float) ? (node : Float) : fallback;
+	}
+
+	static function gravity(axis:Int, fallback:Float):Float {
+		var node:Dynamic = Reflect.field(Reflect.field(read(), "physics2d"), "gravity");
+		return Std.isOfType(node, Array) && (node : Array<Dynamic>).length == 2 && Std.isOfType((node : Array<Dynamic>)[axis], Float) ? (node : Array<Dynamic>)[axis] : fallback;
 	}
 
 	static function number(keys:Array<String>, fallback:Int):ExprOf<Int> {
