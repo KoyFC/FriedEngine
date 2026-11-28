@@ -8,6 +8,7 @@ import fried.scene.Transform2D;
 // A body whose Collider2D is a trigger is never stopped: it moves freely and `contacts` holds everything its collider overlaps that its mask names, solid or not. Any other body is stopped by the solid colliders of the layers its mask names, and `contacts` holds those that stopped it and then the triggers it overlaps. An object that moved earlier in the same step is an obstacle for those after it, in tree order.
 @:serializable
 @:allow(fried.scene)
+@:allow(fried.physics2d)
 class Body2D extends Component {
 	public var bodyType:BodyType;
 
@@ -36,6 +37,15 @@ class Body2D extends Component {
 	var target:Transform2D;
 	var collider:Collider2D;
 
+	// Where a physics world keeps the body, when the project's backend for the platform is one: its handle, the colliders waiting for it to exist, and what the object was last given or read back.
+	var world:PhysicsBackend2D;
+	var handle:Int = -1;
+	var pending:Array<Collider2D> = [];
+	var lastX:Float;
+	var lastY:Float;
+	var lastRotation:Float;
+	var wasOn:Bool;
+
 	public function new(velocityX:Single = 0.0, velocityY:Single = 0.0) {
 		super();
 		this.velocityX = velocityX;
@@ -59,6 +69,11 @@ class Body2D extends Component {
 		target = gameObject.getComponentInParent(Transform2D);
 		if (target == null) {
 			throw 'A Body2D needs a Transform2D to move, on its object or above it, and ${gameObject.name} has none.';
+		}
+		world = Physics2DBackend.of(gameObject.scene);
+		if (world != null) {
+			world.addBody(this);
+			return;
 		}
 		collider = target.gameObject.getComponent(Collider2D);
 		if (collider == null) {
@@ -85,7 +100,16 @@ class Body2D extends Component {
 		velocityY += y;
 	}
 
+	override function onDestroy():Void {
+		if (world != null) {
+			world.removeBody(this);
+		}
+	}
+
 	function step(delta:Single):Void {
+		if (world != null) {
+			return;
+		}
 		contacts.resize(0);
 		isBlockedX = false;
 		isBlockedY = false;

@@ -8,7 +8,7 @@ class RaycastHit2D {
 	public var normalX(default, null):Float;
 	public var normalY(default, null):Float;
 
-	@:allow(fried.physics2d.Physics2D)
+	@:allow(fried.physics2d)
 	function new(collider:Collider2D, distance:Float, x:Float, y:Float, normalX:Float, normalY:Float) {
 		this.collider = collider;
 		this.distance = distance;

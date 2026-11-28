@@ -140,6 +140,11 @@ class Modules {
 		return degraded != null && Reflect.hasField(degraded, platform);
 	}
 
+	// Whether the build holds the code of a backend: some platform of the project uses it, or the editor, which plays as any of them.
+	public static function isInBuild(module:String, backend:String):Bool {
+		return Context.defined("fried_editor") || isUsedAnywhere(module, backend);
+	}
+
 	// A class of a backend that no platform uses has no native code to run on, so a game that names one is refused here and not by the linker.
 	public static function checkGenerated():Void {
 		if (isChecking) {
@@ -162,6 +167,22 @@ class Modules {
 		});
 	}
 	#end
+
+	// Whether the build holds the code of a backend: some platform of the project uses it, or the editor, which plays as any of them.
+	public static macro function usesBackend(module:String, backend:String):Expr {
+		return macro $v{isInBuild(module, backend)};
+	}
+
+	// The backend of each module on each platform the project declares.
+	public static macro function backendsByPlatform():Expr {
+		var entries = [];
+		for (platform => chosen in resolved()) {
+			for (module => backend in chosen) {
+				entries.push({platform: platform, module: module, backend: backend});
+			}
+		}
+		return macro $v{entries};
+	}
 
 	// For each platform the project declares, the components of the backends it does not use there.
 	public static macro function leftOutByPlatform():Expr {

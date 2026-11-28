@@ -15,6 +15,7 @@
           "android"
         ],
         "classes": [
+          "Box2DWorld",
           "Box2DNative"
         ],
         "native": "box2d"

@@ -42,6 +42,11 @@ class Collider2D extends Renderer2D {
 	var debugRect:Rect;
 	var place:Transform2D;
 
+	// Where a physics world keeps the collider, when the project's backend for the platform is one: the body it is part of, if any, and its shape.
+	var world:PhysicsBackend2D;
+	var body:Body2D;
+	var shapeHandle:Int = -1;
+
 	static var boundsValues:Array<Int> = [0, 0, 0, 0];
 
 	// The box in world space as integers, in 20.12 (see FixedPoint), worked out when read and again only after the node, an ancestor or the size changed. A query compares these and does no arithmetic on a Single for every candidate, which is a call into software floating point on the DS.
@@ -94,6 +99,13 @@ class Collider2D extends Renderer2D {
 	override function awake():Void {
 		place = need(Transform2D);
 		place.collider = this;
+	}
+
+	override function start():Void {
+		world = Physics2DBackend.of(gameObject.scene);
+		if (world != null) {
+			world.addCollider(this);
+		}
 	}
 
 	function moved():Void {
@@ -198,6 +210,9 @@ class Collider2D extends Renderer2D {
 	}
 
 	override function onDestroy():Void {
+		if (world != null) {
+			world.removeCollider(this);
+		}
 		debugRect = null;
 		if (place != null && place.collider == this) {
 			place.collider = null;
@@ -209,6 +224,9 @@ class Collider2D extends Renderer2D {
 		boundsDirty = true;
 		exactDirty = true;
 		queueForGrid();
+		if (world != null) {
+			world.rebuildCollider(this);
+		}
 		return value;
 	}
 
@@ -217,6 +235,9 @@ class Collider2D extends Renderer2D {
 		boundsDirty = true;
 		exactDirty = true;
 		queueForGrid();
+		if (world != null) {
+			world.rebuildCollider(this);
+		}
 		return value;
 	}
 

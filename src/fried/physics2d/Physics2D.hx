@@ -12,6 +12,10 @@ class Physics2D {
 		if (scene == null) {
 			return null;
 		}
+		var world = Physics2DBackend.of(scene);
+		if (world != null) {
+			return firstFromWorld(world, x, y, 0.0, 0.0, ignore);
+		}
 		var pointX = FixedPoint.point(x);
 		var pointY = FixedPoint.point(y);
 		var count = scene.colliderOverlaps(pointX, pointY, pointX + 1, pointY + 1);
@@ -32,6 +36,10 @@ class Physics2D {
 		if (scene == null) {
 			return null;
 		}
+		var world = Physics2DBackend.of(scene);
+		if (world != null) {
+			return firstFromWorld(world, x, y, width, height, ignore);
+		}
 		var boxLeft = FixedPoint.low(x, width, ONE);
 		var boxRight = FixedPoint.high(x, width, ONE);
 		var boxTop = FixedPoint.low(y, height, ONE);
@@ -42,6 +50,10 @@ class Physics2D {
 	public static function overlapCollider(scene:Scene, collider:Collider2D):Null<Collider2D> {
 		if (collider == null || scene == null) {
 			return null;
+		}
+		var world = Physics2DBackend.of(scene);
+		if (world != null) {
+			return firstFromWorld(world, collider.left, collider.top, collider.right - collider.left, collider.bottom - collider.top, collider);
 		}
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
@@ -69,10 +81,30 @@ class Physics2D {
 		return null;
 	}
 
+	// What the scene's physics world finds in a box, the first one that is not the one to ignore.
+	static function firstFromWorld(world:PhysicsBackend2D, x:Float, y:Float, width:Float, height:Float, ignore:Collider2D):Null<Collider2D> {
+		var found:Array<Collider2D> = [];
+		world.overlapBox(x, y, width, height, found);
+		for (collider in found) {
+			if (collider != ignore) {
+				return collider;
+			}
+		}
+		return null;
+	}
+
 	public static function overlapBoxAll(scene:Scene, x:Single, y:Single, width:Single, height:Single, results:Array<Collider2D>, ?ignore:Collider2D):Int {
 		results.resize(0);
 		if (scene == null) {
 			return 0;
+		}
+		var world = Physics2DBackend.of(scene);
+		if (world != null) {
+			world.overlapBox(x, y, width, height, results);
+			if (ignore != null) {
+				results.remove(ignore);
+			}
+			return results.length;
 		}
 		var boxLeft = FixedPoint.low(x, width, ONE);
 		var boxRight = FixedPoint.high(x, width, ONE);
@@ -101,6 +133,12 @@ class Physics2D {
 		}
 		if (maxDistance <= 0.0 || scene == null) {
 			return null;
+		}
+
+		var world = Physics2DBackend.of(scene);
+		if (world != null) {
+			var found = world.raycast(originX, originY, directionX, directionY, maxDistance);
+			return found != null && found.collider == ignore ? null : found;
 		}
 
 		var unitX = directionX / length;

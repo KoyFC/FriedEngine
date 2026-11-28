@@ -45,7 +45,9 @@ platforms:
   cg50: {}
   nds:
     lto: true
-  pc: {}
+  pc:
+    modules:
+      physics2d: box2d
   switch: {}
   vita:
     titleId: FRIE00001
