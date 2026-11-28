@@ -45,7 +45,7 @@ class Scene {
 	public var isCanvasInWorld:Bool = false;
 	#end
 
-	public var nodeCount(default, null):Int;
+	public var objectCount(default, null):Int;
 
 	// The size of the view the scene is drawn to, which a node reads instead of holding the renderer. Zero until the scene has been given one.
 	public var viewWidth(default, null):Int;
@@ -79,7 +79,7 @@ class Scene {
 		this.name = name;
 		viewWidth = 0;
 		viewHeight = 0;
-		nodeCount = 0;
+		objectCount = 0;
 		byId = new Map();
 		updateList = [];
 		fixedUpdateList = [];
@@ -181,7 +181,7 @@ class Scene {
 		if (node.id != "" && node.scopeOwner == null) {
 			byId.set(node.id, node);
 		}
-		nodeCount++;
+		objectCount++;
 		areListsDirty = true;
 		areCollidersDirty = true;
 	}
@@ -191,7 +191,7 @@ class Scene {
 		if (node.id != "" && node.scopeOwner == null && byId.get(node.id) == node) {
 			byId.remove(node.id);
 		}
-		nodeCount--;
+		objectCount--;
 		areListsDirty = true;
 		areCollidersDirty = true;
 	}

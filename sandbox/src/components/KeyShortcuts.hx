@@ -1,16 +1,16 @@
-package nodes;
+package components;
 
 import fried.input.InputEvent;
 import fried.input.InputEventType;
 import fried.input.Key;
-import fried.scene.Node;
+import fried.scene.Component;
 
-class KeyShortcuts extends Node {
+class KeyShortcuts extends Component {
 	var keys:Array<Key>;
 	var actions:Array<Void->Void>;
 
 	public function new() {
-		super("KeyShortcuts");
+		super();
 		keys = [];
 		actions = [];
 	}

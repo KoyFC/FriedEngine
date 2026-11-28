@@ -1,4 +1,4 @@
-package nodes;
+package components;
 
 import debug.DebugOverlay;
 import fried.Application;
@@ -22,13 +22,13 @@ import fried.input.MouseButton;
 import fried.io.Assets;
 import fried.io.Filesystem;
 import fried.io.UserData;
-import fried.scene.Node;
+import fried.scene.Component;
 import fried.scene.Scene;
 import fried.scene.SceneManager;
 
 // What the whole sandbox needs and no one scene owns, kept as an autoload so it outlives a change of scene: the logs of a startup, music, sound, the debug overlay, the window shortcuts and the input map the scenes read.
 @:serializable
-class SandboxShell extends Node {
+class SandboxShell extends Component {
 	var window:Window;
 	var renderer:Renderer;
 	var secondWindow:Window;
@@ -56,15 +56,11 @@ class SandboxShell extends Node {
 		return SceneManager.autoload("SandboxShell").getById("SandboxShell", SandboxShell);
 	}
 
-	public function new() {
-		super("SandboxShell");
-	}
-
 	function get_runCount():Int {
 		return runs;
 	}
 
-	override function ready():Void {
+	override function start():Void {
 		window = Bootstrap.window;
 		renderer = Bootstrap.renderer;
 
@@ -203,7 +199,7 @@ class SandboxShell extends Node {
 		}
 	}
 
-	override function destroyed():Void {
+	override function onDestroy():Void {
 		Log.info('Draw queue pool ended at ${DrawQueue.capacity} commands');
 		if (secondRenderer != null) {
 			Application.destroyRenderer(secondRenderer);

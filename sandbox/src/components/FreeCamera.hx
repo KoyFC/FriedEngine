@@ -1,4 +1,4 @@
-package nodes;
+package components;
 
 import fried.Time;
 import fried.input.GamepadAxis;
@@ -6,32 +6,32 @@ import fried.input.Input;
 import fried.input.GamepadButton;
 import fried.input.Key;
 import fried.input.MouseButton;
-import fried.scene.Camera3D;
-import fried.scene.Node;
+import fried.scene.Component;
+import fried.scene.Transform3D;
 
-// Flies the Camera3D it is a child of. Turning is J and L, the right stick, the pointer with the right mouse button held, or the face buttons (West and East turn, North and South tilt), which are what a console without a second stick has. I and K tilt, and W, S, A and D or the left stick move it along where it looks and across.
+// Flies the Transform3D it is on, or below. Turning is J and L, the right stick, the pointer with the right mouse button held, or the face buttons (West and East turn, North and South tilt), which are what a console without a second stick has. I and K tilt, and W, S, A and D or the left stick move it along where it looks and across.
 @:serializable
-class FreeCamera extends Node {
+class FreeCamera extends Component {
 	static inline var TURN_SPEED = 60.0;
 	static inline var MOVE_SPEED = 5.0;
 	static inline var DEADZONE = 0.2;
 	static inline var MAX_TILT = 89.0;
 	static inline var DEGREES_PER_PIXEL = 0.3;
 
-	var target:Null<Camera3D>;
+	var target:Null<Transform3D>;
 	var isLooking:Bool;
 	var lastPointerX:Int;
 	var lastPointerY:Int;
 
 	public function new() {
-		super("FreeCamera");
+		super();
 		isLooking = false;
 		lastPointerX = 0;
 		lastPointerY = 0;
 	}
 
-	override function ready():Void {
-		target = findParent(Camera3D);
+	override function start():Void {
+		target = gameObject.getComponentInParent(Transform3D);
 	}
 
 	override function update(delta:Float):Void {

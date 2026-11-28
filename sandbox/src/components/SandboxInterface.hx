@@ -1,16 +1,16 @@
-package nodes;
+package components;
 
 import fried.Bootstrap;
 import fried.Log;
-import fried.scene.CanvasLayer;
+import fried.scene.Component;
 import fried.scene.Label;
 
-// The sandbox's interface, a scene of its own that the world scene instances: the hints and the icons down the right edge.
+// The sandbox's interface, a scene of its own that the world scene instances: the hints and the icons down the right edge. Its object has the Canvas that draws it.
 @:serializable
-class SandboxInterface extends CanvasLayer {
+class SandboxInterface extends Component {
 	static inline var ICON_SIZE = 64;
 
-	override function ready():Void {
+	override function start():Void {
 		var shell = SandboxShell.of();
 		var renderer = Bootstrap.renderer;
 		var hints = [
@@ -29,15 +29,15 @@ class SandboxInterface extends CanvasLayer {
 		];
 
 		// The hints stop short of the icons down the right edge, so a narrow screen stacks more lines.
-		var hintText = getById("hints", Label);
+		var hintText = gameObject.getById("hints", Label);
 		hintText.font = shell.font;
 		hintText.text = hints.join("   ");
 		hintText.maxWidth = renderer.width - ICON_SIZE - 16 * 3;
-		var panel = getById("hint-panel", HintPanel);
+		var panel = gameObject.getById("hint-panel", HintPanel);
 		panel.width = hintText.textWidth + 8;
 		panel.height = hintText.textHeight + 8;
 		Log.info('The hints take ${hintText.textHeight / shell.font.lineHeight} lines, ${hintText.textWidth}x${hintText.textHeight}, before a frame has drawn them');
 
-		getById("region-label", Label).font = shell.font;
+		gameObject.getById("region-label", Label).font = shell.font;
 	}
 }

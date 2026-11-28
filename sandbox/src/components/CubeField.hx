@@ -1,13 +1,15 @@
-package nodes;
+package components;
 
 import fried.graphics3d.Mesh;
-import fried.scene.MeshInstance3D;
-import fried.scene.Node3D;
+import fried.scene.Component;
+import fried.scene.GameObject;
+import fried.scene.MeshRenderer;
+import fried.scene.Transform3D;
 import scene3d.CubeMesh;
 
 // A field of spinning cubes in front of the scene's 3D camera, laid out at the size of the scene's view so the editor shows it too. It sits where the camera looks, DISTANCE away from it.
 @:serializable
-class CubeField extends Node3D {
+class CubeField extends Component {
 	public static inline var MIN_CUBES = 1;
 	public static inline var MAX_CUBES = 16384;
 
@@ -23,14 +25,13 @@ class CubeField extends Node3D {
 	var viewHeight:Int;
 	var fieldOfView:Float;
 	var mesh:Mesh;
-	var cubes:Array<MeshInstance3D>;
+	var place:Transform3D;
+	var cubes:Array<Transform3D>;
 	var spinSpeedsX:Array<Float>;
 	var spinSpeedsY:Array<Float>;
 
 	public function new(cubeCount:Int = 16) {
 		super();
-		name = "CubeField";
-		z = DISTANCE;
 		viewWidth = 0;
 		viewHeight = 0;
 		fieldOfView = 60.0;
@@ -46,24 +47,36 @@ class CubeField extends Node3D {
 		cubeCount = count;
 	}
 
+	override function awake():Void {
+		place = need(Transform3D);
+		build();
+	}
+
 	function set_cubeCount(count:Int):Int {
 		cubeCount = Std.int(Math.max(MIN_CUBES, Math.min(MAX_CUBES, count)));
+		if (place != null) {
+			build();
+		}
+		return cubeCount;
+	}
+
+	function build():Void {
 		while (cubes.length < cubeCount) {
-			var cube = new MeshInstance3D();
-			cube.mesh = mesh;
-			addChild(cube);
-			cubes.push(cube);
+			var object = new GameObject("Cube", new Transform3D());
+			var renderer = object.addComponent(new MeshRenderer());
+			renderer.mesh = mesh;
+			object.transform.setParent(place);
+			cubes.push(cast object.transform);
 			spinSpeedsX.push(30.0 + (cubes.length * 17) % 60);
 			spinSpeedsY.push(40.0 + (cubes.length * 29) % 70);
 		}
 		while (cubes.length > cubeCount) {
-			cubes.pop().destroy();
+			cubes.pop().gameObject.destroy();
 			spinSpeedsX.pop();
 			spinSpeedsY.pop();
 		}
 		layOut();
 		spin();
-		return cubeCount;
 	}
 
 	function set_age(seconds:Float):Float {
@@ -80,6 +93,10 @@ class CubeField extends Node3D {
 	}
 
 	function followView():Void {
+		if (place == null) {
+			return;
+		}
+		var scene = gameObject.scene;
 		var camera = scene.camera3D;
 		var fieldOfViewNow = camera != null ? camera.fieldOfView : 60.0;
 		if (scene.viewWidth != viewWidth || scene.viewHeight != viewHeight || fieldOfViewNow != fieldOfView) {

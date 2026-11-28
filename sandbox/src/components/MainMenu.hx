@@ -1,4 +1,4 @@
-package nodes;
+package components;
 
 import fried.Log;
 import fried.scene.SceneManager;
@@ -20,8 +20,8 @@ class MainMenu extends UIDocument {
 		SandboxShell.of().playSound();
 	}
 
-	override function ready():Void {
-		super.ready();
+	override function start():Void {
+		super.start();
 		quit.disabled = true;
 	}
 }

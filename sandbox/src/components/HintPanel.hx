@@ -1,9 +1,9 @@
-package nodes;
+package components;
 
 import fried.Log;
+import fried.graphics.Color;
 import fried.input.InputEvent;
 import fried.input.InputEventType;
-import fried.graphics.Color;
 import fried.input.MouseButton;
 
 // A box of the interface that takes the presses on it, so the world below never sees them.
@@ -11,7 +11,6 @@ import fried.input.MouseButton;
 class HintPanel extends Box {
 	public function new(width:Int, height:Int, fillColor:Color, borderColor:Color) {
 		super(width, height, fillColor, borderColor);
-		name = "HintPanel";
 	}
 
 	override function onEvent(event:InputEvent):Void {
@@ -23,7 +22,7 @@ class HintPanel extends Box {
 		if (!isClick && !isFrontTouch) {
 			return;
 		}
-		if (event.x < x || event.y < y || event.x >= x + width || event.y >= y + height) {
+		if (event.x < place.x || event.y < place.y || event.x >= place.x + width || event.y >= place.y + height) {
 			return;
 		}
 		event.handled = true;

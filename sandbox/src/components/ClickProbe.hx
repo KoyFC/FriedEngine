@@ -1,4 +1,4 @@
-package nodes;
+package components;
 
 import fried.Log;
 import fried.input.InputEvent;
@@ -6,14 +6,14 @@ import fried.input.InputEventType;
 import fried.input.MouseButton;
 import fried.physics.Collider;
 import fried.physics.Physics;
-import fried.scene.Node;
+import fried.scene.Component;
 
 // Reports what a click or a touch of the world lands on and what stands between it and the player, which is what the physics queries are for.
-class ClickProbe extends Node {
+class ClickProbe extends Component {
 	var player:Collider;
 
 	public function new(player:Collider) {
-		super("ClickProbe");
+		super();
 		this.player = player;
 	}
 
@@ -26,6 +26,7 @@ class ClickProbe extends Node {
 		if (!isClick && !isFrontTouch) {
 			return;
 		}
+		var scene = gameObject.scene;
 		var camera = scene.camera;
 		var worldX = camera.screenToWorldX(event.x);
 		var worldY = camera.screenToWorldY(event.y);
@@ -45,8 +46,9 @@ class ClickProbe extends Node {
 		Log.info('The line of sight stops on ${ownerName(hit.collider)} after ${hit.distance} of $reach units, at ${hit.x}, ${hit.y}, face normal ${hit.normalX}, ${hit.normalY}');
 	}
 
-	// A collider is named for the node it belongs to, which is its parent.
+	// A collider is named for the object it belongs to, which is the parent of its own.
 	function ownerName(collider:Collider):String {
-		return collider.parent != null ? collider.parent.name : collider.name;
+		var parent = collider.transform.parent;
+		return parent != null ? parent.gameObject.name : collider.gameObject.name;
 	}
 }
