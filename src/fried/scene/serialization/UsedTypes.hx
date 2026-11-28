@@ -7,9 +7,9 @@ import haxe.macro.Context;
 class UsedTypes {
 	static var cached:Null<Map<String, Bool>>;
 
-	// Null when every type has to be registered: the editor, text scenes, -D fried_all_nodes or no project file to read.
+	// Null when every type has to be registered: the editor, text scenes, -D fried_all_components or no project file to read.
 	public static function names():Null<Map<String, Bool>> {
-		if (Context.defined("fried_editor") || Context.defined("fried_text_scenes") || Context.defined("fried_all_nodes") || !Project.projectExists()) {
+		if (Context.defined("fried_editor") || Context.defined("fried_text_scenes") || Context.defined("fried_all_components") || !Project.projectExists()) {
 			return null;
 		}
 		if (cached == null) {
