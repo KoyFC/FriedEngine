@@ -56,20 +56,7 @@ class Project {
 
 	// The scenes loaded once at startup and kept for as long as the game runs, in the order project.fried lists them.
 	public static macro function autoloadNames():ExprOf<Array<String>> {
-		var node:Dynamic = read();
-		var list:Dynamic = Reflect.field(node, "autoload");
-		var names:Array<String> = [];
-		if (Std.isOfType(list, Array)) {
-			for (name in (list : Array<Dynamic>)) {
-				if (!Std.isOfType(name, String)) {
-					Context.error('The "autoload" of $filePath must list scene names.', Context.currentPos());
-				}
-				names.push(name);
-			}
-		} else if (list != null) {
-			Context.error('The "autoload" of $filePath must be a list of scene names.', Context.currentPos());
-		}
-		return macro $v{names};
+		return macro $v{autoloadList()};
 	}
 
 	// The `input` block as JSON text, empty when project.fried declares none. A mistake in it is an error of the build, with the place it is at, so a game never starts with an action it cannot read.
@@ -88,9 +75,41 @@ class Project {
 
 	// The names of the scene files in assets/scenes, which is how the engine finds scenes without listing a folder on a console.
 	public static macro function sceneNames():ExprOf<Array<String>> {
+		return macro $v{[for (file in sceneFiles()) file.name]};
+	}
+
+	#if macro
+	public static function projectExists():Bool {
+		return sys.FileSystem.exists(projectPath());
+	}
+
+	static function projectPath():String {
+		var overridden = Context.definedValue("fried-project");
+		return overridden != null ? overridden : "project.fried";
+	}
+
+	public static function autoloadList():Array<String> {
+		var node:Dynamic = read();
+		var list:Dynamic = Reflect.field(node, "autoload");
+		var names:Array<String> = [];
+		if (Std.isOfType(list, Array)) {
+			for (name in (list : Array<Dynamic>)) {
+				if (!Std.isOfType(name, String)) {
+					Context.error('The "autoload" of $filePath must list scene names.', Context.currentPos());
+				}
+				names.push(name);
+			}
+		} else if (list != null) {
+			Context.error('The "autoload" of $filePath must be a list of scene names.', Context.currentPos());
+		}
+		return names;
+	}
+
+	// The scene files of assets/scenes with the name of the scene each holds, sorted by name.
+	public static function sceneFiles():Array<{name:String, path:String}> {
 		read();
 		var directory = haxe.io.Path.join([haxe.io.Path.directory(filePath), "assets", "scenes"]);
-		var names = [];
+		var files:Array<{name:String, path:String}> = [];
 		if (sys.FileSystem.exists(directory)) {
 			for (entry in sys.FileSystem.readDirectory(directory)) {
 				var name:Null<String> = null;
@@ -100,18 +119,17 @@ class Project {
 					}
 				}
 				if (name != null) {
-					if (names.indexOf(name) >= 0) {
+					if (Lambda.exists(files, file -> file.name == name)) {
 						Context.error('The scene "$name" has two files in $directory, which is one too many: keep either the .scene.yaml or the .scene.json.', Context.currentPos());
 					}
-					names.push(name);
+					files.push({name: name, path: haxe.io.Path.join([directory, entry])});
 				}
 			}
 		}
-		names.sort(Reflect.compare);
-		return macro $v{names};
+		files.sort((a, b) -> Reflect.compare(a.name, b.name));
+		return files;
 	}
 
-	#if macro
 	static function number(keys:Array<String>, fallback:Int):ExprOf<Int> {
 		var node:Dynamic = read();
 		for (key in keys) {
@@ -145,8 +163,7 @@ class Project {
 			return file;
 		}
 
-		var overridden = Context.definedValue("fried-project");
-		filePath = overridden != null ? overridden : "project.fried";
+		filePath = projectPath();
 		if (!sys.FileSystem.exists(filePath)) {
 			Context.fatalError('Project file not found: $filePath. Compile from the project root, or point at it with -D fried-project=<path>.',
 				Context.currentPos());
