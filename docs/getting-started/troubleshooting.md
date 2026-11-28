@@ -20,6 +20,12 @@ None of them is on the system `PATH`, so nothing outside that folder finds them 
 
 See [On Windows, for Windows](installing.md#on-windows-for-windows).
 
+## ccache is installed but nothing is cached
+
+Visual Studio's generator ignores compiler launchers, so use `-G Ninja` with w64devkit or build the player with `/MP` and no cache. With w64devkit, `ccache` has to be on the `PATH` of the terminal `w64devkit.exe` opens. The player looks for it when it is configured, so configure again after installing it.
+
+See [Rebuilding faster](building.md#rebuilding-faster).
+
 ## There is no log to read on Windows
 
 A Release build opens no console window, so its log is only visible from a Debug one (`-DCMAKE_BUILD_TYPE=Debug`) or under Wine, which prints it to the terminal either way.

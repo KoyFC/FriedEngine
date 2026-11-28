@@ -23,7 +23,7 @@ It is where a project is edited, and the recommended way to make its scenes. It 
 
 The engine is designed around the Editor: a game made its way has no `main` of its own and opens the scene `project.fried` names (see [Starting a game](../architecture/starting-a-game.md)). A scene can also be built in code or written by hand as JSON (see [Scene files](../architecture/scene-files.md)), but placing objects that way is tedious, so the Editor is the recommended way to make scenes.
 
-The first run builds the editor player from the engine, which needs Haxe, hxcpp and CMake as building a game does (see [Installing](installing.md)). It is released as an AppImage for Linux and a zip for Windows, and the Project Manager downloads it from there.
+The first run builds the editor player from the engine, which needs Haxe, hxcpp and CMake as building a game does (see [Installing](installing.md)). It is released as an AppImage for Linux and a zip for Windows, and the Project Manager downloads it from there. Installing ccache makes the builds after the first one faster (see [Installing](installing.md#faster-rebuilds-of-the-editor-player)).
 
 Its documentation is at [koyfc.github.io/FriedEditor](https://koyfc.github.io/FriedEditor/).
 
