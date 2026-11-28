@@ -22,9 +22,19 @@ class NodeRegistry {
 			if (types.exists(type.name)) {
 				throw 'The node type "${type.name}" is registered twice.';
 			}
-			types.set(type.name, type);
-			ordered.push(type);
+			add(type);
 		}
+	}
+
+	static function add(type:NodeType):Void {
+		if (types.exists(type.name)) {
+			return;
+		}
+		if (type.parent != null && !types.exists(type.parent) && type.parentType != null) {
+			add(type.parentType());
+		}
+		types.set(type.name, type);
+		ordered.push(type);
 	}
 
 	// Every type, each after the one it inherits from.
@@ -49,9 +59,9 @@ class NodeRegistry {
 			return;
 		}
 		types = new Map();
-		ordered = Builtins.all();
-		for (type in ordered) {
-			types.set(type.name, type);
+		ordered = [];
+		for (type in Builtins.all()) {
+			add(type);
 		}
 	}
 }
