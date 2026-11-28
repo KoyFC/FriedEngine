@@ -30,6 +30,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/ProjectProfile.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectOptimize.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/AssetImport.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectModules.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/Box2D.cmake")
 
 # fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
 #

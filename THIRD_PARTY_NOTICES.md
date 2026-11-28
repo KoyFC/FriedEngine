@@ -24,6 +24,10 @@ Built the way the engine builds them, SDL2_image reads images through stb_image,
 
 Carried inside the SDL2_ttf 2.24.0 tarball and linked statically with it. FreeType is offered under the FreeType License (`FTL.TXT`) or the GNU General Public License version 2 (`GPLv2.TXT`), at <https://freetype.org/>.
 
+## Box2D
+
+Box2D 3.1.1, Copyright (c) 2022 Erin Catto, <https://github.com/erincatto/box2d>, under the MIT License, whose text is in [`licenses/Box2D-MIT.txt`](licenses/Box2D-MIT.txt). It is downloaded as a release tarball by `cmake/Box2D.cmake` and linked only into a game whose project chooses the `box2d` backend of the `physics2d` module for some platform.
+
 ## hxcpp
 
 hxcpp 4.3.2, <https://github.com/HaxeFoundation/hxcpp>, whose runtime sources are compiled into every game. Its `LICENSE.txt` is a BSD style licence, Copyright (c) 2008 by the contributors, and refers to the individual source files for additional licence information.
