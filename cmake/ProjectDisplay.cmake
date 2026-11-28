@@ -2,16 +2,16 @@
 #
 # Resolves the display a project declares, which is the top-level "display"
 # for every platform: a game picks one design size and each platform scales it
-# its own way, so a "<platform>.display" is refused rather than ignored.
+# its own way, so a "platforms.<platform>.display" is refused rather than ignored.
 # Width and height are only required, and only returned, when the mode is not
 # "default".
 function(fried_read_project_display json platform out_mode out_width out_height out_filter)
     set(_modes default fit integer expand pixel height stretch)
     set(_filters nearest linear)
 
-    string(JSON _own ERROR_VARIABLE _error GET "${json}" ${platform} display)
+    string(JSON _own ERROR_VARIABLE _error GET "${json}" platforms ${platform} display)
     if(NOT _error)
-        message(FATAL_ERROR "project.fried declares a display under \"${platform}\", which is no longer read: every platform uses the top-level \"display\", and the \"pixel\" mode adapts it to each screen. Remove \"${platform}.display\".")
+        message(FATAL_ERROR "project.fried declares a display under \"platforms.${platform}\", which is no longer read: every platform uses the top-level \"display\", and the \"pixel\" mode adapts it to each screen. Remove \"platforms.${platform}.display\".")
     endif()
 
     foreach(_key mode width height filter)

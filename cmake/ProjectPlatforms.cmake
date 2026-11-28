@@ -10,20 +10,11 @@ set(FRIED_GPU_MAX_TEXTURE_SIDE 1024)
 
 # fried_read_project_platforms(<json> <out_list>)
 #
-# The platforms a project declares with its top-level "platforms", or an empty
-# list when it declares none, which means every platform is allowed.
+# The platforms a project declares, which are the entries of its "platforms"
+# map, or an empty list when it declares all of them, which allows every
+# platform. fried_import writes a project that declares none with all of them.
 function(fried_read_project_platforms json out_list)
-    string(JSON _type ERROR_VARIABLE _error TYPE "${json}" platforms)
-    if(_error)
-        set(${out_list} "" PARENT_SCOPE)
-        return()
-    endif()
-
     list(JOIN FRIED_PLATFORMS ", " _platform_list)
-    if(NOT _type STREQUAL "ARRAY")
-        message(FATAL_ERROR "project.fried declares \"platforms\" as something other than a list of names. Use a list of: ${_platform_list}.")
-    endif()
-
     string(JSON _count LENGTH "${json}" platforms)
     if(_count EQUAL 0)
         message(FATAL_ERROR "project.fried declares an empty \"platforms\", which no platform could build. Name at least one of: ${_platform_list}, or remove the key to allow every platform.")
@@ -32,14 +23,19 @@ function(fried_read_project_platforms json out_list)
     set(_declared "")
     math(EXPR _last "${_count} - 1")
     foreach(_index RANGE ${_last})
-        string(JSON _name GET "${json}" platforms ${_index})
+        string(JSON _name MEMBER "${json}" platforms ${_index})
         if(NOT _name IN_LIST FRIED_PLATFORMS)
             message(FATAL_ERROR "project.fried declares the platform \"${_name}\", which is not one of: ${_platform_list}.")
         endif()
         list(APPEND _declared ${_name})
     endforeach()
 
-    list(REMOVE_DUPLICATES _declared)
+    # Declaring every platform is declaring none, as FriedCore's setDeclaredPlatforms treats it.
+    list(LENGTH FRIED_PLATFORMS _all)
+    if(_count EQUAL _all)
+        set(_declared "")
+    endif()
+
     set(${out_list} "${_declared}" PARENT_SCOPE)
 endfunction()
 

@@ -57,7 +57,7 @@ endif()
 #
 # "android.package", or com.<organization>.<name> lowercased with everything but letters, digits and underscores taken out. FriedCore's android::defaultPackage() makes the same name, so the editor shows what the build uses.
 function(fried_read_android_package json organization name out)
-    string(JSON _package ERROR_VARIABLE _error GET "${json}" android package)
+    string(JSON _package ERROR_VARIABLE _error GET "${json}" platforms android package)
     if(_error OR _package STREQUAL "")
         set(_parts "")
         foreach(_text com "${organization}" "${name}")
@@ -86,7 +86,7 @@ endfunction()
 #
 # "android.orientation", landscape unless it says portrait. Either way the phone may be turned around.
 function(fried_read_android_orientation json out_manifest out_sdl)
-    string(JSON _orientation ERROR_VARIABLE _error GET "${json}" android orientation)
+    string(JSON _orientation ERROR_VARIABLE _error GET "${json}" platforms android orientation)
     if(_error OR _orientation STREQUAL "")
         set(_orientation landscape)
     endif()

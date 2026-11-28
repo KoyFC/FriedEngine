@@ -26,7 +26,7 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/Hxcpp.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectDisplay.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectPlatforms.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/ProjectPrecision.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ProjectProfile.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectOptimize.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/AssetImport.cmake")
 
@@ -409,7 +409,7 @@ function(fried_add_game target_name)
     if(VITA)
         string(JSON _name GET "${_project_json}" name)
         string(JSON _version GET "${_project_json}" version)
-        string(JSON _title_id GET "${_project_json}" vita titleId)
+        string(JSON _title_id GET "${_project_json}" platforms vita titleId)
 
         fried_add_vita_vpk(${target_name}
             NAME "${_name}"
@@ -441,7 +441,7 @@ function(fried_add_game target_name)
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
-        fried_read_optional_text("${_project_json}" "Version ${_version}" 128 _description 3ds description)
+        fried_profile_text("${_project_json}" "Version ${_version}" 128 _description 3ds description)
 
         fried_add_3ds_3dsx(${target_name}
             NAME "${_name}"
@@ -457,8 +457,8 @@ function(fried_add_game target_name)
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
-        fried_read_optional_text("${_project_json}" "${_organization}" 31 _subtitle1 nds subtitle1)
-        fried_read_optional_text("${_project_json}" "Version ${_version}" 31 _subtitle2 nds subtitle2)
+        fried_profile_text("${_project_json}" "${_organization}" 31 _subtitle1 nds subtitle1)
+        fried_profile_text("${_project_json}" "Version ${_version}" 31 _subtitle2 nds subtitle2)
 
         fried_add_nds_rom(${target_name}
             NAME "${_name}"
@@ -495,7 +495,7 @@ function(fried_add_game target_name)
         string(JSON _name GET "${_project_json}" name)
         string(JSON _organization GET "${_project_json}" organization)
         string(JSON _version GET "${_project_json}" version)
-        string(JSON _version_code ERROR_VARIABLE _version_code_error GET "${_project_json}" android versionCode)
+        string(JSON _version_code ERROR_VARIABLE _version_code_error GET "${_project_json}" platforms android versionCode)
         if(_version_code_error)
             set(_version_code 1)
         endif()

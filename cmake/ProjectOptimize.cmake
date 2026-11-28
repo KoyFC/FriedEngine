@@ -1,11 +1,11 @@
 # What project.fried says about the size of a build, read from a platform's own
-# section: "optimize" ("speed" or "size"), "lto" and, for pc, "compressExecutable".
+# profile: "optimize" ("speed" or "size"), "lto" and, for pc, "compressExecutable".
 #
 # "speed" leaves the flags as they are, and "size" builds for size with unused
 # functions and data dropped at link time. The DS is the one place the game's
 # code keeps -O2 under "size": see Hxcpp.cmake on string literals.
 
-# fried_read_project_flag(<json> <platform> <key> <out_value> <default>)
+# fried_profile_get(<json> <platform> <key> <out_value> <default>)
 function(fried_read_project_flag json platform key out_value default)
     string(JSON _type ERROR_VARIABLE _error TYPE "${json}" ${platform} ${key})
     if(_error)
@@ -28,11 +28,11 @@ function(fried_apply_project_optimize target_name json platform editor_player)
     else()
         set(_default_optimize speed)
     endif()
-    fried_read_project_flag("${json}" ${platform} optimize _optimize ${_default_optimize})
+    fried_profile_get("${json}" ${platform} optimize _optimize ${_default_optimize})
     if(NOT _optimize STREQUAL "speed" AND NOT _optimize STREQUAL "size")
         message(FATAL_ERROR "project.fried declares \"${platform}.optimize\" as \"${_optimize}\", which is not one of: speed, size.")
     endif()
-    fried_read_project_flag("${json}" ${platform} lto _lto OFF)
+    fried_profile_get("${json}" ${platform} lto _lto OFF)
     if(NOT _lto STREQUAL "ON" AND NOT _lto STREQUAL "OFF" AND NOT _lto STREQUAL "true" AND NOT _lto STREQUAL "false")
         message(FATAL_ERROR "project.fried declares \"${platform}.lto\" as something other than true or false.")
     endif()
@@ -72,7 +72,7 @@ function(fried_apply_project_optimize target_name json platform editor_player)
     endif()
 
     if(platform STREQUAL "pc")
-        fried_read_project_flag("${json}" pc compressExecutable _compress OFF)
+        fried_profile_get("${json}" pc compressExecutable _compress OFF)
         if(_compress STREQUAL "ON" OR _compress STREQUAL "true")
             find_program(FRIED_UPX upx)
             if(FRIED_UPX)
