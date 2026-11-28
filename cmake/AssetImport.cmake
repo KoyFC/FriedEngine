@@ -80,7 +80,7 @@ function(fried_import_assets target_name platform engine_assets game_assets)
     foreach(_root engine game)
         set(_source ${${_root}_assets})
         execute_process(
-            COMMAND ${_tool} --platform ${platform} --in ${_source} --out ${_imported}/${_root}
+            COMMAND ${_tool} --platform ${platform} --in ${_source} --out ${_imported}/${_root} --modules ${CMAKE_BINARY_DIR}/modules.json --modules-manifest ${FRIED_MODULES_MANIFEST}
             RESULT_VARIABLE _imported_ok
             ERROR_VARIABLE _import_log
         )
@@ -95,8 +95,8 @@ function(fried_import_assets target_name platform engine_assets game_assets)
     endforeach()
 
     add_custom_target(${target_name}_import ALL
-        COMMAND ${_tool} --platform ${platform} --in ${engine_assets} --out ${_imported}/engine
-        COMMAND ${_tool} --platform ${platform} --in ${game_assets} --out ${_imported}/game
+        COMMAND ${_tool} --platform ${platform} --in ${engine_assets} --out ${_imported}/engine --modules ${CMAKE_BINARY_DIR}/modules.json --modules-manifest ${FRIED_MODULES_MANIFEST}
+        COMMAND ${_tool} --platform ${platform} --in ${game_assets} --out ${_imported}/game --modules ${CMAKE_BINARY_DIR}/modules.json --modules-manifest ${FRIED_MODULES_MANIFEST}
         COMMENT "Importing the assets for ${platform}"
         VERBATIM
     )

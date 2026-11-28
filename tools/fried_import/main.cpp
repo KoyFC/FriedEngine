@@ -15,9 +15,11 @@
 #include "yaml.h"
 #include "model/model_convert.h"
 #include "migrate_scenes.h"
+#include "modules.h"
 #include "project_profiles.h"
 #include "scene_compile.h"
 
+#include <map>
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
@@ -154,7 +156,8 @@ void compressForPlatform(const std::string &platform, int rule, const std::strin
     *bytes = std::move(packed);
 }
 
-bool compileSceneFile(const std::string &platform, const fs::path &source, const std::string &name, const fs::path &destination, CompressionTotals *totals)
+bool compileSceneFile(const std::string &platform, const fs::path &source, const std::string &name, const fs::path &destination, CompressionTotals *totals,
+                      const fried_import::ModuleFilter &modules)
 {
     std::string other = source.extension() == ".yaml" ? ".scene.json" : ".scene.yaml";
     if (fs::exists(source.parent_path() / (name + other)))
@@ -168,7 +171,17 @@ bool compileSceneFile(const std::string &platform, const fs::path &source, const
     fried_import::Value scene;
     std::string error;
     std::vector<unsigned char> bytes;
-    if (!fried_import::parseYaml(text.str(), &scene, &error) || !fried_import::compileScene(scene, name, &bytes, &error))
+    bool isParsed = fried_import::parseYaml(text.str(), &scene, &error);
+    if (isParsed)
+    {
+        std::map<std::string, int> leftOut;
+        fried_import::removeLeftOutComponents(&scene, modules, &leftOut);
+        for (const auto &[owner, count] : leftOut)
+        {
+            std::cerr << "fried_import: " << source.string() << ": left out " << count << " component" << (count == 1 ? "" : "s") << " of " << owner << ", which " << modules.platform() << " does not use\n";
+        }
+    }
+    if (!isParsed || !fried_import::compileScene(scene, name, &bytes, &error))
     {
         std::cerr << "fried_import: " << source.string() << ":" << error << "\n";
         return false;
@@ -373,11 +386,11 @@ int main(int argc, char **argv)
     {
         return runProjectJson(argv[2], argv[3], argc == 5 ? argv[4] : "");
     }
-    std::string platform, input, output;
+    std::string platform, input, output, activeModules, modulesManifest;
     for (int index = 1; index + 1 < argc; index += 2)
     {
         std::string flag = argv[index];
-        (flag == "--platform" ? platform : flag == "--in" ? input : flag == "--out" ? output : flag) = argv[index + 1];
+        (flag == "--platform" ? platform : flag == "--in" ? input : flag == "--out" ? output : flag == "--modules" ? activeModules : flag == "--modules-manifest" ? modulesManifest : flag) = argv[index + 1];
     }
     if (platform.empty() || input.empty() || output.empty())
     {
@@ -385,8 +398,20 @@ int main(int argc, char **argv)
         return 2;
     }
 
+    fried_import::ModuleFilter modules;
+    if (!activeModules.empty() && !modulesManifest.empty())
+    {
+        std::string moduleError;
+        if (!modules.load(platform, modulesManifest, activeModules, &moduleError))
+        {
+            std::cerr << "fried_import: " << moduleError << "\n";
+            return 1;
+        }
+    }
+
     std::set<fs::path> expected;
     CompressionTotals totals;
+    std::map<std::string, int> leftOutAssets;
     int failures = 0;
     std::error_code error;
     for (const fs::directory_entry &entry : fs::recursive_directory_iterator(input, error))
@@ -396,6 +421,12 @@ int main(int argc, char **argv)
             continue;
         }
         fs::path relative = fs::relative(entry.path(), input);
+        std::string leftOutBy = modules.leavesOutAsset(relative.generic_string());
+        if (!leftOutBy.empty())
+        {
+            ++leftOutAssets[leftOutBy];
+            continue;
+        }
         fs::path destination = fs::path(output) / relative;
         std::string sceneName = sceneNameOf(entry.path());
         if (!sceneName.empty())
@@ -409,14 +440,18 @@ int main(int argc, char **argv)
         bool hasSidecar = fs::exists(sidecar);
         std::string extension = lowerExtension(entry.path());
         // A model depends on more files than itself, so it is read each time and only written when it changed.
-        if (!isModel(extension) && isUpToDate(destination, entry.path(), hasSidecar ? sidecar : fs::path()))
+        // A scene is compiled against the modules the platform uses, so a change of them rebuilds it.
+        std::error_code timeError;
+        bool isOlderThanModules = !sceneName.empty() && !activeModules.empty() && fs::exists(destination, timeError) &&
+                                  fs::last_write_time(destination, timeError) < fs::last_write_time(activeModules, timeError);
+        if (!isModel(extension) && !isOlderThanModules && isUpToDate(destination, entry.path(), hasSidecar ? sidecar : fs::path()))
         {
             continue;
         }
 
         if (!sceneName.empty())
         {
-            if (!compileSceneFile(platform, entry.path(), sceneName, destination, &totals))
+            if (!compileSceneFile(platform, entry.path(), sceneName, destination, &totals, modules))
             {
                 ++failures;
             }
@@ -544,6 +579,10 @@ int main(int argc, char **argv)
         }
     }
 
+    for (const auto &[owner, count] : leftOutAssets)
+    {
+        std::cerr << "fried_import: " << input << ": left out " << count << " file" << (count == 1 ? "" : "s") << " that " << owner << " does not use on " << platform << "\n";
+    }
     if (totals.m_before > 0)
     {
         std::cerr << "fried_import: " << output << " compressed " << (totals.m_before + 1023) / 1024 << " KB into " << (totals.m_after + 1023) / 1024 << " KB\n";

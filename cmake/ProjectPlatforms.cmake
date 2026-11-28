@@ -1,5 +1,3 @@
-include("${CMAKE_CURRENT_LIST_DIR}/AudioFiles.cmake")
-
 # The names fried_add_game gives the platform it configures for. "pc" is every
 # computer: Linux, Windows and macOS.
 set(FRIED_PLATFORMS pc vita switch 3ds nds cg50 web android)
@@ -77,23 +75,6 @@ function(fried_warn_oversized_images source_dir max_side platforms_label)
     endforeach()
 endfunction()
 
-# fried_warn_dropped_cg50_audio(<game_assets>)
-#
-# The calculator cannot play audio, so its build leaves the game's audio files
-# out of the assets it copies.
-function(fried_warn_dropped_cg50_audio game_assets)
-    file(GLOB_RECURSE _files CONFIGURE_DEPENDS "${game_assets}/*")
-    set(_count 0)
-    foreach(_file ${_files})
-        if(_file MATCHES "${FRIED_AUDIO_FILE_REGEX}")
-            math(EXPR _count "${_count} + 1")
-        endif()
-    endforeach()
-    if(_count GREATER 0)
-        message(WARNING "The fx-CG50 plays no audio, so its build leaves out the ${_count} audio file(s) under ${game_assets}.")
-    endif()
-endfunction()
-
 # fried_check_declared_platforms(<declared> <platform> <engine_assets> <game_assets>)
 #
 # What the platforms a project builds for ask of its assets, checked on every
@@ -117,9 +98,5 @@ function(fried_check_declared_platforms declared platform engine_assets game_ass
         list(JOIN _gpu_platforms " and " _label)
         fried_warn_oversized_images("${engine_assets}" ${FRIED_GPU_MAX_TEXTURE_SIDE} "${_label}")
         fried_warn_oversized_images("${game_assets}" ${FRIED_GPU_MAX_TEXTURE_SIDE} "${_label}")
-    endif()
-
-    if(cg50 IN_LIST _checked)
-        fried_warn_dropped_cg50_audio("${game_assets}")
     endif()
 endfunction()
