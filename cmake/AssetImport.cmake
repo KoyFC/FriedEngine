@@ -45,14 +45,17 @@ function(fried_build_import_tool out_tool)
     set(${out_tool} ${_tool_dir}/fried_import PARENT_SCOPE)
 endfunction()
 
+get_filename_component(FRIED_MODULES_MANIFEST "${CMAKE_CURRENT_LIST_DIR}/../modules.json" ABSOLUTE)
+
 # fried_project_json(<project_file> <out_json_var>)
 #
-# The text of project.fried as JSON, which string(JSON ...) reads.
+# The text of project.fried as JSON, which string(JSON ...) reads, with the
+# platforms as a map of profiles and each profile's modules resolved.
 function(fried_project_json project_file out_json)
     fried_build_import_tool(_tool)
     set(_json_file ${CMAKE_BINARY_DIR}/project.json)
     execute_process(
-        COMMAND ${_tool} --project-json ${project_file} ${_json_file}
+        COMMAND ${_tool} --project-json ${project_file} ${_json_file} ${FRIED_MODULES_MANIFEST}
         RESULT_VARIABLE _read
         ERROR_VARIABLE _read_log
     )

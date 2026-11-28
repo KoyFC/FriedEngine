@@ -29,6 +29,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/ProjectPlatforms.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectProfile.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/ProjectOptimize.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/AssetImport.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ProjectModules.cmake")
 
 # fried_read_optional_text(<json> <fallback> <max_length> <out_variable> <section> <key>)
 #
@@ -380,6 +381,11 @@ function(fried_add_game target_name)
         fried_require_declared_platform(${_platform} "${_declared_platforms}")
     endif()
     fried_check_declared_platforms("${_declared_platforms}" ${_platform} "${_engine_assets}" "${_game_assets}")
+
+    if(NOT _game_EDITOR_PLAYER)
+        fried_warn_degraded_modules("${_project_json}" ${_platform})
+    endif()
+    fried_link_profile_modules(${target_name} "${_project_json}" ${_platform} "${_game_EDITOR_PLAYER}")
 
     # The editor's player reads the assets as they are, which is what the editor shows.
     if(NOT _game_EDITOR_PLAYER)

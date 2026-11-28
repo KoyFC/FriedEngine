@@ -288,7 +288,7 @@ int runCheckYaml(const std::string &directory)
     return failures == 0 ? 0 : 1;
 }
 
-int runProjectJson(const std::string &input, const std::string &output)
+int runProjectJson(const std::string &input, const std::string &output, const std::string &manifestPath)
 {
     fried_import::Value value;
     std::string error;
@@ -310,6 +310,20 @@ int runProjectJson(const std::string &input, const std::string &output)
     {
         std::cerr << error << "\n";
         return 1;
+    }
+    if (!manifestPath.empty())
+    {
+        fried_import::Value manifest;
+        if (!fried_import::parseYaml(readText(manifestPath), &manifest, &error))
+        {
+            std::cerr << manifestPath << ":" << error << "\n";
+            return 1;
+        }
+        if (!fried_import::resolveModules(&value, manifest, &error))
+        {
+            std::cerr << error << "\n";
+            return 1;
+        }
     }
     std::string json = fried_import::toJson(value);
     std::vector<unsigned char> bytes(json.begin(), json.end());
@@ -355,9 +369,9 @@ int main(int argc, char **argv)
     {
         return runCheckYaml(argv[2]);
     }
-    if (argc == 4 && std::string(argv[1]) == "--project-json")
+    if ((argc == 4 || argc == 5) && std::string(argv[1]) == "--project-json")
     {
-        return runProjectJson(argv[2], argv[3]);
+        return runProjectJson(argv[2], argv[3], argc == 5 ? argv[4] : "");
     }
     std::string platform, input, output;
     for (int index = 1; index + 1 < argc; index += 2)

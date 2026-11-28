@@ -1,0 +1,40 @@
+{
+  "physics2d": {
+    "default": "kinematic",
+    "backends": {
+      "kinematic": {
+        "platforms": "all",
+        "components": ["Collider", "KinematicBody"]
+      },
+      "box2d": {
+        "platforms": ["pc", "vita", "switch", "3ds", "web", "android"],
+        "components": ["RigidBody2D", "BoxShape2D", "CircleShape2D", "CapsuleShape2D", "PolygonShape2D"],
+        "native": "box2d"
+      }
+    }
+  },
+  "audio": {
+    "default": "native",
+    "backends": {
+      "native": {
+        "platforms": "all",
+        "degraded": {
+          "cg50": "The fx-CG50 has no audio output: sounds and music play silently and audio files are left out."
+        },
+        "dropAssets": "\\.(wav|ogg|mp3|flac|opus|mod|xm|s3m|it|midi?)$"
+      }
+    }
+  },
+  "physics3d": {
+    "default": "none",
+    "backends": {
+      "none": {
+        "platforms": "all"
+      },
+      "jolt": {
+        "platforms": ["pc", "switch", "web", "android"],
+        "planned": true
+      }
+    }
+  }
+}

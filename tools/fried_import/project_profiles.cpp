@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <string_view>
 
 namespace fried_import
@@ -20,6 +21,85 @@ namespace fried_import
             Value value;
             value.m_kind = Value::Kind::Object;
             return value;
+        }
+
+        std::string names(const std::map<std::string, Value> &entries)
+        {
+            std::string list;
+            for (const auto &entry : entries)
+            {
+                list += list.empty() ? "" : ", ";
+                list += entry.first;
+            }
+            return list;
+        }
+
+        bool runsOn(const Value &backend, const std::string &platform)
+        {
+            const Value *platforms = backend.find("platforms");
+            if (platforms == nullptr || (platforms->m_kind == Value::Kind::String && platforms->m_string == "all"))
+            {
+                return true;
+            }
+            for (const Value &name : platforms->m_array)
+            {
+                if (name.m_string == platform)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Finds the backend a project names for a module, or sets the error with the place it was named at.
+        const Value *chosenBackend(const Value &module, const std::string &backendName, const std::string &place, std::string *error)
+        {
+            const Value *backends = module.find("backends");
+            const Value *backend = backends == nullptr ? nullptr : backends->find(backendName);
+            if (backend == nullptr)
+            {
+                *error = "project.fried gives \"" + place + "\" the backend \"" + backendName + "\", which is not one of: " + names(backends->m_object) + ".";
+                return nullptr;
+            }
+            const Value *planned = backend->find("planned");
+            if (planned != nullptr && planned->m_bool)
+            {
+                *error = "project.fried gives \"" + place + "\" the backend \"" + backendName + "\", which is planned and cannot be chosen yet.";
+                return nullptr;
+            }
+            return backend;
+        }
+
+        bool readChoices(const Value *modules, const Value &manifest, const std::string &place, std::map<std::string, std::string> *choices, std::string *error)
+        {
+            if (modules == nullptr)
+            {
+                return true;
+            }
+            if (modules->m_kind != Value::Kind::Object)
+            {
+                *error = "project.fried gives \"" + place + "\" as something other than a map of module names to backends.";
+                return false;
+            }
+            for (const auto &[name, backend] : modules->m_object)
+            {
+                const Value *module = manifest.find(name);
+                if (module == nullptr)
+                {
+                    *error = "project.fried gives \"" + place + "\" the module \"" + name + "\", which is not one of: " + names(manifest.m_object) + ".";
+                    return false;
+                }
+                if (backend.m_kind != Value::Kind::String || chosenBackend(*module, backend.m_string, place + "." + name, error) == nullptr)
+                {
+                    if (error->empty())
+                    {
+                        *error = "project.fried gives \"" + place + "." + name + "\" as something other than a backend name.";
+                    }
+                    return false;
+                }
+                (*choices)[name] = backend.m_string;
+            }
+            return true;
         }
 
         std::string platformList()
@@ -117,5 +197,57 @@ namespace fried_import
 
         project->m_object["platforms"] = profiles;
         return isOldLayout;
+    }
+}
+
+namespace fried_import
+{
+    bool resolveModules(Value *project, const Value &manifest, std::string *error)
+    {
+        std::map<std::string, std::string> shared;
+        if (!readChoices(project->find("modules"), manifest, "modules", &shared, error))
+        {
+            return false;
+        }
+
+        Value &profiles = project->m_object["platforms"];
+        for (auto &[platform, profile] : profiles.m_object)
+        {
+            std::map<std::string, std::string> own;
+            if (!readChoices(profile.find("modules"), manifest, "platforms." + platform + ".modules", &own, error))
+            {
+                return false;
+            }
+
+            Value resolved;
+            resolved.m_kind = Value::Kind::Object;
+            for (const auto &[moduleName, module] : manifest.m_object)
+            {
+                std::string backendName = module.find("default")->m_string;
+                bool isOwn = own.count(moduleName) > 0;
+                if (isOwn)
+                {
+                    backendName = own[moduleName];
+                }
+                else if (shared.count(moduleName) > 0)
+                {
+                    backendName = shared[moduleName];
+                }
+
+                const Value &backend = *module.find("backends")->find(backendName);
+                if (!runsOn(backend, platform))
+                {
+                    std::string fallback = module.find("default")->m_string;
+                    *error = "project.fried: " + moduleName + ": " + backendName + " does not run on " + platform + ". Set \"platforms." + platform + ".modules." + moduleName + "\" to " + fallback + ".";
+                    return false;
+                }
+                Value name;
+                name.m_kind = Value::Kind::String;
+                name.m_string = backendName;
+                resolved.m_object[moduleName] = name;
+            }
+            profile.m_object["modules"] = resolved;
+        }
+        return true;
     }
 }
