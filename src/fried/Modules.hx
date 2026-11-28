@@ -128,10 +128,10 @@ class Modules {
 		return false;
 	}
 
-	// Whether the build leaves out the code of the component's backend, because no platform of the project uses it. Only a backend with a native part of its own is left out: the others are used by the engine itself.
+	// Whether the build leaves out the code of the component's backend (never when generating the API docs, which document every backend), because no platform of the project uses it. Only a backend with a native part of its own is left out: the others are used by the engine itself.
 	public static function isLeftOutOfBuild(component:String):Bool {
 		var owner = ownerOf(component);
-		if (owner == null || Context.defined("fried_editor") || !Project.projectExists()) {
+		if (owner == null || Context.defined("fried_editor") || Context.defined("doc-gen") || !Project.projectExists()) {
 			return false;
 		}
 		var backend = Reflect.field(backendsOf(owner.module), owner.backend);
@@ -145,7 +145,7 @@ class Modules {
 
 	// Whether the build holds the code of a backend: some platform of the project uses it, or the editor, which plays as any of them.
 	public static function isInBuild(module:String, backend:String):Bool {
-		return Context.defined("fried_editor") || isUsedAnywhere(module, backend);
+		return Context.defined("fried_editor") || Context.defined("doc-gen") || isUsedAnywhere(module, backend);
 	}
 
 	// A class of a backend that no platform uses has no native code to run on, so a game that names one is refused here and not by the linker.
