@@ -38,12 +38,12 @@ class KinematicBody extends Component {
 		return super.hookFlags() | 32;
 	}
 
-	override function awake():Void {
-		target = need(Transform2D);
-	}
-
 	override function start():Void {
-		collider = gameObject.getComponent(Collider);
+		target = gameObject.getComponentInParent(Transform2D);
+		if (target == null) {
+			throw 'A KinematicBody needs a Transform2D to move, on its object or above it, and ${gameObject.name} has none.';
+		}
+		collider = target.gameObject.getComponent(Collider);
 		if (collider == null) {
 			for (index in 0...target.childCount) {
 				collider = target.getChild(index).gameObject.getComponent(Collider);

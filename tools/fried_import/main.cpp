@@ -14,6 +14,7 @@
 #include "platform/lz10.h"
 #include "yaml.h"
 #include "model/model_convert.h"
+#include "migrate_scenes.h"
 #include "scene_compile.h"
 
 #include <algorithm>
@@ -332,6 +333,10 @@ int runCheckLz(const std::string &path)
 
 int main(int argc, char **argv)
 {
+    if (argc == 3 && std::string(argv[1]) == "migrate-scenes")
+    {
+        return fried_import::runMigrateScenes(argv[2]);
+    }
     if (argc == 3 && std::string(argv[1]) == "--check-lz")
     {
         return runCheckLz(argv[2]);
