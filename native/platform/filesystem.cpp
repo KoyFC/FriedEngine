@@ -9,6 +9,7 @@
 #include <switch.h>
 #elif defined(__3DS__)
 #include <3ds.h>
+#include <sys/stat.h>
 #endif
 
 namespace
@@ -57,6 +58,10 @@ namespace
 #else
     std::string resolveUserDataPath(const char *organization, const char *name)
     {
+#ifdef __3DS__
+        // SDL's 3DS port creates only the last directory of sdmc:/3ds/<name>/, and a fresh SD card, such as Azahar's, has no sdmc:/3ds/ yet.
+        mkdir("sdmc:/3ds", 0777);
+#endif
         char *userDataPath = SDL_GetPrefPath(organization, name);
         if (!userDataPath)
         {

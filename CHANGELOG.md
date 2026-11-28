@@ -25,6 +25,7 @@ All notable changes to Fried Engine are written here, newest version first.
 ### Fixed
 - A `UIDocument` left its font lookups, and the style sheets they held, in a static list for good, about 4 KB for every time a scene with one loaded.
 - On the DS the collector no longer finds pointers to the scene that was just unloaded in the stack below the scene change, which kept all of it alive now and then: the sandbox's scene cycle stopped after 37 to 52 changes in melonDS and now goes through 60.
+- A 3DS game no longer quits as it starts on an SD card without `sdmc:/3ds/`, such as a fresh one in Azahar: SDL creates only the game's own folder in it, so the user data path could not be resolved.
 - The romfs and VPK packaging listed assets by the name of the source, so a scene, which is a `.fscene` once imported, was missing from the DS, 3DS, Switch and Vita packages.
 
 ### Added
