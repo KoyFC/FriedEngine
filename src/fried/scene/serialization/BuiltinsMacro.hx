@@ -12,9 +12,8 @@ class BuiltinsMacro {
 			"fried.scene.Component", "fried.scene.Transform", "fried.scene.Transform2D", "fried.scene.Transform3D", "fried.scene.RectTransform",
 			"fried.scene.Renderer2D", "fried.scene.SpriteRenderer", "fried.scene.Camera", "fried.scene.Canvas", "fried.scene.Label",
 			"fried.scene.TextureRect", "fried.scene.Button", "fried.scene.TouchButton", "fried.scene.VirtualJoystick", "fried.scene.Tilemap",
-			"fried.physics.Collider", "fried.physics.KinematicBody", "fried.ui.UIDocument", "fried.scene.Camera3D", "fried.scene.MeshRenderer",
-			"fried.scene.Light", "fried.physics2d.RigidBody2D", "fried.physics2d.Shape2D", "fried.physics2d.BoxShape2D", "fried.physics2d.CircleShape2D",
-			"fried.physics2d.CapsuleShape2D", "fried.physics2d.PolygonShape2D"
+			"fried.physics2d.Collider2D", "fried.physics2d.Body2D", "fried.ui.UIDocument", "fried.scene.Camera3D", "fried.scene.MeshRenderer",
+			"fried.scene.Light"
 		], "describeComponent");
 	}
 

@@ -13,8 +13,8 @@ objects:
         name: Player hitbox
         transform: {type: Transform2D}
         components:
-          - {type: Collider, height: 16, width: 16}
+          - {type: Collider2D, height: 16, width: 16}
       - id: player-body
         name: Player body
         components:
-          - {type: KinematicBody, velocityX: 0, velocityY: 0}
+          - {type: Body2D, velocityX: 0, velocityY: 0}

@@ -1,19 +1,19 @@
-package fried.physics;
+package fried.physics2d;
 
 import fried.scene.Component;
 import fried.scene.Transform2D;
 
-// Moves its object by its velocity in every fixed step, and stops it against the solid colliders of the scene, one axis at a time so a run into a wall still slides along it. Its Collider is on the same object, or on its first child. The object is moved in its own coordinates, which is the world's while its parent is not scaled or turned.
+// Moves its object by its velocity in every fixed step, and stops it against the solid colliders of the scene, one axis at a time so a run into a wall still slides along it. Its Collider2D is on the same object, or on its first child. The object is moved in its own coordinates, which is the world's while its parent is not scaled or turned.
 //
-// A body whose Collider is a trigger is never stopped: it moves freely and `contacts` holds everything its collider overlaps that its mask names, solid or not. Any other body is stopped by the solid colliders of the layers its mask names, and `contacts` holds those that stopped it and then the triggers it overlaps. An object that moved earlier in the same step is an obstacle for those after it, in tree order.
+// A body whose Collider2D is a trigger is never stopped: it moves freely and `contacts` holds everything its collider overlaps that its mask names, solid or not. Any other body is stopped by the solid colliders of the layers its mask names, and `contacts` holds those that stopped it and then the triggers it overlaps. An object that moved earlier in the same step is an obstacle for those after it, in tree order.
 @:serializable
 @:allow(fried.scene)
-class KinematicBody extends Component {
+class Body2D extends Component {
 	// Pixels a second.
 	public var velocityX:Single;
 	public var velocityY:Single;
 
-	@:noSerialize public var contacts(default, null):Array<Collider>;
+	@:noSerialize public var contacts(default, null):Array<Collider2D>;
 	@:noSerialize public var isBlockedX(default, null):Bool;
 	@:noSerialize public var isBlockedY(default, null):Bool;
 
@@ -22,7 +22,7 @@ class KinematicBody extends Component {
 	static inline var ZERO:Single = 0.0;
 
 	var target:Transform2D;
-	var collider:Collider;
+	var collider:Collider2D;
 
 	public function new(velocityX:Single = 0.0, velocityY:Single = 0.0) {
 		super();
@@ -41,19 +41,19 @@ class KinematicBody extends Component {
 	override function start():Void {
 		target = gameObject.getComponentInParent(Transform2D);
 		if (target == null) {
-			throw 'A KinematicBody needs a Transform2D to move, on its object or above it, and ${gameObject.name} has none.';
+			throw 'A Body2D needs a Transform2D to move, on its object or above it, and ${gameObject.name} has none.';
 		}
-		collider = target.gameObject.getComponent(Collider);
+		collider = target.gameObject.getComponent(Collider2D);
 		if (collider == null) {
 			for (index in 0...target.childCount) {
-				collider = target.getChild(index).gameObject.getComponent(Collider);
+				collider = target.getChild(index).gameObject.getComponent(Collider2D);
 				if (collider != null) {
 					break;
 				}
 			}
 		}
 		if (collider == null) {
-			throw 'A KinematicBody needs a Collider on its object or its first child, and ${gameObject.name} has none.';
+			throw 'A Body2D needs a Collider2D on its object or its first child, and ${gameObject.name} has none.';
 		}
 	}
 
@@ -92,7 +92,7 @@ class KinematicBody extends Component {
 	}
 
 	// Backs the node out of the deepest solid it ran into along an axis, which leaves it touching and not short of it.
-	function stopAgainstSolids(list:Array<Collider>, isAxisX:Bool, isPositive:Bool):Bool {
+	function stopAgainstSolids(list:Array<Collider2D>, isAxisX:Bool, isPositive:Bool):Bool {
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
@@ -138,7 +138,7 @@ class KinematicBody extends Component {
 	}
 
 	// What the body overlaps once it has moved: the triggers for a solid body, and everything for a trigger one.
-	function collectOverlaps(list:Array<Collider>, onlyTriggers:Bool):Void {
+	function collectOverlaps(list:Array<Collider2D>, onlyTriggers:Bool):Void {
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
@@ -161,7 +161,7 @@ class KinematicBody extends Component {
 	}
 
 	// A collider this body's mask names, other than the ones on the node it moves.
-	inline function isCandidate(other:Collider):Bool {
+	inline function isCandidate(other:Collider2D):Bool {
 		return other.isOn && other.transform != target && other.transform.parent != target && (other.collisionLayer & collider.collisionMask) != 0;
 	}
 }

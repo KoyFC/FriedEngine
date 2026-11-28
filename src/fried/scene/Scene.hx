@@ -4,9 +4,9 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Renderer;
 import fried.graphics3d.MeshPass;
 import fried.input.InputEvent;
-import fried.physics.Collider;
-import fried.physics.ColliderGrid;
-import fried.physics.KinematicBody;
+import fried.physics2d.Collider2D;
+import fried.physics2d.ColliderGrid;
+import fried.physics2d.Body2D;
 import haxe.ds.ArraySort;
 
 // What a Canvas holds for the frame: the drawing and input hooks of its subtree.
@@ -60,7 +60,7 @@ class Scene {
 	var byId:Map<String, GameObject>;
 	var updateList:Array<Component>;
 	var fixedUpdateList:Array<Component>;
-	var bodyList:Array<KinematicBody>;
+	var bodyList:Array<Body2D>;
 	var steppers:Array<SceneStepper>;
 	var drawList:Array<Component>;
 	var meshList:Array<MeshRenderer>;
@@ -68,10 +68,10 @@ class Scene {
 	var eventTree:Array<Component>;
 	var eventList:Array<Component>;
 	var canvasBuckets:Array<CanvasBucket>;
-	@:allow(fried.physics)
-	var colliders:Array<Collider>;
+	@:allow(fried.physics2d)
+	var colliders:Array<Collider2D>;
 
-	@:allow(fried.physics)
+	@:allow(fried.physics2d)
 	var colliderGrid:ColliderGrid;
 	var areListsDirty:Bool;
 	var areCollidersDirty:Bool;
@@ -264,8 +264,8 @@ class Scene {
 		}
 	}
 
-	// Every collider of the scene, in tree order, for Physics to test. Whether each is active is for the caller. It is kept apart from the lists of the frame, which are never rebuilt while a phase is running, as a node asking Physics a question in its update is common.
-	public function activeColliders():Array<Collider> {
+	// Every collider of the scene, in tree order, for Physics2D to test. Whether each is active is for the caller. It is kept apart from the lists of the frame, which are never rebuilt while a phase is running, as a node asking Physics2D a question in its update is common.
+	public function activeColliders():Array<Collider2D> {
 		if (areCollidersDirty) {
 			colliders.resize(0);
 			collectColliders(root);
@@ -276,8 +276,8 @@ class Scene {
 	}
 
 	// The colliders that may touch a box, in the units of a collider's box and in no order, each once. A collider that moved or changed size earlier in the frame is where it is now.
-	@:allow(fried.physics)
-	function colliderCandidates(left:Int, top:Int, right:Int, bottom:Int):Array<Collider> {
+	@:allow(fried.physics2d)
+	function colliderCandidates(left:Int, top:Int, right:Int, bottom:Int):Array<Collider2D> {
 		if (areCollidersDirty) {
 			activeColliders();
 		}
@@ -285,7 +285,7 @@ class Scene {
 	}
 
 	// How many colliders have a box that overlaps this one, ascending in tree order and with no regard to whether they are active, written to the grid's indices, which index colliders. A collider that moved or changed size earlier in the frame is where it is now.
-	@:allow(fried.physics)
+	@:allow(fried.physics2d)
 	function colliderOverlaps(left:Int, top:Int, right:Int, bottom:Int):Int {
 		if (areCollidersDirty) {
 			activeColliders();
@@ -293,8 +293,8 @@ class Scene {
 		return colliderGrid.overlapping(left, top, right, bottom);
 	}
 
-	@:allow(fried.physics)
-	function colliderMoved(collider:Collider):Void {
+	@:allow(fried.physics2d)
+	function colliderMoved(collider:Collider2D):Void {
 		if (!areCollidersDirty) {
 			colliderGrid.queue(collider);
 		}

@@ -3,12 +3,12 @@ package components;
 import fried.graphics.FlipMode;
 import fried.input.InputAction;
 import fried.input.InputMaps;
-import fried.physics.KinematicBody;
+import fried.physics2d.Body2D;
 import fried.scene.Component;
 import fried.scene.SpriteRenderer;
 import fried.scene.Transform2D;
 
-// Moves the sprite on its object, blocked by the colliders of the scene. Its own Collider and the KinematicBody that moves it are on its object or below it.
+// Moves the sprite on its object, blocked by the colliders of the scene. Its own Collider2D and the Body2D that moves it are on its object or below it.
 @:serializable
 class Player extends Component {
 	public var speed:Float;
@@ -20,7 +20,7 @@ class Player extends Component {
 	@:noSerialize public var place(default, null):Transform2D;
 	@:noSerialize public var sprite(default, null):SpriteRenderer;
 
-	var body:KinematicBody;
+	var body:Body2D;
 	var movementAction:InputAction;
 
 	public function new(speed:Float, ?wall:Transform2D) {
@@ -42,9 +42,9 @@ class Player extends Component {
 		if (movementAction == null) {
 			throw 'A Player needs the input action "Move", declared in the input block of project.fried.';
 		}
-		body = gameObject.getComponentInChildren(KinematicBody);
+		body = gameObject.getComponentInChildren(Body2D);
 		if (body == null) {
-			throw 'A Player needs a KinematicBody on ${gameObject.name} or below it.';
+			throw 'A Player needs a Body2D on ${gameObject.name} or below it.';
 		}
 	}
 

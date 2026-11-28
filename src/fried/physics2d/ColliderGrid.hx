@@ -1,4 +1,4 @@
-package fried.physics;
+package fried.physics2d;
 
 import cpp.NativeArray;
 
@@ -6,12 +6,12 @@ import cpp.NativeArray;
 //
 // It is kept up to date as things move and not rebuilt each frame: a collider that moves or changes size queues itself, and a query empties the queue before it looks, so it sees what moved earlier in the same frame. The whole grid is rebuilt only when a node enters or leaves the scene.
 @:allow(fried.scene)
-@:allow(fried.physics)
+@:allow(fried.physics2d)
 class ColliderGrid {
 	var store:Int;
-	var moved:Array<Collider>;
-	var candidates:Array<Collider>;
-	var everything:Array<Collider>;
+	var moved:Array<Collider2D>;
+	var candidates:Array<Collider2D>;
+	var everything:Array<Collider2D>;
 
 	// Where the store writes what a query found: the places in tree order, with room for every collider.
 	var indices:Array<Int>;
@@ -31,7 +31,7 @@ class ColliderGrid {
 	}
 
 	// Every collider of the scene, in tree order.
-	function rebuild(all:Array<Collider>):Void {
+	function rebuild(all:Array<Collider2D>):Void {
 		everything = all;
 		moved.resize(0);
 		var count = all.length;
@@ -47,7 +47,7 @@ class ColliderGrid {
 		}
 	}
 
-	function queue(collider:Collider):Void {
+	function queue(collider:Collider2D):Void {
 		collider.isQueued = true;
 		moved.push(collider);
 	}
@@ -69,7 +69,7 @@ class ColliderGrid {
 	}
 
 	// Tells the store where the collider's box is now.
-	function place(collider:Collider):Void {
+	function place(collider:Collider2D):Void {
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
@@ -77,7 +77,7 @@ class ColliderGrid {
 	}
 
 	// The colliders that may touch a box, given as edges in the units of a collider's box, each at most once. Nothing is promised about their order, or that they do touch it: the caller tests them.
-	function collect(left:Int, top:Int, right:Int, bottom:Int):Array<Collider> {
+	function collect(left:Int, top:Int, right:Int, bottom:Int):Array<Collider2D> {
 		flush();
 		var count = ColliderStore.candidates(store, left, top, right, bottom, cpp.Pointer.ofArray(indices).raw);
 		var found = candidates;
@@ -98,7 +98,7 @@ class ColliderGrid {
 	}
 
 	// Puts a list back in tree order, which the grid does not keep. The lists are a handful long and nearly sorted already.
-	static function sortByOrder(list:Array<Collider>):Void {
+	static function sortByOrder(list:Array<Collider2D>):Void {
 		var count = list.length;
 		var index = 1;
 		while (index < count) {

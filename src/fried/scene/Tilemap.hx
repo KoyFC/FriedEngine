@@ -2,7 +2,7 @@ package fried.scene;
 
 import fried.graphics.DrawQueue;
 import fried.graphics.Texture;
-import fried.physics.Collider;
+import fried.physics2d.Collider2D;
 
 // A grid of tiles taken from one picture, which is drawn as the cells it holds. The grid lives in the native layer and the renderer draws only the tiles the screen shows, so a large map costs no more than the part in view. Its position is its top left corner, it is scaled with its parent and it is never turned.
 @:serializable
@@ -20,7 +20,7 @@ class Tilemap extends Renderer2D {
 	// The tiles as a scene file keeps them: one line for each row, and in it the number of each cell separated by spaces, 0 for no tile and otherwise the tile's place in the picture counting along its rows from 1. setCell() changes the map that is running and not this.
 	public var cells(default, set):String;
 
-	// Whether every cell that holds a tile stops what is on the layer below. The cells are covered by as few boxes as the native layer finds, which are colliders on objects below this one and that Physics finds like any other.
+	// Whether every cell that holds a tile stops what is on the layer below. The cells are covered by as few boxes as the native layer finds, which are colliders on objects below this one and that Physics2D finds like any other.
 	public var isSolid(default, set):Bool;
 	public var collisionLayer(default, set):Int;
 
@@ -64,7 +64,7 @@ class Tilemap extends Renderer2D {
 		for (index in 0...count) {
 			TilemapNative.solidRect(index, cpp.Pointer.ofArray(values).raw);
 			var object = new GameObject("Collider", new Transform2D(values[0] * tileWidth, values[1] * tileHeight));
-			var collider = object.addComponent(new Collider(values[2] * tileWidth, values[3] * tileHeight));
+			var collider = object.addComponent(new Collider2D(values[2] * tileWidth, values[3] * tileHeight));
 			collider.collisionLayer = collisionLayer;
 			colliders.push(object);
 			object.transform.setParent(transform);

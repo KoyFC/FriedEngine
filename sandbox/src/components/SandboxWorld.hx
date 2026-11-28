@@ -5,7 +5,7 @@ import debug.DebugOverlay;
 import fried.Bootstrap;
 import fried.Log;
 import fried.input.Key;
-import fried.physics.Collider;
+import fried.physics2d.Collider2D;
 import fried.scene.Camera;
 import fried.scene.Canvas;
 import fried.scene.Component;
@@ -21,7 +21,7 @@ class SandboxWorld extends Component {
 	public var hud:Canvas;
 
 	var overlay:DebugOverlay;
-	var colliders:Array<Collider>;
+	var colliders:Array<Collider2D>;
 
 	override function start():Void {
 		var scene = gameObject.scene;
@@ -32,10 +32,10 @@ class SandboxWorld extends Component {
 		camera.zoom = Bootstrap.renderer.height / WORLD_VIEW_HEIGHT;
 		camera.gameObject.addComponent(new CameraZoom(shell.zoom));
 
-		var playerCollider = player.gameObject.getById("player-hitbox", Collider);
+		var playerCollider = player.gameObject.getById("player-hitbox", Collider2D);
 		colliders = [];
 		for (index in 0...5) {
-			colliders.push(scene.getById('post-$index-hitbox', Collider));
+			colliders.push(scene.getById('post-$index-hitbox', Collider2D));
 		}
 		colliders.push(playerCollider);
 
@@ -43,7 +43,7 @@ class SandboxWorld extends Component {
 			for (collider in colliders) {
 				collider.isDebugVisible = !collider.isDebugVisible;
 			}
-			Log.info('Collider bounds ${colliders[0].isDebugVisible ? "shown" : "hidden"} for ${colliders.length} colliders');
+			Log.info('Collider2D bounds ${colliders[0].isDebugVisible ? "shown" : "hidden"} for ${colliders.length} colliders');
 		}
 
 		function toggleInterface():Void {

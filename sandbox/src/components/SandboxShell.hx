@@ -24,7 +24,6 @@ import fried.io.Filesystem;
 import fried.io.UserData;
 import fried.scene.Component;
 import fried.scene.Scene;
-import fried.scene.serialization.ComponentRegistry;
 import fried.scene.SceneManager;
 
 // What the whole sandbox needs and no one scene owns, kept as an autoload so it outlives a change of scene: the logs of a startup, music, sound, the debug overlay, the window shortcuts and the input map the scenes read.
@@ -229,9 +228,6 @@ class SandboxShell extends Component {
 
 	function loadNextScene():Void {
 		var screens = ["sandbox", "sandbox_3d", "sandbox_html"];
-		if (!ComponentRegistry.isLeftOut("RigidBody2D")) {
-			screens.push("sandbox_physics");
-		}
 		var next = screens[(screens.indexOf(SceneManager.activeName) + 1) % screens.length];
 		Log.info('Loading scene $next' + memoryNote());
 		SceneManager.load(next);

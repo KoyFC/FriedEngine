@@ -34,7 +34,7 @@ namespace fried_import
         const Names s_transform3D = {"x", "y", "z", "rotationX", "rotationY", "rotationZ", "scaleX", "scaleY", "scaleZ"};
         const Names s_rectTransform = {"anchorMinX", "anchorMinY", "anchorMaxX", "anchorMaxY", "pivotX", "pivotY", "offsetX", "offsetY", "insetLeft", "insetTop",
                                        "insetRight", "insetBottom", "width", "height", "rotation", "scaleX", "scaleY", "below"};
-        const Names s_drawn = {"SpriteRenderer", "Label", "TextureRect", "Button", "TouchButton", "VirtualJoystick", "UIDocument", "Tilemap", "Collider", "Camera3D"};
+        const Names s_drawn = {"SpriteRenderer", "Label", "TextureRect", "Button", "TouchButton", "VirtualJoystick", "UIDocument", "Tilemap", "Collider2D", "Camera3D"};
 
         const std::map<std::string, EngineClass> &engineClasses()
         {
@@ -45,10 +45,10 @@ namespace fried_import
                 {"Node3D", {"CanvasItem", "Transform3D", "", {}}},
                 {"Control", {"CanvasItem", "RectTransform", "", {}}},
                 {"CanvasLayer", {"Node", "", "Canvas", {"layer"}}},
-                {"KinematicBody", {"Node", "", "KinematicBody", {"velocityX", "velocityY"}}},
+                {"KinematicBody", {"Node", "", "Body2D", {"velocityX", "velocityY"}}},
                 {"Sprite", {"Node2D", "", "SpriteRenderer", {"texture", "source", "flip"}}},
                 {"Camera", {"Node2D", "", "Camera", {"zoom"}}},
-                {"Collider", {"Node2D", "", "Collider", {"width", "height", "collisionLayer", "collisionMask", "isTrigger", "isDebugVisible", "debugColor"}}},
+                {"Collider", {"Node2D", "", "Collider2D", {"width", "height", "collisionLayer", "collisionMask", "isTrigger", "isDebugVisible", "debugColor"}}},
                 {"Tilemap", {"Node2D", "", "Tilemap", {"texture", "tileWidth", "tileHeight", "mapWidth", "mapHeight", "cells", "isSolid", "collisionLayer"}}},
                 {"Label", {"Control", "", "Label", {"font", "text", "color", "maxWidth"}}},
                 {"TextureRect", {"Control", "", "TextureRect", {"texture", "source", "flip"}}},

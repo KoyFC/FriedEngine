@@ -3,7 +3,7 @@ package fried.scene;
 // A transform with a position, a rotation in degrees and a scale in the plane, relative to its parent.
 @:serializable
 @:allow(fried.scene)
-@:allow(fried.physics)
+@:allow(fried.physics2d)
 class Transform2D extends Transform {
 	public var x(default, set):Single;
 	public var y(default, set):Single;
@@ -14,7 +14,7 @@ class Transform2D extends Transform {
 	// The place this transform's transform has in the native store while it is in a scene, and -1 when it is not in one.
 	var slot:Int;
 
-	var collider:Null<fried.physics.Collider>;
+	var collider:Null<fried.physics2d.Collider2D>;
 
 	// A transform in a scene whose parent is no CanvasItem or another Node2D, which the store places without Haxe, and that parent when it is a Node2D.
 	var isStored:Bool;

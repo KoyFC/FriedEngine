@@ -1,4 +1,4 @@
-package fried.physics;
+package fried.physics2d;
 
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
@@ -7,11 +7,11 @@ import fried.scene.Renderer2D;
 import fried.scene.Transform2D;
 import fried.scene.TransformStore2D;
 
-// An axis aligned box that Physics finds. A body is stopped by the solid colliders whose layer its mask names, and a trigger is one that stops nothing and is only reported, so a zone or a shot can notice what it touches. Its position is the box's top left corner, the position of its object, which it follows.
+// An axis aligned box that Physics2D finds. A body is stopped by the solid colliders whose layer its mask names, and a trigger is one that stops nothing and is only reported, so a zone or a shot can notice what it touches. Its position is the box's top left corner, the position of its object, which it follows.
 @:serializable
-@:allow(fried.physics)
+@:allow(fried.physics2d)
 @:allow(fried.scene)
-class Collider extends Renderer2D {
+class Collider2D extends Renderer2D {
 	public var width(default, set):Single;
 	public var height(default, set):Single;
 
@@ -72,7 +72,7 @@ class Collider extends Renderer2D {
 		isQueued = false;
 	}
 
-	// It draws, for the debug outline, and Scene keeps a list of colliders for Physics, which a flag in the same word asks for.
+	// It draws, for the debug outline, and Scene keeps a list of colliders for Physics2D, which a flag in the same word asks for.
 	override function hookFlags():Int {
 		return super.hookFlags() | 2 | 8;
 	}
@@ -139,7 +139,7 @@ class Collider extends Renderer2D {
 		exactDirty = false;
 	}
 
-	public function overlaps(other:Collider):Bool {
+	public function overlaps(other:Collider2D):Bool {
 		if (other == null || other == this) {
 			return false;
 		}

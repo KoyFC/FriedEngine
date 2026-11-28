@@ -1,7 +1,7 @@
 package fried.editor;
 
 #if fried_editor
-import fried.physics.Collider;
+import fried.physics2d.Collider2D;
 import fried.scene.Camera;
 import fried.scene.GameObject;
 import fried.scene.RectTransform;
@@ -31,7 +31,7 @@ class EditorBounds {
 		if (tilemap != null) {
 			return box(place.worldX, place.worldY, tilemap.mapWidth * tilemap.tileWidth * place.worldScaleX, tilemap.mapHeight * tilemap.tileHeight * place.worldScaleY);
 		}
-		var collider = object.getComponent(Collider);
+		var collider = object.getComponent(Collider2D);
 		if (collider != null) {
 			return box(collider.left, collider.top, collider.right - collider.left, collider.bottom - collider.top);
 		}

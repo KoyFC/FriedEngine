@@ -1,6 +1,6 @@
-package fried.physics;
+package fried.physics2d;
 
-// Where a Collider's box is as integers, worked out natively, so that testing what overlaps compares integers and does no arithmetic on a Single or a Float, which costs a call into software floating point on a console without a floating point unit.
+// Where a Collider2D's box is as integers, worked out natively, so that testing what overlaps compares integers and does no arithmetic on a Single or a Float, which costs a call into software floating point on a console without a floating point unit.
 @:include("math/fixed_point.h")
 extern class FixedPoint {
 	@:native("fried_bounds_point_single")

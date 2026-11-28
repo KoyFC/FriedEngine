@@ -1,4 +1,4 @@
-package fried.physics;
+package fried.physics2d;
 
 // The boxes of a scene's colliders and the grid that finds the ones near a box, kept natively in one array with each collider at its place in tree order, so a query walks integers in memory that is together and not objects that are not.
 @:include("physics/collider_store.h")
