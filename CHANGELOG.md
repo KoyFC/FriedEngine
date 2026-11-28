@@ -22,6 +22,7 @@ All notable changes to Fried Engine are written here, newest version first.
 - The fx-CG50 audio warning now comes from the `audio` module.
 
 ### Fixed
+- The editor player of a project that no platform uses Box2D in failed to link; it now links every backend, as the editor plays as any platform.
 - The editor player's build no longer warns that the precompiled header is not used.
 
 ## v0.2.0 - 2026-11-28
