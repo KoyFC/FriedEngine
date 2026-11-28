@@ -2,11 +2,12 @@ package fried.scene;
 
 import fried.graphics3d.Rotation;
 
-// A node with a position, a rotation in degrees about each axis and a scale on each, relative to the nearest Node3D above it. It is left handed with y up and z forward, and turns about z, then x, then y.
+// A transform with a position, a rotation in degrees about each axis and a scale on each, relative to the nearest Transform3D above it. It is left handed with y up and z forward, and turns about z, then x, then y.
 //
-// A 2D node under it is placed as if it had no parent, since the plane of the screen is not part of the 3D world.
+// A 2D transform under it is placed as if it had no parent, since the plane of the screen is not part of the 3D world.
 @:serializable
-class Node3D extends CanvasItem {
+@:allow(fried.scene)
+class Transform3D extends Transform {
 	public var x(default, set):Float;
 	public var y(default, set):Float;
 	public var z(default, set):Float;
@@ -17,7 +18,7 @@ class Node3D extends CanvasItem {
 	public var scaleY(default, set):Float;
 	public var scaleZ(default, set):Float;
 
-	// Where the node is in the world, the world's x and y being CanvasItem's worldX and worldY.
+	// Where the transform is in the world, the world's x and y being Transform's worldX and worldY.
 	@:noSerialize public var worldZ(get, never):Float;
 	@:noSerialize public var worldRotationX(get, never):Float;
 	@:noSerialize public var worldRotationY(get, never):Float;
@@ -30,9 +31,10 @@ class Node3D extends CanvasItem {
 	var wrz:Float;
 	var wsz:Float;
 
-	// Whether the world rotation is zero and the world scale is one, which most nodes under a parent are, and which spares their children the sums of a turned or scaled one.
+	// Whether the world rotation is zero and the world scale is one, which most transforms under a parent are, and which spares their children the sums of a turned or scaled one.
 	var hasPlainTurn:Bool;
-	var parent3D:Null<Node3D>;
+	var light:Null<Light>;
+	var parent3D:Null<Transform3D>;
 
 	static var parentTurn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 	static var ownTurn:Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
@@ -40,7 +42,7 @@ class Node3D extends CanvasItem {
 	static var angles:Array<Float> = [0.0, 0.0, 0.0];
 
 	public function new(x:Float = 0.0, y:Float = 0.0, z:Float = 0.0) {
-		super("Node3D");
+		super();
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -72,7 +74,11 @@ class Node3D extends CanvasItem {
 
 	override function parentChanged():Void {
 		super.parentChanged();
-		parent3D = Std.downcast(parent, Node3D);
+		parent3D = Std.downcast(parent, Transform3D);
+	}
+
+	override function isPlaced3D():Bool {
+		return true;
 	}
 
 	// With a parent that is not turned or scaled, which is most of them, the world position is the parent's plus this one's, and the DS has no hardware floating point to spare.
@@ -133,6 +139,9 @@ class Node3D extends CanvasItem {
 			}
 		}
 		hasPlainTurn = wrx == 0.0 && wry == 0.0 && wrz == 0.0 && wsx == 1.0 && wsy == 1.0 && wsz == 1.0;
+		if (light != null) {
+			light.worldChanged();
+		}
 	}
 
 	inline function get_worldZ():Float {

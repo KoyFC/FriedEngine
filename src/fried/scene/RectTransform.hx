@@ -3,17 +3,18 @@ package fried.scene;
 import fried.Log;
 import fried.input.InputEvent;
 
-// A node of the interface, placed against the rectangle of its parent instead of by a position.
+// A transform of the interface, placed against the rectangle of its parent instead of by a position.
 //
 // On each axis the anchors are fractions of the parent's rectangle. When the two are equal the control keeps its own size and sits at that point, moved by the pivot, a fraction of its own size, and then by the offset. When they differ it is stretched between the two anchors, shrunk by the insets.
 //
-// A control under another control is placed against that one's rectangle. Under a Node2D the parent's rectangle is a point at that node's position, so the offsets act as a position and the control follows it. Anywhere else, such as the root of a scene, it is the view.
+// A control under another control is placed against that one's rectangle. Under a Transform2D the parent's rectangle is a point at that transform's position, so the offsets act as a position and the control follows it. Anywhere else, such as the root of a scene, it is the view.
 //
 // A control's own size is what the class says it is, such as a label's text, or else its width and height. A control with a size of its own that is stretched has its scale set to fill the space, which suits a texture and distorts a line of text; one without it is given the space as its size.
 //
 // Where a control is placed is worked out when it is read, and again only after something it depends on changed: its own fields, its parent's rectangle, the view, or the control it sits under with `below`.
 @:serializable
-class Control extends CanvasItem {
+@:allow(fried.scene)
+class RectTransform extends Transform {
 	public var anchorMinX(default, set):Float;
 	public var anchorMinY(default, set):Float;
 	public var anchorMaxX(default, set):Float;
@@ -36,7 +37,10 @@ class Control extends CanvasItem {
 	public var scaleY(default, set):Float;
 
 	// When set, the control is placed under this one instead of by its vertical anchor, with offsetY as the gap.
-	public var below(default, set):Control;
+	public var below(default, set):RectTransform;
+
+	// The component of this object that gives it a size of its own, such as a label's text.
+	@:noSerialize public var sizeSource:Null<Renderer2D>;
 
 	// The rectangle the control takes up in the world, after the scale.
 	@:noSerialize public var rectWidth(get, never):Float;
@@ -44,12 +48,12 @@ class Control extends CanvasItem {
 
 	var rw:Float;
 	var rh:Float;
-	var dependents:Array<Control>;
+	var dependents:Array<RectTransform>;
 	var isLayingOut:Bool;
 	var isCycleReported:Bool;
 
-	public function new(name:String = "Control") {
-		super(name);
+	public function new() {
+		super();
 		anchorMinX = 0.0;
 		anchorMinY = 0.0;
 		anchorMaxX = 0.0;
@@ -74,41 +78,37 @@ class Control extends CanvasItem {
 		isCycleReported = false;
 	}
 
-	// The size before the scale that a class gives its control, or a negative number when it gives none.
-	function intrinsicWidth():Float {
-		return -1;
-	}
-
-	function intrinsicHeight():Float {
-		return -1;
+	override function isPlaced2D():Bool {
+		return true;
 	}
 
 	// Where an event of the pointer or a finger is, in the space the control is drawn in: the screen under a CanvasLayer, the world through the scene's camera anywhere else.
-	function eventX(event:InputEvent):Float {
+	public function eventX(event:InputEvent):Float {
 		var camera = worldCamera();
 		return camera != null ? camera.screenToWorldX(event.x) : event.x;
 	}
 
-	function eventY(event:InputEvent):Float {
+	public function eventY(event:InputEvent):Float {
 		var camera = worldCamera();
 		return camera != null ? camera.screenToWorldY(event.y) : event.y;
 	}
 
 	function worldCamera():Null<Camera> {
+		var scene = gameObject.scene;
 		if (scene == null) {
 			return null;
 		}
-		var node = parent;
-		while (node != null) {
-			if (Std.isOfType(node, CanvasLayer)) {
+		var current = parent;
+		while (current != null) {
+			if (current.gameObject.getComponent(Canvas) != null) {
 				return null;
 			}
-			node = node.parent;
+			current = current.parent;
 		}
 		return scene.camera;
 	}
 
-	function containsEvent(event:InputEvent):Bool {
+	public function containsEvent(event:InputEvent):Bool {
 		var x = eventX(event);
 		var y = eventY(event);
 		var left = worldX;
@@ -130,7 +130,7 @@ class Control extends CanvasItem {
 		if (isLayingOut) {
 			if (!isCycleReported) {
 				isCycleReported = true;
-				Log.warn('The layout of $name depends on itself, so one of the controls in the loop is placed before the other.');
+				Log.warn('The layout of ${gameObject.name} depends on itself, so one of the controls in the loop is placed before the other.');
 			}
 			return;
 		}
@@ -148,18 +148,18 @@ class Control extends CanvasItem {
 			}
 			parentLeft = container.wx;
 			parentTop = container.wy;
-			var control = Std.downcast(container, Control);
+			var control = Std.downcast(container, RectTransform);
 			if (control != null) {
 				parentWidth = control.rw;
 				parentHeight = control.rh;
 			}
-		} else if (scene != null) {
-			parentWidth = scene.viewWidth;
-			parentHeight = scene.viewHeight;
+		} else if (gameObject.scene != null) {
+			parentWidth = gameObject.scene.viewWidth;
+			parentHeight = gameObject.scene.viewHeight;
 		}
 
-		var ownWidth = intrinsicWidth();
-		var ownHeight = intrinsicHeight();
+		var ownWidth = sizeSource != null ? sizeSource.intrinsicWidth() : -1;
+		var ownHeight = sizeSource != null ? sizeSource.intrinsicHeight() : -1;
 		var hasSize = ownWidth >= 0;
 		var baseWidth = hasSize ? ownWidth : width;
 		var baseHeight = hasSize ? ownHeight : height;
@@ -239,7 +239,7 @@ class Control extends CanvasItem {
 		return rh;
 	}
 
-	function set_below(value:Control):Control {
+	function set_below(value:RectTransform):RectTransform {
 		if (value == below) {
 			return value;
 		}
