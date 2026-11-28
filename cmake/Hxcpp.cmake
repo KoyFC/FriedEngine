@@ -160,6 +160,11 @@ function(fried_add_hxcpp_executable target_name generated_dir)
     option(FRIED_DS_THUMB "Build the Haxe code of a DS game as Thumb" ON)
     if(NINTENDO_DS AND FRIED_DS_THUMB)
         set_property(SOURCE ${_generated_sources} APPEND PROPERTY COMPILE_OPTIONS "-mthumb")
+        # Size, which -O2 does not aim for, with the string literals aligned by hand since -Os stops GCC doing it.
+        option(FRIED_DS_SIZE "Build the Haxe code of a DS game for size" ON)
+        if(FRIED_DS_SIZE)
+            set_property(SOURCE ${_generated_sources} APPEND PROPERTY COMPILE_OPTIONS "-Os" "-include${CMAKE_CURRENT_FUNCTION_LIST_DIR}/nds/aligned_strings.h")
+        endif()
     endif()
 
     list(TRANSFORM _hxcpp_runtime_sources PREPEND "${HXCPP_ROOT}/" OUTPUT_VARIABLE _runtime_sources)
@@ -301,7 +306,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         )
     endif()
 
-    # hxcpp reads the flags word in front of each string literal as an int.
+    # hxcpp reads the flags word in front of each string literal as an int; the Haxe code is aligned by aligned_strings.h, and the hxcpp sources stay at -O2.
     # -Oz stops GCC aligning string literals to a word, and an unaligned load
     # on the ARM9 comes back rotated, so a string is taken for the wrong
     # encoding and Json.parse() fails.

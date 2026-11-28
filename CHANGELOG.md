@@ -10,6 +10,7 @@ All notable changes to Fried Engine are written here, newest version first.
 ## vX.Y.Z
 
 ### Changed
+- The Haxe code of a DS game is built with `-Os` (`-DFRIED_DS_SIZE=OFF` to build it as before), 314 KB less code in the sandbox, which is heap for the game: in melonDS the 3D scene has about 567 KB free instead of 260. Its string literals are aligned by `cmake/nds/aligned_strings.h`, since `-Os` stopped GCC doing it.
 - A build registers only the node and resource types the scenes of the project name, plus its autoloads and the classes a game registers itself, so the code of `UIDocument`, `Tilemap`, the meshes and the rest is left out of a game that does not use it: a project with a sprite and a camera has a quarter less code on the DS. The editor, `-D fried_text_scenes` and `-D fried_all_nodes` register every type, as before.
 - A `Mesh` keeps at most four variants, one for each material that overrides its own, instead of one more for every scene that loads a cached model with an override.
 - On the DS a mesh gives back its flat arrays of vertices, texture coordinates and indices once the console has its copy.
