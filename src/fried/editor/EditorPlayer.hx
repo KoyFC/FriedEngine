@@ -243,7 +243,7 @@ class EditorPlayer {
 		}
 		switch (message.type) {
 			case "schema":
-				connection.send({type: "schema", classes: describeClasses(), resources: describeResources(), inputNames: fried.input.InputNames.describe()});
+				connection.send({type: "schema", classes: describeClasses(), modules: fried.Modules.describe(), resources: describeResources(), inputNames: fried.input.InputNames.describe()});
 			case "load":
 				load(message.scene, message.viewWidth, message.viewHeight);
 				connection.send({type: "loaded"});
@@ -317,6 +317,10 @@ class EditorPlayer {
 	function describeClasses():Array<Dynamic> {
 		var classes = [];
 		var builtin = [for (type in Builtins.all()) type.name];
+		var owners = new Map<String, {module:String, backend:String}>();
+		for (owner in fried.Modules.describe().owners) {
+			owners.set(owner.name, owner);
+		}
 		for (type in ComponentRegistry.all()) {
 			var defaults = type.defaultValues();
 			var fields:Array<Dynamic> = [];
@@ -341,6 +345,8 @@ class EditorPlayer {
 				parent: type.parent,
 				kind: chain.indexOf("Transform") >= 0 ? "transform" : "component",
 				requires: requires,
+				module: owners.exists(type.name) ? owners.get(type.name).module : null,
+				backend: owners.exists(type.name) ? owners.get(type.name).backend : null,
 				fields: fields,
 				builtin: builtin.indexOf(type.name) >= 0
 			});

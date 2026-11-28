@@ -186,6 +186,20 @@ class Modules {
 	// The manifest as the editor reads it, with the backend each declared platform uses.
 	public static macro function describe():Expr {
 		var chosen = [for (platform => modules in resolved()) {platform: platform, modules: [for (module => backend in modules) {module: module, backend: backend}]}];
-		return macro {manifest: $v{haxe.Json.stringify(manifest())}, chosen: $v{chosen}};
+		var owners:Array<{name:String, module:String, backend:String}> = [];
+		for (module in Reflect.fields(manifest())) {
+			var backends = backendsOf(module);
+			for (backend in Reflect.fields(backends)) {
+				for (list in ["components", "classes"]) {
+					var names:Dynamic = Reflect.field(Reflect.field(backends, backend), list);
+					if (Std.isOfType(names, Array)) {
+						for (name in (names : Array<String>)) {
+							owners.push({name: name, module: module, backend: backend});
+						}
+					}
+				}
+			}
+		}
+		return macro {manifest: $v{haxe.Json.stringify(manifest())}, chosen: $v{chosen}, owners: $v{owners}};
 	}
 }
