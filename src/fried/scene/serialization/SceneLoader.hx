@@ -351,6 +351,10 @@ class SceneLoader {
 
 		var componentList:Array<Dynamic> = FieldCodec.has(data, "components") ? FieldCodec.get(data, "components") : [];
 		for (componentData in componentList) {
+			var typeName:Dynamic = Reflect.field(componentData, "type");
+			if (Std.isOfType(typeName, String) && ComponentRegistry.isLeftOut(typeName)) {
+				continue;
+			}
 			var type = typeOf(componentData, fileId);
 			var component = type.create(componentData, context);
 			object.addComponent(component);

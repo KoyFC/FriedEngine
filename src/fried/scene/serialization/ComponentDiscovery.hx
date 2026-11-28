@@ -6,6 +6,7 @@ import haxe.macro.Expr;
 // Finds the components of a game, which are the @:serializable classes in the `components` package of its source, so no list has to be kept.
 class ComponentDiscovery {
 	public static macro function register():Expr {
+		fried.Modules.checkGenerated();
 		var modules:Array<String> = [];
 		for (root in Context.getClassPath()) {
 			collect(haxe.io.Path.join([root, "components"]), "components", modules);

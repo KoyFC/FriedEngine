@@ -1,5 +1,6 @@
 package fried.scene.serialization;
 
+import fried.Modules;
 import haxe.macro.Expr;
 #if macro
 import haxe.macro.Context;
@@ -29,7 +30,8 @@ class BuiltinsMacro {
 		var calls = [];
 		for (path in paths) {
 			var parts = path.split(".");
-			if (used == null || used.exists(parts[parts.length - 1])) {
+			var name = parts[parts.length - 1];
+			if ((used == null || used.exists(name)) && !Modules.isLeftOutOfBuild(name)) {
 				calls.push({expr: ECall({expr: EField(macro $p{parts}, method), pos: Context.currentPos()}, []), pos: Context.currentPos()});
 			}
 		}

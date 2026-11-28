@@ -158,7 +158,7 @@ class Project {
 		return macro $v{declared};
 	}
 
-	static function read():Dynamic {
+	public static function read():Dynamic {
 		if (file != null) {
 			return file;
 		}
