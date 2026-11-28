@@ -4,6 +4,8 @@ devkitPro ships SDL 1.2 for the 3DS but not SDL2, which has had an official 3DS 
 
 SDL2_image decodes PNG and JPEG through its bundled stb_image, and SDL2_mixer plays WAV, OGG, MP3 and FLAC through its bundled decoders, so neither depends on another library. SDL2_ttf uses devkitPro's `3ds-freetype`.
 
+These are optional: a 3DS build compiles its own SDL2 on the first configure, and only `-DFRIED_SYSTEM_SDL2=ON` links the packages installed here.
+
 ## Building and installing
 
 This needs [devkitPro](https://devkitpro.org/) with `$DEVKITPRO` set, `makepkg` and `fakeroot`. Each package builds against the ones before it, so they are built and installed one at a time, in this order:

@@ -3,7 +3,7 @@
 ## Requirements
 
 - devkitPro, installed as described in [Installing](../getting-started/installing.md#devkitpro), with `dkp-pacman -S 3ds-dev`.
-- SDL2 and its companions built from [`packaging/3ds/`](https://github.com/KoyFC/FriedEngine/tree/main/packaging/3ds), since devkitPro ships no SDL2 for the 3DS.
+- Nothing else: devkitPro ships no SDL2 for the 3DS, so the first configure builds SDL2 and its three companions from source into `~/.cache/fried-engine/deps`, once, as it does for PC. `-DFRIED_SYSTEM_SDL2=ON` links the packages of [`packaging/3ds/`](https://github.com/KoyFC/FriedEngine/tree/main/packaging/3ds) installed into devkitPro instead.
 
 ## Building
 
@@ -28,7 +28,7 @@ That produces `build/3ds/sandbox/fried_sandbox.3dsx`, which runs from the Homebr
 
 ## How the port works
 
-A 3DS build is configured with devkitPro's 3DS toolchain file, which sets `NINTENDO_3DS` and defines `__3DS__`, and brings `ctr_generate_smdh()` and `ctr_create_3dsx()` the way the Switch's brings its NACP and `.nro` steps. What it does not bring is SDL2: devkitPro ships only SDL 1.2 for the 3DS, so `packaging/3ds/` builds SDL2 and its three companion libraries as pacman packages installed next to devkitPro's own. Once installed they are found exactly as on the Vita, through their CMake package configs.
+A 3DS build is configured with devkitPro's 3DS toolchain file, which sets `NINTENDO_3DS` and defines `__3DS__`, and brings `ctr_generate_smdh()` and `ctr_create_3dsx()` the way the Switch's brings its NACP and `.nro` steps. What it does not bring is SDL2: devkitPro ships only SDL 1.2 for the 3DS, so `cmake/PcDependencies.cmake` builds SDL2 and its three companion libraries from source with that toolchain, once, the way it does for PC and Android, and finds them through their CMake package configs. `packaging/3ds/` builds the same libraries as pacman packages for `FRIED_SYSTEM_SDL2=ON`.
 
 hxcpp had one gap here that neither of the other consoles had, although the 3DS runs on newlib too. libctru implements no pthread keys: `pthread_key_create()` and the rest are newlib stubs that fail, and `pthread_getspecific()` reads back null, so the GC lost its per-thread context on the first allocation and stopped with a zone mismatch. hxcpp lets a build replace its TLS header through `HX_TLS_H_OVERRIDE`, and `cmake/libctru/hx_tls.h` puts the same macros on `thread_local`, which libctru does implement for every thread it creates. Everything else in `cmake/Hxcpp.cmake` is shared with the other two consoles, apart from PIE, which a `.3dsx` does not use: its loader relocates it from the word relocations the toolchain compiles with.
 

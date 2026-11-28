@@ -9,6 +9,9 @@ All notable changes to Fried Engine are written here, newest version first.
 
 ## vX.Y.Z
 
+### Changed
+- A 3DS build compiles SDL2 and its companions itself on the first configure, as PC does, so it no longer needs `packaging/3ds/` installed; `FRIED_SYSTEM_SDL2=ON` keeps using those packages.
+
 ### Fixed
 - The romfs and VPK packaging listed assets by the name of the source, so a scene, which is a `.fscene` once imported, was missing from the DS, 3DS, Switch and Vita packages.
 

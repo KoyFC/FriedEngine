@@ -64,9 +64,15 @@ elseif(FRIED_ANDROID)
     include("${CMAKE_CURRENT_LIST_DIR}/Android.cmake")
 endif()
 
+# devkitPro ships no SDL2 for the 3DS, so it is built from source like the PC's,
+# unless FRIED_SYSTEM_SDL2 asks for the packages of packaging/3ds/.
+if(NINTENDO_3DS)
+    include("${CMAKE_CURRENT_LIST_DIR}/PcDependencies.cmake")
+endif()
+
 # gint is the whole platform on the calculator, and libnds on the DS, with no
 # SDL2 on top of either.
-if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS)
+if(VITA OR NINTENDO_SWITCH OR (NINTENDO_3DS AND FRIED_SYSTEM_SDL2))
     if(VITA)
         include("${CMAKE_CURRENT_LIST_DIR}/VitaDependencies.cmake")
         fried_add_vita_sdl2()
@@ -94,7 +100,7 @@ endif()
 
 # VitaSDK's and devkitPro's 3DS freetype packages leave these dependencies
 # unnamed, and so does VitaSDK's SDL2.
-if(VITA OR NINTENDO_3DS)
+if(VITA OR (NINTENDO_3DS AND FRIED_SYSTEM_SDL2))
     set_property(TARGET Freetype::Freetype APPEND PROPERTY
         INTERFACE_LINK_LIBRARIES png z bz2
     )
@@ -258,16 +264,11 @@ if(NOT TARGET fried_engine)
     elseif(FRIED_WEB)
         target_compile_options(fried_engine PUBLIC ${FRIED_WEB_SDL_FLAGS})
     elseif(VITA OR NINTENDO_3DS)
-        if(VITA)
-            set(_fried_sdl2_target SDL2::SDL2-static)
-        else()
-            set(_fried_sdl2_target SDL2::SDL2)
-        endif()
         target_link_libraries(fried_engine PUBLIC
             SDL2_image::SDL2_image-static
             SDL2_mixer::SDL2_mixer-static
             SDL2_ttf::SDL2_ttf-static
-            ${_fried_sdl2_target}
+            SDL2::SDL2-static
         )
         if(VITA)
             # The shader compiler is a module loaded at run time, so its stub is weak and the app starts without it.

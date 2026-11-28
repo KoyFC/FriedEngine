@@ -87,6 +87,13 @@ set(SDL2TTF_VENDORED ON)
 set(SDL2TTF_SAMPLES OFF)
 set(SDL2TTF_HARFBUZZ OFF)
 
+# devkitPro's portlibs hold zlib, libpng and bzip2 for the 3DS, which FreeType would otherwise find and leave the game to link.
+if(NINTENDO_3DS)
+    foreach(_unused_freetype_feature ZLIB BZIP2 PNG BROTLI HARFBUZZ)
+        set(FT_DISABLE_${_unused_freetype_feature} ON)
+    endforeach()
+endif()
+
 FetchContent_MakeAvailable(sdl2 sdl2_image sdl2_mixer sdl2_ttf)
 
 # SDL's Java half has to come from the same release as its C, so the APK is built from this copy.

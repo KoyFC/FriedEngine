@@ -126,8 +126,8 @@ function(fried_add_pc_sdl2 out_link_targets)
         _fried_install_pc_sdl2("${_prefix}")
     endif()
 
-    # SDL2_image's package config asks for libjpeg and libpng although the stb backend it was built with needs neither, and the NDK has neither.
-    if(ANDROID)
+    # SDL2_image's package config asks for libjpeg and libpng although the stb backend it was built with needs neither, and the NDK and devkitPro's 3DS have neither.
+    if(ANDROID OR NINTENDO_3DS)
         foreach(_unused JPEG PNG)
             if(NOT TARGET ${_unused}::${_unused})
                 add_library(${_unused}::${_unused} INTERFACE IMPORTED)
