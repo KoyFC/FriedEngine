@@ -9,9 +9,19 @@ import fried.scene.Transform2D;
 @:serializable
 @:allow(fried.scene)
 class Body2D extends Component {
+	public var bodyType:BodyType;
+
 	// Pixels a second.
 	public var velocityX:Single;
 	public var velocityY:Single;
+
+	// How much of the project's gravity pulls on a dynamic body.
+	public var gravityScale:Single;
+
+	// What only a rigid body world uses: degrees a second, whether the body turns, and whether it is checked against what it could pass through at speed.
+	public var angularVelocity:Single;
+	public var fixedRotation:Bool;
+	public var bullet:Bool;
 
 	@:noSerialize public var contacts(default, null):Array<Collider2D>;
 	@:noSerialize public var isBlockedX(default, null):Bool;
@@ -20,6 +30,8 @@ class Body2D extends Component {
 	// A pixel is 4096 units of a collider's box (see FixedPoint).
 	static inline var UNIT:Float = 1.0 / 4096.0;
 	static inline var ZERO:Single = 0.0;
+	static inline var GRAVITY_X:Single = Project.physics2dGravityX();
+	static inline var GRAVITY_Y:Single = Project.physics2dGravityY();
 
 	var target:Transform2D;
 	var collider:Collider2D;
@@ -28,6 +40,11 @@ class Body2D extends Component {
 		super();
 		this.velocityX = velocityX;
 		this.velocityY = velocityY;
+		bodyType = BodyType.Kinematic;
+		gravityScale = 1.0;
+		angularVelocity = 0.0;
+		fixedRotation = false;
+		bullet = false;
 		contacts = [];
 		isBlockedX = false;
 		isBlockedY = false;
@@ -57,10 +74,28 @@ class Body2D extends Component {
 		}
 	}
 
+	// Adds to the velocity, as the body weighs one: the push of a force over one step, or an impulse at once.
+	public function applyForce(x:Single, y:Single):Void {
+		velocityX += x / Project.physicsRate();
+		velocityY += y / Project.physicsRate();
+	}
+
+	public function applyImpulse(x:Single, y:Single):Void {
+		velocityX += x;
+		velocityY += y;
+	}
+
 	function step(delta:Single):Void {
 		contacts.resize(0);
 		isBlockedX = false;
 		isBlockedY = false;
+		if (bodyType == BodyType.Static) {
+			return;
+		}
+		if (bodyType == BodyType.Dynamic) {
+			velocityX += GRAVITY_X * gravityScale * delta;
+			velocityY += GRAVITY_Y * gravityScale * delta;
+		}
 		if (collider.boundsDirty) {
 			collider.refreshBounds();
 		}
@@ -87,6 +122,14 @@ class Body2D extends Component {
 				isBlockedY = stopAgainstSolids(nearby, false, dy > ZERO);
 			}
 			collectOverlaps(nearby, true);
+		}
+		if (bodyType == BodyType.Dynamic) {
+			if (isBlockedX) {
+				velocityX = ZERO;
+			}
+			if (isBlockedY) {
+				velocityY = ZERO;
+			}
 		}
 		ColliderGrid.sortByOrder(contacts);
 	}

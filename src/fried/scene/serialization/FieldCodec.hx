@@ -9,6 +9,7 @@ import fried.graphics3d.Mesh;
 import fried.graphics3d.MeshFile;
 import fried.graphics3d.PlaneOrientation;
 import fried.physics2d.BodyType;
+import fried.physics2d.ShapeType;
 import fried.graphics.Texture;
 import fried.io.Filesystem;
 import fried.ui.HtmlSource;
@@ -19,6 +20,7 @@ class FieldCodec {
 	static var flipNames:Array<String> = ["None", "Horizontal", "Vertical", "Both"];
 	static var orientationNames:Array<String> = ["FaceX", "FaceY", "FaceZ"];
 	static var bodyTypeNames:Array<String> = ["Static", "Kinematic", "Dynamic"];
+	static var shapeTypeNames:Array<String> = ["Box", "Circle", "Capsule", "Polygon"];
 
 	public static function has(data:Dynamic, name:String):Bool {
 		return data != null && Reflect.hasField(data, name);
@@ -37,6 +39,7 @@ class FieldCodec {
 			case Flip: flipNames.copy();
 			case Orientation: orientationNames.copy();
 			case Body: bodyTypeNames.copy();
+			case Shape: shapeTypeNames.copy();
 			case _: [];
 		}
 	}
@@ -112,6 +115,16 @@ class FieldCodec {
 			case "Kinematic": BodyType.Kinematic;
 			case "Dynamic": BodyType.Dynamic;
 			case _: invalid(field, "one of " + bodyTypeNames.join(", "));
+		}
+	}
+
+	public static function toShapeType(value:Dynamic, field:String):ShapeType {
+		return switch (value) {
+			case "Box": ShapeType.Box;
+			case "Circle": ShapeType.Circle;
+			case "Capsule": ShapeType.Capsule;
+			case "Polygon": ShapeType.Polygon;
+			case _: invalid(field, "one of " + shapeTypeNames.join(", "));
 		}
 	}
 
@@ -267,6 +280,10 @@ class FieldCodec {
 		return bodyTypeNames[cast value];
 	}
 
+	public static function fromShapeType(value:ShapeType):Dynamic {
+		return shapeTypeNames[cast value];
+	}
+
 	public static function fromOrientation(value:PlaneOrientation):Dynamic {
 		return orientationNames[cast value];
 	}
@@ -332,7 +349,11 @@ class FieldCodec {
 	}
 
 	public static function zeroBodyType():BodyType {
-		return BodyType.Dynamic;
+		return BodyType.Kinematic;
+	}
+
+	public static function zeroShapeType():ShapeType {
+		return ShapeType.Box;
 	}
 
 	public static function zeroOrientation():PlaneOrientation {

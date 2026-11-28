@@ -13,6 +13,7 @@ enum abstract FieldKind(String) to String {
 	var FontRef = "font";
 	var Orientation = "orientation";
 	var Body = "bodytype";
+	var Shape = "shapetype";
 	var MeshRef = "mesh";
 	var MaterialRef = "material";
 	var ObjectRef = "object";

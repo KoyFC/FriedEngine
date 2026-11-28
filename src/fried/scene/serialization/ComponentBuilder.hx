@@ -258,6 +258,7 @@ class ComponentBuilder {
 			case "Color": {name: "", codec: "Color", kind: "Rgba", needsContext: false};
 			case "FlipMode": {name: "", codec: "Flip", kind: "Flip", needsContext: false};
 			case "BodyType": {name: "", codec: "BodyType", kind: "Body", needsContext: false};
+			case "ShapeType": {name: "", codec: "ShapeType", kind: "Shape", needsContext: false};
 			case "PlaneOrientation": {name: "", codec: "Orientation", kind: "Orientation", needsContext: false};
 			case "Mesh": {name: "", codec: "Mesh", kind: "MeshRef", needsContext: true};
 			case "Material": {name: "", codec: "Material", kind: "MaterialRef", needsContext: true};

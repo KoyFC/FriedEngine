@@ -1,0 +1,40 @@
+version: 3
+name: Sandbox Physics
+camera: camera
+objects:
+  - id: physics-root
+    name: Physics
+    children:
+      - id: camera
+        name: Camera
+        transform: {type: Transform2D}
+        components:
+          - {type: Camera, zoom: 1}
+      - id: ground
+        name: Ground
+        transform: {type: Transform2D, x: -320, y: 200}
+        components:
+          - {type: Collider2D, height: 40, isDebugVisible: true, width: 640}
+      - id: crate
+        name: Crate
+        transform: {type: Transform2D, x: -48, y: -160}
+        components:
+          - {type: Body2D, bodyType: Dynamic}
+          - {type: SpriteRenderer, texture: {root: game, path: sprite.png}}
+          - {type: Collider2D, height: 32, isDebugVisible: true, restitution: 0.3, width: 32}
+      - id: ball
+        name: Ball
+        transform: {type: Transform2D, x: 14, y: -240}
+        components:
+          - {type: Body2D, bodyType: Dynamic}
+          - {type: SpriteRenderer, texture: {root: game, path: sprite.png}}
+          - {type: Collider2D, height: 32, isDebugVisible: true, restitution: 0.6, shape: Circle, width: 32}
+      - id: zone
+        name: Zone
+        transform: {type: Transform2D, x: -100, y: 150}
+        components:
+          - {type: Collider2D, height: 50, isDebugVisible: true, isTrigger: true, width: 200}
+      - id: demo
+        name: Demo
+        components:
+          - {type: PhysicsDemo, crate: crate}

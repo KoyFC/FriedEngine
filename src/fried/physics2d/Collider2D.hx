@@ -20,6 +20,15 @@ class Collider2D extends Renderer2D {
 	public var collisionMask:Int;
 	public var isTrigger:Bool;
 
+	// The form inside the box, which is what the collider is to a body that is stopped by it: a rigid body world makes the circle, capsule or polygon, and a body that only moves and stops uses the box. A circle is as wide as the shorter side of the box, a capsule is upright, and a polygon is convex, at most eight points, written as pairs in pixels from the box's top left corner: "0,16 16,16 8,0".
+	public var shape:ShapeType;
+	public var points:String;
+
+	// What only a rigid body world uses.
+	public var density:Float;
+	public var friction:Float;
+	public var restitution:Float;
+
 	public var isDebugVisible:Bool;
 	public var debugColor:Color;
 
@@ -64,6 +73,11 @@ class Collider2D extends Renderer2D {
 		collisionLayer = 1;
 		collisionMask = 1;
 		isTrigger = false;
+		shape = ShapeType.Box;
+		points = "";
+		density = 1.0;
+		friction = 0.4;
+		restitution = 0.0;
 		isDebugVisible = false;
 		debugColor = Color.rgb(90, 230, 130);
 		boundsDirty = true;
