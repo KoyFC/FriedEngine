@@ -10,11 +10,12 @@ All notable changes to Fried Engine are written here, newest version first.
 ## vX.Y.Z
 
 ### Added
-- Box2D 3.1 as the `box2d` backend of the `physics2d` module, with `RigidBody2D`, `BoxShape2D`, `CircleShape2D`, `CapsuleShape2D`, `PolygonShape2D` and `Physics2D` queries. The DS and the fx-CG50 keep the kinematic physics. See [2D physics with Box2D](https://koyfc.github.io/FriedEngine/architecture/physics-2d-box2d/).
+- Box2D 3.1 as the `box2d` backend of the `physics2d` module. It runs the same components as the default physics, so a scene does not change with the backend: `Collider2D` has a `shape` (`Box`, `Circle`, `Capsule` or `Polygon`), `Body2D` has a `bodyType` (`Static`, `Kinematic` or `Dynamic`), and the settings only Box2D uses are greyed in the editor on the platforms that do not use it. The DS and the fx-CG50 keep the default physics, where a dynamic body falls and slides without rotation, bounce or friction. See [2D physics with Box2D](https://koyfc.github.io/FriedEngine/architecture/physics-2d-box2d/).
 - Modules (`modules.json`): `physics2d`, `audio` and a planned `physics3d` with Jolt, each backend naming the platforms it runs on. Components of a backend a platform does not use are left out of its scenes and of the Haxe build.
 - Build profiles: `platforms` in `project.fried` is a map with one profile per platform, holding its optimization, packaging keys and `modules`. See [Build profiles](https://koyfc.github.io/FriedEngine/architecture/build-profiles/).
 
 ### Changed
+- The 2D physics classes are in `fried.physics2d` and have a 2D suffix: `Collider2D`, `Body2D` (was `KinematicBody`), `Physics2D` and `RaycastHit2D`. Scenes name the components `Collider2D` and `Body2D`, and `fried_import migrate-scenes` writes them.
 - The editor protocol is 8: `schema` carries the modules and the module and backend of each class.
 - The old per-platform layout of `project.fried` still builds with a warning.
 - The fx-CG50 audio warning now comes from the `audio` module.

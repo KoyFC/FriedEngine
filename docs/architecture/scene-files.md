@@ -29,7 +29,7 @@ objects:
           - id: player-hitbox
             transform: {type: Transform2D}
             components:
-              - type: Collider
+              - type: Collider2D
                 width: 32
                 height: 96
 ```
@@ -54,7 +54,7 @@ A scene file is built whole before any component starts: every object and refere
 
 An entry with an `instance` key, `{id: player, instance: player, transform: {x: 40}}`, puts another scene file in the tree as one object. `instance` names a scene the way `startScene` does, and the object is the instanced file's root: the entry's `transform` overrides the fields of the root's transform, each entry of its `components` overrides the fields of the root's component of the same `type` or adds one the root lacks, and `name` and `active` replace the root's. An entry cannot have children. Only a file with exactly one top-level object can be instanced, its `camera` is ignored, and its root cannot itself be an instance entry. A scene that ends up instancing itself fails at load, naming the chain.
 
-The ids of an instanced file belong to the instance, which is how two instances of one file never clash and how a file's own references keep meaning its own objects. They are not in the outer scene's `findById()`: the instance's root has the id the entry gave it, and `instance.getById("hitbox", Collider)` reaches an object inside. An override of a reference field, such as `wall: wall`, names an object of the outer scene. A component meant to be instanced should not require such a reference in its constructor, since its own file cannot give one.
+The ids of an instanced file belong to the instance, which is how two instances of one file never clash and how a file's own references keep meaning its own objects. They are not in the outer scene's `findById()`: the instance's root has the id the entry gave it, and `instance.getById("hitbox", Collider2D)` reaches an object inside. An override of a reference field, such as `wall: wall`, names an object of the outer scene. A component meant to be instanced should not require such a reference in its constructor, since its own file cannot give one.
 
 Code does the same with `Prefab`: `Prefab.load("player").instantiate()` builds the root with its subtree and no id, ready to be added to a scene with `scene.add()` or put under an object with `transform.setParent()`, and its components start when it joins a scene. The file is read once and kept. The editor shows an instance as the one object it is, with the box of everything inside it.
 

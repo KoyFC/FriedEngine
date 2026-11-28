@@ -20,7 +20,7 @@ So a game that needs dynamic bodies would run on a different set of platforms fr
 
 ## What was built
 
-A project chooses the backend per platform in its build profile, and a platform that does not use Box2D gets a stub and loses the components. The manifest allows Box2D on the PC, Vita, Switch, 3DS, web and Android. It compiles for the PC, the Switch and the 3DS (without SIMD), and the Vita, web and Android builds were not tried. Its cost on the 3DS and the Vita is still to be measured.
+A project chooses the backend per platform in its build profile, and a platform that does not use Box2D links a stub. The components are the same on both, and the default backend emulates what it can of a dynamic body. The manifest allows Box2D on the PC, Vita, Switch, 3DS, web and Android. It compiles for the PC, the Switch and the 3DS (without SIMD), and the Vita, web and Android builds were not tried. Its cost on the 3DS and the Vita is still to be measured.
 
 ## Jolt
 
