@@ -124,6 +124,7 @@ function(fried_add_hxcpp_regexp target_name)
     set_source_files_properties("${HXCPP_ROOT}/src/hx/libs/regexp/RegExp.cpp" PROPERTIES
         INCLUDE_DIRECTORIES "${_pcre_dir}"
         COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"
+        SKIP_PRECOMPILE_HEADERS ON
     )
 endfunction()
 
@@ -320,6 +321,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     set_source_files_properties(${_runtime_sources} PROPERTIES
         COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"
+        SKIP_PRECOMPILE_HEADERS ON
     )
 
     if(NINTENDO_DS AND FRIED_DS_SIZE)
@@ -328,6 +330,7 @@ function(fried_add_hxcpp_executable target_name generated_dir)
 
     set_source_files_properties("${generated_dir}/src/__main__.cpp" PROPERTIES
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
+        SKIP_PRECOMPILE_HEADERS ON
     )
 
     if(VITA OR NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS OR FRIED_CG50)
