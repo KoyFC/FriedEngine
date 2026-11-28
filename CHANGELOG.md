@@ -9,6 +9,8 @@ All notable changes to Fried Engine are written here, newest version first.
 
 ## vX.Y.Z
 
+## v0.2.0 - 2026-11-28
+
 ### Changed
 - The editor player builds faster: it uses `-O1` (`/O1 /MP` with Visual Studio), a precompiled `hxcpp.h`, lld where it is installed on Linux, and ccache where it is on the `PATH`. A game's build is unchanged. See [Rebuilding faster](https://koyfc.github.io/FriedEngine/getting-started/building/#rebuilding-faster).
 - Game objects with components replace the node tree: an object has a transform, a `Transform2D`, `RectTransform` or `Transform3D`, and components such as `SpriteRenderer`, `Camera`, `Canvas`, `Label`, `Collider`, `MeshRenderer` and `Light`, and a game's own classes extend `Component` (`ready()` is `start()` and `destroyed()` is `onDestroy()`). A scene file is version 3 with `objects`, `transform` and `components`, and `PackedScene` is `Prefab`. `fried_import migrate-scenes <project>` rewrites a version 2 project's scenes, keeping the originals in `.fried/v2-backup`. See [Game objects](https://koyfc.github.io/FriedEngine/architecture/game-objects/).
