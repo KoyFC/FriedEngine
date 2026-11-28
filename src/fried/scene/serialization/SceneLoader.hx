@@ -227,28 +227,8 @@ class SceneLoader {
 		}
 		var overrides:Dynamic = {transform: {}, components: {}};
 		for (field in Reflect.fields(entry)) {
-			if (entryKeys.indexOf(field) >= 0) {
-				continue;
-			}
-			var value = Reflect.field(entry, field);
-			if (field == "transform") {
-				Reflect.setField(merged, field, mergeFields(Reflect.field(merged, field), value));
-				Reflect.setField(overrides, "transform", value);
-			} else if (field == "components") {
-				var list:Array<Dynamic> = Reflect.field(merged, field) == null ? [] : Reflect.field(merged, field).copy();
-				for (change in (value : Array<Dynamic>)) {
-					var type:String = FieldCodec.get(change, "type");
-					var at = indexOfType(list, type);
-					if (at >= 0) {
-						list[at] = mergeFields(list[at], change);
-					} else {
-						list.push(change);
-					}
-					Reflect.setField(Reflect.field(overrides, "components"), type, change);
-				}
-				Reflect.setField(merged, field, list);
-			} else {
-				Reflect.setField(merged, field, value);
+			if (entryKeys.indexOf(field) < 0) {
+				applyEntryField(merged, overrides, field, Reflect.field(entry, field));
 			}
 		}
 		instancing.push(prefab.name);
@@ -260,6 +240,28 @@ class SceneLoader {
 		}
 		instancing.pop();
 		return object;
+	}
+
+	static function applyEntryField(merged:Dynamic, overrides:Dynamic, field:String, value:Dynamic):Void {
+		if (field == "transform") {
+			Reflect.setField(merged, field, mergeFields(Reflect.field(merged, field), value));
+			Reflect.setField(overrides, "transform", value);
+		} else if (field == "components") {
+			var list:Array<Dynamic> = Reflect.field(merged, field) == null ? [] : Reflect.field(merged, field).copy();
+			for (change in (value : Array<Dynamic>)) {
+				var type:String = FieldCodec.get(change, "type");
+				var at = indexOfType(list, type);
+				if (at >= 0) {
+					list[at] = mergeFields(list[at], change);
+				} else {
+					list.push(change);
+				}
+				Reflect.setField(Reflect.field(overrides, "components"), type, change);
+			}
+			Reflect.setField(merged, field, list);
+		} else {
+			Reflect.setField(merged, field, value);
+		}
 	}
 
 	static function mergeFields(base:Dynamic, over:Dynamic):Dynamic {

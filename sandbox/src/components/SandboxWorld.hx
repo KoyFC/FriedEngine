@@ -32,7 +32,7 @@ class SandboxWorld extends Component {
 		camera.zoom = Bootstrap.renderer.height / WORLD_VIEW_HEIGHT;
 		camera.gameObject.addComponent(new CameraZoom(shell.zoom));
 
-		var playerCollider = scene.getById("player-hitbox", Collider);
+		var playerCollider = player.gameObject.getById("player-hitbox", Collider);
 		colliders = [];
 		for (index in 0...5) {
 			colliders.push(scene.getById('post-$index-hitbox', Collider));
