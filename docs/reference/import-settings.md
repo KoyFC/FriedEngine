@@ -41,7 +41,9 @@ A TrueType font needs no sidecar. For the DS and the calculator, which draw text
 
 ## Compression
 
-`compress` is `auto`, `none` or `lz`, at the top and in a platform's block. `lz` writes the converted file of the kinds the engine unpacks itself, which are compiled scenes, models, `.html` and `.css` files and, where text is drawn by the engine, fonts, as `FRLZ` and an LZ10 stream, the one the DS's BIOS reads, and `Filesystem.readBytes()` and the software fonts unpack it as they read. It keeps the packed file when that is smaller. `auto`, the default, and `none` write the file as it is: unpacking holds the packed and the unpacked file in memory at once, which the DS and the calculator have the least of, so it is a choice for a project that has the room. A PNG, a sound or a song is never compressed, since they are compressed already or are streamed, and `lz` on one is reported and ignored. The engine's font goes from 569 KB to 337 KB, and the sandbox's `sandbox_3d` scene from 3,713 to 1,768 bytes.
+`compress` is `auto`, `none` or `lz`, at the top and in a platform's block. `lz` writes the converted file of the kinds the engine unpacks itself, which are compiled scenes, models, `.html` and `.css` files and, where text is drawn by the engine, fonts, as `FRLZ` and an LZ10 stream, the one the DS's BIOS reads, and `Filesystem.readBytes()` and the software fonts unpack it as they read. It keeps the packed file when that is smaller.
+
+`auto`, the default, and `none` write the file as it is: unpacking holds the packed and the unpacked file in memory at once, which the DS and the calculator have the least of, so it is a choice for a project that has the room. A PNG, a sound or a song is never compressed, since they are compressed already or are streamed, and `lz` on one is reported and ignored. The engine's font goes from 569 KB to 337 KB, and the sandbox's `sandbox_3d` scene from 3,713 to 1,768 bytes.
 
 ## When it runs
 

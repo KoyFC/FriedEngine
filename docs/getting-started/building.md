@@ -10,7 +10,9 @@ haxe build.hxml
 cd ..
 ```
 
-The first PC configure on a machine downloads the sources of SDL2 and its companions, about 170 MB unpacked, and compiles them once into a cache shared by every build tree and project: `~/.cache/fried-engine/deps` on Linux (or under `$XDG_CACHE_HOME`) and `%LOCALAPPDATA%\fried-engine\deps` on Windows. That one needs an internet connection and takes a few minutes; later build trees with the same compiler and configuration link the installed libraries, and configure in about a second. A different compiler, a Debug build next to a Release one, or an edit to `cmake/pc_sdl2/CMakeLists.txt` compiles its own set the first time. `-DFRIED_DEPS_CACHE=<directory>` moves the cache, and `-DFRIED_DEPS_CACHE=` with nothing after it keeps everything inside each build tree instead. Deleting the cache is safe: the next configure builds it again.
+The first PC configure on a machine downloads the sources of SDL2 and its companions, about 170 MB unpacked, and compiles them once into a cache shared by every build tree and project: `~/.cache/fried-engine/deps` on Linux (or under `$XDG_CACHE_HOME`) and `%LOCALAPPDATA%\fried-engine\deps` on Windows.
+
+That one needs an internet connection and takes a few minutes; later build trees with the same compiler and configuration link the installed libraries, and configure in about a second. A different compiler, a Debug build next to a Release one, or an edit to `cmake/pc_sdl2/CMakeLists.txt` compiles its own set the first time. `-DFRIED_DEPS_CACHE=<directory>` moves the cache, and `-DFRIED_DEPS_CACHE=` with nothing after it keeps everything inside each build tree instead. Deleting the cache is safe: the next configure builds it again.
 
 ## Linux
 
