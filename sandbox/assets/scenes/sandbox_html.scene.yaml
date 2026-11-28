@@ -8,8 +8,8 @@ objects:
         name: Menu
         transform: {type: RectTransform}
         components:
-          - type: UIDocument
-          - type: MainMenu
+          - {type: UIDocument}
+          - {type: MainMenu}
       - id: hud
         name: HUD
         transform: {type: RectTransform}

@@ -29,9 +29,7 @@ objects:
             name: Post 0 hitbox
             transform: {type: Transform2D}
             components:
-              - type: Collider
-                height: 96
-                width: 32
+              - {type: Collider, height: 96, width: 32}
       - id: post-1
         name: Post 1
         transform: {type: Transform2D, x: -300, y: -220}
@@ -47,9 +45,7 @@ objects:
             name: Post 1 hitbox
             transform: {type: Transform2D}
             components:
-              - type: Collider
-                height: 96
-                width: 32
+              - {type: Collider, height: 96, width: 32}
       - id: post-2
         name: Post 2
         transform: {type: Transform2D, x: 0, y: -220}
@@ -65,9 +61,7 @@ objects:
             name: Post 2 hitbox
             transform: {type: Transform2D}
             components:
-              - type: Collider
-                height: 96
-                width: 32
+              - {type: Collider, height: 96, width: 32}
       - id: post-3
         name: Post 3
         transform: {type: Transform2D, x: 300, y: -220}
@@ -83,9 +77,7 @@ objects:
             name: Post 3 hitbox
             transform: {type: Transform2D}
             components:
-              - type: Collider
-                height: 96
-                width: 32
+              - {type: Collider, height: 96, width: 32}
       - id: post-4
         name: Post 4
         transform: {type: Transform2D, x: 600, y: -220}
@@ -101,37 +93,27 @@ objects:
             name: Post 4 hitbox
             transform: {type: Transform2D}
             components:
-              - type: Collider
-                height: 96
-                width: 32
+              - {type: Collider, height: 96, width: 32}
       - id: player
         name: Player
         instance: player
         transform: {x: -64, y: -64}
         components:
-          - type: Player
-            wall: wall
+          - {type: Player, wall: wall}
       - id: camera
         name: Camera
         transform: {type: Transform2D, x: 0, y: 0}
         components:
-          - type: Camera
-            zoom: 1
+          - {type: Camera, zoom: 1}
         children:
           - id: camera-follow
             name: Camera follow
             components:
-              - type: CameraFollow
-                offsetX: 64
-                offsetY: 64
-                target: player
+              - {type: CameraFollow, offsetX: 64, offsetY: 64, target: player}
       - id: hud
         name: Interface
         instance: sandbox_ui
       - id: world
         name: World
         components:
-          - type: SandboxWorld
-            camera: camera
-            hud: hud
-            player: player
+          - {type: SandboxWorld, camera: camera, hud: hud, player: player}

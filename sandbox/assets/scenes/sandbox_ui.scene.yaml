@@ -4,9 +4,8 @@ objects:
   - id: interface
     name: Interface
     components:
-      - type: Canvas
-        layer: 1
-      - type: SandboxInterface
+      - {type: Canvas, layer: 1}
+      - {type: SandboxInterface}
     children:
       - id: hint-panel
         name: Hint panel
@@ -29,7 +28,18 @@ objects:
             text: "Run 1   Space/Enter/A/click: sound   M/F6/B: music   WASD/arrows/stick/d-pad: move   Q/E/L/R: zoom   Shift+arrows: move window   F2/North: next scene   F3/Select: overlay   F4: interface   F5: collider bounds   F7: gameplay actions   Esc/Start: quit"
       - id: region-icon
         name: Region icon
-        transform: {type: RectTransform, anchorMaxX: 1, anchorMaxY: 0, anchorMinX: 1, anchorMinY: 0, offsetX: -16, offsetY: 96, pivotX: 1, pivotY: 0, scaleX: 8, scaleY: 8}
+        transform:
+          type: RectTransform
+          anchorMaxX: 1
+          anchorMaxY: 0
+          anchorMinX: 1
+          anchorMinY: 0
+          offsetX: -16
+          offsetY: 96
+          pivotX: 1
+          pivotY: 0
+          scaleX: 8
+          scaleY: 8
         components:
           - type: TextureRect
             source: {x: 0, y: 0, height: 8, width: 8}
@@ -38,11 +48,19 @@ objects:
           - id: region-scroller
             name: Region scroller
             components:
-              - type: RegionScroller
-                pixelsPerSecond: 8
+              - {type: RegionScroller, pixelsPerSecond: 8}
       - id: region-label
         name: Region label
-        transform: {type: RectTransform, anchorMaxX: 1, anchorMaxY: 0, anchorMinX: 1, anchorMinY: 0, offsetX: -16, offsetY: 164, pivotX: 1, pivotY: 0}
+        transform:
+          type: RectTransform
+          anchorMaxX: 1
+          anchorMaxY: 0
+          anchorMinX: 1
+          anchorMinY: 0
+          offsetX: -16
+          offsetY: 164
+          pivotX: 1
+          pivotY: 0
         components:
           - type: Label
             color: {r: 220, g: 220, b: 230, a: 255}
@@ -53,11 +71,21 @@ objects:
           - id: region-readout
             name: Region readout
             components:
-              - type: RegionLabel
-                source: region-icon
+              - {type: RegionLabel, source: region-icon}
       - id: spinning-icon
         name: Spinning icon
-        transform: {type: RectTransform, anchorMaxX: 1, anchorMaxY: 0, anchorMinX: 1, anchorMinY: 0, offsetX: -16, offsetY: 16, pivotX: 1, pivotY: 0, scaleX: 4, scaleY: 4}
+        transform:
+          type: RectTransform
+          anchorMaxX: 1
+          anchorMaxY: 0
+          anchorMinX: 1
+          anchorMinY: 0
+          offsetX: -16
+          offsetY: 16
+          pivotX: 1
+          pivotY: 0
+          scaleX: 4
+          scaleY: 4
         components:
           - type: TextureRect
             texture: {root: game, path: sprite.png}
@@ -65,11 +93,21 @@ objects:
           - id: spinner
             name: Spinner
             components:
-              - type: Spinner
-                degreesPerSecond: 90
+              - {type: Spinner, degreesPerSecond: 90}
       - id: touch-stick
         name: Touch stick
-        transform: {type: RectTransform, anchorMaxX: 0, anchorMaxY: 0.42, anchorMinX: 0, anchorMinY: 0.42, height: 160, offsetX: 24, offsetY: 0, pivotX: 0, pivotY: 0.5, width: 160}
+        transform:
+          type: RectTransform
+          anchorMaxX: 0
+          anchorMaxY: 0.42
+          anchorMinX: 0
+          anchorMinY: 0.42
+          height: 160
+          offsetX: 24
+          offsetY: 0
+          pivotX: 0
+          pivotY: 0.5
+          width: 160
         components:
           - type: VirtualJoystick
             action: Move
@@ -78,8 +116,17 @@ objects:
             tipSize: 60
       - id: touch-beep
         name: Touch beep
-        transform: {type: RectTransform, anchorMaxX: 1, anchorMaxY: 0.47, anchorMinX: 1, anchorMinY: 0.47, height: 96, offsetX: -24, offsetY: 0, pivotX: 1, pivotY: 0.5, width: 96}
+        transform:
+          type: RectTransform
+          anchorMaxX: 1
+          anchorMaxY: 0.47
+          anchorMinX: 1
+          anchorMinY: 0.47
+          height: 96
+          offsetX: -24
+          offsetY: 0
+          pivotX: 1
+          pivotY: 0.5
+          width: 96
         components:
-          - type: TouchButton
-            action: PlaySound
-            platforms: android
+          - {type: TouchButton, action: PlaySound, platforms: android}

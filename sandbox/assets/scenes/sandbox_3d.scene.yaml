@@ -9,24 +9,22 @@ objects:
         name: Camera
         transform: {type: Transform3D}
         components:
-          - type: Camera3D
+          - {type: Camera3D}
         children:
           - id: free-camera
             name: Free camera
             components:
-              - type: FreeCamera
+              - {type: FreeCamera}
       - id: light
         name: Light
         transform: {type: Transform3D, rotationX: 33, rotationY: -21.8}
         components:
-          - type: Light
-            ambient: 0.3
+          - {type: Light, ambient: 0.3}
       - id: cube-field
         name: Cube field
         transform: {type: Transform3D, z: 10}
         components:
-          - type: CubeField
-            cubeCount: 16
+          - {type: CubeField, cubeCount: 16}
       - id: shapes
         name: Shapes
         transform: {type: Transform3D, y: -2.2, z: 6}
@@ -75,7 +73,7 @@ objects:
                   rings: 8
           - id: box
             name: Box
-            transform: {type: Transform3D, x: -4.5, y: 0.5, rotationY: 25, z: 0}
+            transform: {type: Transform3D, rotationY: 25, x: -4.5, y: 0.5, z: 0}
             components:
               - type: MeshRenderer
                 mesh:
@@ -142,19 +140,19 @@ objects:
                     albedoColor: {r: 220, g: 220, b: 220, a: 255}
           - id: crate-obj
             name: Crate OBJ
-            transform: {type: Transform3D, x: -3, y: 0.5, rotationY: 20, z: -1}
+            transform: {type: Transform3D, rotationY: 20, x: -3, y: 0.5, z: -1}
             components:
               - type: MeshRenderer
                 mesh: {root: game, path: models/crate.obj}
           - id: crate-glb
             name: Crate GLB
-            transform: {type: Transform3D, x: 3, y: 0.5, rotationY: -20, z: -1}
+            transform: {type: Transform3D, rotationY: -20, x: 3, y: 0.5, z: -1}
             components:
               - type: MeshRenderer
                 mesh: {root: game, path: models/crate.glb}
           - id: crate-tinted
             name: Crate tinted
-            transform: {type: Transform3D, x: 4.5, y: 0.5, rotationY: -25, z: 0}
+            transform: {type: Transform3D, rotationY: -25, x: 4.5, y: 0.5, z: 0}
             components:
               - type: MeshRenderer
                 materialOverride:
@@ -173,6 +171,4 @@ objects:
       - id: controls
         name: Controls
         components:
-          - type: CubeControls
-            field: cube-field
-            hint: hint
+          - {type: CubeControls, field: cube-field, hint: hint}
