@@ -10,9 +10,14 @@ All notable changes to Fried Engine are written here, newest version first.
 ## vX.Y.Z
 
 ### Changed
+- A build registers only the node and resource types the scenes of the project name, plus its autoloads and the classes a game registers itself, so the code of `UIDocument`, `Tilemap`, the meshes and the rest is left out of a game that does not use it: a project with a sprite and a camera has a quarter less code on the DS. The editor, `-D fried_text_scenes` and `-D fried_all_nodes` register every type, as before.
+- A `Mesh` keeps at most four variants, one for each material that overrides its own, instead of one more for every scene that loads a cached model with an override.
+- On the DS a mesh gives back its flat arrays of vertices, texture coordinates and indices once the console has its copy.
 - A 3DS build compiles SDL2 and its companions itself on the first configure, as PC does, so it no longer needs `packaging/3ds/` installed; `FRIED_SYSTEM_SDL2=ON` keeps using those packages.
 
 ### Fixed
+- A `UIDocument` left its font lookups, and the style sheets they held, in a static list for good, about 4 KB for every time a scene with one loaded.
+- On the DS the collector no longer finds pointers to the scene that was just unloaded in the stack below the scene change, which kept all of it alive now and then: the sandbox's scene cycle stopped after 37 to 52 changes in melonDS and now goes through 60.
 - The romfs and VPK packaging listed assets by the name of the source, so a scene, which is a `.fscene` once imported, was missing from the DS, 3DS, Switch and Vita packages.
 
 ### Added
