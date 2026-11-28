@@ -322,6 +322,10 @@ function(fried_add_hxcpp_executable target_name generated_dir)
         COMPILE_DEFINITIONS "_CRT_SECURE_NO_DEPRECATE;HX_UNDEFINE_H"
     )
 
+    if(NINTENDO_DS AND FRIED_DS_SIZE)
+        set_property(SOURCE ${_runtime_sources} APPEND PROPERTY COMPILE_OPTIONS "-Os" "-include${CMAKE_CURRENT_FUNCTION_LIST_DIR}/nds/aligned_strings.h")
+    endif()
+
     set_source_files_properties("${generated_dir}/src/__main__.cpp" PROPERTIES
         COMPILE_DEFINITIONS "HX_DECLARE_MAIN"
     )
