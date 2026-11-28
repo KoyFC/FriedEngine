@@ -3,7 +3,21 @@
     "default": "kinematic",
     "backends": {
       "kinematic": {
-        "platforms": "all"
+        "platforms": "all",
+        "unsupportedFields": {
+          "Body2D": [
+            "angularVelocity",
+            "fixedRotation",
+            "bullet"
+          ],
+          "Collider2D": [
+            "shape",
+            "points",
+            "density",
+            "friction",
+            "restitution"
+          ]
+        }
       },
       "box2d": {
         "platforms": [
