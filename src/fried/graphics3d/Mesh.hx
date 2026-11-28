@@ -117,8 +117,20 @@ class Mesh extends Resource {
 			variant.nativeId = MeshNative.create(cpp.Pointer.ofArray(vertices).constRaw, cpp.Pointer.ofArray(flatUvs).constRaw, Std.int(vertices.length / 3),
 				cpp.Pointer.ofArray(flatIndices).constRaw, cpp.Pointer.ofArray((cast variant.colors : Array<Int>)).constRaw, variant.colors.length,
 				cpp.Pointer.ofArray(surfaceStarts).constRaw, cpp.Pointer.ofArray(textureIds).constRaw, textureIds.length);
+			releaseFlat();
 		}
 		return variant.nativeId;
+	}
+
+	// Where memory is counted the native copy is the one that is drawn, so the arrays it was made from are given back once the bounds, which are read from them, are known. Whatever asks for them later makes them again.
+	function releaseFlat():Void {
+		if (Application.freeMemoryKb() < 0) {
+			return;
+		}
+		ensureBounds();
+		flatVertexList = null;
+		flatUvList = null;
+		flatIndexList = null;
 	}
 
 	function destroyVariant(variant:MeshVariant):Void {
@@ -195,18 +207,25 @@ class Mesh extends Resource {
 	}
 
 	function get_flatVertices():Array<Float> {
-		ensureFlat();
+		ensureArrays();
 		return flatVertexList;
 	}
 
 	function get_flatUvs():Array<Float> {
-		ensureFlat();
+		ensureArrays();
 		return flatUvList;
 	}
 
 	function get_flatIndices():Array<Int> {
-		ensureFlat();
+		ensureArrays();
 		return flatIndexList;
+	}
+
+	function ensureArrays():Void {
+		if (flatVertexList == null) {
+			isFlat = false;
+		}
+		ensureFlat();
 	}
 
 	function get_surfaceStarts():Array<Int> {
