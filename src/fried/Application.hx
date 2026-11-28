@@ -69,6 +69,11 @@ class Application {
 		return bytes < 0 ? -1 : Std.int(bytes / 1024);
 	}
 
+	// Clears the stack below the caller on the DS, so the collector that runs next does not find what an unloaded scene left in it.
+	public static function clearStack():Void {
+		ApplicationNative.clearStack();
+	}
+
 	public static function quit():Void {
 		isRunning = false;
 	}
@@ -259,6 +264,9 @@ private extern class ApplicationNative {
 
 	@:native("fried_application_free_memory")
 	static function freeMemory():Int;
+
+	@:native("fried_application_clear_stack")
+	static function clearStack():Void;
 
 	@:native("fried_application_wait_for_host_frame")
 	static function waitForHostFrame():Int;

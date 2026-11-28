@@ -11,11 +11,16 @@ extern "C" int fried_application_wait_for_host_frame();
 // The bytes the heap has left on the DS, where memory is what a game runs out of first, and -1 on a platform that does not count.
 #if defined(__NDS__)
 extern "C" int fried_application_free_memory();
+
+// Zeroes the stack below the caller, where the collector's own frames will sit, so the pointers a scene that was just unloaded left there do not keep it alive.
+extern "C" void fried_application_clear_stack();
 #else
 extern "C" inline int fried_application_free_memory()
 {
     return -1;
 }
+
+extern "C" inline void fried_application_clear_stack() {}
 #endif
 
 // The name `project.fried` uses for the platform this was built for, "pc" for a desktop.

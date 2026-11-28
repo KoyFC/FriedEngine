@@ -7,6 +7,15 @@ class LegacyFields {
 		}
 	}
 
+	public static function legacyMeshType(shape:Dynamic):String {
+		return switch (shape) {
+			case "Plane": "PlaneMesh";
+			case "Sphere": "SphereMesh";
+			case "Pyramid": "CylinderMesh";
+			case _: "BoxMesh";
+		}
+	}
+
 	static function meshInstance(data:Dynamic):Void {
 		if (!Reflect.hasField(data, "shape") && !Reflect.hasField(data, "color")) {
 			return;
@@ -18,13 +27,13 @@ class LegacyFields {
 		if (Reflect.hasField(data, "mesh")) {
 			return;
 		}
-		var mesh:Dynamic = switch (shape) {
-			case "Plane":
+		var mesh:Dynamic = switch (legacyMeshType(shape)) {
+			case "PlaneMesh":
 				// 16 by 16 tiles, which sorting by depth needs.
 				{type: "PlaneMesh", sizeX: 1, sizeZ: 1, subdivideWidth: 15, subdivideDepth: 15};
-			case "Sphere":
+			case "SphereMesh":
 				{type: "SphereMesh", radialSegments: 8, rings: 6};
-			case "Pyramid":
+			case "CylinderMesh":
 				// A four sided cone, turned an eighth of a turn about its axis.
 				{
 					type: "CylinderMesh",

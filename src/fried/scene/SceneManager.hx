@@ -97,6 +97,7 @@ class SceneManager {
 			var name = pendingName;
 			pendingName = null;
 			unloadActive();
+			Application.clearStack();
 			releaseMemory(name);
 			active = new SceneContext(name);
 			loaders.get(name)(active);

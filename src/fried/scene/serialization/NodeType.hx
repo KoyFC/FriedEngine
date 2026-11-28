@@ -10,6 +10,9 @@ class NodeType {
 	// The nearest serializable class above this one, or null for the root of the tree.
 	public var parent(default, null):Null<String>;
 
+	// Describes the parent, so registering a type registers the classes above it.
+	public var parentType(default, null):Null<() -> NodeType>;
+
 	public var fields(default, null):Array<FieldInfo>;
 
 	// Builds a node from the data of a scene file, with the fields of every class in its chain.
@@ -22,7 +25,8 @@ class NodeType {
 	public var read(default, null):Node->Dynamic;
 
 	public function new(name:String, parent:Null<String>, fields:Array<FieldInfo>, create:Dynamic->LoadContext->Node,
-			apply:Node->Dynamic->LoadContext->Void, read:Node->Dynamic) {
+			apply:Node->Dynamic->LoadContext->Void, read:Node->Dynamic, ?parentType:() -> NodeType) {
+		this.parentType = parentType;
 		this.name = name;
 		this.parent = parent;
 		this.fields = fields;

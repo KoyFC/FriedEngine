@@ -17,13 +17,11 @@ private class Match {
 private class FontEntry {
 	public var families:Array<String>;
 	public var size:Int;
-	public var sheets:Array<StyleSheet>;
 	public var font:Font;
 
-	public function new(families:Array<String>, size:Int, sheets:Array<StyleSheet>, font:Font) {
+	public function new(families:Array<String>, size:Int, font:Font) {
 		this.families = families;
 		this.size = size;
-		this.sheets = sheets;
 		this.font = font;
 	}
 }
@@ -35,6 +33,16 @@ class StyleResolver {
 
 	static var matches:Array<Match> = [];
 	static var fonts:Array<FontEntry> = [];
+
+	// The fonts found are those of one document's sheets: a document that is gone must not leave its entries, and the sheets they hold, behind.
+	static var fontSheets:Null<Array<StyleSheet>>;
+
+	public static function forget(sheets:Null<Array<StyleSheet>>):Void {
+		if (fontSheets == sheets) {
+			fonts.resize(0);
+			fontSheets = null;
+		}
+	}
 
 	public static function resolve(element:UIElement, sheets:Array<StyleSheet>, sizes:Map<String, Array<Int>>, path:String):Void {
 		var style = new Style();
@@ -92,13 +100,17 @@ class StyleResolver {
 
 	static function fontFor(style:Style, sheets:Array<StyleSheet>, sizes:Map<String, Array<Int>>, path:String):Font {
 		var size = style.fontSize;
+		if (fontSheets != sheets) {
+			fonts.resize(0);
+			fontSheets = sheets;
+		}
 		for (entry in fonts) {
-			if (entry.families == style.fontFamily && entry.size == size && entry.sheets == sheets) {
+			if (entry.families == style.fontFamily && entry.size == size) {
 				return entry.font;
 			}
 		}
 		var font = findFont(style, size, sheets, sizes, path);
-		fonts.push(new FontEntry(style.fontFamily, size, sheets, font));
+		fonts.push(new FontEntry(style.fontFamily, size, font));
 		return font;
 	}
 

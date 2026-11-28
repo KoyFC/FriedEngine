@@ -41,7 +41,7 @@ class NodeBuilder {
 
 		var own = collectFields(fields, localClass.pos);
 		var serialized = collectInherited(localClass).concat(own);
-		var source = describeSource(localClass.name, className, parentName(localClass), own, serialized, constructorArguments(fields), localClass.pos);
+		var source = describeSource(localClass.name, className, parentName(localClass), parentPath(localClass), own, serialized, constructorArguments(fields), localClass.pos);
 
 		var describe = Context.parse(source, localClass.pos);
 		switch (describe.expr) {
@@ -105,6 +105,18 @@ class NodeBuilder {
 			var parentClass = parent.t.get();
 			if (parentClass.meta.has(":serializable")) {
 				return parentClass.name;
+			}
+			parent = parentClass.superClass;
+		}
+		return null;
+	}
+
+	static function parentPath(localClass:haxe.macro.Type.ClassType):Null<String> {
+		var parent = localClass.superClass;
+		while (parent != null) {
+			var parentClass = parent.t.get();
+			if (parentClass.meta.has(":serializable")) {
+				return parentClass.pack.concat([parentClass.name]).join(".");
 			}
 			parent = parentClass.superClass;
 		}
@@ -270,7 +282,7 @@ class NodeBuilder {
 		return field.codec == "Node" ? 'cast $call' : call;
 	}
 
-	static function describeSource(name:String, className:String, parent:Null<String>, own:Array<SerializedField>, serialized:Array<SerializedField>,
+	static function describeSource(name:String, className:String, parent:Null<String>, parentPath:Null<String>, own:Array<SerializedField>, serialized:Array<SerializedField>,
 			arguments:Array<FunctionArg>, position:Position):String {
 		var create = new StringBuf();
 		var argumentNames = [];
@@ -312,6 +324,7 @@ class NodeBuilder {
 
 		var infos = own.map(field -> 'new $FIELDS.FieldInfo("${field.name}", $FIELDS.FieldKind.${field.kind})').join(", ");
 		var parentText = parent == null ? "null" : '"$parent"';
+		var parentTypeText = parentPath == null ? "null" : 'function():$NODES.NodeType return $parentPath.describeNode()';
 		return 'function():$NODES.NodeType {
 			return new $NODES.NodeType("$name", $parentText, [$infos],
 				function(data:Dynamic, ctx:$FIELDS.LoadContext):$NODE {
@@ -322,7 +335,7 @@ class NodeBuilder {
 				},
 				function(node:$NODE):Dynamic {
 					${read.toString()}
-				});
+				}, $parentTypeText);
 		}';
 	}
 }

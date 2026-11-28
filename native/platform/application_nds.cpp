@@ -61,6 +61,7 @@ namespace
         if (!s_hasCollected || fried_nds_tick_count() - s_lastCollectEnd > TICK_FREQ / 2000)
         {
             s_hasCollected = true;
+            fried_application_clear_stack();
             __hxcpp_collect(true);
             __hxcpp_gc_compact();
             s_lastCollectEnd = fried_nds_tick_count();
@@ -74,6 +75,15 @@ namespace
     void onTerminate()
     {
         stopWithMessage("The program stopped on an exception nothing caught.\n");
+    }
+}
+
+__attribute__((noinline)) void fried_application_clear_stack()
+{
+    volatile char area[3072];
+    for (unsigned index = 0; index < sizeof area; ++index)
+    {
+        area[index] = 0;
     }
 }
 
