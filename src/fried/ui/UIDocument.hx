@@ -10,18 +10,19 @@ import fried.input.InputEvent;
 import fried.input.Key;
 import fried.input.MouseButton;
 import fried.io.Assets;
-import fried.scene.Control;
+import fried.scene.RectTransform;
+import fried.scene.Renderer2D;
 import fried.ui.css.ElementState;
 import fried.ui.html.HtmlNode;
 
-// A screen written in HTML and CSS. It is one node: its box, which is placed like any control's, is the viewport of the document, and the elements inside are laid out and drawn by the document itself.
+// A screen written in HTML and CSS. It is one component: its box, which is placed like any control's, is the viewport of the document, and the elements inside are laid out and drawn by the document itself.
 //
 // The sheets apply in this order, each over the one before: the engine's own, the ones the file links or holds in a <style>, and then `theme`, which is how one sheet is shared between documents from the inspector. The cascade is the browser's without origins: the more specific selector wins, and between equal ones the later sheet and then the later rule. What a document uses is reported once, with where it is, in the log when it is not supported.
 //
 // The document is sized to its box when it is drawn, with the body filling it, and works its layout out again only after a class, a state, a text or the size changed.
 @:serializable
 @:autoBuild(fried.ui.UIDocumentBuilder.build())
-class UIDocument extends Control {
+class UIDocument extends Renderer2D {
 	// The HTML file the document shows.
 	public var document(default, set):HtmlSource;
 
@@ -70,9 +71,7 @@ class UIDocument extends Control {
 	var stickY:Int;
 
 	public function new() {
-		super("UIDocument");
-		anchorMaxX = 1.0;
-		anchorMaxY = 1.0;
+		super();
 		ownSheets = [];
 		sheets = [];
 		fontSizes = new Map();
@@ -96,7 +95,17 @@ class UIDocument extends Control {
 		return null;
 	}
 
-	override function ready():Void {
+	var place:RectTransform;
+
+	override function awake():Void {
+		place = need(RectTransform);
+		if (place.anchorMaxX == 0.0 && place.anchorMaxY == 0.0) {
+			place.anchorMaxX = 1.0;
+			place.anchorMaxY = 1.0;
+		}
+	}
+
+	override function start():Void {
 		ensureLoaded();
 	}
 
@@ -104,7 +113,7 @@ class UIDocument extends Control {
 		ensureLoaded();
 		ensureFresh();
 		if (root != null) {
-			drawElement(root, Std.int(worldX), Std.int(worldY), 256);
+			drawElement(root, Std.int(place.worldX), Std.int(place.worldY), 256);
 		}
 	}
 
@@ -199,7 +208,7 @@ class UIDocument extends Control {
 		}
 	}
 
-	override function destroyed():Void {
+	override function onDestroy():Void {
 		StyleResolver.forget(sheets);
 	}
 
@@ -363,8 +372,8 @@ class UIDocument extends Control {
 			dirtyStyles = [];
 			Profile.end(Profile.UI_STYLE, styleStart);
 		}
-		var width = Std.int(rectWidth);
-		var height = Std.int(rectHeight);
+		var width = Std.int(place.rectWidth);
+		var height = Std.int(place.rectHeight);
 		if (isLayoutDirty || width != laidWidth || height != laidHeight) {
 			var layoutStart = Profile.begin();
 			FlexLayout.layoutRoot(root, width, height);
@@ -506,7 +515,7 @@ class UIDocument extends Control {
 
 	// The deepest element under the pointer, the last drawn of those that overlap.
 	function hitTest(event:InputEvent):Null<UIElement> {
-		return hitElement(root, Std.int(eventX(event) - worldX), Std.int(eventY(event) - worldY));
+		return hitElement(root, Std.int(place.eventX(event) - place.worldX), Std.int(place.eventY(event) - place.worldY));
 	}
 
 	function hitElement(element:UIElement, x:Int, y:Int):Null<UIElement> {

@@ -5,18 +5,25 @@ import fried.graphics.FlipMode;
 import fried.graphics.Rect;
 import fried.graphics.Texture;
 
-// A picture on the screen, which sizes its control.
+// A picture on the screen, which sizes its RectTransform.
 @:serializable
-class TextureRect extends Control {
+class TextureRect extends Renderer2D {
 	public var texture(default, set):Texture;
 	public var source(default, set):Rect;
 	public var flip:FlipMode;
 
 	public function new(texture:Texture = null, ?source:Rect) {
-		super("TextureRect");
+		super();
 		this.texture = texture;
 		this.source = source;
 		flip = None;
+	}
+
+	var place:RectTransform;
+
+	override function awake():Void {
+		place = need(RectTransform);
+		place.sizeSource = this;
 	}
 
 	override function intrinsicWidth():Float {
@@ -31,18 +38,22 @@ class TextureRect extends Control {
 		if (texture == null) {
 			return;
 		}
-		DrawQueue.submitSprite(priority, texture, worldX, worldY, worldScaleX, worldScaleY, worldRotation, flip, source);
+		DrawQueue.submitSprite(priority, texture, place.worldX, place.worldY, place.worldScaleX, place.worldScaleY, place.worldRotation, flip, source);
 	}
 
 	function set_texture(value:Texture):Texture {
 		texture = value;
-		markWorldDirty();
+		if (place != null) {
+			place.markWorldDirty();
+		}
 		return value;
 	}
 
 	function set_source(value:Rect):Rect {
 		source = value;
-		markWorldDirty();
+		if (place != null) {
+			place.markWorldDirty();
+		}
 		return value;
 	}
 }

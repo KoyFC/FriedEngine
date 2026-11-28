@@ -11,7 +11,7 @@ import fried.input.MouseButton;
 
 // A stick on the screen that sets a vector2 input action to where its tip is, from -1 to 1 on each axis with up negative, as a gamepad's stick reads. It rests at the middle of its control. The left mouse button stands in for a finger.
 @:serializable
-class VirtualJoystick extends Control {
+class VirtualJoystick extends Renderer2D {
 	// The vector2 action it sets, by its name in the "input" block of project.fried.
 	public var action:String;
 	// The diameters of the base and of the tip, in pixels before the scale.
@@ -44,10 +44,8 @@ class VirtualJoystick extends Control {
 	var tipY:Float;
 	var isTypeReported:Bool;
 
-	public function new(width:Float = 200.0, height:Float = 200.0, action:String = "") {
-		super("VirtualJoystick");
-		this.width = width;
-		this.height = height;
+	public function new(action:String = "") {
+		super();
 		this.action = action;
 		baseSize = 160.0;
 		tipSize = 70.0;
@@ -64,6 +62,16 @@ class VirtualJoystick extends Control {
 		isTypeReported = false;
 	}
 
+	var place:RectTransform;
+
+	override function awake():Void {
+		place = need(RectTransform);
+		if (place.width == 0 && place.height == 0) {
+			place.width = 200;
+			place.height = 200;
+		}
+	}
+
 	override function onEvent(event:InputEvent):Void {
 		if (!isUsable()) {
 			return;
@@ -76,10 +84,10 @@ class VirtualJoystick extends Control {
 				grab(MOUSE_FINGER, event);
 				event.handled = true;
 			case TouchMoved if (heldFinger == event.fingerId):
-				moveTip(eventX(event), eventY(event));
+				moveTip(place.eventX(event), place.eventY(event));
 				event.handled = true;
 			case MouseMoved if (heldFinger == MOUSE_FINGER):
-				moveTip(eventX(event), eventY(event));
+				moveTip(place.eventX(event), place.eventY(event));
 				event.handled = true;
 			case TouchUp if (heldFinger == event.fingerId):
 				letGo();
@@ -102,31 +110,30 @@ class VirtualJoystick extends Control {
 			rest();
 		}
 		DrawQueue.submitFillCircle(priority, centerX, centerY, baseRadius(), baseColor);
-		DrawQueue.submitFillCircle(priority, tipX, tipY, tipSize * Math.abs(worldScaleX) / 2, tipColor);
+		DrawQueue.submitFillCircle(priority, tipX, tipY, tipSize * Math.abs(place.worldScaleX) / 2, tipColor);
 	}
 
-	override function leaveScene():Void {
+	override function sceneLeft():Void {
 		if (heldFinger != NO_FINGER) {
 			letGo();
 		}
-		super.leaveScene();
 	}
 
 	function isUsable():Bool {
-		return visible && PlatformList.shows(platforms);
+		return PlatformList.shows(platforms);
 	}
 
 	// A fixed stick takes a touch on its base, a dynamic one anywhere in the control.
 	function accepts(event:InputEvent):Bool {
-		if (!containsEvent(event)) {
+		if (!place.containsEvent(event)) {
 			return false;
 		}
 		if (isDynamic) {
 			return true;
 		}
 		rest();
-		var dx = eventX(event) - centerX;
-		var dy = eventY(event) - centerY;
+		var dx = place.eventX(event) - centerX;
+		var dy = place.eventY(event) - centerY;
 		var radius = baseRadius();
 		return dx * dx + dy * dy <= radius * radius;
 	}
@@ -135,12 +142,12 @@ class VirtualJoystick extends Control {
 		heldFinger = finger;
 		isPressed = true;
 		if (isDynamic) {
-			centerX = eventX(event);
-			centerY = eventY(event);
+			centerX = place.eventX(event);
+			centerY = place.eventY(event);
 		} else {
 			rest();
 		}
-		moveTip(eventX(event), eventY(event));
+		moveTip(place.eventX(event), place.eventY(event));
 	}
 
 	function letGo():Void {
@@ -156,14 +163,14 @@ class VirtualJoystick extends Control {
 	}
 
 	function rest():Void {
-		centerX = worldX + rectWidth / 2;
-		centerY = worldY + rectHeight / 2;
+		centerX = place.worldX + place.rectWidth / 2;
+		centerY = place.worldY + place.rectHeight / 2;
 		tipX = centerX;
 		tipY = centerY;
 	}
 
 	function baseRadius():Float {
-		return baseSize * Math.abs(worldScaleX) / 2;
+		return baseSize * Math.abs(place.worldScaleX) / 2;
 	}
 
 	function moveTip(x:Float, y:Float):Void {
@@ -201,7 +208,7 @@ class VirtualJoystick extends Control {
 		var found = InputMaps.action(action);
 		if (found != null && found.type != Vector2 && !isTypeReported) {
 			isTypeReported = true;
-			Log.warn('The VirtualJoystick $name sets "$action", which is not a vector2 action, so only its x is read.');
+			Log.warn('The VirtualJoystick ${gameObject.name} sets "$action", which is not a vector2 action, so only its x is read.');
 		}
 		return found;
 	}

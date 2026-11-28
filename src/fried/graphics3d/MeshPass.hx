@@ -4,8 +4,8 @@ import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Texture;
 import fried.scene.Camera3D;
-import fried.scene.DirectionalLight;
-import fried.scene.MeshInstance3D;
+import fried.scene.Light;
+import fried.scene.MeshRenderer;
 
 // Draws every mesh of a scene through its camera. A triangle is seen from the side its corners turn clockwise on, and not drawn from the other.
 //
@@ -51,7 +51,7 @@ class MeshPass {
 	static var clippedOther:Array<Float> = [for (index in 0...CLIP_STRIDE * 6) 0.0];
 	static var ambient:Float = 1.0;
 
-	public static function draw(camera:Camera3D, light:Null<DirectionalLight>, meshes:Array<MeshInstance3D>, width:Float, height:Float):Void {
+	public static function draw(camera:Camera3D, light:Null<Light>, meshes:Array<MeshRenderer>, width:Float, height:Float):Void {
 		var lightX = 0.0;
 		var lightY = 0.0;
 		var lightZ = 0.0;
@@ -81,7 +81,7 @@ class MeshPass {
 		var total = 0;
 		for (instance in meshes) {
 			var mesh = instance.mesh;
-			if (!instance.shownInTree || mesh == null) {
+			if (!instance.isOn || mesh == null) {
 				continue;
 			}
 			var variant = mesh.variantFor(instance.materialOverride);
@@ -159,7 +159,7 @@ class MeshPass {
 	// The camera's turn and the light in the camera's space, which only a mesh drawn here needs: where every mesh is drawn by the renderer, none of the trigonometry in them is done.
 	static function prepareView(camera:Camera3D, lightX:Float, lightY:Float, lightZ:Float, width:Float, height:Float):Void {
 		isViewReady = true;
-		Rotation.toMatrix(camera.worldRotationX, camera.worldRotationY, camera.worldRotationZ, cameraTurn);
+		Rotation.toMatrix(camera.place.worldRotationX, camera.place.worldRotationY, camera.place.worldRotationZ, cameraTurn);
 		lightViewX = cameraTurn[0] * lightX + cameraTurn[3] * lightY + cameraTurn[6] * lightZ;
 		lightViewY = cameraTurn[1] * lightX + cameraTurn[4] * lightY + cameraTurn[7] * lightZ;
 		lightViewZ = cameraTurn[2] * lightX + cameraTurn[5] * lightY + cameraTurn[8] * lightZ;
@@ -173,23 +173,23 @@ class MeshPass {
 		sideY = Math.sqrt(1.0 + tanY * tanY);
 	}
 
-	static function place(placement:Array<Float>, instance:MeshInstance3D, camera:Camera3D, width:Float, height:Float, lightX:Float, lightY:Float,
+	static function place(placement:Array<Float>, instance:MeshRenderer, camera:Camera3D, width:Float, height:Float, lightX:Float, lightY:Float,
 			lightZ:Float):Void {
-		placement[0] = instance.worldX;
-		placement[1] = instance.worldY;
-		placement[2] = instance.worldZ;
-		placement[3] = instance.worldRotationX;
-		placement[4] = instance.worldRotationY;
-		placement[5] = instance.worldRotationZ;
-		placement[6] = instance.worldScaleX;
-		placement[7] = instance.worldScaleY;
-		placement[8] = instance.worldScaleZ;
-		placement[9] = camera.worldX;
-		placement[10] = camera.worldY;
-		placement[11] = camera.worldZ;
-		placement[12] = camera.worldRotationX;
-		placement[13] = camera.worldRotationY;
-		placement[14] = camera.worldRotationZ;
+		placement[0] = instance.place.worldX;
+		placement[1] = instance.place.worldY;
+		placement[2] = instance.place.worldZ;
+		placement[3] = instance.place.worldRotationX;
+		placement[4] = instance.place.worldRotationY;
+		placement[5] = instance.place.worldRotationZ;
+		placement[6] = instance.place.worldScaleX;
+		placement[7] = instance.place.worldScaleY;
+		placement[8] = instance.place.worldScaleZ;
+		placement[9] = camera.place.worldX;
+		placement[10] = camera.place.worldY;
+		placement[11] = camera.place.worldZ;
+		placement[12] = camera.place.worldRotationX;
+		placement[13] = camera.place.worldRotationY;
+		placement[14] = camera.place.worldRotationZ;
 		placement[15] = camera.fieldOfView;
 		placement[16] = 0.0;
 		placement[17] = 0.0;
@@ -203,13 +203,13 @@ class MeshPass {
 		placement[25] = camera.far;
 	}
 
-	static function collect(instance:MeshInstance3D, mesh:Mesh, variant:MeshVariant, camera:Camera3D):Void {
+	static function collect(instance:MeshRenderer, mesh:Mesh, variant:MeshVariant, camera:Camera3D):Void {
 		var near = camera.near;
 		var far = camera.far;
-		Rotation.toMatrix(instance.worldRotationX, instance.worldRotationY, instance.worldRotationZ, meshTurn);
-		var scaleX = instance.worldScaleX;
-		var scaleY = instance.worldScaleY;
-		var scaleZ = instance.worldScaleZ;
+		Rotation.toMatrix(instance.place.worldRotationX, instance.place.worldRotationY, instance.place.worldRotationZ, meshTurn);
+		var scaleX = instance.place.worldScaleX;
+		var scaleY = instance.place.worldScaleY;
+		var scaleZ = instance.place.worldScaleZ;
 		// The camera's turn undone and then the mesh's, with the mesh's scale applied first.
 		for (row in 0...3) {
 			for (column in 0...3) {
@@ -218,9 +218,9 @@ class MeshPass {
 					+ cameraTurn[6 + row] * meshTurn[6 + column]) * scaleOf;
 			}
 		}
-		var offsetX = instance.worldX - camera.worldX;
-		var offsetY = instance.worldY - camera.worldY;
-		var offsetZ = instance.worldZ - camera.worldZ;
+		var offsetX = instance.place.worldX - camera.place.worldX;
+		var offsetY = instance.place.worldY - camera.place.worldY;
+		var offsetZ = instance.place.worldZ - camera.place.worldZ;
 		var shiftX = cameraTurn[0] * offsetX + cameraTurn[3] * offsetY + cameraTurn[6] * offsetZ;
 		var shiftY = cameraTurn[1] * offsetX + cameraTurn[4] * offsetY + cameraTurn[7] * offsetZ;
 		var shiftZ = cameraTurn[2] * offsetX + cameraTurn[5] * offsetY + cameraTurn[8] * offsetZ;

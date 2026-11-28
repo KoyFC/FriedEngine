@@ -3,13 +3,15 @@ package fried.physics;
 import fried.graphics.Color;
 import fried.graphics.DrawQueue;
 import fried.graphics.Rect;
-import fried.scene.Node2D;
+import fried.scene.Renderer2D;
 import fried.scene.Transform2D;
+import fried.scene.TransformStore2D;
 
-// An axis aligned box that Physics finds. A body is stopped by the solid colliders whose layer its mask names, and a trigger is one that stops nothing and is only reported, so a zone or a shot can notice what it touches. Its position is the box's top left corner, in its parent's space, so what used to be a collider's offset is where the node sits, and it follows a node it is a child of.
+// An axis aligned box that Physics finds. A body is stopped by the solid colliders whose layer its mask names, and a trigger is one that stops nothing and is only reported, so a zone or a shot can notice what it touches. Its position is the box's top left corner, the position of its object, which it follows.
 @:serializable
 @:allow(fried.physics)
-class Collider extends Node2D {
+@:allow(fried.scene)
+class Collider extends Renderer2D {
 	public var width(default, set):Single;
 	public var height(default, set):Single;
 
@@ -29,6 +31,7 @@ class Collider extends Node2D {
 	@:noSerialize public var centerY(get, never):Single;
 
 	var debugRect:Rect;
+	var place:Transform2D;
 
 	static var boundsValues:Array<Int> = [0, 0, 0, 0];
 
@@ -56,7 +59,6 @@ class Collider extends Node2D {
 
 	public function new(width:Single = 0.0, height:Single = 0.0) {
 		super();
-		name = "Collider";
 		this.width = width;
 		this.height = height;
 		collisionLayer = 1;
@@ -75,24 +77,28 @@ class Collider extends Node2D {
 		return super.hookFlags() | 2 | 8;
 	}
 
-	override function markWorldDirty():Void {
+	override function awake():Void {
+		place = need(Transform2D);
+		place.collider = this;
+	}
+
+	function moved():Void {
 		boundsDirty = true;
 		exactDirty = true;
 		queueForGrid();
-		super.markWorldDirty();
 	}
 
 	function queueForGrid():Void {
-		if (!isQueued && scene != null) {
-			scene.colliderMoved(this);
+		if (!isQueued && gameObject != null && gameObject.scene != null) {
+			gameObject.scene.colliderMoved(this);
 		}
 	}
 
 	function refreshBounds():Void {
-		if (slot >= 0) {
-			ensureSlot();
+		if (place.slot >= 0) {
+			place.ensureSlot();
 			var values = boundsValues;
-			Transform2D.bounds(slot, width, height, cpp.Pointer.ofArray(values).raw);
+			TransformStore2D.bounds(place.slot, width, height, cpp.Pointer.ofArray(values).raw);
 			boundsLeft = values[0];
 			boundsTop = values[1];
 			boundsRight = values[2];
@@ -100,10 +106,10 @@ class Collider extends Node2D {
 			boundsDirty = false;
 			return;
 		}
-		var scaleX = worldScaleX;
-		var scaleY = worldScaleY;
-		var originX = worldX;
-		var originY = worldY;
+		var scaleX = place.worldScaleX;
+		var scaleY = place.worldScaleY;
+		var originX = place.worldX;
+		var originY = place.worldY;
 		boundsLeft = FixedPoint.low(originX, width, scaleX);
 		boundsRight = FixedPoint.high(originX, width, scaleX);
 		boundsTop = FixedPoint.low(originY, height, scaleY);
@@ -112,10 +118,10 @@ class Collider extends Node2D {
 	}
 
 	function refreshExact():Void {
-		var sizeX:Single = width * worldScaleX;
-		var sizeY:Single = height * worldScaleY;
-		var originX = worldX;
-		var originY = worldY;
+		var sizeX:Single = width * place.worldScaleX;
+		var sizeY:Single = height * place.worldScaleY;
+		var originX = place.worldX;
+		var originY = place.worldY;
 		if (sizeX < ZERO) {
 			exactLeft = originX + sizeX;
 			exactRight = originX;
@@ -177,8 +183,11 @@ class Collider extends Node2D {
 		DrawQueue.submitRect(priority, debugRect, debugColor);
 	}
 
-	override function destroyed():Void {
+	override function onDestroy():Void {
 		debugRect = null;
+		if (place != null && place.collider == this) {
+			place.collider = null;
+		}
 	}
 
 	function set_width(value:Single):Single {
@@ -226,10 +235,10 @@ class Collider extends Node2D {
 	}
 
 	function get_centerX():Single {
-		return worldX + width * worldScaleX * HALF;
+		return place.worldX + width * place.worldScaleX * HALF;
 	}
 
 	function get_centerY():Single {
-		return worldY + height * worldScaleY * HALF;
+		return place.worldY + height * place.worldScaleY * HALF;
 	}
 }

@@ -1,14 +1,14 @@
 package fried.physics;
 
-import fried.scene.Node;
-import fried.scene.Node2D;
+import fried.scene.Component;
+import fried.scene.Transform2D;
 
-// Moves the node it is a child of by its velocity in every fixed step, and stops it against the solid colliders of the scene, one axis at a time so a run into a wall still slides along it. The Collider it moves is a child of the same node. The node is moved in its own coordinates, which is the world's while its parent is not scaled or turned.
+// Moves its object by its velocity in every fixed step, and stops it against the solid colliders of the scene, one axis at a time so a run into a wall still slides along it. Its Collider is on the same object, or on its first child. The object is moved in its own coordinates, which is the world's while its parent is not scaled or turned.
 //
-// A body whose Collider is a trigger is never stopped: it moves freely and `contacts` holds everything its collider overlaps that its mask names, solid or not. Any other body is stopped by the solid colliders of the layers its mask names, and `contacts` holds those that stopped it and then the triggers it overlaps. A node that moved earlier in the same step is an obstacle for those after it, in tree order.
+// A body whose Collider is a trigger is never stopped: it moves freely and `contacts` holds everything its collider overlaps that its mask names, solid or not. Any other body is stopped by the solid colliders of the layers its mask names, and `contacts` holds those that stopped it and then the triggers it overlaps. An object that moved earlier in the same step is an obstacle for those after it, in tree order.
 @:serializable
 @:allow(fried.scene)
-class KinematicBody extends Node {
+class KinematicBody extends Component {
 	// Pixels a second.
 	public var velocityX:Single;
 	public var velocityY:Single;
@@ -21,11 +21,11 @@ class KinematicBody extends Node {
 	static inline var UNIT:Float = 1.0 / 4096.0;
 	static inline var ZERO:Single = 0.0;
 
-	var target:Node2D;
+	var target:Transform2D;
 	var collider:Collider;
 
 	public function new(velocityX:Single = 0.0, velocityY:Single = 0.0) {
-		super("KinematicBody");
+		super();
 		this.velocityX = velocityX;
 		this.velocityY = velocityY;
 		contacts = [];
@@ -38,14 +38,22 @@ class KinematicBody extends Node {
 		return super.hookFlags() | 32;
 	}
 
-	override function ready():Void {
-		target = findParent(Node2D);
-		if (target == null) {
-			throw 'A KinematicBody needs a Node2D to move, and the parent of $name is not one.';
-		}
-		collider = target.findChild(Collider);
+	override function awake():Void {
+		target = need(Transform2D);
+	}
+
+	override function start():Void {
+		collider = gameObject.getComponent(Collider);
 		if (collider == null) {
-			throw 'A KinematicBody needs a Collider beside it, and ${target.name} has none.';
+			for (index in 0...target.childCount) {
+				collider = target.getChild(index).gameObject.getComponent(Collider);
+				if (collider != null) {
+					break;
+				}
+			}
+		}
+		if (collider == null) {
+			throw 'A KinematicBody needs a Collider on its object or its first child, and ${gameObject.name} has none.';
 		}
 	}
 
@@ -62,7 +70,7 @@ class KinematicBody extends Node {
 		// Everything the box can reach in this step, a unit wider each way for the rounding of the move, asked for once: nothing else moves until the step is over.
 		var moveX = FixedPoint.point(dx);
 		var moveY = FixedPoint.point(dy);
-		var nearby = scene.colliderCandidates((moveX < 0 ? collider.boundsLeft + moveX : collider.boundsLeft) - 1,
+		var nearby = gameObject.scene.colliderCandidates((moveX < 0 ? collider.boundsLeft + moveX : collider.boundsLeft) - 1,
 			(moveY < 0 ? collider.boundsTop + moveY : collider.boundsTop) - 1, (moveX > 0 ? collider.boundsRight + moveX : collider.boundsRight) + 1,
 			(moveY > 0 ? collider.boundsBottom + moveY : collider.boundsBottom) + 1);
 
@@ -154,6 +162,6 @@ class KinematicBody extends Node {
 
 	// A collider this body's mask names, other than the ones on the node it moves.
 	inline function isCandidate(other:Collider):Bool {
-		return other.activeInTree && other.parent != target && (other.collisionLayer & collider.collisionMask) != 0;
+		return other.isOn && other.transform != target && other.transform.parent != target && (other.collisionLayer & collider.collisionMask) != 0;
 	}
 }

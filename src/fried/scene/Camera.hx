@@ -5,14 +5,13 @@ import fried.graphics.CameraView;
 
 @:allow(fried.scene)
 @:serializable
-class Camera extends Node2D {
+class Camera extends Component {
 	public var zoom(default, set):Single;
 
 	static inline var MIN_ZOOM:Single = 0.01;
 
 	public function new(zoom:Single = 1.0) {
 		super();
-		name = "Camera";
 		this.zoom = zoom;
 	}
 
@@ -22,35 +21,41 @@ class Camera extends Node2D {
 	// The scene that draws through this camera, which is how a camera that sits in no scene, the editor's own, still has a view to convert against.
 	var viewScene:Null<Scene>;
 
+	var place:Transform2D;
+
+	override function awake():Void {
+		place = need(Transform2D);
+	}
+
 	// Each conversion works from the view of the scene the camera belongs to, or else the scene it draws.
 	public function worldToScreenX(worldPosition:Float):Float {
-		return (worldPosition - worldX) * zoom + owner().viewWidth / 2;
+		return (worldPosition - place.worldX) * zoom + owner().viewWidth / 2;
 	}
 
 	public function worldToScreenY(worldPosition:Float):Float {
-		return (worldPosition - worldY) * zoom + owner().viewHeight / 2;
+		return (worldPosition - place.worldY) * zoom + owner().viewHeight / 2;
 	}
 
 	public function screenToWorldX(screenX:Float):Float {
-		return (screenX - owner().viewWidth / 2) / zoom + worldX;
+		return (screenX - owner().viewWidth / 2) / zoom + place.worldX;
 	}
 
 	public function screenToWorldY(screenY:Float):Float {
-		return (screenY - owner().viewHeight / 2) / zoom + worldY;
+		return (screenY - owner().viewHeight / 2) / zoom + place.worldY;
 	}
 
 	function owner():Scene {
-		return scene != null ? scene : viewScene;
+		return gameObject.scene != null ? gameObject.scene : viewScene;
 	}
 
 	public function lookAt(x:Single, y:Single):Void {
-		this.x = x;
-		this.y = y;
+		place.x = x;
+		place.y = y;
 	}
 
 	function updateView():Void {
-		view.x = worldX;
-		view.y = worldY;
+		view.x = place.worldX;
+		view.y = place.worldY;
 		view.zoom = zoom;
 	}
 

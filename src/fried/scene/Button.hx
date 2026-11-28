@@ -9,7 +9,7 @@ import fried.input.MouseButton;
 
 // A rectangle with a label that calls onClick when it is pressed and released over it. Its size is its control's width and height.
 @:serializable
-class Button extends Control {
+class Button extends Renderer2D {
 	public var font(default, set):Font;
 	public var label(default, set):String;
 	public var onClick:Void->Void;
@@ -33,10 +33,8 @@ class Button extends Control {
 	// The Vita's rear pad is device 1, and reaches no further than the front screen does.
 	static inline var FRONT_TOUCH_DEVICE:Int = 0;
 
-	public function new(width:Float = 100.0, height:Float = 30.0, font:Font = null, label:String = "", ?onClick:Void->Void) {
-		super("Button");
-		this.width = width;
-		this.height = height;
+	public function new(font:Font = null, label:String = "", ?onClick:Void->Void) {
+		super();
 		this.font = font;
 		this.label = label;
 		this.onClick = onClick;
@@ -48,21 +46,31 @@ class Button extends Control {
 		rect = new Rect(0, 0, 0, 0);
 	}
 
+	var place:RectTransform;
+
+	override function awake():Void {
+		place = need(RectTransform);
+		if (place.width == 0 && place.height == 0) {
+			place.width = 100;
+			place.height = 30;
+		}
+	}
+
 	override function onEvent(event:InputEvent):Void {
 		var isHeld = isHeldByMouse || isHeldByTouch;
 		switch (event.type) {
-			case MouseButtonDown if (!isHeld && event.mouseButton == MouseButton.Left && containsEvent(event)):
+			case MouseButtonDown if (!isHeld && event.mouseButton == MouseButton.Left && place.containsEvent(event)):
 				isHeldByMouse = true;
 				hold(event);
-			case TouchDown if (!isHeld && event.touchDevice == FRONT_TOUCH_DEVICE && containsEvent(event)):
+			case TouchDown if (!isHeld && event.touchDevice == FRONT_TOUCH_DEVICE && place.containsEvent(event)):
 				isHeldByTouch = true;
 				heldFingerId = event.fingerId;
 				hold(event);
 			case MouseMoved if (isHeldByMouse):
-				isPressed = containsEvent(event);
+				isPressed = place.containsEvent(event);
 				event.handled = true;
 			case TouchMoved if (isHeldByTouch && event.fingerId == heldFingerId):
-				isPressed = containsEvent(event);
+				isPressed = place.containsEvent(event);
 				event.handled = true;
 			case MouseButtonUp if (isHeldByMouse && event.mouseButton == MouseButton.Left):
 				release(event);
@@ -73,18 +81,18 @@ class Button extends Control {
 	}
 
 	override function draw():Void {
-		rect.x = Std.int(worldX);
-		rect.y = Std.int(worldY);
-		rect.width = Std.int(rectWidth);
-		rect.height = Std.int(rectHeight);
+		rect.x = Std.int(place.worldX);
+		rect.y = Std.int(place.worldY);
+		rect.width = Std.int(place.rectWidth);
+		rect.height = Std.int(place.rectHeight);
 		DrawQueue.submitFillRect(priority, rect, isPressed ? pressedColor : color);
 		DrawQueue.submitRect(priority, rect, borderColor);
 
 		if (font == null || label == null || label == "") {
 			return;
 		}
-		var drawnLabelWidth = Std.int(measuredLabelWidth() * worldScaleX);
-		var drawnLabelHeight = Std.int(font.lineHeight * worldScaleY);
+		var drawnLabelWidth = Std.int(measuredLabelWidth() * place.worldScaleX);
+		var drawnLabelHeight = Std.int(font.lineHeight * place.worldScaleY);
 		var labelX = rect.x + Std.int((rect.width - drawnLabelWidth) / 2);
 		var labelY = rect.y + Std.int((rect.height - drawnLabelHeight) / 2);
 		DrawQueue.submitText(priority, font, label, labelX, labelY, drawnLabelWidth, drawnLabelHeight, labelColor);
@@ -96,7 +104,7 @@ class Button extends Control {
 	}
 
 	function release(event:InputEvent):Void {
-		var isClick = containsEvent(event);
+		var isClick = place.containsEvent(event);
 		isHeldByMouse = false;
 		isHeldByTouch = false;
 		isPressed = false;

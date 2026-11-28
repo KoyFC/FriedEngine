@@ -21,7 +21,7 @@ class Physics {
 		while (position < count) {
 			var collider = all[cpp.NativeArray.unsafeGet(indices, position)];
 			position++;
-			if (collider.activeInTree && collider != ignore) {
+			if (collider.isOn && collider != ignore) {
 				return collider;
 			}
 		}
@@ -62,7 +62,7 @@ class Physics {
 		while (position < count) {
 			var other = all[cpp.NativeArray.unsafeGet(indices, position)];
 			position++;
-			if (other.activeInTree && other != ignore) {
+			if (other.isOn && other != ignore) {
 				return other;
 			}
 		}
@@ -85,7 +85,7 @@ class Physics {
 		while (position < count) {
 			var collider = all[cpp.NativeArray.unsafeGet(indices, position)];
 			position++;
-			if (collider.activeInTree && collider != ignore) {
+			if (collider.isOn && collider != ignore) {
 				results.push(collider);
 			}
 		}
@@ -118,7 +118,7 @@ class Physics {
 		while (cursor < count) {
 			var collider = list[cursor];
 			cursor++;
-			if (!collider.activeInTree || collider == ignore) {
+			if (!collider.isOn || collider == ignore) {
 				continue;
 			}
 			var entryDistance = 0.0;

@@ -5,9 +5,9 @@ import fried.graphics.DrawQueue;
 import fried.graphics.Font;
 import fried.graphics.TextLayout;
 
-// Text on the screen, in one color, which sizes its control.
+// Text on the screen, in one color, which sizes its RectTransform.
 @:serializable
-class Label extends Control {
+class Label extends Renderer2D {
 	public var font(default, set):Font;
 	public var text(default, set):String;
 	public var color:Color;
@@ -24,7 +24,7 @@ class Label extends Control {
 	var isMeasured:Bool;
 
 	public function new(font:Font = null, text:String = "", color:Color = null) {
-		super("Label");
+		super();
 		this.font = font;
 		this.text = text;
 		this.color = color != null ? color : Color.rgb(255, 255, 255);
@@ -33,19 +33,26 @@ class Label extends Control {
 		lineWidths = [];
 	}
 
+	var place:RectTransform;
+
+	override function awake():Void {
+		place = need(RectTransform);
+		place.sizeSource = this;
+	}
+
 	override function draw():Void {
 		if (font == null || text == null || text == "") {
 			return;
 		}
 		measure();
-		var lineHeight = font.lineHeight * worldScaleY;
-		var scaleX = worldScaleX;
+		var lineHeight = font.lineHeight * place.worldScaleY;
+		var scaleX = place.worldScaleX;
 		for (index in 0...lines.length) {
 			if (lines[index] == "") {
 				continue;
 			}
-			DrawQueue.submitText(priority, font, lines[index], worldX, worldY + index * lineHeight, lineWidths[index] * scaleX, lineHeight, color,
-				worldRotation);
+			DrawQueue.submitText(priority, font, lines[index], place.worldX, place.worldY + index * lineHeight, lineWidths[index] * scaleX, lineHeight, color,
+				place.worldRotation);
 		}
 	}
 
@@ -59,7 +66,9 @@ class Label extends Control {
 
 	function changed():Void {
 		isMeasured = false;
-		markWorldDirty();
+		if (place != null) {
+			place.markWorldDirty();
+		}
 	}
 
 	function set_font(value:Font):Font {
